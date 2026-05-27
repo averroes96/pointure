@@ -84,17 +84,44 @@ class CreateInvoiceSerializer(serializers.Serializer):
 
 
 class DeliveryNoteSerializer(serializers.ModelSerializer):
+    # Read-only denormalized fields for list/detail views
+    invoice_number = serializers.CharField(source="invoice.number", read_only=True)
+    client_name = serializers.CharField(source="invoice.client.name", read_only=True, default="")
+    invoice_total_ht = serializers.DecimalField(
+        source="invoice.total_ht", max_digits=12, decimal_places=2, read_only=True
+    )
+    invoice_total_ttc = serializers.DecimalField(
+        source="invoice.total_ttc", max_digits=12, decimal_places=2, read_only=True
+    )
+    invoice_date = serializers.DateField(source="invoice.date", read_only=True)
+
     class Meta:
         model = DeliveryNote
-        fields = ["id", "invoice", "number", "date", "delivered_by", "notes", "created_at"]
+        fields = [
+            "id", "invoice", "invoice_number", "invoice_date",
+            "client_name", "invoice_total_ht", "invoice_total_ttc",
+            "number", "date", "delivered_by", "notes", "created_at",
+        ]
         read_only_fields = ["id", "created_at"]
 
 
 class CreditNoteSerializer(serializers.ModelSerializer):
+    # Read-only denormalized fields for list/detail views
+    original_invoice_number = serializers.CharField(
+        source="original_invoice.number", read_only=True
+    )
+    client_name = serializers.CharField(
+        source="original_invoice.client.name", read_only=True, default=""
+    )
+    original_invoice_tva_rate = serializers.DecimalField(
+        source="original_invoice.tva_rate", max_digits=5, decimal_places=2, read_only=True
+    )
+
     class Meta:
         model = CreditNote
         fields = [
-            "id", "original_invoice", "number", "reason",
-            "total_ht", "tva_amount", "total_ttc", "date", "created_at",
+            "id", "original_invoice", "original_invoice_number",
+            "original_invoice_tva_rate", "client_name",
+            "number", "reason", "total_ht", "tva_amount", "total_ttc", "date", "created_at",
         ]
         read_only_fields = ["id", "created_at"]

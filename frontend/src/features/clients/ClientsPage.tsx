@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Plus, Search, AlertCircle, MessageCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Client } from "@/types";
 import { cn, whatsappLink } from "@/lib/utils";
@@ -28,10 +28,10 @@ export default function ClientsPage() {
           <h1 className="text-xl font-bold text-text-primary">{t("nav.client_list")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} clients</p>
         </div>
-        <button className="btn-primary">
+        <Link to="/clients/new" className="btn-primary">
           <Plus size={16} />
           {t("client.new")}
-        </button>
+        </Link>
       </div>
 
       {/* Search */}

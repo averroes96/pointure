@@ -22,11 +22,14 @@ const SalesHistoryPage = lazy(() => import("@/features/sales/SalesHistoryPage"))
 const InvoiceListPage = lazy(() => import("@/features/invoicing/InvoiceListPage"));
 const InvoiceBuilderPage = lazy(() => import("@/features/invoicing/InvoiceBuilderPage"));
 const DeliveryNotesPage = lazy(() => import("@/features/invoicing/DeliveryNotesPage"));
+const DeliveryNoteFormPage = lazy(() => import("@/features/invoicing/DeliveryNoteFormPage"));
 const CreditNotesPage = lazy(() => import("@/features/invoicing/CreditNotesPage"));
+const CreditNoteFormPage = lazy(() => import("@/features/invoicing/CreditNoteFormPage"));
 
 // Clients
 const ClientsPage = lazy(() => import("@/features/clients/ClientsPage"));
 const ClientDetailPage = lazy(() => import("@/features/clients/ClientDetailPage"));
+const ClientFormPage = lazy(() => import("@/features/clients/ClientFormPage"));
 const DebtAgeingPage = lazy(() => import("@/features/clients/DebtAgeingPage"));
 const ChequePage = lazy(() => import("@/features/clients/ChequePage"));
 
@@ -85,11 +88,11 @@ function AppRoutes() {
           </Route>
           <Route path="delivery-notes">
             <Route index element={<DeliveryNotesPage />} />
-            <Route path="new" element={<div className="text-text-muted p-4">Nouveau bon de livraison (bientôt)</div>} />
+            <Route path="new" element={<DeliveryNoteFormPage />} />
           </Route>
           <Route path="credit-notes">
             <Route index element={<CreditNotesPage />} />
-            <Route path="new" element={<div className="text-text-muted p-4">Nouvel avoir (bientôt)</div>} />
+            <Route path="new" element={<CreditNoteFormPage />} />
           </Route>
 
           {/* Inventory */}
@@ -105,7 +108,9 @@ function AppRoutes() {
           {/* Clients */}
           <Route path="clients">
             <Route index element={<ClientsPage />} />
+            <Route path="new" element={<ClientFormPage />} />
             <Route path=":id" element={<ClientDetailPage />} />
+            <Route path=":id/edit" element={<ClientFormPage />} />
             <Route path="ageing" element={<DebtAgeingPage />} />
           </Route>
           <Route path="cheques" element={<ChequePage />} />

@@ -10,7 +10,7 @@
  * Payment modal: POST /clients/clients/{id}/payment/
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,6 +27,7 @@ import {
   MapPin,
   Building2,
   X,
+  Pencil,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, ClientLedgerEntry, Cheque, Invoice } from "@/types";
@@ -849,6 +850,10 @@ export default function ClientDetailPage() {
                 WhatsApp
               </a>
             )}
+            <Link to={`/clients/${clientId}/edit`} className="btn-secondary">
+              <Pencil size={15} />
+              Modifier
+            </Link>
             <button onClick={() => setShowPaymentModal(true)} className="btn-primary">
               <CreditCard size={15} />
               Enregistrer paiement

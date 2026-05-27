@@ -214,6 +214,36 @@ export interface Cheque {
 
 export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "overdue" | "cancelled";
 
+export interface DeliveryNote {
+  id: number;
+  invoice: number;
+  invoice_number: string;
+  invoice_date: string;
+  client_name: string;
+  invoice_total_ht: string;
+  invoice_total_ttc: string;
+  number: string;
+  date: string;
+  delivered_by: string;
+  notes: string;
+  created_at: string;
+}
+
+export interface CreditNote {
+  id: number;
+  original_invoice: number;
+  original_invoice_number: string;
+  original_invoice_tva_rate: string;
+  client_name: string;
+  number: string;
+  reason: string;
+  total_ht: string;
+  tva_amount: string;
+  total_ttc: string;
+  date: string;
+  created_at: string;
+}
+
 export interface InvoiceLine {
   id: number;
   variant: number | null;
