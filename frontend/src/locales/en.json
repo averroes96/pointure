@@ -1,0 +1,69 @@
+{
+  "app": { "name": "ShoeDZ", "tagline": "Shoe Store Management" },
+  "nav": {
+    "dashboard": "Dashboard", "sales": "Sales", "new_sale": "New Sale",
+    "sale_history": "History", "invoicing": "Invoicing", "new_invoice": "New Invoice",
+    "invoice_list": "Invoices", "delivery_notes": "Delivery Notes", "credit_notes": "Credit Notes",
+    "inventory": "Inventory", "products": "Products", "stock_movements": "Movements",
+    "low_stock": "Low Stock", "clients": "Clients", "client_list": "Client List",
+    "debt_ageing": "Debt Ageing", "cheque_tracker": "Cheques", "suppliers": "Suppliers",
+    "reports": "Reports", "daily_report": "Daily Report", "sales_analytics": "Sales Analytics",
+    "stock_report": "Stock Report", "settings": "Settings"
+  },
+  "auth": {
+    "login": "Login", "logout": "Logout", "email": "Email", "password": "Password",
+    "remember_me": "Remember me", "forgot_password": "Forgot password?",
+    "sign_in": "Sign In", "signing_in": "Signing in...",
+    "invalid_credentials": "Invalid email or password", "welcome": "Welcome to ShoeDZ"
+  },
+  "dashboard": {
+    "today_revenue": "Today's Revenue", "outstanding_debt": "Outstanding Debt",
+    "low_stock": "Low Stock SKUs", "cheques_due": "Cheques Due",
+    "recent_sales": "Recent Sales", "revenue_chart": "Revenue Trend", "best_sellers": "Best Sellers"
+  },
+  "invoice": {
+    "new": "New Invoice", "number": "Invoice #", "client": "Client", "date": "Date",
+    "due_date": "Due Date", "status": "Status", "total_ht": "Total (excl. VAT)",
+    "tva": "VAT", "total_ttc": "Total (incl. VAT)", "paid": "Paid",
+    "balance_due": "Balance Due", "notes": "Notes", "preview_pdf": "Preview PDF",
+    "download_pdf": "Download PDF", "share_whatsapp": "Share via WhatsApp",
+    "confirm": "Confirm", "record_payment": "Record Payment",
+    "status_draft": "Draft", "status_sent": "Sent", "status_partial": "Partial",
+    "status_paid": "Paid", "status_overdue": "Overdue", "status_cancelled": "Cancelled"
+  },
+  "client": {
+    "new": "New Client", "name": "Name", "phone": "Phone", "wilaya": "Wilaya",
+    "credit_limit": "Credit Limit", "balance": "Balance", "over_limit": "Over Limit",
+    "ledger": "Account Statement", "cheques": "Cheques", "record_payment": "Record Payment"
+  },
+  "inventory": {
+    "product": "Product", "brand": "Brand", "category": "Category", "size": "EU Size",
+    "colour": "Colour", "stock": "Stock", "sale_price": "Sale Price",
+    "purchase_price": "Purchase Price", "barcode": "Barcode",
+    "low_stock": "Low Stock", "out_of_stock": "Out of Stock",
+    "generate_variants": "Generate Variants", "adjust_stock": "Adjust Stock"
+  },
+  "sales": {
+    "search_product": "Search product or scan barcode...", "cart": "Cart",
+    "total": "Total", "discount": "Discount", "payment": "Payment",
+    "cash": "Cash", "cheque": "Cheque", "ccp": "CCP", "virement": "Wire Transfer",
+    "confirm_sale": "Confirm Sale", "receipt": "Receipt",
+    "print": "Print", "share_whatsapp": "Share via WhatsApp"
+  },
+  "cheque": {
+    "number": "Cheque #", "bank": "Bank", "amount": "Amount",
+    "due_date": "Due Date", "status": "Status",
+    "mark_deposited": "Mark Deposited", "mark_bounced": "Mark Bounced", "days_until_due": "days"
+  },
+  "common": {
+    "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
+    "search": "Search", "filter": "Filter", "export": "Export", "print": "Print",
+    "loading": "Loading...", "no_data": "No data", "confirm_delete": "Confirm Delete",
+    "yes": "Yes", "no": "No", "close": "Close", "back": "Back", "next": "Next",
+    "previous": "Previous", "all": "All", "active": "Active", "inactive": "Inactive",
+    "dzd": "DZD", "from": "From", "to": "To", "date": "Date", "notes": "Notes",
+    "actions": "Actions", "view": "View", "new": "New", "status": "Status",
+    "total": "Total", "error": "Error", "success": "Success", "warning": "Warning",
+    "required": "Required"
+  }
+}

@@ -1,0 +1,142 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+
+// Lazy-loaded pages
+const LoginPage = lazy(() => import("@/features/auth/LoginPage"));
+const DashboardPage = lazy(() => import("@/features/dashboard/DashboardPage"));
+
+// Inventory
+const ProductsPage = lazy(() => import("@/features/inventory/ProductsPage"));
+const ProductDetailPage = lazy(() => import("@/features/inventory/ProductDetailPage"));
+const ProductFormPage = lazy(() => import("@/features/inventory/ProductFormPage"));
+const StockMovementsPage = lazy(() => import("@/features/inventory/StockMovementsPage"));
+const LowStockPage = lazy(() => import("@/features/inventory/LowStockPage"));
+
+// Sales
+const SalesPage = lazy(() => import("@/features/sales/SalesPage"));
+const SalesHistoryPage = lazy(() => import("@/features/sales/SalesHistoryPage"));
+
+// Invoicing
+const InvoiceListPage = lazy(() => import("@/features/invoicing/InvoiceListPage"));
+const InvoiceBuilderPage = lazy(() => import("@/features/invoicing/InvoiceBuilderPage"));
+const DeliveryNotesPage = lazy(() => import("@/features/invoicing/DeliveryNotesPage"));
+const CreditNotesPage = lazy(() => import("@/features/invoicing/CreditNotesPage"));
+
+// Clients
+const ClientsPage = lazy(() => import("@/features/clients/ClientsPage"));
+const ClientDetailPage = lazy(() => import("@/features/clients/ClientDetailPage"));
+const DebtAgeingPage = lazy(() => import("@/features/clients/DebtAgeingPage"));
+const ChequePage = lazy(() => import("@/features/clients/ChequePage"));
+
+// Suppliers
+const SuppliersPage = lazy(() => import("@/features/suppliers/SuppliersPage"));
+
+// Reports
+const DailyReportPage = lazy(() => import("@/features/reports/DailyReportPage"));
+const SalesReportPage = lazy(() => import("@/features/reports/SalesReportPage"));
+const StockReportPage = lazy(() => import("@/features/reports/StockReportPage"));
+
+// Settings
+const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-text-muted text-sm">Chargement...</div>
+    </div>
+  );
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <PageFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+
+          {/* Sales */}
+          <Route path="sales">
+            <Route index element={<SalesHistoryPage />} />
+            <Route path="new" element={<SalesPage />} />
+          </Route>
+
+          {/* Invoicing */}
+          <Route path="invoices">
+            <Route index element={<InvoiceListPage />} />
+            <Route path="new" element={<InvoiceBuilderPage />} />
+          </Route>
+          <Route path="delivery-notes">
+            <Route index element={<DeliveryNotesPage />} />
+            <Route path="new" element={<div className="text-text-muted p-4">Nouveau bon de livraison (bientôt)</div>} />
+          </Route>
+          <Route path="credit-notes">
+            <Route index element={<CreditNotesPage />} />
+            <Route path="new" element={<div className="text-text-muted p-4">Nouvel avoir (bientôt)</div>} />
+          </Route>
+
+          {/* Inventory */}
+          <Route path="inventory">
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="products/new" element={<ProductFormPage />} />
+            <Route path="products/:id" element={<ProductDetailPage />} />
+            <Route path="products/:id/edit" element={<ProductFormPage />} />
+            <Route path="movements" element={<StockMovementsPage />} />
+            <Route path="low-stock" element={<LowStockPage />} />
+          </Route>
+
+          {/* Clients */}
+          <Route path="clients">
+            <Route index element={<ClientsPage />} />
+            <Route path=":id" element={<ClientDetailPage />} />
+            <Route path="ageing" element={<DebtAgeingPage />} />
+          </Route>
+          <Route path="cheques" element={<ChequePage />} />
+
+          {/* Suppliers */}
+          <Route path="suppliers" element={<SuppliersPage />} />
+
+          {/* Reports */}
+          <Route path="reports">
+            <Route path="daily" element={<DailyReportPage />} />
+            <Route path="sales" element={<SalesReportPage />} />
+            <Route path="stock" element={<StockReportPage />} />
+          </Route>
+
+          {/* Settings */}
+          <Route path="settings" element={<SettingsPage />} />
+
+          {/* 404 */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
