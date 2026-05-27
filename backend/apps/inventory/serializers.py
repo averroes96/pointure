@@ -1,0 +1,130 @@
+"""Inventory serializers."""
+from decimal import Decimal
+
+from rest_framework import serializers
+
+from apps.core.models import RoleChoices
+from .models import Product, StockMovement, StockTransfer, Variant
+
+
+class VariantSerializer(serializers.ModelSerializer):
+    is_low_stock = serializers.BooleanField(read_only=True)
+    is_out_of_stock = serializers.BooleanField(read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sale_price = serializers.DecimalField(
+        source="product.sale_price", max_digits=12, decimal_places=2, read_only=True
+    )
+
+    class Meta:
+        model = Variant
+        fields = [
+            "id", "product", "product_name", "product_sale_price",
+            "size_eu", "colour", "barcode",
+            "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
+        ]
+        read_only_fields = ["id", "barcode", "stock_qty"]
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    variants = VariantSerializer(many=True, read_only=True)
+    total_stock = serializers.IntegerField(read_only=True)
+    has_low_stock = serializers.BooleanField(read_only=True)
+    margin_pct = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "brand", "reference", "category", "gender", "season",
+            "purchase_price", "sale_price", "margin_pct", "image", "description",
+            "is_active", "total_stock", "has_low_stock", "variants", "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        # Hide purchase price and margin from cashiers
+        if request and not request.user.can_see_costs:
+            data.pop("purchase_price", None)
+            data.pop("margin_pct", None)
+        return data
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    """
+    List serializer — includes variants so the POS search can show size/colour
+    grid immediately without a second fetch. The queryset already prefetches
+    variants so this adds zero extra DB queries.
+    """
+    total_stock = serializers.IntegerField(read_only=True)
+    has_low_stock = serializers.BooleanField(read_only=True)
+    variants = VariantSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "brand", "reference", "category", "gender",
+            "sale_price", "purchase_price", "total_stock", "has_low_stock",
+            "image", "is_active", "variants",
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and not request.user.can_see_costs:
+            data.pop("purchase_price", None)
+        return data
+
+
+class GenerateVariantsSerializer(serializers.Serializer):
+    """Input for the bulk variant generation endpoint."""
+    sizes = serializers.ListField(
+        child=serializers.IntegerField(min_value=28, max_value=47),
+        min_length=1, max_length=20,
+    )
+    colours = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        min_length=1, max_length=20,
+    )
+    alert_threshold = serializers.IntegerField(default=3, min_value=0)
+
+
+class StockMovementSerializer(serializers.ModelSerializer):
+    variant_str = serializers.CharField(source="variant.__str__", read_only=True)
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
+
+    class Meta:
+        model = StockMovement
+        fields = [
+            "id", "variant", "variant_str", "branch", "branch_name",
+            "quantity_delta", "reason", "reference_id", "reference_type",
+            "notes", "user_email", "timestamp",
+        ]
+        read_only_fields = ["id", "timestamp", "user_email"]
+
+
+class StockAdjustmentSerializer(serializers.Serializer):
+    """Input for manual stock adjustment."""
+    variant = serializers.PrimaryKeyRelatedField(queryset=Variant.objects.all())
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=__import__("apps.core.models", fromlist=["Branch"]).Branch.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    quantity_delta = serializers.IntegerField()
+    reason = serializers.ChoiceField(
+        choices=["adjustment", "damaged", "return", "initial", "reception"]
+    )
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class StockTransferSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StockTransfer
+        fields = [
+            "id", "from_branch", "to_branch", "variant", "quantity",
+            "status", "notes", "created_by", "received_by",
+            "created_at", "received_at",
+        ]
+        read_only_fields = ["id", "created_at", "received_at", "created_by", "received_by", "status"]

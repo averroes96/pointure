@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default:'fr' }}" dir="{{ dir|default:'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}ShoeDZ{% endblock %}</title>
+<style>
+  /* ── Base Reset ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: {% if dir == 'rtl' %}'Noto Naskh Arabic', 'Noto Sans', {% endif %}'Noto Sans', Arial, sans-serif;
+    font-size: 10pt;
+    color: #1A202C;
+    line-height: 1.4;
+    direction: {{ dir|default:'ltr' }};
+  }
+
+  /* ── Page Setup ── */
+  @page {
+    size: A4;
+    margin: 15mm 15mm 20mm 15mm;
+    @bottom-center {
+      content: "Page " counter(page) " / " counter(pages);
+      font-size: 8pt;
+      color: #64748B;
+    }
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #1A4A8A;
+    padding-bottom: 8mm;
+    margin-bottom: 6mm;
+  }
+
+  .company-name {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #1A4A8A;
+  }
+
+  .company-details {
+    font-size: 8pt;
+    color: #64748B;
+    line-height: 1.5;
+  }
+
+  .doc-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #1A4A8A;
+    text-align: {% if dir == 'rtl' %}left{% else %}right{% endif %};
+  }
+
+  .doc-meta {
+    font-size: 9pt;
+    text-align: {% if dir == 'rtl' %}left{% else %}right{% endif %};
+    color: #64748B;
+    line-height: 1.6;
+  }
+
+  /* ── Client Block ── */
+  .parties {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6mm;
+    gap: 10mm;
+  }
+
+  .party-block {
+    flex: 1;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    padding: 4mm;
+  }
+
+  .party-label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    color: #64748B;
+    letter-spacing: 0.5px;
+    margin-bottom: 2mm;
+    font-weight: 600;
+  }
+
+  .party-name {
+    font-size: 11pt;
+    font-weight: 700;
+    margin-bottom: 1mm;
+  }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6mm;
+    font-size: 9pt;
+  }
+
+  thead {
+    background-color: #1A4A8A;
+    color: white;
+  }
+
+  thead th {
+    padding: 2.5mm 3mm;
+    text-align: {% if dir == 'rtl' %}right{% else %}left{% endif %};
+    font-weight: 600;
+  }
+
+  thead th.num { text-align: {% if dir == 'rtl' %}left{% else %}right{% endif %}; }
+
+  tbody tr:nth-child(even) { background-color: #F8F9FC; }
+
+  tbody td {
+    padding: 2mm 3mm;
+    border-bottom: 1px solid #E2E8F0;
+    vertical-align: middle;
+  }
+
+  td.num {
+    text-align: {% if dir == 'rtl' %}left{% else %}right{% endif %};
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Totals ── */
+  .totals-block {
+    margin-left: auto;
+    width: 70mm;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2mm 4mm;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 9pt;
+  }
+
+  .totals-row:last-child {
+    background-color: #1A4A8A;
+    color: white;
+    font-weight: 700;
+    font-size: 10pt;
+    border-bottom: none;
+  }
+
+  .totals-row .label { color: inherit; }
+  .totals-row .value { font-variant-numeric: tabular-nums; }
+
+  /* ── Footer ── */
+  .footer {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 3mm;
+    font-size: 8pt;
+    color: #64748B;
+    text-align: center;
+  }
+
+  /* ── Status Badge ── */
+  .status-badge {
+    display: inline-block;
+    padding: 1mm 3mm;
+    border-radius: 3px;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .status-paid { background: #E8F5E9; color: #1B5E20; }
+  .status-sent { background: #E3F2FD; color: #0D47A1; }
+  .status-overdue { background: #FFEBEE; color: #CC0000; }
+  .status-draft { background: #FFF9C4; color: #E65100; }
+
+  .notes-section {
+    margin-top: 6mm;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    padding: 3mm 4mm;
+    font-size: 9pt;
+    color: #64748B;
+  }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

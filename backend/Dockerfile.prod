@@ -1,0 +1,32 @@
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    fonts-noto \
+    fonts-noto-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . .
+
+RUN python manage.py collectstatic --no-input --settings=config.settings.production || true
+
+RUN addgroup --system django && adduser --system --ingroup django django
+RUN chown -R django:django /app
+USER django
+
+EXPOSE 8000

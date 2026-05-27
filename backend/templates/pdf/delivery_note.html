@@ -1,0 +1,83 @@
+{% extends "pdf/base.html" %}
+{% load i18n %}
+
+{% block title %}Bon de Livraison {{ dn.number }}{% endblock %}
+
+{% block content %}
+<div class="header">
+  <div>
+    <div class="company-name">{{ tenant.name }}</div>
+    <div class="company-details">
+      {% if tenant.nif %}NIF: {{ tenant.nif }}{% endif %}
+      {% if tenant.rc %} &nbsp;|&nbsp; RC: {{ tenant.rc }}{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="doc-title">BON DE LIVRAISON / وصل التسليم</div>
+    <div class="doc-meta">
+      <strong>N° {{ dn.number }}</strong><br>
+      Date: {{ dn.date|date:"d/m/Y" }}<br>
+      Facture: {{ invoice.number }}
+    </div>
+  </div>
+</div>
+
+<div class="parties">
+  <div class="party-block">
+    <div class="party-label">Fournisseur</div>
+    <div class="party-name">{{ tenant.name }}</div>
+  </div>
+  {% if invoice.client %}
+  <div class="party-block">
+    <div class="party-label">Destinataire</div>
+    <div class="party-name">{{ invoice.client.name }}</div>
+    {% if invoice.client.address %}<div>{{ invoice.client.address }}</div>{% endif %}
+    {% if invoice.client.phone %}<div>{{ invoice.client.phone }}</div>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Désignation</th>
+      <th>Référence</th>
+      <th class="num">Quantité</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ line.description }}</td>
+      <td>{% if line.variant %}{{ line.variant.barcode }}{% endif %}</td>
+      <td class="num">{{ line.quantity }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if dn.delivered_by %}
+<div style="margin-top: 8mm; font-size: 9pt;">
+  <strong>Livré par:</strong> {{ dn.delivered_by }}
+</div>
+{% endif %}
+
+<div style="margin-top: 12mm; display: flex; justify-content: space-between;">
+  <div style="width: 45%; text-align: center;">
+    <div style="border-top: 1px solid #000; padding-top: 2mm; font-size: 8pt;">
+      Signature du livreur
+    </div>
+  </div>
+  <div style="width: 45%; text-align: center;">
+    <div style="border-top: 1px solid #000; padding-top: 2mm; font-size: 8pt;">
+      Cachet et signature du client
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  {{ tenant.name }} &mdash; Bon de Livraison N° {{ dn.number }}
+</div>
+{% endblock %}
