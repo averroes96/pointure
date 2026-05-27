@@ -216,3 +216,53 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── Node / Frontend ──────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite
+.vite/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+
+# Testing
+/coverage/
+/playwright-report/
+/test-results/
+
+# Package manager locks (keep package-lock.json or yarn.lock but not both)
+# yarn.lock
+# pnpm-lock.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Docker volumes
+postgres-data/
+redis-data/
+media/
+staticfiles/
+
+# WeasyPrint / PDF cache
+*.pdf
+backend/media/
+backend/staticfiles/
