@@ -12,6 +12,7 @@ const ProductsPage = lazy(() => import("@/features/inventory/ProductsPage"));
 const ProductDetailPage = lazy(() => import("@/features/inventory/ProductDetailPage"));
 const ProductFormPage = lazy(() => import("@/features/inventory/ProductFormPage"));
 const StockMovementsPage = lazy(() => import("@/features/inventory/StockMovementsPage"));
+const StockTransferPage = lazy(() => import("@/features/inventory/StockTransferPage"));
 const LowStockPage = lazy(() => import("@/features/inventory/LowStockPage"));
 
 // Sales
@@ -35,6 +36,10 @@ const ChequePage = lazy(() => import("@/features/clients/ChequePage"));
 
 // Suppliers
 const SuppliersPage = lazy(() => import("@/features/suppliers/SuppliersPage"));
+const SupplierDetailPage = lazy(() => import("@/features/suppliers/SupplierDetailPage"));
+const PurchaseOrderListPage = lazy(() => import("@/features/suppliers/PurchaseOrderListPage"));
+const PurchaseOrderFormPage = lazy(() => import("@/features/suppliers/PurchaseOrderFormPage"));
+const PurchaseOrderDetailPage = lazy(() => import("@/features/suppliers/PurchaseOrderDetailPage"));
 
 // Reports
 const DailyReportPage = lazy(() => import("@/features/reports/DailyReportPage"));
@@ -102,6 +107,7 @@ function AppRoutes() {
             <Route path="products/:id" element={<ProductDetailPage />} />
             <Route path="products/:id/edit" element={<ProductFormPage />} />
             <Route path="movements" element={<StockMovementsPage />} />
+            <Route path="transfers" element={<StockTransferPage />} />
             <Route path="low-stock" element={<LowStockPage />} />
           </Route>
 
@@ -116,7 +122,17 @@ function AppRoutes() {
           <Route path="cheques" element={<ChequePage />} />
 
           {/* Suppliers */}
-          <Route path="suppliers" element={<SuppliersPage />} />
+          <Route path="suppliers">
+            <Route index element={<SuppliersPage />} />
+            <Route path=":id" element={<SupplierDetailPage />} />
+          </Route>
+
+          {/* Purchase Orders */}
+          <Route path="purchase-orders">
+            <Route index element={<PurchaseOrderListPage />} />
+            <Route path="new" element={<PurchaseOrderFormPage />} />
+            <Route path=":id" element={<PurchaseOrderDetailPage />} />
+          </Route>
 
           {/* Reports */}
           <Route path="reports">

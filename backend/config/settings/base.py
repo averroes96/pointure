@@ -3,8 +3,10 @@ ShoeDZ — Base Django Settings
 Shared across all environments. Never use directly — import from development.py or production.py.
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
+from celery.schedules import crontab
 from decouple import config, Csv
 
 # ─────────────────────────────────────────────
@@ -230,6 +232,30 @@ CELERY_TASK_ROUTES = {
     "apps.notifications.tasks.*": {"queue": "notifications"},
 }
 
+# Periodic tasks — all times interpreted in CELERY_TIMEZONE (Africa/Algiers).
+# With DatabaseScheduler these are seeded into the DB on first startup and can
+# be overridden later via Django admin without a redeploy.
+CELERY_BEAT_SCHEDULE = {
+    # Flag invoices past their due date as "overdue" — must run before business opens.
+    "flag-overdue-invoices": {
+        "task": "apps.notifications.tasks.flag_overdue_invoices",
+        "schedule": crontab(hour=7, minute=0),          # 07:00 daily
+        "options": {"queue": "notifications"},
+    },
+    # Notify owners of cheques maturing within 3 days.
+    "check-cheque-due-dates": {
+        "task": "apps.notifications.tasks.check_cheque_due_dates",
+        "schedule": crontab(hour=8, minute=0),          # 08:00 daily
+        "options": {"queue": "notifications"},
+    },
+    # Low-stock sweep — runs four times a day; task deduplicates within 24 h.
+    "check-low-stock": {
+        "task": "apps.notifications.tasks.check_low_stock",
+        "schedule": timedelta(hours=6),                  # every 6 hours
+        "options": {"queue": "notifications"},
+    },
+}
+
 # ─────────────────────────────────────────────
 # Cache
 # ─────────────────────────────────────────────
@@ -243,15 +269,33 @@ CACHES = {
 # ─────────────────────────────────────────────
 # Email
 # ─────────────────────────────────────────────
+# Development default: print to console so no SMTP server is needed locally.
+# Override EMAIL_BACKEND to smtp.EmailBackend (or any other) via .env / env vars.
 EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
 )
 EMAIL_HOST = config("EMAIL_HOST", default="localhost")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)   # seconds; avoids hanging
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@shodz.dz")
+# Address that appears in the "From" header of server error emails sent to ADMINS.
+SERVER_EMAIL = config("SERVER_EMAIL", default="errors@shodz.dz")
+EMAIL_SUBJECT_PREFIX = config("EMAIL_SUBJECT_PREFIX", default="[ShoeDZ] ")
+
+# Comma-separated "Name <email>" pairs read from the environment, e.g.:
+#   DJANGO_ADMINS=Alice <alice@example.com>,Bob <bob@example.com>
+_raw_admins = config("DJANGO_ADMINS", default="")
+ADMINS = [
+    (part.split("<")[0].strip(), part.split("<")[1].rstrip(">").strip())
+    for part in _raw_admins.split(",")
+    if "<" in part
+]
+MANAGERS = ADMINS
 
 # ─────────────────────────────────────────────
 # CORS

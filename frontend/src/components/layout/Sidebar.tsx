@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, ClipboardList, PieChart, CalendarDays, BarChart,
-  Settings, ChevronDown, ChevronRight,
+  Settings, ChevronDown, ChevronRight, ShoppingBag, ArrowLeftRight,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,8 @@ interface NavSection {
 
 interface NavItem {
   to: string;
-  labelKey: string;
+  labelKey?: string;
+  label?: string;
   icon: React.FC<{ size?: number }>;
   managerOnly?: boolean;
 }
@@ -58,6 +59,7 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/inventory/products", labelKey: "nav.products", icon: Package },
         { to: "/inventory/movements", labelKey: "nav.stock_movements", icon: BarChart2, managerOnly: true },
+        { to: "/inventory/transfers", label: "Transferts", icon: ArrowLeftRight, managerOnly: true },
         { to: "/inventory/low-stock", labelKey: "nav.low_stock", icon: AlertTriangle },
       ],
     },
@@ -75,6 +77,7 @@ function useNavSections(): NavSection[] {
       label: t("nav.suppliers"),
       items: [
         { to: "/suppliers", labelKey: "nav.suppliers", icon: Factory, managerOnly: true },
+        { to: "/purchase-orders", label: "Commandes d'achat", icon: ShoppingBag, managerOnly: true },
       ],
     },
     {
@@ -136,7 +139,7 @@ export default function Sidebar() {
                   }
                 >
                   <item.icon size={16} />
-                  <span className="text-sm">{t(item.labelKey)}</span>
+                  <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>
                 </NavLink>
               ))}
           </div>

@@ -120,11 +120,26 @@ class StockAdjustmentSerializer(serializers.Serializer):
 
 
 class StockTransferSerializer(serializers.ModelSerializer):
+    # Denormalized read-only fields so the frontend never needs a second fetch
+    from_branch_name = serializers.CharField(source="from_branch.name", read_only=True)
+    to_branch_name = serializers.CharField(source="to_branch.name", read_only=True)
+    variant_str = serializers.CharField(source="variant.__str__", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True, default="")
+
     class Meta:
         model = StockTransfer
         fields = [
-            "id", "from_branch", "to_branch", "variant", "quantity",
-            "status", "notes", "created_by", "received_by",
+            "id",
+            "from_branch", "from_branch_name",
+            "to_branch", "to_branch_name",
+            "variant", "variant_str", "product_name",
+            "quantity", "status", "notes",
+            "created_by", "created_by_email",
+            "received_by",
             "created_at", "received_at",
         ]
-        read_only_fields = ["id", "created_at", "received_at", "created_by", "received_by", "status"]
+        read_only_fields = [
+            "id", "created_at", "received_at",
+            "created_by", "received_by", "status",
+        ]

@@ -112,6 +112,27 @@ export interface StockMovement {
   timestamp: string;
 }
 
+export type TransferStatus = "pending" | "in_transit" | "received" | "cancelled";
+
+export interface StockTransfer {
+  id: number;
+  from_branch: number;
+  from_branch_name: string;
+  to_branch: number;
+  to_branch_name: string;
+  variant: number;
+  variant_str: string;
+  product_name: string;
+  quantity: number;
+  status: TransferStatus;
+  notes: string;
+  created_by: number | null;
+  created_by_email: string;
+  received_by: number | null;
+  created_at: string;
+  received_at: string | null;
+}
+
 // ─────────────────────────────────────────────
 // Sales
 // ─────────────────────────────────────────────
@@ -299,9 +320,68 @@ export interface Supplier {
   contact_name: string;
   phone: string;
   email: string;
+  address: string;
   origin_country: string;
+  payment_terms: string;
   outstanding_balance: string;
+  notes: string;
   is_active: boolean;
+  created_at: string;
+}
+
+export interface POLine {
+  id: number;
+  variant: number | null;
+  description: string;
+  quantity_ordered: number;
+  quantity_received: number;
+  agreed_unit_price: string;
+  line_total: string;
+}
+
+export type POStatus = "draft" | "sent" | "partial" | "received" | "cancelled";
+
+export interface PurchaseOrder {
+  id: number;
+  supplier: number;
+  supplier_name: string;
+  status: POStatus;
+  expected_date: string | null;
+  reference: string;
+  notes: string;
+  total_amount: string;
+  created_by: number | null;
+  lines: POLine[];
+  created_at: string;
+}
+
+export interface SupplierInvoice {
+  id: number;
+  supplier: number;
+  supplier_name: string;
+  purchase_order: number | null;
+  invoice_number: string;
+  date: string;
+  due_date: string;
+  total_amount: string;
+  notes: string;
+  created_at: string;
+}
+
+export interface SupplierPayment {
+  id: number;
+  supplier: number;
+  supplier_name: string;
+  supplier_invoice: number | null;
+  amount: string;
+  method: "cash" | "cheque" | "virement";
+  cheque_number: string;
+  bank: string;
+  due_date: string | null;
+  date: string;
+  notes: string;
+  recorded_by: number | null;
+  created_at: string;
 }
 
 // ─────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, X, Check, Pencil } from "lucide-react";
+import { Plus, Search, X, Check, Pencil, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier } from "@/types";
 import { cn } from "@/lib/utils";
@@ -364,13 +365,21 @@ export default function SuppliersPage() {
                       </span>
                     </td>
                     <td>
-                      <button
-                        onClick={() => setEditingId(supplier.id)}
-                        className="btn-ghost btn-sm text-primary-500"
-                      >
-                        <Pencil size={13} />
-                        Modifier
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          to={`/suppliers/${supplier.id}`}
+                          className="btn-ghost btn-sm text-primary-500"
+                        >
+                          <Eye size={13} />
+                          Voir
+                        </Link>
+                        <button
+                          onClick={() => setEditingId(supplier.id)}
+                          className="btn-ghost btn-sm text-text-muted"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

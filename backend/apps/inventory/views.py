@@ -154,27 +154,56 @@ class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewS
 
 
 class StockTransferViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    queryset = StockTransfer.objects.select_related("from_branch", "to_branch", "variant", "created_by")
+    queryset = StockTransfer.objects.select_related(
+        "from_branch", "to_branch", "variant__product", "created_by", "received_by"
+    )
     serializer_class = StockTransferSerializer
     filterset_fields = ["status", "from_branch", "to_branch"]
+    search_fields = ["variant__product__name", "from_branch__name", "to_branch__name"]
 
     def perform_create(self, serializer):
         self.require_manager()
         serializer.save(tenant=self.request.tenant, created_by=self.request.user)
 
-    @action(detail=True, methods=["post"], url_path="receive")
-    def receive(self, request, pk=None):
-        """Mark transfer as received and create stock movements."""
+    @action(detail=True, methods=["post"], url_path="dispatch")
+    def dispatch_transfer(self, request, pk=None):
+        """Mark a pending transfer as in_transit (goods have left the source branch)."""
         self.require_manager()
         transfer = self.get_object()
-
         if transfer.status != "pending":
             return Response(
-                {"error": {"code": "invalid_state", "message": "Transfer is not in pending state."}},
+                {"detail": "Seul un transfert en attente peut être expédié."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        transfer.status = "in_transit"
+        transfer.save(update_fields=["status"])
+        return Response(StockTransferSerializer(transfer).data)
 
+    @action(detail=True, methods=["post"], url_path="receive")
+    def receive(self, request, pk=None):
+        """Confirm receipt: create stock movements and mark transfer as received."""
+        self.require_manager()
+        transfer = self.get_object()
+        if transfer.status not in ("pending", "in_transit"):
+            return Response(
+                {"detail": "Seul un transfert en attente ou en transit peut être réceptionné."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         transfer.mark_received(request.user)
+        return Response(StockTransferSerializer(transfer).data)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        """Cancel a transfer that hasn't been received yet."""
+        self.require_manager()
+        transfer = self.get_object()
+        if transfer.status in ("received", "cancelled"):
+            return Response(
+                {"detail": "Ce transfert ne peut plus être annulé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        transfer.status = "cancelled"
+        transfer.save(update_fields=["status"])
         return Response(StockTransferSerializer(transfer).data)
 
 
