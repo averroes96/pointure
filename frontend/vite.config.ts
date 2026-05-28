@@ -1,8 +1,21 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: "happy-dom",
+    setupFiles: ["./src/__tests__/setup.ts"],
+    css: false,
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["node_modules", "dist"],
+    coverage: {
+      reporter: ["text", "lcov"],
+      exclude: ["src/__tests__/setup.ts", "src/main.tsx"],
+    },
+  },
   plugins: [react()],
   resolve: {
     alias: {
