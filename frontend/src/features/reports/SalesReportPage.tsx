@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import type { Branch } from "@/types";
 import type { PaginatedResponse } from "@/lib/api";
+import { useAuth } from "@/features/auth/AuthContext";
 
 interface SalesPeriodRow {
   period: string;
@@ -26,6 +27,26 @@ interface SalesReportResponse {
   total_revenue: string;
   total_sales: number;
   growth_pct: number | null;
+}
+
+interface ProfitLossRow {
+  period: string;
+  revenue: string;
+  sale_count: number;
+  cogs: string;
+  gross_margin: string;
+  gross_margin_pct: string;
+}
+
+interface ProfitLossResponse {
+  rows: ProfitLossRow[];
+  totals: {
+    revenue: string;
+    sale_count: number;
+    cogs: string;
+    gross_margin: string;
+    gross_margin_pct: string;
+  };
 }
 
 type PeriodPreset = "7" | "30" | "90" | "custom";
@@ -79,6 +100,10 @@ export default function SalesReportPage() {
   const [customFrom, setCustomFrom] = useState(subtractDays(30));
   const [customTo, setCustomTo] = useState(todayISO());
   const [branchId, setBranchId] = useState("");
+  const [showMargin, setShowMargin] = useState(false);
+
+  const { user } = useAuth();
+  const isManagerOrOwner = user?.role === "manager" || user?.role === "owner";
 
   const { data: branchesData } = useQuery<PaginatedResponse<Branch>>({
     queryKey: ["branches"],
@@ -105,8 +130,20 @@ export default function SalesReportPage() {
       api.get(`/reports/sales-by-period/?${queryParams()}`).then((r) => r.data),
   });
 
+  const { data: plData, isLoading: plLoading } = useQuery<ProfitLossResponse>({
+    queryKey: ["reports", "profit-loss", { preset, customFrom, customTo, branchId }],
+    queryFn: () =>
+      api.get(`/reports/profit-loss/?${queryParams()}`).then((r) => r.data),
+    enabled: showMargin && isManagerOrOwner,
+  });
+
   const rows = data?.rows ?? [];
   const topProducts = data?.top_products ?? [];
+  const plRows = plData?.rows ?? [];
+
+  // Merge P&L rows into a map keyed by period
+  const plMap = new Map<string, ProfitLossRow>();
+  plRows.forEach((r) => plMap.set(r.period, r));
 
   // Find max revenue for bar chart scale
   const maxRevenue = rows.reduce((max, row) => {
@@ -121,12 +158,58 @@ export default function SalesReportPage() {
     custom: "Période personnalisée",
   };
 
+  const handleExportCSV = () => {
+    const headers = showMargin && isManagerOrOwner
+      ? ["Date", "CA", "Nb ventes", "Panier moyen", "Coût ventes", "Marge brute", "Marge %"]
+      : ["Date", "CA", "Nb ventes", "Panier moyen"];
+
+    const csvRows = rows.map((row) => {
+      const pl = plMap.get(row.period);
+      const base = [
+        formatPeriodLabel(row.period),
+        row.revenue,
+        String(row.sale_count),
+        row.avg_basket,
+      ];
+      if (showMargin && isManagerOrOwner && pl) {
+        return [...base, pl.cogs, pl.gross_margin, pl.gross_margin_pct];
+      }
+      return base;
+    });
+
+    const csv = [headers, ...csvRows].map((r) => r.join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rapport-ventes-${todayISO()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const activeLoading = isLoading || (showMargin && isManagerOrOwner && plLoading);
+
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-text-primary">Analytique des ventes</h1>
-        <p className="text-sm text-text-muted">Évolution du chiffre d'affaires</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-text-primary">Analytique des ventes</h1>
+          <p className="text-sm text-text-muted">Évolution du chiffre d'affaires</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isManagerOrOwner && (
+            <button
+              onClick={() => setShowMargin((v) => !v)}
+              className={showMargin ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+            >
+              {showMargin ? "Masquer marges" : "Afficher marges"}
+            </button>
+          )}
+          <button onClick={handleExportCSV} className="btn-secondary btn-sm">
+            Exporter CSV
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -194,6 +277,35 @@ export default function SalesReportPage() {
         </div>
       </div>
 
+      {/* P&L KPI cards (when margin is shown) */}
+      {showMargin && isManagerOrOwner && plData && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="kpi-card">
+            <div className="kpi-card__label">CA Total</div>
+            <div className="kpi-card__value text-primary-600">
+              {formatDZD(plData.totals.revenue)} DZD
+            </div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__label">Coût des ventes</div>
+            <div className="kpi-card__value text-danger">
+              {formatDZD(plData.totals.cogs)} DZD
+            </div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__label">
+              Marge brute{" "}
+              <span className="text-xs font-normal text-text-muted">
+                ({parseFloat(plData.totals.gross_margin_pct).toFixed(1)}%)
+              </span>
+            </div>
+            <div className="kpi-card__value text-success">
+              {formatDZD(plData.totals.gross_margin)} DZD
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary KPIs */}
       {data && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -216,13 +328,13 @@ export default function SalesReportPage() {
         </div>
       )}
 
-      {isLoading && (
+      {activeLoading && (
         <div className="card card-body text-center text-text-muted py-12">
           Chargement...
         </div>
       )}
 
-      {!isLoading && data && (
+      {!activeLoading && data && (
         <>
           {/* Bar chart */}
           <div className="card overflow-hidden">
@@ -278,29 +390,48 @@ export default function SalesReportPage() {
                     <th className="text-end">CA</th>
                     <th className="text-end">Nb ventes</th>
                     <th className="text-end">Panier moyen</th>
+                    {showMargin && isManagerOrOwner && (
+                      <>
+                        <th className="text-end">Marge brute</th>
+                        <th className="text-end">Marge %</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-text-muted">
+                      <td colSpan={showMargin && isManagerOrOwner ? 6 : 4} className="text-center py-8 text-text-muted">
                         Aucune donnée pour cette période.
                       </td>
                     </tr>
                   )}
-                  {rows.map((row) => (
-                    <tr key={row.period}>
-                      <td className="text-text-muted">{formatPeriodLabel(row.period)}</td>
-                      <td className="text-end font-mono font-medium">
-                        {formatDZD(row.revenue)}{" "}
-                        <span className="text-2xs text-text-muted">DZD</span>
-                      </td>
-                      <td className="text-end text-text-muted">{row.sale_count}</td>
-                      <td className="text-end font-mono text-text-muted">
-                        {formatDZD(row.avg_basket)} DZD
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.map((row) => {
+                    const pl = plMap.get(row.period);
+                    return (
+                      <tr key={row.period}>
+                        <td className="text-text-muted">{formatPeriodLabel(row.period)}</td>
+                        <td className="text-end font-mono font-medium">
+                          {formatDZD(row.revenue)}{" "}
+                          <span className="text-2xs text-text-muted">DZD</span>
+                        </td>
+                        <td className="text-end text-text-muted">{row.sale_count}</td>
+                        <td className="text-end font-mono text-text-muted">
+                          {formatDZD(row.avg_basket)} DZD
+                        </td>
+                        {showMargin && isManagerOrOwner && (
+                          <>
+                            <td className="text-end font-mono text-success">
+                              {pl ? `${formatDZD(pl.gross_margin)} DZD` : "—"}
+                            </td>
+                            <td className="text-end font-mono text-text-muted">
+                              {pl ? `${parseFloat(pl.gross_margin_pct).toFixed(1)}%` : "—"}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

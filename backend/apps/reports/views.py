@@ -213,6 +213,108 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             "payment_breakdown": payment_breakdown,
         })
 
+    @action(detail=False, methods=["get"], url_path="profit-loss")
+    def profit_loss(self, request):
+        """
+        Gross margin report by period.
+        Returns: { rows: [{period, revenue, cogs, gross_margin, gross_margin_pct, sale_count}], totals: {...} }
+        Query params: period (day/week/month), from, to
+        RBAC: cashiers get rows but without cogs/margin (can_see_costs check)
+        """
+        from apps.core.plan_permissions import PlanRequired
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+        from apps.sales.models import Sale, SaleItem
+        from django.db.models import Sum, Count, F, ExpressionWrapper, DecimalField
+        from django.db.models.functions import TruncDay, TruncMonth, TruncWeek, Coalesce
+
+        # PlanRequired() returns a class; instantiate it to get a permission instance
+        perm_class = PlanRequired("pro_retail")
+        perm = perm_class()
+        if not perm.has_permission(request, self):
+            raise DRFPermissionDenied(perm.message)
+
+        period = request.query_params.get("period", "month")
+        from_date = request.query_params.get("from")
+        to_date = request.query_params.get("to")
+
+        can_see_costs = getattr(request.user, "can_see_costs", False)
+
+        sale_qs = Sale.objects.filter(tenant=request.tenant, status="completed")
+        if from_date:
+            sale_qs = sale_qs.filter(created_at__date__gte=from_date)
+        if to_date:
+            sale_qs = sale_qs.filter(created_at__date__lte=to_date)
+
+        trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
+        trunc_fn = trunc_map.get(period, TruncMonth)
+
+        # Revenue by period
+        revenue_rows = (
+            sale_qs.annotate(p=trunc_fn("created_at"))
+            .values("p")
+            .annotate(revenue=Sum("total_amount"), sale_count=Count("id"))
+            .order_by("p")
+        )
+
+        # COGS by period (via SaleItems -> Variant -> Product.purchase_price)
+        cogs_by_period = {}
+        if can_see_costs:
+            cogs_rows = (
+                SaleItem.objects.filter(sale__in=sale_qs)
+                .annotate(p=trunc_fn("sale__created_at"))
+                .annotate(
+                    line_cost=ExpressionWrapper(
+                        F("quantity") * Coalesce(F("variant__product__purchase_price"), Decimal("0")),
+                        output_field=DecimalField(max_digits=14, decimal_places=2),
+                    )
+                )
+                .values("p")
+                .annotate(cogs=Sum("line_cost"))
+            )
+            cogs_by_period = {str(row["p"]): row["cogs"] for row in cogs_rows}
+
+        rows = []
+        total_revenue = Decimal("0")
+        total_cogs = Decimal("0")
+        total_sales = 0
+
+        for row in revenue_rows:
+            rev = row["revenue"] or Decimal("0")
+            period_key = str(row["p"])
+            cogs = cogs_by_period.get(period_key, Decimal("0")) if can_see_costs else None
+            margin = (rev - cogs) if cogs is not None else None
+            margin_pct = (margin / rev * 100).quantize(Decimal("0.1")) if (margin is not None and rev > 0) else None
+
+            total_revenue += rev
+            if cogs is not None:
+                total_cogs += cogs
+            total_sales += row["sale_count"]
+
+            entry = {
+                "period": period_key,
+                "revenue": rev,
+                "sale_count": row["sale_count"],
+            }
+            if can_see_costs:
+                entry["cogs"] = cogs
+                entry["gross_margin"] = margin
+                entry["gross_margin_pct"] = margin_pct
+            rows.append(entry)
+
+        totals = {
+            "revenue": total_revenue,
+            "sale_count": total_sales,
+        }
+        if can_see_costs:
+            totals["cogs"] = total_cogs
+            totals["gross_margin"] = total_revenue - total_cogs
+            totals["gross_margin_pct"] = (
+                ((total_revenue - total_cogs) / total_revenue * 100).quantize(Decimal("0.1"))
+                if total_revenue > 0 else Decimal("0")
+            )
+
+        return Response({"rows": rows, "totals": totals})
+
     @action(detail=False, methods=["get"], url_path="stock")
     def stock(self, request):
         """

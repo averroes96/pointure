@@ -5,9 +5,12 @@ from django.db import transaction
 from django.http import FileResponse, HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.models import RoleChoices
+from apps.core.plan_permissions import PlanRequired
 from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment
 from .serializers import (
     CreditNoteSerializer,
@@ -22,6 +25,7 @@ from .tasks import generate_invoice_pdf
 
 class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Invoice.objects.select_related("client", "branch").prefetch_related("lines", "payments")
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
     filterset_fields = ["status", "client", "branch"]
     search_fields = ["number", "client__name"]
     ordering_fields = ["date", "due_date", "total_ttc", "number"]
@@ -51,6 +55,30 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if data.get("branch_id"):
                 from apps.core.models import Branch
                 branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant)
+
+            # ── Credit limit check ──────────────────────────────────
+            if client and client.credit_limit and client.credit_limit > 0:
+                # Compute invoice total from lines (quick estimate before save)
+                estimated_total = sum(
+                    line_data["quantity"] * line_data["unit_price"] *
+                    (1 - line_data.get("discount_pct", Decimal("0")) / 100)
+                    for line_data in data["lines"]
+                )
+                if data.get("apply_tva"):
+                    estimated_total *= (1 + data.get("tva_rate", Decimal("0.19")))
+
+                would_be_balance = client.cached_balance + estimated_total
+                if would_be_balance > client.credit_limit:
+                    force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+                    if not force or request.user.role == RoleChoices.CASHIER:
+                        from rest_framework.exceptions import ValidationError as DRFValidationError
+                        raise DRFValidationError({
+                            "error": "credit_limit_exceeded",
+                            "credit_limit": str(client.credit_limit),
+                            "current_balance": str(client.cached_balance),
+                            "invoice_total": str(estimated_total.quantize(Decimal("0.01"))),
+                            "would_be_balance": str(would_be_balance.quantize(Decimal("0.01"))),
+                        })
 
             invoice = Invoice.objects.create(
                 tenant=request.tenant,
@@ -164,6 +192,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
 class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = DeliveryNote.objects.select_related("invoice__client", "invoice__tenant")
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
     serializer_class = DeliveryNoteSerializer
     filterset_fields = ["invoice"]
 
@@ -194,6 +223,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
 class CreditNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = CreditNote.objects.select_related("original_invoice__client")
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
     serializer_class = CreditNoteSerializer
     http_method_names = ["get", "post", "head", "options"]
 

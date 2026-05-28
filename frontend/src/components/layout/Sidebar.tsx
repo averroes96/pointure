@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, ClipboardList, PieChart, CalendarDays, BarChart,
-  Settings, ChevronDown, ChevronRight, ShoppingBag, ArrowLeftRight,
+  Settings, ChevronDown, ChevronRight, ShoppingBag, ArrowLeftRight, Shield,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -95,6 +95,7 @@ function useNavSections(): NavSection[] {
       label: "",
       items: [
         { to: "/settings", labelKey: "nav.settings", icon: Settings, managerOnly: true },
+        { to: "/settings/audit-log", label: "Journal d'activité", icon: Shield, managerOnly: true },
       ],
     },
   ];

@@ -428,6 +428,14 @@ export default function InvoiceBuilderPage() {
   // ── Error ──
   const [formError, setFormError] = useState<string | null>(null);
 
+  // ── Credit limit warning ──
+  const [creditLimitWarning, setCreditLimitWarning] = useState<{
+    credit_limit: string;
+    current_balance: string;
+    invoice_total: string;
+    would_be_balance: string;
+  } | null>(null);
+
   // ── Refs for keyboard navigation ──
   const lineRefs = useRef<Record<string, Record<string, HTMLInputElement | null>>>({});
 
@@ -497,50 +505,74 @@ export default function InvoiceBuilderPage() {
   const paidAmount = addPayment ? parseFloat(payment.amount) || 0 : 0;
   const balanceDue = Math.max(0, totalTTC - paidAmount);
 
+  // ── Build payload ──
+  function buildPayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
+      client_id: client?.id ?? null,
+      date,
+      due_date: dueDate,
+      series_prefix: seriesPrefix,
+      apply_tva: applyTva,
+      notes,
+      // confirm: true — assigns invoice number (FA-2026-00001) immediately
+      // and sets status to "sent".  Without this the invoice stays as a
+      // numberless draft forever.
+      confirm: true,
+      lines: lines
+        .filter((l) => l.description.trim() || l.variant_id)
+        .map((l) => ({
+          description: l.description,
+          variant: l.variant_id,
+          quantity: l.quantity || "1",
+          unit_price: l.unit_price || "0",
+          discount_pct: l.discount_pct || "0",
+        })),
+    };
+    if (addPayment && paidAmount > 0) {
+      payload.payment = {
+        method: payment.method,
+        amount: payment.amount,
+        date: payment.date,
+      };
+    }
+    return payload;
+  }
+
   // ── Mutation ──
   const mutation = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = {
-        client_id: client?.id ?? null,
-        date,
-        due_date: dueDate,
-        series_prefix: seriesPrefix,
-        apply_tva: applyTva,
-        notes,
-        // confirm: true — assigns invoice number (FA-2026-00001) immediately
-        // and sets status to "sent".  Without this the invoice stays as a
-        // numberless draft forever.
-        confirm: true,
-        lines: lines
-          .filter((l) => l.description.trim() || l.variant_id)
-          .map((l) => ({
-            description: l.description,
-            variant: l.variant_id,
-            quantity: l.quantity || "1",
-            unit_price: l.unit_price || "0",
-            discount_pct: l.discount_pct || "0",
-          })),
-      };
-      if (addPayment && paidAmount > 0) {
-        payload.payment = {
-          method: payment.method,
-          amount: payment.amount,
-          date: payment.date,
-        };
-      }
-      return api.post("/invoicing/invoices/", payload).then((r) => r.data);
-    },
+    mutationFn: (url?: string) =>
+      api.post(url ?? "/invoicing/invoices/", buildPayload()).then((r) => r.data),
     onSuccess: () => {
       navigate("/invoices");
     },
-    onError: (err) => {
-      setFormError(getApiError(err));
+    onError: (err: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = (err as any)?.response?.data;
+      if (
+        data?.error === "credit_limit_exceeded" ||
+        data?.code === "credit_limit_exceeded"
+      ) {
+        setCreditLimitWarning({
+          credit_limit: data.credit_limit,
+          current_balance: data.current_balance,
+          invoice_total: data.invoice_total,
+          would_be_balance: data.would_be_balance,
+        });
+      } else {
+        setFormError(getApiError(err));
+      }
     },
   });
+
+  function handleForceSubmit() {
+    setCreditLimitWarning(null);
+    mutation.mutate("/invoicing/invoices/?force=true");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
+    setCreditLimitWarning(null);
 
     const validLines = lines.filter(
       (l) => l.description.trim() || l.variant_id
@@ -550,7 +582,7 @@ export default function InvoiceBuilderPage() {
       return;
     }
 
-    mutation.mutate();
+    mutation.mutate(undefined);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -595,6 +627,44 @@ export default function InvoiceBuilderPage() {
         <div className="card px-4 py-3 bg-danger-light border-danger flex items-start gap-2">
           <AlertCircle size={16} className="text-danger mt-0.5 flex-shrink-0" />
           <p className="text-sm text-danger">{formError}</p>
+        </div>
+      )}
+
+      {/* ── Credit limit warning banner ── */}
+      {creditLimitWarning && (
+        <div className="card px-4 py-4 bg-warning-light border border-warning space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={18} className="text-warning mt-0.5 flex-shrink-0" />
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-semibold text-warning">⚠️ Plafond de crédit dépassé</p>
+              <p className="text-xs text-text-muted">
+                Solde actuel: <strong>{formatDZD(creditLimitWarning.current_balance)} DZD</strong>
+                {" | "}
+                Facture: <strong>{formatDZD(creditLimitWarning.invoice_total)} DZD</strong>
+                {" | "}
+                Nouveau solde: <strong>{formatDZD(creditLimitWarning.would_be_balance)} DZD</strong>
+                {" | "}
+                Plafond: <strong>{formatDZD(creditLimitWarning.credit_limit)} DZD</strong>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCreditLimitWarning(null)}
+              className="btn-secondary btn-sm"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleForceSubmit}
+              disabled={mutation.isPending}
+              className="btn-primary btn-sm"
+            >
+              Forcer (Manager)
+            </button>
+          </div>
         </div>
       )}
 

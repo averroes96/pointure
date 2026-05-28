@@ -179,7 +179,7 @@ export default function SalesPage() {
         </div>
         <h2 className="text-xl font-bold text-text-primary mb-2">Vente confirmée!</h2>
         <p className="text-text-muted text-sm mb-4">Reçu: <strong>{receipt.receipt_number}</strong></p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           <button className="btn-secondary" onClick={() => setReceipt(null)}>
             Nouvelle vente
           </button>
@@ -189,6 +189,16 @@ export default function SalesPage() {
           >
             <Printer size={16} />
             Imprimer
+          </button>
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={() => {
+              const message = `🧾 Reçu de vente — ShoeDZ\nN° ${receipt.receipt_number}\nTotal: ${receipt.total_amount} DZD\n${receipt.items?.length} article(s)\nMerci pour votre achat! 👟`;
+              const link = `https://wa.me/?text=${encodeURIComponent(message)}`;
+              window.open(link, "_blank");
+            }}
+          >
+            📲 {t("sales.share_whatsapp")}
           </button>
         </div>
       </div>

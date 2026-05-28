@@ -1,7 +1,7 @@
 """Core serializers: Tenant, User, Branch."""
 from rest_framework import serializers
 
-from .models import Branch, Tenant, User
+from .models import AuditLog, Branch, Tenant, User
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -63,6 +63,20 @@ class BranchSerializer(serializers.ModelSerializer):
             "is_headquarters", "is_active", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AuditLog
+        fields = ["id", "timestamp", "user", "user_name", "action", "model_name", "object_id", "object_repr", "diff"]
+        read_only_fields = ["id", "timestamp", "user", "user_name", "action", "model_name", "object_id", "object_repr", "diff"]
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.email
+        return "System"
 
 
 class MeSerializer(serializers.ModelSerializer):

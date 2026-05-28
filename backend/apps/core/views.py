@@ -4,9 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.core.models import Branch, Tenant, User
+from apps.core.models import AuditLog, Branch, Tenant, User
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.serializers import (
+    AuditLogSerializer,
     BranchSerializer,
     MeSerializer,
     TenantSerializer,
@@ -100,6 +101,33 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         self.require_manager()
         serializer.save(tenant=self.request.tenant)
+
+
+class AuditLogViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Read-only audit trail — owner only."""
+    queryset = AuditLog.objects.all()
+    serializer_class = AuditLogSerializer
+    ordering = ["-timestamp"]
+    filterset_fields = ["action", "model_name", "user"]
+
+    def get_queryset(self):
+        self.require_owner()
+        return AuditLog.objects.filter(tenant=self.request.tenant).select_related("user")
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Count of audit events by model and action for the last 30 days."""
+        from django.utils import timezone
+        from django.db.models import Count
+        self.require_owner()
+        since = timezone.now() - timezone.timedelta(days=30)
+        data = (
+            AuditLog.objects.filter(tenant=request.tenant, timestamp__gte=since)
+            .values("model_name", "action")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+        return Response(list(data))
 
 
 class TenantSettingsView(viewsets.GenericViewSet):

@@ -49,6 +49,10 @@ const StockReportPage = lazy(() => import("@/features/reports/StockReportPage"))
 
 // Settings
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
+const AuditLogPage = lazy(() => import("@/features/settings/AuditLogPage"));
+
+// UI
+const UpgradePromptModal = lazy(() => import("@/components/ui/UpgradePromptModal"));
 
 function PageFallback() {
   return (
@@ -68,6 +72,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
+      <Suspense fallback={null}><UpgradePromptModal /></Suspense>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
@@ -146,6 +151,7 @@ function AppRoutes() {
 
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/audit-log" element={<AuditLogPage />} />
 
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />

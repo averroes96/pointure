@@ -26,12 +26,20 @@ class TenantScopedViewSetMixin:
 
     def initial(self, request, *args, **kwargs):
         """
-        Called by DRF after perform_authentication() — so request.user is the
-        real authenticated user at this point. Resolve tenant and push it into
-        both request.tenant and the thread-local for TenantManager.
-        """
-        super().initial(request, *args, **kwargs)
+        Override DRF's initial() to resolve request.tenant BEFORE check_permissions()
+        is called. This ensures PlanRequired and other tenant-aware permission classes
+        receive the correct tenant.
 
+        Order matters:
+          1. perform_authentication() → resolves request.user from JWT/session
+          2. Set request.tenant (using the now-known user)
+          3. super().initial() → check_permissions(), check_throttles()
+             (perform_authentication inside super is idempotent — result is cached)
+        """
+        # Step 1: resolve user from token/session
+        self.perform_authentication(request)
+
+        # Step 2: resolve tenant while user is known, BEFORE check_permissions fires
         user = request.user
         if user.is_authenticated and not user.is_superuser:
             tenant = getattr(user, "tenant", None)
@@ -41,6 +49,9 @@ class TenantScopedViewSetMixin:
             # Superuser or anonymous — no tenant scope
             request.tenant = None
             set_current_tenant(None)
+
+        # Step 3: run the rest of DRF's initial (check_permissions, check_throttles…)
+        super().initial(request, *args, **kwargs)
 
     def _get_tenant(self):
         """Return the resolved tenant for the current request."""

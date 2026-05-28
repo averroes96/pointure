@@ -93,6 +93,12 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         current / 30 / 60 / 90 / 90+ days overdue.
         Computed via a single optimised query using CASE WHEN.
         """
+        from apps.core.plan_permissions import PlanRequired
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+        perm = PlanRequired("pro_wholesale")
+        if not perm.has_permission(request, self):
+            raise DRFPermissionDenied(perm.message)
+
         from django.db.models import Case, F, Q, Sum, When
         from django.utils import timezone
 

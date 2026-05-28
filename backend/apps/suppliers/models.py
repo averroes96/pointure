@@ -37,6 +37,15 @@ class Supplier(TenantScopedModel):
     def __str__(self):
         return self.name
 
+    def recompute_balance(self):
+        from django.db.models import Sum
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        invoiced = self.invoices.aggregate(t=Coalesce(Sum("total_amount"), Decimal("0")))["t"]
+        paid = self.payments.aggregate(t=Coalesce(Sum("amount"), Decimal("0")))["t"]
+        self.outstanding_balance = invoiced - paid
+        self.save(update_fields=["outstanding_balance"])
+
 
 class PurchaseOrder(TenantScopedModel):
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="purchase_orders")
