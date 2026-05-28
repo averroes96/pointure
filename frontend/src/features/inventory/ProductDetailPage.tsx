@@ -28,12 +28,18 @@ import {
   X,
   Plus,
   Minus,
+  Barcode,
+  Printer,
+  Copy,
+  Check,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import SkuMatrix from "./components/SkuMatrix";
+import BarcodeSvg from "@/components/ui/BarcodeSvg";
+import { usePrintLabels } from "@/hooks/usePrintLabels";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -102,9 +108,13 @@ export default function ProductDetailPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isManager = user?.role !== "cashier";
+  const { printLabels } = usePrintLabels();
 
   // UI state
   const [branchOpen, setBranchOpen] = useState(false);
+  const [barcodesOpen, setBarcodesOpen] = useState(false);
+  const [printLoading, setPrintLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustForm, setAdjustForm] = useState<AdjustForm>({
     variant_id: "",
@@ -140,14 +150,50 @@ export default function ProductDetailPage() {
         notes: adjustForm.notes,
       }),
     onSuccess: () => {
+      // Capture before clearing so auto-print can use them
+      const variantId = adjustForm.variant_id;
+      const delta = parseInt(adjustForm.quantity_delta);
+
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["product-branch-stock", id] });
       setAdjustOpen(false);
       setAdjustForm({ variant_id: "", quantity_delta: "", reason: "adjustment", notes: "" });
       setAdjustError(null);
+
+      // Auto-print barcode labels when stock is added (positive delta only).
+      // copies = number of units added so one sticker can be affixed to each item.
+      if (delta > 0 && variantId) {
+        printLabels(variantId, delta);
+      }
     },
     onError: (err) => setAdjustError(getApiError(err)),
   });
+
+  function copyBarcode(variantId: number, barcode: string) {
+    navigator.clipboard.writeText(barcode).then(() => {
+      setCopiedId(variantId);
+      setTimeout(() => setCopiedId(null), 1500);
+    });
+  }
+
+  async function handlePrintLabels() {
+    if (!id || printLoading) return;
+    setPrintLoading(true);
+    try {
+      const res = await api.get(`/inventory/products/${id}/barcode-labels/`, {
+        responseType: "arraybuffer",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      // Revoke the blob URL after the tab has loaded
+      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+    } catch {
+      // silently ignore — extremely unlikely given the user is already authenticated
+    } finally {
+      setPrintLoading(false);
+    }
+  }
 
   function submitAdjust() {
     if (!adjustForm.variant_id || !adjustForm.quantity_delta) return;
@@ -469,6 +515,99 @@ export default function ProductDetailPage() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Codes-barres (collapsible) ──────────────────────────────────────── */}
+      <div className="card overflow-hidden">
+        <button
+          onClick={() => setBarcodesOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-text-primary hover:bg-surface/60 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Barcode size={15} className="text-primary-500" />
+            Codes-barres des variantes
+            <span className="text-xs font-normal text-text-muted">
+              ({product.variants.filter((v) => v.barcode).length} codes)
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {barcodesOpen && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrintLabels(); }}
+                disabled={printLoading}
+                className="btn-secondary btn-sm"
+                title="Imprimer les étiquettes"
+              >
+                {printLoading
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Printer size={13} />}
+                Imprimer étiquettes
+              </button>
+            )}
+            {barcodesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+        </button>
+
+        {barcodesOpen && (
+          <div className="border-t border-border px-5 py-4">
+            <div className="overflow-x-auto">
+              <table className="data-table text-sm">
+                <thead>
+                  <tr>
+                    <th>Pointure</th>
+                    <th>Couleur</th>
+                    <th>Code-barres</th>
+                    <th className="text-center">Aperçu</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {product.variants
+                    .filter((v) => v.is_active)
+                    .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
+                    .map((v) => (
+                      <tr key={v.id}>
+                        <td className="font-mono font-semibold">EU {v.size_eu}</td>
+                        <td>{v.colour}</td>
+                        <td>
+                          {v.barcode ? (
+                            <span className="font-mono text-text-primary">{v.barcode}</span>
+                          ) : (
+                            <span className="text-text-muted text-xs">Non généré</span>
+                          )}
+                        </td>
+                        <td className="text-center py-2">
+                          {v.barcode && (
+                            <BarcodeSvg
+                              value={v.barcode}
+                              height={36}
+                              showText={false}
+                              className="inline-block text-text-primary"
+                            />
+                          )}
+                        </td>
+                        <td>
+                          {v.barcode && (
+                            <button
+                              onClick={() => copyBarcode(v.id, v.barcode!)}
+                              className="btn-ghost btn-sm text-text-muted hover:text-primary-500"
+                              title="Copier"
+                            >
+                              {copiedId === v.id ? (
+                                <Check size={14} className="text-success" />
+                              ) : (
+                                <Copy size={14} />
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

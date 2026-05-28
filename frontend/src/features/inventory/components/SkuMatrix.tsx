@@ -8,21 +8,17 @@
  * Each cell shows: stock qty (read-only), alert threshold (editable), barcode.
  * New size/colour combinations can be added; existing ones can be toggled active/inactive.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Save, X, AlertTriangle, Package } from "lucide-react";
+import { Plus, Save, X, AlertTriangle, Package, Copy, Check, Barcode } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import type { Variant } from "@/types";
 import { cn } from "@/lib/utils";
+import BarcodeSvg from "@/components/ui/BarcodeSvg";
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-
-interface CellEdit {
-  variantId: number;
-  alert_threshold: number;
-}
 
 interface NewVariantForm {
   size_eu: string;
@@ -50,6 +46,94 @@ function stockClass(qty: number, isLowStock: boolean): string {
   if (qty === 0) return "text-danger font-bold";
   if (isLowStock) return "text-warning font-semibold";
   return "text-success font-medium";
+}
+
+// ─────────────────────────────────────────────
+// BarcodeCell — shows code + copy btn + popover
+// ─────────────────────────────────────────────
+
+function BarcodeCell({ barcode }: { barcode: string | null | undefined }) {
+  const [copied, setCopied] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!barcode) return;
+      navigator.clipboard.writeText(barcode).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    },
+    [barcode]
+  );
+
+  if (!barcode) {
+    return <span className="text-2xs text-text-muted">—</span>;
+  }
+
+  return (
+    <div className="relative flex flex-col items-center gap-0.5">
+      {/* Barcode number row */}
+      <div className="flex items-center gap-1">
+        <span
+          className="text-xs font-mono text-text-primary leading-none tracking-tight"
+          title={barcode}
+        >
+          {barcode}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="text-text-muted hover:text-primary-500 transition-colors flex-shrink-0"
+          title="Copier le code-barres"
+        >
+          {copied ? (
+            <Check size={11} className="text-success" />
+          ) : (
+            <Copy size={11} />
+          )}
+        </button>
+      </div>
+
+      {/* Preview toggle */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setPopoverOpen((o) => !o); }}
+        className="flex items-center gap-0.5 text-2xs text-text-muted hover:text-primary-500 transition-colors"
+        title="Aperçu code-barres"
+      >
+        <Barcode size={11} />
+        <span>aperçu</span>
+      </button>
+
+      {/* Popover with rendered barcode */}
+      {popoverOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setPopoverOpen(false)}
+          />
+          <div className="absolute z-50 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white border border-border rounded-lg shadow-xl p-3 min-w-[180px]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-2xs font-semibold text-text-muted uppercase tracking-wide">Code-barres</span>
+              <button
+                onClick={() => setPopoverOpen(false)}
+                className="text-text-muted hover:text-text-primary"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <BarcodeSvg
+              value={barcode}
+              height={48}
+              showText={true}
+              className="w-full text-text-primary"
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -250,7 +334,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
               {colours.map((colour) => (
                 <th
                   key={colour}
-                  className="px-3 py-2 text-center font-semibold text-text-primary border-e border-border last:border-e-0 whitespace-nowrap min-w-[100px]"
+                  className="px-3 py-2 text-center font-semibold text-text-primary border-e border-border last:border-e-0 whitespace-nowrap min-w-[140px]"
                 >
                   {colour}
                 </th>
@@ -325,12 +409,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
                         )}
 
                         {/* Barcode */}
-                        <span
-                          className="text-2xs text-text-muted font-mono truncate max-w-[90px]"
-                          title={variant.barcode}
-                        >
-                          {variant.barcode || "—"}
-                        </span>
+                        <BarcodeCell barcode={variant.barcode} />
 
                         {/* Active toggle */}
                         {!readOnly && (

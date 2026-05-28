@@ -20,6 +20,7 @@ import {
 import api, { formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Branch, Variant, StockTransfer, TransferStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { usePrintLabels } from "@/hooks/usePrintLabels";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -336,6 +337,7 @@ interface PendingAction {
 
 export default function StockTransferPage() {
   const queryClient = useQueryClient();
+  const { printLabels } = usePrintLabels();
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "">("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -369,9 +371,19 @@ export default function StockTransferPage() {
   const actionMutation = useMutation({
     mutationFn: ({ transferId, endpoint }: { transferId: number; endpoint: string }) =>
       api.post(`/inventory/transfers/${transferId}/${endpoint}/`).then((r) => r.data),
-    onSuccess: () => {
+    onSuccess: (_, { endpoint }) => {
       queryClient.invalidateQueries({ queryKey: ["stock-transfers"] });
       queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+
+      // Auto-print barcode labels when stock is received.
+      // copies = transfer quantity so one sticker goes on each received item.
+      if (endpoint === "receive" && pendingAction) {
+        const transfer = data?.results.find((t) => t.id === pendingAction.transferId);
+        if (transfer?.variant && transfer.quantity > 0) {
+          printLabels(transfer.variant, transfer.quantity);
+        }
+      }
+
       setPendingAction(null);
       setActionError(null);
     },
