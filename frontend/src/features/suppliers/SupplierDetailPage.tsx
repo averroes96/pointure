@@ -12,7 +12,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, ShoppingBag, Plus, AlertCircle, Loader2,
-  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save,
+  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil,
+  type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier, PurchaseOrder, SupplierInvoice, SupplierPayment } from "@/types";
@@ -43,7 +44,7 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   label: string;
   value: React.ReactNode;
 }) {
@@ -539,6 +540,13 @@ export default function SupplierDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to={`/suppliers/${supplierId}/edit`}
+              className="btn-secondary"
+            >
+              <Pencil size={15} />
+              Modifier
+            </Link>
             <Link
               to={`/purchase-orders/new?supplier=${supplierId}`}
               className="btn-secondary"

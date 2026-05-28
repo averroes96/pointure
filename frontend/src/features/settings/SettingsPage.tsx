@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Building2, Shield, Users, MapPin, Upload } from "lucide-react";
+import { User, Building2, Shield, Users, MapPin, Upload, type LucideIcon } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
 import type { User as UserType, Branch, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
@@ -685,7 +685,7 @@ type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences";
 interface Tab {
   key: TabKey;
   label: string;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   roles?: string[];
 }
 

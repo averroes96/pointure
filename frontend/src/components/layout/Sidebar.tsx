@@ -5,6 +5,7 @@ import {
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, ClipboardList, PieChart, CalendarDays, BarChart,
   Settings, ChevronDown, ChevronRight, ShoppingBag, ArrowLeftRight,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 interface NavSection {
   key: string;
   label: string;
-  icon?: React.FC<{ size?: number }>;
+  icon?: LucideIcon;
   items: NavItem[];
 }
 
@@ -21,7 +22,7 @@ interface NavItem {
   to: string;
   labelKey?: string;
   label?: string;
-  icon: React.FC<{ size?: number }>;
+  icon: LucideIcon;
   managerOnly?: boolean;
 }
 

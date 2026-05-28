@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, AlertTriangle, CreditCard, DollarSign } from "lucide-react";
+import { TrendingUp, AlertTriangle, CreditCard, DollarSign, type LucideIcon } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -12,7 +12,7 @@ function KPICard({
 }: {
   label: string;
   value: string | number;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   color: string;
   subtitle?: string;
 }) {
@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const { data: kpis, isLoading: kpisLoading } = useQuery<DashboardKPIs>({
     queryKey: ["dashboard", "kpis"],
     queryFn: () => api.get("/reports/dashboard/").then((r) => r.data),
-    refetchInterval: 30000,
+    refetchInterval: 120000,
   });
 
   const { data: salesData } = useQuery<SalesByPeriodRow[]>({

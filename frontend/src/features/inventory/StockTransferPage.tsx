@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, ArrowRight, Loader2, AlertTriangle,
   CheckCircle, X, Truck, PackageCheck, Ban,
+  type LucideIcon,
 } from "lucide-react";
 import api, { formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Branch, Variant, StockTransfer, TransferStatus } from "@/types";
@@ -299,7 +300,7 @@ const ACTION_CONFIG: Record<ActionType, {
   label: string;
   confirmLabel: string;
   endpoint: string;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   variant: string;
 }> = {
   dispatch: {

@@ -126,6 +126,58 @@
     "mark_bounced": "Impayé",
     "days_until_due": "jours"
   },
+  "payment_method": {
+    "cash": "Espèces",
+    "cheque": "Chèque",
+    "ccp": "CCP",
+    "virement": "Virement",
+    "account": "Compte client"
+  },
+  "category": {
+    "sneakers": "Sneakers",
+    "boots": "Bottes",
+    "sandals": "Sandales",
+    "formal": "Chaussures formelles",
+    "sport": "Sport",
+    "kids": "Enfants",
+    "slippers": "Pantoufles",
+    "other": "Autres"
+  },
+  "notification": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "mark_all_read": "Tout marquer lu",
+    "type_cheque_due": "Chèque à encaisser",
+    "type_low_stock": "Stock bas",
+    "type_invoice_overdue": "Facture en retard",
+    "type_general": "Général"
+  },
+  "supplier": {
+    "new": "Nouveau fournisseur",
+    "edit": "Modifier fournisseur",
+    "name": "Raison sociale",
+    "contact_name": "Contact",
+    "phone": "Téléphone",
+    "email": "Email",
+    "origin_country": "Pays d'origine",
+    "payment_terms": "Conditions de paiement",
+    "address": "Adresse",
+    "notes": "Notes",
+    "is_active": "Actif"
+  },
+  "transfer_status": {
+    "pending": "En attente",
+    "in_transit": "En transit",
+    "received": "Réceptionné",
+    "cancelled": "Annulé"
+  },
+  "po_status": {
+    "draft": "Brouillon",
+    "sent": "Envoyé",
+    "partial": "Partiel",
+    "received": "Reçu",
+    "cancelled": "Annulé"
+  },
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",

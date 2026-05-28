@@ -23,17 +23,13 @@ interface CartItem {
   discount: number;
 }
 
+const PAYMENT_METHOD_KEYS = ["cash", "ccp", "virement", "cheque"] as const;
+type PaymentMethodKey = (typeof PAYMENT_METHOD_KEYS)[number];
+
 interface PaymentLine {
-  method: "cash" | "ccp" | "virement" | "cheque";
+  method: PaymentMethodKey;
   amount: number;
 }
-
-const PAYMENT_METHODS = [
-  { key: "cash" as const, label: "Espèces" },
-  { key: "ccp" as const, label: "CCP" },
-  { key: "virement" as const, label: "Virement" },
-  { key: "cheque" as const, label: "Chèque" },
-];
 
 export default function SalesPage() {
   const { t } = useTranslation();
@@ -393,8 +389,8 @@ export default function SalesPage() {
                     }
                     className="form-input text-sm py-1.5 flex-1"
                   >
-                    {PAYMENT_METHODS.map((m) => (
-                      <option key={m.key} value={m.key}>{m.label}</option>
+                    {PAYMENT_METHOD_KEYS.map((key) => (
+                      <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
                     ))}
                   </select>
                   <input

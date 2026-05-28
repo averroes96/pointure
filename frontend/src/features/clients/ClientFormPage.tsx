@@ -20,6 +20,7 @@ import {
   Building2,
   FileText,
   CreditCard,
+  type LucideIcon,
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import type { Client } from "@/types";
@@ -83,7 +84,7 @@ function Field({
 }: {
   label: string;
   required?: boolean;
-  icon?: React.FC<{ size?: number; className?: string }>;
+  icon?: LucideIcon;
   children: React.ReactNode;
 }) {
   return (

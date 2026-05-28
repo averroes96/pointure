@@ -55,6 +55,58 @@
     "due_date": "Due Date", "status": "Status",
     "mark_deposited": "Mark Deposited", "mark_bounced": "Mark Bounced", "days_until_due": "days"
   },
+  "payment_method": {
+    "cash": "Cash",
+    "cheque": "Cheque",
+    "ccp": "CCP",
+    "virement": "Wire Transfer",
+    "account": "Account Credit"
+  },
+  "category": {
+    "sneakers": "Sneakers",
+    "boots": "Boots",
+    "sandals": "Sandals",
+    "formal": "Formal Shoes",
+    "sport": "Sport",
+    "kids": "Kids",
+    "slippers": "Slippers",
+    "other": "Other"
+  },
+  "notification": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "mark_all_read": "Mark all as read",
+    "type_cheque_due": "Cheque Due",
+    "type_low_stock": "Low Stock",
+    "type_invoice_overdue": "Invoice Overdue",
+    "type_general": "General"
+  },
+  "supplier": {
+    "new": "New Supplier",
+    "edit": "Edit Supplier",
+    "name": "Company Name",
+    "contact_name": "Contact Person",
+    "phone": "Phone",
+    "email": "Email",
+    "origin_country": "Origin Country",
+    "payment_terms": "Payment Terms",
+    "address": "Address",
+    "notes": "Notes",
+    "is_active": "Active"
+  },
+  "transfer_status": {
+    "pending": "Pending",
+    "in_transit": "In Transit",
+    "received": "Received",
+    "cancelled": "Cancelled"
+  },
+  "po_status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "partial": "Partial",
+    "received": "Received",
+    "cancelled": "Cancelled"
+  },
   "common": {
     "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
     "search": "Search", "filter": "Filter", "export": "Export", "print": "Print",

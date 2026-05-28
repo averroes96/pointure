@@ -28,6 +28,7 @@ import {
   Building2,
   X,
   Pencil,
+  type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, ClientLedgerEntry, Cheque, Invoice } from "@/types";
@@ -67,7 +68,7 @@ function InfoField({
   mono = false,
   className,
 }: {
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   label: string;
   value: React.ReactNode;
   mono?: boolean;

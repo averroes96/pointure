@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Package, AlertTriangle, DollarSign, BarChart2, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Package, AlertTriangle, DollarSign, BarChart2, ExternalLink, Download, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
+import { downloadCSV } from "@/lib/csvExport";
 
 interface StockByCategory {
   category: string;
@@ -25,17 +27,6 @@ interface StockReport {
   by_brand: StockByBrand[];
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  sneakers: "Sneakers",
-  boots: "Bottes",
-  sandals: "Sandales",
-  formal: "Chaussures formelles",
-  sport: "Sport",
-  kids: "Enfants",
-  slippers: "Pantoufles",
-  other: "Autres",
-};
-
 function KPICard({
   label,
   value,
@@ -45,7 +36,7 @@ function KPICard({
 }: {
   label: string;
   value: string | number;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   color: string;
   sub?: string;
 }) {
@@ -66,10 +57,21 @@ function KPICard({
 }
 
 export default function StockReportPage() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery<StockReport>({
     queryKey: ["reports", "stock"],
     queryFn: () => api.get("/reports/stock/").then((r) => r.data),
   });
+
+  function handleExportCSV() {
+    if (!data) return;
+    const rows = data.by_category.map((row) => ({
+      "Catégorie": t(`category.${row.category}`, { defaultValue: row.category }),
+      "Références": row.count,
+      "Unités": row.units,
+    }));
+    downloadCSV(rows, `rapport-stock-${new Date().toISOString().split("T")[0]}.csv`);
+  }
 
   function handleGeneratePDF() {
     const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -94,6 +96,10 @@ export default function StockReportPage() {
         <button onClick={handleGeneratePDF} className="btn-secondary">
           <ExternalLink size={16} />
           Générer rapport PDF
+        </button>
+        <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
+          <Download size={16} />
+          Exporter CSV
         </button>
       </div>
 
@@ -178,7 +184,7 @@ export default function StockReportPage() {
                     {byCategory.map((row) => (
                       <tr key={row.category}>
                         <td className="font-medium text-text-primary">
-                          {CATEGORY_LABELS[row.category] ?? row.category}
+                          {t(`category.${row.category}`, { defaultValue: row.category })}
                         </td>
                         <td className="text-end font-mono text-text-muted">{row.count}</td>
                         <td className="text-end font-mono">{row.units}</td>

@@ -37,6 +37,7 @@ const ChequePage = lazy(() => import("@/features/clients/ChequePage"));
 // Suppliers
 const SuppliersPage = lazy(() => import("@/features/suppliers/SuppliersPage"));
 const SupplierDetailPage = lazy(() => import("@/features/suppliers/SupplierDetailPage"));
+const SupplierFormPage = lazy(() => import("@/features/suppliers/SupplierFormPage"));
 const PurchaseOrderListPage = lazy(() => import("@/features/suppliers/PurchaseOrderListPage"));
 const PurchaseOrderFormPage = lazy(() => import("@/features/suppliers/PurchaseOrderFormPage"));
 const PurchaseOrderDetailPage = lazy(() => import("@/features/suppliers/PurchaseOrderDetailPage"));
@@ -124,7 +125,9 @@ function AppRoutes() {
           {/* Suppliers */}
           <Route path="suppliers">
             <Route index element={<SuppliersPage />} />
+            <Route path="new" element={<SupplierFormPage />} />
             <Route path=":id" element={<SupplierDetailPage />} />
+            <Route path=":id/edit" element={<SupplierFormPage />} />
           </Route>
 
           {/* Purchase Orders */}

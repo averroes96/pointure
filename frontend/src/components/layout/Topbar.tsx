@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { Bell, ChevronDown, Globe, LogOut, User } from "lucide-react";
+import { Bell, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { applyDirection } from "@/lib/i18n";
 import i18n from "i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { PaginatedResponse } from "@/lib/api";
 import type { Notification } from "@/types";
@@ -16,11 +16,37 @@ const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
 ];
 
+function relativeTime(isoStr: string): string {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `il y a ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${Math.floor(h / 24)}j`;
+}
+
+const NOTIF_ICON: Record<string, LucideIcon> = {
+  cheque_due: CreditCard,
+  low_stock: AlertTriangle,
+  invoice_overdue: FileX,
+  general: Bell,
+};
+
+const NOTIF_ACCENT: Record<string, string> = {
+  cheque_due: "text-yellow-500 bg-yellow-50",
+  low_stock: "text-orange-500 bg-orange-50",
+  invoice_overdue: "text-red-500 bg-red-50",
+  general: "text-blue-500 bg-blue-50",
+};
+
 export default function Topbar() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: unreadCount } = useQuery({
     queryKey: ["notifications", "unread"],
@@ -28,11 +54,37 @@ export default function Topbar() {
     refetchInterval: 60000,
   });
 
+  const { data: notifData } = useQuery<PaginatedResponse<Notification>>({
+    queryKey: ["notifications", "list"],
+    queryFn: () => api.get("/notifications/?page_size=20").then((r) => r.data),
+    enabled: showNotifPanel,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) =>
+      api.post(`/notifications/${id}/mark-read/`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () =>
+      api.post("/notifications/mark-all-read/").then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+    },
+  });
+
   const changeLanguage = (code: string) => {
     i18n.changeLanguage(code);
     applyDirection(code);
     setShowLangMenu(false);
   };
+
+  const notifications = notifData?.results ?? [];
 
   return (
     <header className="layout-topbar">
@@ -74,14 +126,68 @@ export default function Topbar() {
         </div>
 
         {/* Notifications bell */}
-        <button className="btn-ghost btn-sm relative">
-          <Bell size={18} />
-          {(unreadCount ?? 0) > 0 && (
-            <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-danger rounded-full text-white text-2xs flex items-center justify-center font-bold">
-              {(unreadCount ?? 0) > 9 ? "9+" : unreadCount}
-            </span>
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifPanel(!showNotifPanel)}
+            className="btn-ghost btn-sm relative"
+          >
+            <Bell size={18} />
+            {(unreadCount ?? 0) > 0 && (
+              <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-danger rounded-full text-white text-2xs flex items-center justify-center font-bold">
+                {(unreadCount ?? 0) > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifPanel && (
+            <div className="absolute end-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-white border border-border rounded-lg shadow-xl z-50">
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border sticky top-0 bg-white">
+                <span className="text-sm font-semibold text-text-primary">{t("notification.title")}</span>
+                <button
+                  onClick={() => markAllReadMutation.mutate()}
+                  disabled={markAllReadMutation.isPending}
+                  className="text-xs text-primary-500 hover:text-primary-700 font-medium"
+                >
+                  {t("notification.mark_all_read")}
+                </button>
+              </div>
+
+              {/* Notification list */}
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-text-muted">
+                  {t("notification.empty")}
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {notifications.map((notif) => {
+                    const Icon = NOTIF_ICON[notif.type] ?? Bell;
+                    const accent = NOTIF_ACCENT[notif.type] ?? "text-blue-500 bg-blue-50";
+                    return (
+                      <button
+                        key={notif.id}
+                        onClick={() => markReadMutation.mutate(notif.id)}
+                        className="w-full text-start px-3 py-3 hover:bg-surface flex items-start gap-3 transition-colors"
+                      >
+                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5", accent)}>
+                          <Icon size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">{notif.title}</p>
+                          <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{notif.body}</p>
+                          <p className="text-xs text-text-muted mt-1">{relativeTime(notif.created_at)}</p>
+                        </div>
+                        {!notif.read && (
+                          <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
-        </button>
+        </div>
 
         {/* User menu */}
         <div className="relative">
@@ -118,10 +224,10 @@ export default function Topbar() {
       </div>
 
       {/* Close dropdowns on outside click */}
-      {(showLangMenu || showUserMenu) && (
+      {(showLangMenu || showUserMenu || showNotifPanel) && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => { setShowLangMenu(false); setShowUserMenu(false); }}
+          onClick={() => { setShowLangMenu(false); setShowUserMenu(false); setShowNotifPanel(false); }}
         />
       )}
     </header>

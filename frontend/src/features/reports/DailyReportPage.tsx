@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
+import { downloadCSV } from "@/lib/csvExport";
 
 interface TopProduct {
   name: string;
@@ -29,14 +31,6 @@ interface DailyReport {
   payment_breakdown: PaymentBreakdownItem[];
 }
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash: "Espèces",
-  ccp: "CCP",
-  virement: "Virement",
-  cheque: "Chèque",
-  account: "Compte client",
-};
-
 function todayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
@@ -50,7 +44,7 @@ function KPICard({
 }: {
   label: string;
   value: string | number;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   color: string;
   sub?: string;
 }) {
@@ -71,6 +65,7 @@ function KPICard({
 }
 
 export default function DailyReportPage() {
+  const { t } = useTranslation();
   const [date, setDate] = useState<string>(todayISO());
 
   const { data, isLoading, isError } = useQuery<DailyReport>({
@@ -83,6 +78,21 @@ export default function DailyReportPage() {
   const topProducts = data?.top_products ?? [];
   const paymentBreakdown = data?.payment_breakdown ?? [];
 
+  function handleExportCSV() {
+    if (!data) return;
+    const rows = data.payment_breakdown.map((row) => ({
+      "Mode": t(`payment_method.${row.method}`, { defaultValue: row.method }),
+      "Nb transactions": row.count,
+      "Montant (DZD)": row.amount,
+    }));
+    rows.push({
+      "Mode": "TOTAL",
+      "Nb transactions": data.sale_count,
+      "Montant (DZD)": data.total_revenue,
+    });
+    downloadCSV(rows, `rapport-journalier-${date}.csv`);
+  }
+
   return (
     <div className="space-y-5 print:space-y-4">
       {/* Header */}
@@ -94,6 +104,10 @@ export default function DailyReportPage() {
         <button onClick={() => window.print()} className="btn-secondary">
           <Printer size={16} />
           Imprimer
+        </button>
+        <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
+          <Download size={16} />
+          Exporter CSV
         </button>
       </div>
 
@@ -180,7 +194,7 @@ export default function DailyReportPage() {
                       {paymentBreakdown.map((row) => (
                         <tr key={row.method}>
                           <td className="font-medium text-text-primary">
-                            {PAYMENT_METHOD_LABELS[row.method] ?? row.method}
+                            {t(`payment_method.${row.method}`, { defaultValue: row.method })}
                           </td>
                           <td className="text-end text-text-muted">{row.count}</td>
                           <td className="text-end font-mono font-medium">
