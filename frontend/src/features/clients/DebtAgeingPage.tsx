@@ -15,6 +15,7 @@ import { Download, AlertCircle, MapPin } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import type { DebtAgeingRow } from "@/types";
 import { cn } from "@/lib/utils";
+import { wilayaName } from "@/lib/wilayas";
 
 // ── Toast (inline, no external lib assumed) ────────────────────────────────
 
@@ -149,7 +150,7 @@ export default function DebtAgeingPage() {
           >
             <option value="">Toutes les wilayas</option>
             {wilayas.map((w) => (
-              <option key={w} value={w}>{w}</option>
+              <option key={w} value={w}>{wilayaName(w) || w}</option>
             ))}
           </select>
         </div>
@@ -250,7 +251,7 @@ export default function DebtAgeingPage() {
                         <div className="text-xs text-text-muted mt-0.5">{row.phone}</div>
                       )}
                     </td>
-                    <td className="text-text-muted">{row.wilaya || "—"}</td>
+                    <td className="text-text-muted">{wilayaName(row.wilaya) || "—"}</td>
 
                     <AmountCell
                       value={row.current}

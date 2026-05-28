@@ -6,6 +6,7 @@ import api, { getApiError, type PaginatedResponse } from "@/lib/api";
 import type { User as UserType, Branch, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
 
 // ─── Shared Toast ──────────────────────────────────────────────────────────
 
@@ -561,7 +562,8 @@ function AgencesTab() {
     queryFn: () => api.get("/core/branches/").then((r) => r.data),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<BranchFormData>();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<BranchFormData>();
+  const branchWilaya = watch("wilaya", "");
 
   const createMutation = useMutation({
     mutationFn: (data: BranchFormData) =>
@@ -614,7 +616,19 @@ function AgencesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="form-label">Wilaya</label>
-                <input type="text" {...register("wilaya")} className="form-input" placeholder="Alger" />
+                <input
+                  type="text"
+                  list="branch-wilaya-list"
+                  className="form-input"
+                  placeholder="Ex: 16 - Alger"
+                  value={wilayaLabel(branchWilaya)}
+                  onChange={(e) => setValue("wilaya", parseWilayaCode(e.target.value), { shouldDirty: true })}
+                />
+                <datalist id="branch-wilaya-list">
+                  {WILAYA_ENTRIES.map(({ code, name }) => (
+                    <option key={code} value={`${code} - ${name}`} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="form-label">Téléphone</label>

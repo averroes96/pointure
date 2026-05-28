@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Client } from "@/types";
 import { cn, whatsappLink } from "@/lib/utils";
+import { wilayaName } from "@/lib/wilayas";
 
 export default function ClientsPage() {
   const { t } = useTranslation();
@@ -94,7 +95,7 @@ export default function ClientsPage() {
                       </a>
                     ) : "—"}
                   </td>
-                  <td className="text-text-muted">{client.wilaya || "—"}</td>
+                  <td className="text-text-muted">{wilayaName(client.wilaya) || "—"}</td>
                   <td className="text-end font-mono text-text-muted">
                     {parseFloat(client.credit_limit) > 0
                       ? formatDZD(client.credit_limit) + " DZD"

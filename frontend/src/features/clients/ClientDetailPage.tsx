@@ -33,6 +33,7 @@ import {
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, ClientLedgerEntry, Cheque, Invoice } from "@/types";
 import { cn, whatsappLink, getStatusBadgeClass } from "@/lib/utils";
+import { wilayaLabel } from "@/lib/wilayas";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -307,7 +308,7 @@ function ClientInfoTab({
           />
           <InfoField icon={Mail} label="Email" value={client.email} />
           <InfoField icon={MapPin} label="Adresse" value={client.address} />
-          <InfoField icon={MapPin} label="Wilaya" value={client.wilaya} />
+          <InfoField icon={MapPin} label="Wilaya" value={wilayaLabel(client.wilaya)} />
           <InfoField icon={Building2} label="NIF" value={client.nif} mono />
           <InfoField icon={Building2} label="RC" value={client.rc} mono />
         </div>
@@ -833,7 +834,7 @@ export default function ClientDetailPage() {
                   {client.is_active ? "Actif" : "Inactif"}
                 </span>
                 {client.wilaya && (
-                  <span className="text-xs text-text-muted">{client.wilaya}</span>
+                  <span className="text-xs text-text-muted">{wilayaLabel(client.wilaya)}</span>
                 )}
               </div>
             </div>
