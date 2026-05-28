@@ -5,6 +5,7 @@ import api, { formatDZD } from "@/lib/api";
 import type { Branch } from "@/types";
 import type { PaginatedResponse } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
+import { PlanGate, PlanLock } from "@/components/ui/PlanGate";
 
 interface SalesPeriodRow {
   period: string;
@@ -199,12 +200,17 @@ export default function SalesReportPage() {
         </div>
         <div className="flex items-center gap-2">
           {isManagerOrOwner && (
-            <button
-              onClick={() => setShowMargin((v) => !v)}
-              className={showMargin ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+            <PlanGate
+              min="pro_retail"
+              fallback={<PlanLock min="pro_retail" />}
             >
-              {showMargin ? "Masquer marges" : "Afficher marges"}
-            </button>
+              <button
+                onClick={() => setShowMargin((v) => !v)}
+                className={showMargin ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+              >
+                {showMargin ? "Masquer marges" : "Afficher marges"}
+              </button>
+            </PlanGate>
           )}
           <button onClick={handleExportCSV} className="btn-secondary btn-sm">
             Exporter CSV

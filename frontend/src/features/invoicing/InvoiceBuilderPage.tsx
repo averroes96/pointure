@@ -11,11 +11,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
+import { UpgradeBanner } from "@/components/ui/PlanGate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -400,7 +400,6 @@ function VariantSearchCell({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function InvoiceBuilderPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const today = toISODate(new Date());
@@ -621,6 +620,9 @@ export default function InvoiceBuilderPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Plan upgrade banner ── */}
+      <UpgradeBanner min="pro_wholesale" feature="La facturation (factures, BL, avoirs)" />
 
       {/* ── Error banner ── */}
       {formError && (

@@ -3,13 +3,15 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
-  Factory, ClipboardList, PieChart, CalendarDays, BarChart,
-  Settings, ChevronDown, ChevronRight, ShoppingBag, ArrowLeftRight, Shield,
+  Factory, PieChart, CalendarDays, BarChart,
+  Settings, ShoppingBag, ArrowLeftRight, Shield,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePlan, PLAN_LABELS } from "@/hooks/usePlan";
+import type { Plan } from "@/types";
 
 interface NavSection {
   key: string;
@@ -24,6 +26,8 @@ interface NavItem {
   label?: string;
   icon: LucideIcon;
   managerOnly?: boolean;
+  /** If set, item is shown but locked/dimmed when tenant plan is below this */
+  minPlan?: Plan;
 }
 
 function useNavSections(): NavSection[] {
@@ -48,10 +52,10 @@ function useNavSections(): NavSection[] {
       key: "invoicing",
       label: t("nav.invoicing"),
       items: [
-        { to: "/invoices/new", labelKey: "nav.new_invoice", icon: FileText, managerOnly: true },
-        { to: "/invoices", labelKey: "nav.invoice_list", icon: FileText, managerOnly: true },
-        { to: "/delivery-notes", labelKey: "nav.delivery_notes", icon: Truck, managerOnly: true },
-        { to: "/credit-notes", labelKey: "nav.credit_notes", icon: FileX, managerOnly: true },
+        { to: "/invoices/new", labelKey: "nav.new_invoice", icon: FileText, managerOnly: true, minPlan: "pro_wholesale" },
+        { to: "/invoices", labelKey: "nav.invoice_list", icon: FileText, managerOnly: true, minPlan: "pro_wholesale" },
+        { to: "/delivery-notes", labelKey: "nav.delivery_notes", icon: Truck, managerOnly: true, minPlan: "pro_wholesale" },
+        { to: "/credit-notes", labelKey: "nav.credit_notes", icon: FileX, managerOnly: true, minPlan: "pro_wholesale" },
       ],
     },
     {
@@ -86,7 +90,7 @@ function useNavSections(): NavSection[] {
       label: t("nav.reports"),
       items: [
         { to: "/reports/daily", labelKey: "nav.daily_report", icon: CalendarDays, managerOnly: true },
-        { to: "/reports/sales", labelKey: "nav.sales_analytics", icon: BarChart, managerOnly: true },
+        { to: "/reports/sales", labelKey: "nav.sales_analytics", icon: BarChart, managerOnly: true, minPlan: "pro_retail" },
         { to: "/reports/stock", labelKey: "nav.stock_report", icon: PieChart, managerOnly: true },
       ],
     },
@@ -104,6 +108,7 @@ function useNavSections(): NavSection[] {
 export default function Sidebar() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { canAccess } = usePlan();
   const navSections = useNavSections();
   const isCashier = user?.role === "cashier";
 
@@ -131,19 +136,42 @@ export default function Sidebar() {
             )}
             {section.items
               .filter((item) => !isCashier || !item.managerOnly)
-              .map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/"}
-                  className={({ isActive }) =>
-                    cn("nav-item", isActive && "active")
-                  }
-                >
-                  <item.icon size={16} />
-                  <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>
-                </NavLink>
-              ))}
+              .map((item) => {
+                const locked = !!item.minPlan && !canAccess(item.minPlan);
+
+                if (locked) {
+                  // Show a non-clickable dimmed row with plan badge
+                  return (
+                    <div
+                      key={item.to}
+                      className="nav-item opacity-40 cursor-not-allowed"
+                      title={`Disponible à partir du plan ${PLAN_LABELS[item.minPlan!]}`}
+                    >
+                      <item.icon size={16} />
+                      <span className="text-sm flex-1">
+                        {item.labelKey ? t(item.labelKey) : item.label}
+                      </span>
+                      <span className="text-2xs bg-white/10 px-1.5 py-0.5 rounded-full leading-none">
+                        {PLAN_LABELS[item.minPlan!]}
+                      </span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === "/"}
+                    className={({ isActive }) =>
+                      cn("nav-item", isActive && "active")
+                    }
+                  >
+                    <item.icon size={16} />
+                    <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>
+                  </NavLink>
+                );
+              })}
           </div>
         ))}
       </div>
