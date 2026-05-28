@@ -35,6 +35,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return InvoiceSerializer
 
     def create(self, request, *args, **kwargs):
+        self.require_manager()
         serializer = CreateInvoiceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

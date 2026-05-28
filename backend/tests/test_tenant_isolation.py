@@ -59,13 +59,7 @@ class TestTenantIsolation:
         self.client_b = APIClient()
 
     def _login(self, api_client, user):
-        response = api_client.post(
-            "/api/v1/auth/login/",
-            {"email": user.email, "password": "testpass123"},
-            format="json",
-        )
-        assert response.status_code == 200, f"Login failed: {response.data}"
-        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
+        api_client.force_authenticate(user=user)
 
     def test_products_scoped_to_tenant(self):
         """Tenant A cannot see Tenant B's products."""

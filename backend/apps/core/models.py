@@ -8,7 +8,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from .managers import TenantManager
+from .managers import TenantManager, UserManager
 
 
 # ─────────────────────────────────────────────
@@ -128,6 +128,8 @@ class User(AbstractUser):
     )
     phone = models.CharField(_("Phone"), max_length=20, blank=True)
     avatar = models.ImageField(_("Avatar"), upload_to="users/avatars/", blank=True, null=True)
+
+    objects = UserManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
