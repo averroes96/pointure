@@ -57,9 +57,22 @@ LOCAL_APPS = [
     "apps.suppliers",
     "apps.reports",
     "apps.notifications",
+    "apps.licensing",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# ─────────────────────────────────────────────
+# Deployment mode & licensing
+# ─────────────────────────────────────────────
+# "cloud"  — SaaS multi-tenant mode; license checking is disabled.
+# "local"  — Self-hosted single-tenant; license enforcement is active.
+DEPLOYMENT_MODE = config("DEPLOYMENT_MODE", default="cloud")
+
+LICENSE_KEY = config("LICENSE_KEY", default="")
+LICENSE_SERVER_URL = config("LICENSE_SERVER_URL", default="https://licenses.shodz.app")
+LICENSE_GRACE_DAYS = 7   # Days the app can run without reaching the license server
+APP_VERSION = config("APP_VERSION", default="1.0.0")
 
 # ─────────────────────────────────────────────
 # Middleware
@@ -253,6 +266,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.check_low_stock",
         "schedule": timedelta(hours=6),                  # every 6 hours
         "options": {"queue": "notifications"},
+    },
+    # License heartbeat — self-hosted mode only; no-op in cloud mode.
+    "license-heartbeat": {
+        "task": "licensing.heartbeat",
+        "schedule": timedelta(minutes=30),               # every 30 minutes
+        "options": {"queue": "default"},
     },
 }
 
