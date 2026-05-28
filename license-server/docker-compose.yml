@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      # SQLite database and staticfiles — persisted on the host
+      - ./data:/app/data
+      - ./staticfiles:/app/staticfiles
