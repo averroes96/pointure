@@ -73,13 +73,23 @@ export default function StockReportPage() {
     downloadCSV(rows, `rapport-stock-${new Date().toISOString().split("T")[0]}.csv`);
   }
 
-  function handleGeneratePDF() {
-    const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-    const token = localStorage.getItem("access_token");
-    const url = `${BASE_URL}/api/v1/reports/stock/pdf/`;
-    // Open with auth token as query param or just open tab (server validates session/token)
-    const w = window.open(url + (token ? `?token=${token}` : ""), "_blank");
-    if (!w) window.location.href = url;
+  async function handleGeneratePDF() {
+    try {
+      const response = await api.get("/reports/stock/pdf/", {
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rapport-stock-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Also open in new tab for inline preview
+      window.open(url, "_blank");
+    } catch {
+      alert("Impossible de générer le PDF — réessayez.");
+    }
   }
 
   const byCategory = data?.by_category ?? [];

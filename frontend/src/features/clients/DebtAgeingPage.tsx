@@ -110,8 +110,20 @@ export default function DebtAgeingPage() {
     );
   }, [filtered]);
 
-  function handleExportExcel() {
-    toast.show("Bientôt disponible");
+  async function handleExportExcel() {
+    try {
+      const response = await api.get("/clients/ageing-csv/", {
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vieillissement-creances-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.show("Impossible d'exporter — réessayez.");
+    }
   }
 
   return (
