@@ -323,6 +323,11 @@ CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="http://localhost:
 CORS_ALLOW_CREDENTIALS = True
 
 # ─────────────────────────────────────────────
+# Frontend
+# ─────────────────────────────────────────────
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost")
+
+# ─────────────────────────────────────────────
 # Storage (S3 / local)
 # ─────────────────────────────────────────────
 USE_S3 = config("USE_S3", default=False, cast=bool)

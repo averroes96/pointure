@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Bell, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import { applyDirection } from "@/lib/i18n";
 import i18n from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,9 +44,11 @@ const NOTIF_ACCENT: Record<string, string> = {
 export default function Topbar() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { branches, currentBranch, setCurrentBranch } = useBranch();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [showBranchMenu, setShowBranchMenu] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: unreadCount } = useQuery({
@@ -93,6 +96,44 @@ export default function Topbar() {
         <span className="text-xl hidden xs:block">👟</span>
         <span className="font-bold text-primary-500 hidden xs:block">ShoeDZ</span>
       </div>
+
+      {/* Branch selector — only visible when tenant has multiple branches */}
+      {branches.length > 1 && (
+        <div className="relative mx-2">
+          <button
+            onClick={() => setShowBranchMenu(!showBranchMenu)}
+            className="btn-ghost btn-sm flex items-center gap-1.5 text-text-secondary"
+          >
+            <Building2 size={14} />
+            <span className="hidden sm:inline text-xs font-medium max-w-[120px] truncate">
+              {currentBranch?.name ?? "—"}
+            </span>
+            <ChevronDown size={12} />
+          </button>
+          {showBranchMenu && (
+            <div className="absolute start-0 top-full mt-1 bg-white border border-border rounded-md shadow-lg z-50 min-w-[180px]">
+              <div className="px-3 py-1.5 border-b border-border">
+                <span className="text-xs text-text-muted font-medium">Agence active</span>
+              </div>
+              {branches.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => { setCurrentBranch(b); setShowBranchMenu(false); }}
+                  className={cn(
+                    "w-full text-start px-3 py-2 text-sm hover:bg-surface flex items-center justify-between gap-2",
+                    currentBranch?.id === b.id && "font-semibold text-primary-500"
+                  )}
+                >
+                  <span className="truncate">{b.name}</span>
+                  {b.is_headquarters && (
+                    <span className="text-2xs text-text-muted shrink-0">HQ</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Right Actions */}
       <div className="flex items-center gap-1">
@@ -224,10 +265,10 @@ export default function Topbar() {
       </div>
 
       {/* Close dropdowns on outside click */}
-      {(showLangMenu || showUserMenu || showNotifPanel) && (
+      {(showLangMenu || showUserMenu || showNotifPanel || showBranchMenu) && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => { setShowLangMenu(false); setShowUserMenu(false); setShowNotifPanel(false); }}
+          onClick={() => { setShowLangMenu(false); setShowUserMenu(false); setShowNotifPanel(false); setShowBranchMenu(false); }}
         />
       )}
     </header>

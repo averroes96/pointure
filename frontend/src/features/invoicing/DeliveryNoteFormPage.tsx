@@ -158,7 +158,7 @@ export default function DeliveryNoteFormPage() {
         invoice_id: inv.id,
         number: `BL-${inv.number || inv.id}`,
       }));
-    }).catch(() => {});
+    }).catch(() => setFormError("Impossible de charger la facture sélectionnée."));
   }, []);
 
   function handleInvoiceSelect(inv: Invoice) {

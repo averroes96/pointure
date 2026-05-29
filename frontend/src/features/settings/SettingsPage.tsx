@@ -353,6 +353,8 @@ interface InviteFormData {
   role: "manager" | "cashier";
   first_name: string;
   last_name: string;
+  password: string;
+  confirm_password: string;
 }
 
 function UsersTab() {
@@ -451,6 +453,37 @@ function UsersTab() {
                 className="form-input"
               />
               {errors.email && <p className="form-error">{errors.email.message}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Mot de passe *</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  {...register("password", {
+                    required: "Obligatoire",
+                    minLength: { value: 8, message: "8 caractères minimum" },
+                  })}
+                  className="form-input"
+                />
+                {errors.password && <p className="form-error">{errors.password.message}</p>}
+              </div>
+              <div>
+                <label className="form-label">Confirmer *</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  {...register("confirm_password", {
+                    required: "Obligatoire",
+                    validate: (val, formVals) =>
+                      val === formVals.password || "Les mots de passe ne correspondent pas",
+                  })}
+                  className="form-input"
+                />
+                {errors.confirm_password && (
+                  <p className="form-error">{errors.confirm_password.message}</p>
+                )}
+              </div>
             </div>
             <div>
               <label className="form-label">Rôle</label>

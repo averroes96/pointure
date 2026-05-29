@@ -1,8 +1,13 @@
 """Core API views: profile, users, branches, tenant settings."""
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.core.models import AuditLog, Branch, Tenant, User
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -77,7 +82,13 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self.require_manager()
-        serializer.save(tenant=self.request.tenant)
+        # Capture the plain-text password before the serializer hashes it
+        temp_password = self.request.data.get("password", "")
+        user = serializer.save(tenant=self.request.tenant)
+        if temp_password:
+            from apps.core.tasks import send_welcome_email
+            tenant_name = getattr(self.request.tenant, "name", "ShoeDZ")
+            send_welcome_email.delay(user.pk, temp_password, tenant_name)
 
     def perform_update(self, serializer):
         self.require_manager()
@@ -156,4 +167,73 @@ class TenantSettingsView(viewsets.GenericViewSet):
         from rest_framework.exceptions import PermissionDenied
         if self.request.user.role != RoleChoices.OWNER:
             raise PermissionDenied("Only the owner can change tenant settings.")
+
+
+class PasswordResetRequestView(APIView):
+    """Request a password-reset email. No authentication required."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        _RESPONSE = Response(
+            {"detail": "Si cet email existe, un lien de réinitialisation a été envoyé."}
+        )
+        if not email:
+            return _RESPONSE
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return _RESPONSE
+
+        token = PasswordResetTokenGenerator().make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        from apps.core.tasks import send_password_reset_email
+        send_password_reset_email.delay(user.pk, uid, token)
+
+        return _RESPONSE
+
+
+class PasswordResetConfirmView(APIView):
+    """Confirm password reset with uid + token. No authentication required."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        uid = request.data.get("uid", "")
+        token = request.data.get("token", "")
+        new_password = request.data.get("new_password", "")
+        confirm_password = request.data.get("confirm_password", "")
+
+        if len(new_password) < 8:
+            return Response(
+                {"error": "Le mot de passe doit contenir au moins 8 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if new_password != confirm_password:
+            return Response(
+                {"error": "Les mots de passe ne correspondent pas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user_pk = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_pk)
+        except (User.DoesNotExist, Exception):
+            return Response(
+                {"error": "Lien invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not PasswordResetTokenGenerator().check_token(user, token):
+            return Response(
+                {"error": "Ce lien est expiré ou invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"detail": "Mot de passe réinitialisé avec succès."})
 

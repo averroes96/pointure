@@ -13,12 +13,19 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
+from apps.core.views import PasswordResetRequestView, PasswordResetConfirmView
+from apps.core.setup_views import SetupStatusView, SetupView
 
 api_v1 = [
+    # First-run setup wizard (unauthenticated, local mode only)
+    path("setup/status/", SetupStatusView.as_view(), name="setup-status"),
+    path("setup/", SetupView.as_view(), name="setup"),
     # Authentication
     path("auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("auth/password-reset/", PasswordResetRequestView.as_view(), name="password-reset-request"),
+    path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
     # App routes
     path("core/", include("apps.core.urls")),
     path("inventory/", include("apps.inventory.urls")),

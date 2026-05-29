@@ -147,7 +147,7 @@ export default function PurchaseOrderFormPage() {
     if (!supplierId) return;
     api.get(`/suppliers/${supplierId}/`).then((r) => {
       setSelectedSupplier(r.data as Supplier);
-    }).catch(() => {});
+    }).catch(() => setFormError("Impossible de charger le fournisseur sélectionné."));
   }, []);
 
   const grandTotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);

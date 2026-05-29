@@ -151,7 +151,7 @@ export default function CreditNoteFormPage() {
     if (!invoiceId) return;
     api.get(`/invoicing/invoices/${invoiceId}/`).then((r) => {
       handleInvoiceSelect(r.data as Invoice);
-    }).catch(() => {});
+    }).catch(() => setFormError("Impossible de charger la facture sélectionnée."));
   }, []);
 
   function handleInvoiceSelect(inv: Invoice) {

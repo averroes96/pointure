@@ -37,6 +37,7 @@ import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import SkuMatrix from "./components/SkuMatrix";
 import BarcodeSvg from "@/components/ui/BarcodeSvg";
 import { usePrintLabels } from "@/hooks/usePrintLabels";
@@ -106,6 +107,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentBranch } = useBranch();
   const queryClient = useQueryClient();
   const isManager = user?.role !== "cashier";
   const { printLabels } = usePrintLabels();
@@ -148,6 +150,7 @@ export default function ProductDetailPage() {
         quantity_delta: parseInt(adjustForm.quantity_delta),
         reason: adjustForm.reason,
         notes: adjustForm.notes,
+        branch: currentBranch?.id ?? null,
       }),
     onSuccess: () => {
       // Capture before clearing so auto-print can use them

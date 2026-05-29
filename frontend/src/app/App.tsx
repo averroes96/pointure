@@ -1,10 +1,29 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Suspense, lazy, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
+import { BranchProvider } from "@/features/auth/BranchContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import api from "@/lib/api";
+
+// ── Setup redirect: checks once on mount whether setup is needed ─────────────
+function SetupRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    api
+      .get("/setup/status/")
+      .then((r) => {
+        if (r.data.needed) navigate("/setup", { replace: true });
+      })
+      .catch(() => {});
+  }, [navigate]);
+  return null;
+}
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("@/features/auth/LoginPage"));
+const SetupPage = lazy(() => import("@/features/auth/SetupPage"));
+const ForgotPasswordPage = lazy(() => import("@/features/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/features/auth/ResetPasswordPage"));
 const DashboardPage = lazy(() => import("@/features/dashboard/DashboardPage"));
 
 // Inventory
@@ -73,8 +92,12 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Suspense fallback={null}><UpgradePromptModal /></Suspense>
+      <SetupRedirect />
       <Routes>
+        <Route path="/setup" element={<SetupPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route
           path="/"
@@ -165,7 +188,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <BranchProvider>
+          <AppRoutes />
+        </BranchProvider>
       </AuthProvider>
     </BrowserRouter>
   );

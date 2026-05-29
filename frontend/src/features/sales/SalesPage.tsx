@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Search, X, Plus, Minus, ShoppingBag, Check, Printer } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
+import { useBranch } from "@/features/auth/BranchContext";
 import type { Product, Sale, Variant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -43,6 +44,7 @@ export default function SalesPage() {
   const [payments, setPayments] = useState<PaymentLine[]>([{ method: "cash", amount: 0 }]);
   const [receipt, setReceipt] = useState<Sale | null>(null);
   const { user } = useAuth();
+  const { currentBranch } = useBranch();
 
   // F2 / F10 keyboard shortcuts
   useEffect(() => {
@@ -133,6 +135,7 @@ export default function SalesPage() {
         : [{ method: "cash", amount: Math.max(0, total) }];
 
       return api.post("/sales/", {
+        branch: currentBranch?.id ?? null,
         items: cart.map((i) => ({
           variant_id: i.variant.id,
           quantity: i.quantity,

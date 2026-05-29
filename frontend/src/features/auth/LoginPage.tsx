@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "./AuthContext";
@@ -86,6 +86,11 @@ export default function LoginPage() {
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
+              </div>
+              <div className="flex justify-end mt-1">
+                <Link to="/forgot-password" className="text-xs text-primary-500 hover:underline">
+                  Mot de passe oublié ?
+                </Link>
               </div>
             </div>
 
