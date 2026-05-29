@@ -90,7 +90,7 @@ export default function LowStockPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<Variant>>({
     queryKey: ["variants", "low-stock"],
     queryFn: () =>
-      api.get("/inventory/variants/?is_low_stock=true&page_size=100").then((r) => r.data),
+      api.get("/inventory/low-stock/?page_size=200").then((r) => r.data),
   });
 
   const allVariants = (data?.results ?? []).slice().sort((a, b) => a.stock_qty - b.stock_qty);
