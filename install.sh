@@ -17,6 +17,18 @@
 
 set -euo pipefail
 
+# ── Portable sed -i (GNU vs BSD) ─────────────────────────────────────────────
+# macOS ships BSD sed which requires `sed -i ''`; Linux uses GNU sed (`sed -i`).
+sedi() {
+    if sed --version >/dev/null 2>&1; then
+        # GNU sed
+        sed -i "$@"
+    else
+        # BSD sed (macOS)
+        sed -i '' "$@"
+    fi
+}
+
 # ── Colour helpers ───────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()    { echo -e "${CYAN}[INFO]${NC} $*"; }
@@ -78,8 +90,8 @@ else
         .env.local.example > "$ENV_FILE"
 
     # Fix DATABASE_URL and REDIS_URL substitutions with actual passwords
-    sed -i "s|DATABASE_URL=postgres://shodz:.*@db|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db|g" "$ENV_FILE"
-    sed -i "s|REDIS_URL=redis://:.*@redis|REDIS_URL=redis://:${REDIS_PASSWORD}@redis|g" "$ENV_FILE"
+    sedi "s|DATABASE_URL=postgres://shodz:.*@db|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db|g" "$ENV_FILE"
+    sedi "s|REDIS_URL=redis://:.*@redis|REDIS_URL=redis://:${REDIS_PASSWORD}@redis|g" "$ENV_FILE"
 
     # Append FRONTEND_URL (not in the example template)
     echo "FRONTEND_URL=${FRONTEND_URL}" >> "$ENV_FILE"
@@ -140,7 +152,7 @@ echo ""
 echo -e "${YELLOW}Create a Django admin account for the /admin/ panel? [y/N]${NC}"
 echo -e "${YELLOW}(Skip this if you only need the app — the browser wizard creates your app account.)${NC}"
 read -r -p "" CREATE_SUPER
-if [[ "${CREATE_SUPER,,}" == "y" ]]; then
+if [[ "$(echo "$CREATE_SUPER" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
     docker compose -f "$COMPOSE_FILE" exec backend python manage.py createsuperuser
 fi
 
