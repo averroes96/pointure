@@ -7,12 +7,13 @@
 #   chmod +x install.sh && ./install.sh
 #
 # What this script does:
-#   1. Checks prerequisites (Docker, Docker Compose v2, git)
+#   1. Checks prerequisites (Docker, Docker Compose v2, python3)
 #   2. Creates .env.local with auto-generated secrets
 #   3. Builds and starts all containers
-#   4. Runs database migrations
-#   5. Prompts to create a Django superuser
-#   6. Prints the URL and next steps
+#   4. Runs database migrations & collects static files
+#   5. Activates your license key (if provided)
+#   6. Optionally creates a Django admin superuser (for /admin/ panel)
+#   7. Prints the URL — visit http://localhost/setup to finish in the browser
 
 set -euo pipefail
 
@@ -36,15 +37,13 @@ echo ""
 # ── 1. Prerequisites ─────────────────────────────────────────────────────────
 info "Checking prerequisites…"
 
-command -v docker  >/dev/null 2>&1 || error "Docker is not installed. Install it from https://docs.docker.com/get-docker/"
-command -v git     >/dev/null 2>&1 || error "Git is not installed."
+command -v docker  >/dev/null 2>&1 || error "Docker is not installed. See https://docs.docker.com/get-docker/"
+command -v python3 >/dev/null 2>&1 || error "python3 is required to generate secrets."
 
-# Docker Compose v2 (docker compose) is required
 if ! docker compose version >/dev/null 2>&1; then
-    error "Docker Compose v2 is required. Install it from https://docs.docker.com/compose/install/"
+    error "Docker Compose v2 is required. See https://docs.docker.com/compose/install/"
 fi
 
-# Check Docker daemon is running
 docker info >/dev/null 2>&1 || error "Docker daemon is not running. Start it and try again."
 
 success "All prerequisites satisfied."
@@ -55,35 +54,41 @@ if [[ -f "$ENV_FILE" ]]; then
 else
     info "Generating $ENV_FILE with random secrets…"
 
-    # Generate secrets using Python (available in most Linux distros)
     SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(50))")
     DB_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
     REDIS_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
 
-    # Prompt for license key
     echo ""
-    echo -e "${YELLOW}Enter your ShoeDZ license key (format: SHDZ-XXXX-XXXX-XXXX):${NC}"
+    echo -e "${YELLOW}Enter your ShoeDZ license key (format: SHDZ-XXXX-XXXX-XXXX).${NC}"
+    echo -e "${YELLOW}Press Enter to skip — you can activate the license later.${NC}"
     read -r -p "License key: " LICENSE_KEY
+    echo ""
+
+    echo -e "${YELLOW}Enter the public URL of this server (e.g. http://192.168.1.10 or http://localhost).${NC}"
+    echo -e "${YELLOW}Used in password-reset emails. Press Enter for http://localhost.${NC}"
+    read -r -p "Frontend URL [http://localhost]: " FRONTEND_URL
+    FRONTEND_URL="${FRONTEND_URL:-http://localhost}"
     echo ""
 
     sed \
         -e "s|change-me-generate-with-python-secrets-token-hex-50|${SECRET_KEY}|g" \
         -e "s|change-me-strong-password|${DB_PASSWORD}|g" \
         -e "s|change-me-redis-password|${REDIS_PASSWORD}|g" \
-        -e "s|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db:5432/shodz|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db:5432/shodz|g" \
-        -e "s|REDIS_URL=redis://:change-me-redis-password@redis:6379/0|REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0|g" \
-        -e "s|SHDZ-XXXX-XXXX-XXXX|${LICENSE_KEY}|g" \
+        -e "s|SHDZ-XXXX-XXXX-XXXX|${LICENSE_KEY:-SHDZ-XXXX-XXXX-XXXX}|g" \
         .env.local.example > "$ENV_FILE"
 
-    # Fix DATABASE_URL and REDIS_URL with the actual generated passwords
+    # Fix DATABASE_URL and REDIS_URL substitutions with actual passwords
     sed -i "s|DATABASE_URL=postgres://shodz:.*@db|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db|g" "$ENV_FILE"
     sed -i "s|REDIS_URL=redis://:.*@redis|REDIS_URL=redis://:${REDIS_PASSWORD}@redis|g" "$ENV_FILE"
+
+    # Append FRONTEND_URL (not in the example template)
+    echo "FRONTEND_URL=${FRONTEND_URL}" >> "$ENV_FILE"
 
     success "$ENV_FILE created."
 fi
 
 # ── 3. Build and start containers ────────────────────────────────────────────
-info "Building Docker images (this may take a few minutes on first run)…"
+info "Building Docker images (this may take several minutes on first run)…"
 docker compose -f "$COMPOSE_FILE" pull --quiet db redis nginx 2>/dev/null || true
 docker compose -f "$COMPOSE_FILE" build --quiet
 
@@ -96,7 +101,7 @@ MAX_WAIT=60
 WAITED=0
 until docker compose -f "$COMPOSE_FILE" exec -T db pg_isready -U "${DB_USER:-shodz}" >/dev/null 2>&1; do
     if [[ $WAITED -ge $MAX_WAIT ]]; then
-        error "Database did not become ready within ${MAX_WAIT}s. Check logs: docker compose -f $COMPOSE_FILE logs db"
+        error "Database did not become ready within ${MAX_WAIT}s. Check: docker compose -f $COMPOSE_FILE logs db"
     fi
     sleep 2
     WAITED=$((WAITED + 2))
@@ -119,29 +124,44 @@ if [[ -n "$LICENSE_KEY_IN_ENV" && "$LICENSE_KEY_IN_ENV" != "SHDZ-XXXX-XXXX-XXXX"
     if docker compose -f "$COMPOSE_FILE" exec -T backend python manage.py activate_license "$LICENSE_KEY_IN_ENV"; then
         success "License activated."
     else
-        warn "License activation failed. Run manually: docker compose -f $COMPOSE_FILE exec backend python manage.py activate_license <YOUR-KEY>"
+        warn "License activation failed — you can retry later:"
+        warn "  docker compose -f $COMPOSE_FILE exec backend python manage.py activate_license <YOUR-KEY>"
     fi
 else
-    warn "No license key set. Run: docker compose -f $COMPOSE_FILE exec backend python manage.py activate_license <YOUR-KEY>"
+    warn "No license key set. Activate after setup:"
+    warn "  docker compose -f $COMPOSE_FILE exec backend python manage.py activate_license SHDZ-XXXX-XXXX-XXXX"
 fi
 
-# ── 6. Superuser ─────────────────────────────────────────────────────────────
+# ── 6. Django admin superuser (optional) ─────────────────────────────────────
+# NOTE: This creates an account for the /admin/ panel (internal Django admin),
+#       NOT the app itself. Your app account is created via the browser wizard
+#       at http://localhost/setup after this script finishes.
 echo ""
-echo -e "${YELLOW}Would you like to create an admin superuser now? [y/N]${NC}"
+echo -e "${YELLOW}Create a Django admin account for the /admin/ panel? [y/N]${NC}"
+echo -e "${YELLOW}(Skip this if you only need the app — the browser wizard creates your app account.)${NC}"
 read -r -p "" CREATE_SUPER
 if [[ "${CREATE_SUPER,,}" == "y" ]]; then
     docker compose -f "$COMPOSE_FILE" exec backend python manage.py createsuperuser
 fi
 
 # ── 7. Done ──────────────────────────────────────────────────────────────────
+FRONTEND_URL_DISPLAY=$(grep '^FRONTEND_URL=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"')
+FRONTEND_URL_DISPLAY="${FRONTEND_URL_DISPLAY:-http://localhost}"
+
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  ✓  ShoeDZ is running!                               ║${NC}"
-echo -e "${GREEN}║                                                      ║${NC}"
-echo -e "${GREEN}║  App   : http://localhost                            ║${NC}"
-echo -e "${GREEN}║  Admin : http://localhost/admin/                     ║${NC}"
-echo -e "${GREEN}║                                                      ║${NC}"
-echo -e "${GREEN}║  Stop  : docker compose -f docker-compose.local.yml up -d  ║${NC}"
-echo -e "${GREEN}║  Logs  : docker compose -f docker-compose.local.yml logs -f ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  ✓  ShoeDZ is running!                                       ║${NC}"
+echo -e "${GREEN}║                                                              ║${NC}"
+echo -e "${GREEN}║  👉 NEXT STEP: open your browser and go to:                  ║${NC}"
+echo -e "${GREEN}║                                                              ║${NC}"
+echo -e "${GREEN}║     ${FRONTEND_URL_DISPLAY}/setup                                    ║${NC}"
+echo -e "${GREEN}║                                                              ║${NC}"
+echo -e "${GREEN}║  The setup wizard will ask for your business name and        ║${NC}"
+echo -e "${GREEN}║  create your first admin account.                            ║${NC}"
+echo -e "${GREEN}║                                                              ║${NC}"
+echo -e "${GREEN}║  Django admin panel : ${FRONTEND_URL_DISPLAY}/admin/              ║${NC}"
+echo -e "${GREEN}║                                                              ║${NC}"
+echo -e "${GREEN}║  Stop  : docker compose -f docker-compose.local.yml down     ║${NC}"
+echo -e "${GREEN}║  Logs  : docker compose -f docker-compose.local.yml logs -f  ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
