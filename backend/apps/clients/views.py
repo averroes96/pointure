@@ -95,7 +95,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         from apps.core.plan_permissions import PlanRequired
         from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
-        perm = PlanRequired("pro_wholesale")
+        perm = PlanRequired("pro_wholesale")()
         if not perm.has_permission(request, self):
             raise DRFPermissionDenied(perm.message)
 
