@@ -67,32 +67,118 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"], url_path="sales-by-period")
     def sales_by_period(self, request):
-        """Revenue, units sold, and margin by period."""
+        """
+        Revenue, units sold, avg basket, and top products for a period.
+
+        Query params:
+          period   — "7" | "30" | "90" (days) or "day" | "week" | "month"
+          from, to — ISO date strings (used when period is not a preset)
+          branch   — branch ID (optional, filters by branch)
+
+        Response:
+          { rows, top_products, total_revenue, total_sales, growth_pct }
+        """
         from apps.sales.models import Sale, SaleItem
         from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
+        from django.db.models import F
         import datetime
 
-        period = request.query_params.get("period", "day")  # day, week, month
+        tenant = request.tenant
+        period_param = request.query_params.get("period", "30")
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
+        branch_id = request.query_params.get("branch")
+        today = timezone.now().date()
 
-        qs = Sale.objects.filter(tenant=request.tenant, status="completed")
+        # Numeric presets: last N days, grouped by day
+        if period_param in ("7", "30", "90"):
+            days = int(period_param)
+            from_date = str(today - datetime.timedelta(days=days - 1))
+            to_date = str(today)
+            trunc_fn = TruncDay
+        else:
+            trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
+            trunc_fn = trunc_map.get(period_param, TruncDay)
+
+        qs = Sale.objects.filter(tenant=tenant, status="completed")
         if from_date:
             qs = qs.filter(created_at__date__gte=from_date)
         if to_date:
             qs = qs.filter(created_at__date__lte=to_date)
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
 
-        trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
-        trunc_fn = trunc_map.get(period, TruncDay)
-
-        data = (
-            qs.annotate(period=trunc_fn("created_at"))
-            .values("period")
+        # Period rows
+        period_rows = (
+            qs.annotate(p=trunc_fn("created_at"))
+            .values("p")
             .annotate(revenue=Sum("total_amount"), sale_count=Count("id"))
-            .order_by("period")
+            .order_by("p")
         )
 
-        return Response(list(data))
+        rows = []
+        total_revenue = Decimal("0")
+        total_sales = 0
+        for row in period_rows:
+            rev = row["revenue"] or Decimal("0")
+            cnt = row["sale_count"] or 0
+            avg_basket = (rev / cnt).quantize(Decimal("0.01")) if cnt > 0 else Decimal("0")
+            total_revenue += rev
+            total_sales += cnt
+            # Normalise period to a date string regardless of truncation type
+            p_val = row["p"]
+            p_str = p_val.date().isoformat() if hasattr(p_val, "date") else str(p_val)
+            rows.append({
+                "period": p_str,
+                "revenue": rev,
+                "sale_count": cnt,
+                "avg_basket": avg_basket,
+            })
+
+        # Top products for the same window
+        top_products = list(
+            SaleItem.objects.filter(sale__in=qs)
+            .values(
+                product_id=F("variant__product__id"),
+                product_name=F("variant__product__name"),
+                brand=F("variant__product__brand"),
+            )
+            .annotate(units_sold=Sum("quantity"), revenue=Sum("unit_price"))
+            .order_by("-units_sold")[:10]
+        )
+
+        # Growth vs the same-length preceding period
+        growth_pct = None
+        if from_date and to_date:
+            try:
+                from_dt = datetime.date.fromisoformat(from_date)
+                to_dt = datetime.date.fromisoformat(to_date)
+                delta = (to_dt - from_dt).days + 1
+                prev_from = str(from_dt - datetime.timedelta(days=delta))
+                prev_to = str(from_dt - datetime.timedelta(days=1))
+                prev_qs = Sale.objects.filter(
+                    tenant=tenant, status="completed",
+                    created_at__date__gte=prev_from,
+                    created_at__date__lte=prev_to,
+                )
+                if branch_id:
+                    prev_qs = prev_qs.filter(branch_id=branch_id)
+                prev_total = prev_qs.aggregate(t=Sum("total_amount"))["t"] or Decimal("0")
+                if prev_total > 0:
+                    growth_pct = float(
+                        ((total_revenue - prev_total) / prev_total * 100)
+                        .quantize(Decimal("0.1"))
+                    )
+            except (ValueError, Exception):
+                pass
+
+        return Response({
+            "rows": rows,
+            "top_products": top_products,
+            "total_revenue": total_revenue,
+            "total_sales": total_sales,
+            "growth_pct": growth_pct,
+        })
 
     @action(detail=False, methods=["get"], url_path="best-sellers")
     def best_sellers(self, request):
@@ -239,11 +325,24 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         can_see_costs = getattr(request.user, "can_see_costs", False)
 
+        import datetime as _dt
+        branch_id = request.query_params.get("branch")
+        today_date = timezone.now().date()
+
+        # Numeric presets → same logic as sales_by_period
+        if period in ("7", "30", "90"):
+            days = int(period)
+            from_date = str(today_date - _dt.timedelta(days=days - 1))
+            to_date = str(today_date)
+            period = "day"  # group by day for numeric presets
+
         sale_qs = Sale.objects.filter(tenant=request.tenant, status="completed")
         if from_date:
             sale_qs = sale_qs.filter(created_at__date__gte=from_date)
         if to_date:
             sale_qs = sale_qs.filter(created_at__date__lte=to_date)
+        if branch_id:
+            sale_qs = sale_qs.filter(branch_id=branch_id)
 
         trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
         trunc_fn = trunc_map.get(period, TruncMonth)
@@ -370,3 +469,152 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             "by_category": by_category,
             "by_brand": by_brand,
         })
+
+    @action(detail=False, methods=["get"], url_path="stock/pdf")
+    def stock_pdf(self, request):
+        """
+        Generate a printable PDF for the stock report.
+        Authenticated via standard JWT Bearer header — the frontend should
+        fetch this with axios (responseType: 'blob') then open a blob URL,
+        not via window.open with a ?token= param.
+        """
+        from apps.inventory.models import Variant, Product
+        from django.db.models import F, ExpressionWrapper, DecimalField as DjDecimalField
+        from django.db.models.functions import Coalesce
+        from django.http import HttpResponse
+        from django.utils import timezone as tz
+
+        tenant = request.tenant
+        variants = Variant.objects.filter(tenant=tenant, is_active=True)
+        total_sku = variants.count()
+        total_units = variants.aggregate(t=Sum("stock_qty"))["t"] or 0
+        low_stock_count = variants.filter(
+            alert_threshold__gt=0, stock_qty__lte=F("alert_threshold"), stock_qty__gt=0
+        ).count()
+        out_of_stock_count = variants.filter(stock_qty=0).count()
+
+        total_stock_value = Decimal("0")
+        if request.user.can_see_costs:
+            val = variants.annotate(
+                lv=ExpressionWrapper(
+                    F("stock_qty") * Coalesce(F("product__purchase_price"), Decimal("0")),
+                    output_field=DjDecimalField(max_digits=14, decimal_places=2),
+                )
+            ).aggregate(t=Sum("lv"))["t"]
+            total_stock_value = val or Decimal("0")
+
+        by_category = list(
+            Product.objects.filter(tenant=tenant, is_active=True)
+            .values("category")
+            .annotate(count=Count("id"), units=Sum("variants__stock_qty"))
+            .order_by("-units")
+        )
+
+        by_brand = list(
+            Product.objects.filter(tenant=tenant, is_active=True)
+            .values("brand")
+            .annotate(count=Count("id"), units=Sum("variants__stock_qty"))
+            .order_by("-units")[:20]
+        )
+
+        generated_at = tz.now().strftime("%d/%m/%Y à %H:%M")
+
+        def cat_rows():
+            rows = ""
+            for r in by_category:
+                rows += (
+                    f"<tr><td>{r['category'] or '—'}</td>"
+                    f"<td class='n'>{r['count']}</td>"
+                    f"<td class='n'><b>{r['units'] or 0}</b></td></tr>"
+                )
+            return rows or "<tr><td colspan='3' class='empty'>Aucune donnée</td></tr>"
+
+        def brand_rows():
+            rows = ""
+            for r in by_brand:
+                rows += (
+                    f"<tr><td>{r['brand'] or '—'}</td>"
+                    f"<td class='n'>{r['count']}</td>"
+                    f"<td class='n'><b>{r['units'] or 0}</b></td></tr>"
+                )
+            return rows or "<tr><td colspan='3' class='empty'>Aucune donnée</td></tr>"
+
+        html = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport de stock — {tenant.name}</title>
+<style>
+  @page {{ margin: 18mm 15mm; size: A4; }}
+  body {{ font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #111; margin: 0; }}
+  h1 {{ font-size: 16pt; margin: 0 0 2mm; }}
+  .sub {{ color: #666; font-size: 9pt; margin-bottom: 6mm; }}
+  .kpis {{ display: table; width: 100%; border-collapse: collapse; margin-bottom: 6mm; }}
+  .kpi {{ display: table-cell; width: 20%; border: 1px solid #e2e8f0;
+          padding: 3mm; text-align: center; }}
+  .kpi .val {{ font-size: 18pt; font-weight: bold; color: #1e40af; }}
+  .kpi .lbl {{ font-size: 8pt; color: #666; margin-top: 1mm; }}
+  .kpi.warn .val {{ color: #d97706; }}
+  .kpi.danger .val {{ color: #dc2626; }}
+  h2 {{ font-size: 11pt; margin: 5mm 0 2mm; border-bottom: 1px solid #e2e8f0; padding-bottom: 1mm; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 9.5pt; }}
+  th {{ background: #f8fafc; text-align: left; padding: 1.5mm 2mm;
+        border-bottom: 2px solid #e2e8f0; font-weight: 600; }}
+  td {{ padding: 1.5mm 2mm; border-bottom: 1px solid #f1f5f9; }}
+  td.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
+  .empty {{ color: #999; text-align: center; padding: 4mm; }}
+  .two-col {{ display: table; width: 100%; border-collapse: collapse; margin-top: 3mm; }}
+  .col {{ display: table-cell; width: 49%; vertical-align: top; }}
+  .col + .col {{ padding-left: 4mm; }}
+  .footer {{ margin-top: 8mm; font-size: 8pt; color: #999; text-align: center; }}
+</style>
+</head>
+<body>
+<h1>Rapport de stock</h1>
+<p class="sub">{tenant.name} &mdash; Généré le {generated_at}</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="val">{total_sku}</div><div class="lbl">Références (SKU)</div></div>
+  <div class="kpi"><div class="val">{total_units}</div><div class="lbl">Unités en stock</div></div>
+  <div class="kpi"><div class="val">{total_stock_value:,.0f}</div><div class="lbl">Valeur (DZD)</div></div>
+  <div class="kpi warn"><div class="val">{low_stock_count}</div><div class="lbl">Stock bas</div></div>
+  <div class="kpi danger"><div class="val">{out_of_stock_count}</div><div class="lbl">Ruptures</div></div>
+</div>
+
+<div class="two-col">
+  <div class="col">
+    <h2>Par catégorie</h2>
+    <table>
+      <thead><tr><th>Catégorie</th><th>Réf.</th><th>Unités</th></tr></thead>
+      <tbody>{cat_rows()}</tbody>
+    </table>
+  </div>
+  <div class="col">
+    <h2>Par marque (top 20)</h2>
+    <table>
+      <thead><tr><th>Marque</th><th>Réf.</th><th>Unités</th></tr></thead>
+      <tbody>{brand_rows()}</tbody>
+    </table>
+  </div>
+</div>
+
+<p class="footer">ShoeDZ — Rapport confidentiel — {generated_at}</p>
+</body>
+</html>"""
+
+        try:
+            from weasyprint import HTML as WeasyHTML
+            pdf_bytes = WeasyHTML(string=html, base_url=".").write_pdf()
+        except Exception as exc:
+            return HttpResponse(
+                f"PDF generation failed: {exc}",
+                content_type="text/plain",
+                status=500,
+            )
+
+        today_str = tz.now().strftime("%Y-%m-%d")
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="rapport-stock-{today_str}.pdf"'
+        )
+        return response

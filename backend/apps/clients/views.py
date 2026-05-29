@@ -143,6 +143,50 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         ageing_data = self._compute_ageing(today)
         return Response(ageing_data)
 
+    @action(detail=False, methods=["get"], url_path="ageing-csv")
+    def ageing_csv(self, request):
+        """
+        Same debt-ageing data as /clients/ageing/ but returned as a CSV file
+        for download in spreadsheet applications.
+        """
+        from apps.core.plan_permissions import PlanRequired
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+        from django.http import HttpResponse
+        from django.utils import timezone
+        import csv, io
+
+        perm = PlanRequired("pro_wholesale")()
+        if not perm.has_permission(request, self):
+            raise DRFPermissionDenied(perm.message)
+
+        today = timezone.now().date()
+        rows = self._compute_ageing(today)
+
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow([
+            "Client", "Téléphone", "Wilaya",
+            "Courant (0-30j)", "31-60j", "61-90j", "+90j", "Total",
+        ])
+        for row in rows:
+            writer.writerow([
+                row["client_name"],
+                row.get("phone") or "",
+                row.get("wilaya") or "",
+                row["current"],
+                row["days_30"],
+                row["days_60"],
+                row["days_90_plus"],
+                row["total"],
+            ])
+
+        today_str = today.isoformat()
+        response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="vieillissement-creances-{today_str}.csv"'
+        )
+        return response
+
     def _compute_ageing(self, today):
         """Compute debt ageing data via Python post-processing for flexibility."""
         from apps.invoicing.models import Invoice
