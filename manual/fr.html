@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShoeDZ — Manuel Utilisateur</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+    background: #fff;
+  }
+
+  /* ── Cover Page ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 40px;
+    page-break-after: always;
+  }
+  .cover-logo {
+    width: 90px; height: 90px;
+    background: #4f46e5;
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 32px;
+    font-size: 42px;
+    box-shadow: 0 8px 32px rgba(79,70,229,0.4);
+  }
+  .cover h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+  .cover h1 span { color: #818cf8; }
+  .cover .subtitle { font-size: 22px; color: #a5b4fc; margin-bottom: 48px; }
+  .cover .meta { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 28px; width: 100%; max-width: 360px; }
+  .cover .meta p { font-size: 14px; color: #c7d2fe; margin: 6px 0; }
+  .cover .meta strong { color: #fff; }
+  .cover .badge-lang {
+    display: inline-block; margin-top: 18px;
+    background: rgba(79,70,229,0.3);
+    border: 1px solid rgba(79,70,229,0.5);
+    color: #a5b4fc;
+    padding: 4px 14px; border-radius: 20px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    padding: 40px 0;
+    page-break-after: always;
+  }
+  .toc h2 {
+    font-size: 26px; color: #1a1a2e; font-weight: 700;
+    border-left: 5px solid #4f46e5; padding-left: 16px;
+    margin-bottom: 28px;
+  }
+  .toc ol { list-style: none; padding: 0; counter-reset: toc-counter; }
+  .toc > ol > li { counter-increment: toc-counter; }
+  .toc a { color: #4f46e5; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .toc-entry {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 0; border-bottom: 1px dotted #e2e8f0;
+    font-size: 14px;
+  }
+  .toc .toc-entry .toc-num { color: #4f46e5; font-weight: 700; min-width: 28px; }
+  .toc .toc-entry .toc-title { flex: 1; padding: 0 8px; }
+  .toc .toc-sub { padding-left: 32px; }
+  .toc .toc-sub .toc-entry { font-size: 13px; color: #555; }
+
+  /* ── Section headings ── */
+  .section {
+    page-break-before: always;
+    padding-top: 8px;
+  }
+  .section:first-of-type { page-break-before: avoid; }
+
+  h2.section-title {
+    font-size: 24px; font-weight: 700; color: #1a1a2e;
+    border-left: 5px solid #4f46e5; padding-left: 16px;
+    margin-bottom: 20px; margin-top: 0;
+    padding-top: 4px; padding-bottom: 4px;
+  }
+  h3 {
+    font-size: 17px; font-weight: 600; color: #1a1a2e;
+    margin-top: 28px; margin-bottom: 12px;
+    padding-bottom: 5px; border-bottom: 2px solid #e9e9f5;
+  }
+  h4 {
+    font-size: 14px; font-weight: 600; color: #4f46e5;
+    margin-top: 20px; margin-bottom: 8px;
+  }
+
+  /* ── Intro paragraph ── */
+  .intro-block {
+    background: #f8f7ff;
+    border: 1px solid #e0defd;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 22px;
+    color: #444;
+  }
+
+  /* ── Steps ── */
+  ol.steps {
+    list-style: none;
+    counter-reset: step-counter;
+    padding: 0;
+    margin: 10px 0 18px 0;
+  }
+  ol.steps li {
+    counter-increment: step-counter;
+    display: flex; gap: 14px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  ol.steps li::before {
+    content: counter(step-counter);
+    display: flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px;
+    background: #4f46e5; color: #fff;
+    border-radius: 50%; font-size: 12px; font-weight: 700;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  ol.steps li .step-body { flex: 1; }
+  ol.steps li strong { color: #1a1a2e; }
+
+  /* ── Tips & Warnings ── */
+  .tip {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #1e40af;
+  }
+  .tip strong { color: #1d4ed8; }
+
+  .warning {
+    background: #fff7ed;
+    border-left: 4px solid #f97316;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #9a3412;
+  }
+  .warning strong { color: #c2410c; }
+
+  .note {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #166534;
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 14px 0 20px 0;
+    font-size: 13px;
+  }
+  thead th {
+    background: #1a1a2e; color: #fff;
+    padding: 10px 12px; text-align: left;
+    font-weight: 600; font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+  tbody tr:nth-child(even) { background: #f8f7ff; }
+  tbody tr:nth-child(odd) { background: #fff; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #e9e9f5; vertical-align: top; }
+  tbody td:first-child { font-weight: 600; color: #1a1a2e; white-space: nowrap; }
+  tfoot td { background: #e9e9f5; font-weight: 700; padding: 9px 12px; }
+
+  /* ── Keyboard shortcuts ── */
+  kbd {
+    display: inline-block;
+    background: #1a1a2e; color: #fff;
+    border-radius: 4px; padding: 2px 7px;
+    font-size: 12px; font-family: monospace;
+    font-weight: 700;
+  }
+
+  /* ── Badges / Status ── */
+  .badge {
+    display: inline-block; padding: 2px 9px;
+    border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .badge-blue   { background: #dbeafe; color: #1e40af; }
+  .badge-green  { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef9c3; color: #854d0e; }
+  .badge-red    { background: #fee2e2; color: #991b1b; }
+  .badge-gray   { background: #f1f5f9; color: #475569; }
+  .badge-orange { background: #ffedd5; color: #9a3412; }
+  .badge-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* ── Role matrix ── */
+  .role-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px; margin: 18px 0;
+  }
+  .role-card {
+    border: 1px solid #e0defd; border-radius: 10px;
+    padding: 16px;
+  }
+  .role-card h4 { margin-top: 0; font-size: 15px; }
+  .role-card ul { list-style: disc; padding-left: 18px; font-size: 13px; color: #555; }
+  .role-card ul li { margin: 4px 0; }
+
+  /* ── Inline code ── */
+  code {
+    background: #f1f5f9; color: #c026d3;
+    padding: 1px 6px; border-radius: 4px;
+    font-family: monospace; font-size: 12px;
+  }
+
+  /* ── Section number accent ── */
+  .sec-num {
+    display: inline-block; background: #4f46e5; color: #fff;
+    border-radius: 6px; padding: 1px 9px; font-size: 13px; font-weight: 700;
+    margin-right: 8px;
+  }
+
+  /* ── Utility ── */
+  p { margin-bottom: 10px; }
+  ul.bullets { list-style: disc; padding-left: 22px; margin: 8px 0 14px; }
+  ul.bullets li { margin: 5px 0; }
+  .text-muted { color: #666; font-size: 13px; }
+  .divider { border: none; border-top: 2px solid #e9e9f5; margin: 24px 0; }
+
+  @media print {
+    .section { page-break-before: always; }
+    .cover { page-break-after: always; }
+    .toc { page-break-after: always; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     COVER PAGE
+════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">👟</div>
+  <h1>Shoe<span>DZ</span></h1>
+  <p class="subtitle">Manuel Utilisateur</p>
+  <div class="meta">
+    <p><strong>Application :</strong> ShoeDZ / Pointure ERP</p>
+    <p><strong>Version :</strong> 1.0</p>
+    <p><strong>Date :</strong> Mai 2026</p>
+    <p><strong>Destination :</strong> Détaillants algériens de chaussures</p>
+    <div class="badge-lang">Français</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TABLE DES MATIÈRES
+════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol class="toc-list">
+
+    <div class="toc-entry">
+      <span class="toc-num">1</span>
+      <span class="toc-title"><a href="#s1">Introduction</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s1-1">Qu'est-ce que ShoeDZ</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s1-2">À qui s'adresse l'application</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s1-3">Comment y accéder</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">2</span>
+      <span class="toc-title"><a href="#s2">Prise en main</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s2-1">Connexion</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s2-2">Tableau de bord</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s2-3">Navigation</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s2-4">Rôles et permissions</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">3</span>
+      <span class="toc-title"><a href="#s3">Point de Vente (PDV)</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-1">Ouvrir une vente</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-2">Recherche de produits et scan</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-3">Gestion du panier</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-4">Paiement et confirmation</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-5">Historique des ventes</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">4</span>
+      <span class="toc-title"><a href="#s4">Gestion des stocks</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-1">Produits</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-2">Variantes (pointures et couleurs)</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-3">Mouvements de stock</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-4">Ajustements de stock</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-5">Transferts entre dépôts</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s4-6">Ruptures de stock</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">5</span>
+      <span class="toc-title"><a href="#s5">Facturation</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s5-1">Factures clients</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s5-2">Bons de livraison</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s5-3">Avoirs</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">6</span>
+      <span class="toc-title"><a href="#s6">Clients et Créances</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s6-1">Gestion des clients</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s6-2">Grand livre client</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s6-3">Vieillissement des créances</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s6-4">Suivi des chèques</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">7</span>
+      <span class="toc-title"><a href="#s7">Fournisseurs et Achats</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s7-1">Gestion des fournisseurs</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s7-2">Bons de commande</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s7-3">Réception de marchandises</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s7-4">Factures et paiements fournisseurs</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">8</span>
+      <span class="toc-title"><a href="#s8">Rapports et Analytiques</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s8-1">Rapport journalier</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s8-2">Analytiques de ventes</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s8-3">Rapport de stock</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">9</span>
+      <span class="toc-title"><a href="#s9">Notifications</a></span>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">10</span>
+      <span class="toc-title"><a href="#s10">Paramètres et Administration</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-1">Profil utilisateur</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-2">Informations boutique</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-3">Sécurité</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-4">Gestion des utilisateurs</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-5">Agences et succursales</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-6">Abonnement</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-7">Journal d'activité (Audit)</a></span></div>
+    </div>
+
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1 — INTRODUCTION
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s1">
+  <h2 class="section-title"><span class="sec-num">1</span> Introduction</h2>
+
+  <div class="intro-block">
+    Ce manuel décrit l'ensemble des fonctionnalités de <strong>ShoeDZ</strong>, ERP conçu spécifiquement pour les détaillants algériens de chaussures. Lisez-le de bout en bout lors de votre première prise en main, puis consultez les sections pertinentes au fur et à mesure de vos besoins.
+  </div>
+
+  <h3 id="s1-1">1.1 Qu'est-ce que ShoeDZ ?</h3>
+  <p>
+    ShoeDZ (nom commercial : <em>Pointure</em>) est un système ERP (Enterprise Resource Planning) multi-tenant hébergé dans le cloud ou installable en local. Il regroupe dans une seule interface tout ce dont un commerçant de chaussures a besoin :
+  </p>
+  <ul class="bullets">
+    <li><strong>Point de Vente (PDV)</strong> — encaissement rapide, compatible scanner de codes-barres.</li>
+    <li><strong>Inventaire</strong> — catalogue produits, variantes par pointure et couleur, niveaux de stock en temps réel.</li>
+    <li><strong>Facturation B2B</strong> — factures TVA, bons de livraison, avoirs, PDF téléchargeable.</li>
+    <li><strong>Clients et créances</strong> — grand livre, suivi des chèques, tableau de vieillissement des dettes.</li>
+    <li><strong>Fournisseurs et achats</strong> — bons de commande, réceptions partielles, paiements fournisseurs.</li>
+    <li><strong>Rapports</strong> — rapport journalier, analytiques de ventes, rapport de stock.</li>
+    <li><strong>Administration multi-utilisateurs</strong> — rôles, agences, journal d'audit immuable.</li>
+  </ul>
+  <p>
+    L'application prend en charge trois langues : <strong>Français</strong>, <strong>Arabe</strong> et <strong>Anglais</strong>, et utilise le <strong>Dinar Algérien (DZD)</strong> comme devise native.
+  </p>
+
+  <h3 id="s1-2">1.2 À qui s'adresse l'application ?</h3>
+  <div class="role-grid">
+    <div class="role-card">
+      <h4>👑 Propriétaire</h4>
+      <ul>
+        <li>Accès complet à toutes les fonctionnalités</li>
+        <li>Voit les prix d'achat et les marges</li>
+        <li>Gère les utilisateurs et les paramètres</li>
+        <li>Consulte le journal d'audit</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <h4>📋 Manager / Gérant</h4>
+      <ul>
+        <li>Tout sauf les paramètres sensibles du propriétaire</li>
+        <li>Voit les prix d'achat et les marges</li>
+        <li>Gère les utilisateurs (hors propriétaire)</li>
+        <li>Accède aux rapports complets</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <h4>💳 Caissier</h4>
+      <ul>
+        <li>Point de vente uniquement</li>
+        <li>Ne voit pas les prix d'achat</li>
+        <li>Ne voit pas les rapports financiers</li>
+        <li>Pas d'accès aux paramètres système</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="s1-3">1.3 Comment y accéder</h3>
+
+  <h4>Version cloud (SaaS)</h4>
+  <ol class="steps">
+    <li><div class="step-body">Ouvrez votre navigateur web (Google Chrome ou Mozilla Firefox recommandés).</div></li>
+    <li><div class="step-body">Saisissez l'URL fournie par votre administrateur ou par l'équipe ShoeDZ.</div></li>
+    <li><div class="step-body">La page de connexion s'affiche. Saisissez vos identifiants.</div></li>
+  </ol>
+
+  <h4>Installation locale (on-premise)</h4>
+  <ol class="steps">
+    <li><div class="step-body">Assurez-vous que Docker est installé sur la machine serveur.</div></li>
+    <li><div class="step-body">Exécutez le script d'installation fourni : <code>./install.sh</code></div></li>
+    <li><div class="step-body">Une fois le démarrage terminé, accédez à <code>http://localhost</code> depuis n'importe quel appareil du réseau local.</div></li>
+    <li><div class="step-body">Activez la licence avec la commande fournie par l'équipe ShoeDZ.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Conseil :</strong> ShoeDZ fonctionne sur tout appareil disposant d'un navigateur moderne — ordinateur de bureau, tablette ou smartphone. Pour une expérience optimale au PDV avec scanner, utilisez un ordinateur ou une tablette avec clavier externe.
+  </div>
+
+  <div class="warning">
+    <strong>Important :</strong> Pour éviter toute perte de données, ne partagez jamais vos identifiants. Chaque membre du personnel doit avoir son propre compte.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2 — PRISE EN MAIN
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s2">
+  <h2 class="section-title"><span class="sec-num">2</span> Prise en main</h2>
+
+  <h3 id="s2-1">2.1 Connexion</h3>
+  <p>La page de connexion est la première page affichée lorsque vous n'êtes pas encore authentifié.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Sur la page de connexion, saisissez votre <strong>adresse e-mail</strong> dans le premier champ.</div></li>
+    <li><div class="step-body">Saisissez votre <strong>mot de passe</strong> dans le second champ.</div></li>
+    <li><div class="step-body">Cochez <em>« Se souvenir de moi »</em> si vous êtes sur votre propre appareil pour rester connecté plus longtemps.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Se connecter »</strong> ou appuyez sur <kbd>Entrée</kbd>.</div></li>
+    <li><div class="step-body">Vous êtes redirigé vers le tableau de bord.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Email</td><td>L'adresse e-mail associée à votre compte ShoeDZ</td><td>Oui</td></tr>
+      <tr><td>Mot de passe</td><td>Votre mot de passe personnel (min. 8 caractères)</td><td>Oui</td></tr>
+      <tr><td>Se souvenir de moi</td><td>Maintient la session active sur cet appareil</td><td>Non</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Identifiants incorrects :</strong> En cas d'erreur d'email ou de mot de passe, le message « Email ou mot de passe incorrect » s'affiche. Vérifiez la saisie (majuscules, espaces). Si vous avez oublié votre mot de passe, contactez votre administrateur ou le propriétaire du compte.
+  </div>
+
+  <h3 id="s2-2">2.2 Vue d'ensemble du tableau de bord</h3>
+  <p>
+    Le tableau de bord est la page d'accueil après connexion. Il offre une vue synthétique de l'activité de la boutique en temps réel.
+  </p>
+
+  <h4>Indicateurs KPI (4 cartes)</h4>
+  <table>
+    <thead><tr><th>Indicateur</th><th>Description</th><th>Mise à jour</th></tr></thead>
+    <tbody>
+      <tr><td>Chiffre du jour</td><td>Total des ventes réalisées aujourd'hui (DZD)</td><td>Toutes les 2 min</td></tr>
+      <tr><td>Créances totales</td><td>Solde impayé cumulé de tous les clients</td><td>Toutes les 2 min</td></tr>
+      <tr><td>Articles en rupture</td><td>Nombre de variantes (SKU) sous le seuil d'alerte ou à zéro</td><td>Toutes les 2 min</td></tr>
+      <tr><td>Chèques à encaisser</td><td>Nombre de chèques arrivant à échéance cette semaine</td><td>Toutes les 2 min</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Graphique Évolution du chiffre d'affaires (30 derniers jours)</h4>
+  <p>
+    Un graphique en barres affiche le chiffre d'affaires par jour sur les 30 derniers jours. Survolez une barre pour afficher le détail (date et montant exact en DZD).
+  </p>
+
+  <h4>Top 5 Meilleures ventes</h4>
+  <p>
+    La liste classée des 5 articles les plus vendus (nom du produit, marque, nombre d'unités vendues). Utile pour identifier rapidement les produits moteurs de votre activité.
+  </p>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Consultez le tableau de bord chaque matin avant d'ouvrir votre boutique pour anticiper les éventuelles ruptures de stock et les chèques à déposer.
+  </div>
+
+  <h3 id="s2-3">2.3 Navigation</h3>
+
+  <h4>Barre latérale (Sidebar)</h4>
+  <p>La barre latérale gauche contient tous les modules de l'application :</p>
+
+  <table>
+    <thead><tr><th>Section</th><th>Sous-sections</th><th>Rôles autorisés</th></tr></thead>
+    <tbody>
+      <tr><td>Tableau de bord</td><td>—</td><td>Tous</td></tr>
+      <tr><td>Ventes</td><td>Nouvelle vente, Historique</td><td>Tous</td></tr>
+      <tr><td>Facturation</td><td>Nouvelle facture, Factures, Bons de livraison, Avoirs</td><td>Owner, Manager</td></tr>
+      <tr><td>Inventaire</td><td>Produits, Mouvements, Stock bas, Transferts</td><td>Owner, Manager (Caissier : lecture seule)</td></tr>
+      <tr><td>Clients</td><td>Liste clients, Créances, Chèques</td><td>Owner, Manager</td></tr>
+      <tr><td>Fournisseurs</td><td>Liste, Bons de commande</td><td>Owner, Manager</td></tr>
+      <tr><td>Rapports</td><td>Rapport journalier, Analytiques, Stock</td><td>Owner, Manager</td></tr>
+      <tr><td>Paramètres</td><td>Profil, Boutique, Sécurité, Utilisateurs, Agences</td><td>Tous (limité selon rôle)</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Barre supérieure (Topbar)</h4>
+  <ul class="bullets">
+    <li><strong>Sélecteur de langue</strong> — cliquez pour basculer entre Français, Arabe et Anglais. Le changement est immédiat.</li>
+    <li><strong>Cloche de notifications</strong> — affiche un badge rouge avec le nombre de notifications non lues. Cliquez pour ouvrir le panneau des notifications.</li>
+    <li><strong>Menu utilisateur</strong> — cliquez sur votre nom/avatar en haut à droite pour accéder à votre profil ou vous déconnecter.</li>
+  </ul>
+
+  <h3 id="s2-4">2.4 Rôles et permissions</h3>
+  <p>ShoeDZ applique un contrôle d'accès basé sur les rôles (RBAC). Le tableau suivant récapitule les accès par fonctionnalité :</p>
+
+  <table>
+    <thead><tr><th>Fonctionnalité</th><th>Propriétaire</th><th>Manager</th><th>Caissier</th></tr></thead>
+    <tbody>
+      <tr><td>Point de Vente</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Historique des ventes</td><td>✅</td><td>✅</td><td>✅ (ses ventes)</td></tr>
+      <tr><td>Prix d'achat / Marges</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Inventaire (écriture)</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Facturation</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Clients / Fournisseurs</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Rapports</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Paramètres boutique</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Gestion utilisateurs</td><td>✅</td><td>✅ (hors owner)</td><td>❌</td></tr>
+      <tr><td>Journal d'audit</td><td>✅</td><td>✅</td><td>❌</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Note :</strong> Certaines fonctionnalités avancées (Facturation B2B, Analytiques) nécessitent un plan d'abonnement supérieur. Voir la section <a href="#s10-6">10.6 Abonnement</a>.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 3 — POINT DE VENTE
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s3">
+  <h2 class="section-title"><span class="sec-num">3</span> Point de Vente (PDV)</h2>
+
+  <div class="intro-block">
+    Le module PDV est conçu pour être utilisé aussi bien via la souris et le clavier qu'avec un scanner de codes-barres. Toutes les opérations courantes sont accessibles par raccourcis clavier.
+  </div>
+
+  <h4>Raccourcis clavier PDV</h4>
+  <table>
+    <thead><tr><th>Touche</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>F2</kbd></td><td>Placer le curseur dans la barre de recherche produit</td></tr>
+      <tr><td><kbd>F10</kbd></td><td>Confirmer et valider la vente</td></tr>
+      <tr><td><kbd>Entrée</kbd></td><td>Valider la saisie en cours</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s3-1">3.1 Ouvrir une nouvelle vente</h3>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Ventes</strong> puis sur <strong>Nouvelle vente</strong>.</div></li>
+    <li><div class="step-body">L'écran PDV s'affiche avec le panneau de recherche à gauche et le panier vide à droite.</div></li>
+    <li><div class="step-body">Le curseur se place automatiquement dans la barre de recherche. Vous pouvez commencer à taper ou à scanner immédiatement.</div></li>
+  </ol>
+
+  <h3 id="s3-2">3.2 Recherche de produits et scan de codes-barres</h3>
+
+  <h4>Recherche par nom</h4>
+  <ol class="steps">
+    <li><div class="step-body">Tapez au moins <strong>2 caractères</strong> du nom du produit ou de la marque dans la barre de recherche.</div></li>
+    <li><div class="step-body">Une liste de résultats s'affiche en dessous, avec pour chaque article : nom, marque, stock total et prix de vente.</div></li>
+    <li><div class="step-body">Cliquez sur le produit souhaité pour afficher le sélecteur de variantes.</div></li>
+    <li><div class="step-body">Dans la grille de variantes, chaque bouton affiche la <strong>pointure EU</strong>, la <strong>couleur</strong> et la <strong>quantité disponible</strong>.</div></li>
+    <li><div class="step-body">Cliquez sur la variante souhaitée pour l'ajouter au panier.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Code couleur des variantes :</strong>
+    <ul style="margin-top:6px; padding-left:20px;">
+      <li>Bouton <strong>bleu</strong> : stock disponible normal.</li>
+      <li>Bouton <strong>orange</strong> : stock bas (sous le seuil d'alerte), toujours vendable.</li>
+      <li>Bouton <strong>grisé / désactivé</strong> : rupture de stock (quantité = 0), non sélectionnable.</li>
+    </ul>
+  </div>
+
+  <h4>Scan par code-barres (douchette)</h4>
+  <ol class="steps">
+    <li><div class="step-body">Appuyez sur <kbd>F2</kbd> pour activer la barre de recherche.</div></li>
+    <li><div class="step-body">Scannez le code-barres de l'article avec votre douchette. Le code (8 chiffres minimum) s'insère automatiquement dans le champ.</div></li>
+    <li><div class="step-body">Si le code-barres correspond à une variante unique, l'article est ajouté <strong>automatiquement</strong> au panier sans confirmation supplémentaire.</div></li>
+    <li><div class="step-body">Le champ de recherche se vide et le curseur revient en position d'attente pour le prochain scan.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Workflow caisse rapide :</strong> avec une douchette, scannez les articles les uns après les autres, ajustez les quantités si nécessaire, puis appuyez sur <kbd>F10</kbd> pour valider la vente. Aucun clic souris requis.
+  </div>
+
+  <h3 id="s3-3">3.3 Gestion du panier</h3>
+
+  <h4>Modifier la quantité</h4>
+  <p>Dans chaque ligne du panier, utilisez les boutons <strong>+</strong> et <strong>−</strong> pour ajuster la quantité. La quantité minimale est 1.</p>
+
+  <h4>Modifier le prix unitaire</h4>
+  <p>Le prix unitaire affiché est le prix de vente configuré. Pour le modifier ponctuellement (ex : prix négocié), cliquez directement sur le champ numérique du prix et saisissez le nouveau montant.</p>
+
+  <h4>Supprimer un article</h4>
+  <p>Cliquez sur le bouton <strong>×</strong> (croix rouge) à droite de la ligne pour retirer l'article du panier.</p>
+
+  <h4>Remise par ligne</h4>
+  <p>Chaque ligne du panier dispose d'un champ de remise en DZD. Saisissez le montant de la remise à déduire de cette ligne uniquement.</p>
+
+  <h4>Remise globale (panier)</h4>
+  <p>En bas du panier, le champ <strong>« Remise panier »</strong> permet d'appliquer une remise globale en DZD sur l'ensemble de la commande.</p>
+
+  <div class="warning">
+    <strong>Attention :</strong> La remise panier s'ajoute aux éventuelles remises par ligne. Le total affiché tient compte de toutes les remises.
+  </div>
+
+  <h3 id="s3-4">3.4 Paiement et confirmation</h3>
+
+  <h4>Sélectionner le mode de paiement</h4>
+  <table>
+    <thead><tr><th>Mode de paiement</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Espèces</td><td>Paiement en liquide. Montant saisi manuellement ou auto-rempli avec le total.</td></tr>
+      <tr><td>Chèque</td><td>Paiement par chèque bancaire. Le chèque sera suivi dans le module Clients.</td></tr>
+      <tr><td>CCP</td><td>Virement ou paiement via compte courant postal (CCP Algérie Poste).</td></tr>
+      <tr><td>Virement bancaire</td><td>Virement entre comptes bancaires.</td></tr>
+      <tr><td>Solde compte client</td><td>Débit du solde créditeur du client (compte client préalablement créédité).</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Paiements fractionnés (multi-méthodes)</h4>
+  <ol class="steps">
+    <li><div class="step-body">Par défaut, un seul mode de paiement « Espèces » est proposé avec le montant total pré-rempli.</div></li>
+    <li><div class="step-body">Pour fractionner, modifiez le montant de la première ligne (ex : 3 000 DZD en espèces).</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« + Ajouter paiement »</strong> pour ajouter une seconde ligne.</div></li>
+    <li><div class="step-body">Sélectionnez le second mode (ex : Chèque) et saisissez le montant restant.</div></li>
+    <li><div class="step-body">La somme de toutes les lignes de paiement doit couvrir le total du panier.</div></li>
+  </ol>
+
+  <h4>Valider la vente</h4>
+  <ol class="steps">
+    <li><div class="step-body">Vérifiez le montant total affiché en bas du panier.</div></li>
+    <li><div class="step-body">Cliquez sur le bouton <strong>« Valider la vente »</strong> (ou appuyez sur <kbd>F10</kbd>).</div></li>
+    <li><div class="step-body">L'écran de confirmation s'affiche avec le <strong>numéro de reçu</strong> généré automatiquement.</div></li>
+    <li><div class="step-body">Trois options sont disponibles :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Action</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Nouvelle vente</td><td>Revenir à l'écran PDV vide pour la prochaine transaction</td></tr>
+      <tr><td>Imprimer</td><td>Imprimer le reçu via l'imprimante connectée (format ticket thermique ou A4)</td></tr>
+      <tr><td>Envoyer WhatsApp</td><td>Partager le récapitulatif de la vente par message WhatsApp</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip">
+    <strong>Numérotation des reçus :</strong> Les reçus sont numérotés séquentiellement et de manière unique par tenant (ex : VTE-2026-00247). Ce numéro est conservé dans l'historique des ventes.
+  </div>
+
+  <h3 id="s3-5">3.5 Historique des ventes</h3>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Ventes → Historique</strong>.</div></li>
+    <li><div class="step-body">Le tableau liste toutes les ventes avec : date, caissier, total, statut, numéro de reçu.</div></li>
+    <li><div class="step-body">Utilisez les <strong>filtres</strong> en haut pour rechercher par date, par caissier ou par numéro de reçu.</div></li>
+    <li><div class="step-body">Cliquez sur une ligne pour voir le détail de la vente : articles, quantités, prix, remises, paiements.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-green">Complétée</span></td><td>Vente finalisée et encaissée</td></tr>
+      <tr><td><span class="badge badge-red">Annulée</span></td><td>Vente annulée (stock restitué automatiquement)</td></tr>
+      <tr><td><span class="badge badge-yellow">Remboursée</span></td><td>Vente ayant fait l'objet d'un remboursement</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 4 — GESTION DES STOCKS
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s4">
+  <h2 class="section-title"><span class="sec-num">4</span> Gestion des stocks</h2>
+
+  <h3 id="s4-1">4.1 Produits — Catalogue</h3>
+
+  <h4>Accéder à la liste des produits</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Inventaire → Produits</strong>.</div></li>
+    <li><div class="step-body">La page affiche tous les articles actifs avec vignette, nom, marque, catégorie, stock total et prix de vente.</div></li>
+    <li><div class="step-body">Utilisez la barre de recherche pour filtrer par nom, marque ou référence. Utilisez les filtres déroulants pour filtrer par catégorie, genre ou saison.</div></li>
+  </ol>
+
+  <h4>Créer un nouveau produit</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur le bouton <strong>« + Nouveau produit »</strong> en haut à droite.</div></li>
+    <li><div class="step-body">Remplissez le formulaire de création :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Nom</td><td>Nom commercial de l'article (ex : Air Max 90)</td><td>Oui</td></tr>
+      <tr><td>Marque</td><td>Marque fabricant (ex : Nike, Adidas, Bata)</td><td>Non</td></tr>
+      <tr><td>Référence / SKU</td><td>Code interne ou référence fournisseur (ex : AM90-BLK)</td><td>Non</td></tr>
+      <tr><td>Description</td><td>Description courte visible sur les documents</td><td>Non</td></tr>
+      <tr><td>Catégorie</td><td>Sneakers, Bottes, Sandales, Formelles, Sport, Enfants, Pantoufles, Autre</td><td>Oui</td></tr>
+      <tr><td>Genre</td><td>Homme, Femme, Enfant, Unisexe</td><td>Oui</td></tr>
+      <tr><td>Saison</td><td>Toutes saisons, Été, Hiver, Mi-saison</td><td>Oui</td></tr>
+      <tr><td>Prix de vente (DZD)</td><td>Prix de vente affiché en caisse</td><td>Oui</td></tr>
+      <tr><td>Prix d'achat (DZD)</td><td>Prix d'achat fournisseur — visible uniquement par Owner/Manager</td><td>Non</td></tr>
+      <tr><td>Photo</td><td>Image du produit (PNG ou JPG, max 2 Mo)</td><td>Non</td></tr>
+      <tr><td>Produit actif</td><td>Si désactivé, le produit n'apparaît pas en caisse</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">L'indicateur de marge s'affiche en temps réel en vert (≥ 20 %) ou en orange (< 20 %) dès que les deux prix sont renseignés. <em>Visible uniquement par Owner/Manager.</em></div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Créer le produit »</strong>. Vous êtes redirigé vers la fiche produit.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Renseignez toujours la référence fournisseur pour faciliter les recherches lors des commandes et la réception de marchandises.
+  </div>
+
+  <h3 id="s4-2">4.2 Variantes — Pointures et couleurs</h3>
+
+  <p>Chaque produit peut avoir plusieurs variantes combinant une <strong>pointure EU</strong> (28 à 47) et une <strong>couleur</strong>. Chaque variante possède son propre stock, son seuil d'alerte et un code-barres unique.</p>
+
+  <h4>Créer des variantes depuis la fiche produit</h4>
+  <ol class="steps">
+    <li><div class="step-body">Sur la fiche produit, faites défiler jusqu'à la section <strong>« Variantes »</strong>.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Générer variantes »</strong> pour afficher la matrice de création.</div></li>
+    <li><div class="step-body">Sélectionnez les pointures souhaitées et saisissez les couleurs disponibles.</div></li>
+    <li><div class="step-body">Pour chaque variante, renseignez le <strong>stock initial</strong> et le <strong>seuil d'alerte</strong> (quantité en dessous de laquelle une alerte est déclenchée).</div></li>
+    <li><div class="step-body">Un <strong>code-barres est généré automatiquement</strong> pour chaque variante (format EAN-13). Vous pouvez le remplacer par un code personnalisé.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ variante</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Pointure EU</td><td>Numéro de pointure européen (28–47)</td></tr>
+      <tr><td>Couleur</td><td>Libellé libre (ex : Noir, Blanc, Rouge bordeaux)</td></tr>
+      <tr><td>Code-barres</td><td>Code EAN auto-généré ou saisi manuellement</td></tr>
+      <tr><td>Stock</td><td>Quantité disponible actuelle</td></tr>
+      <tr><td>Seuil d'alerte</td><td>Quantité minimale avant déclenchement d'une alerte de stock bas</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Imprimer des étiquettes codes-barres</h4>
+  <ol class="steps">
+    <li><div class="step-body">Sur la fiche produit, cliquez sur <strong>« Imprimer étiquettes »</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez les variantes à étiqueter et la quantité d'étiquettes par variante.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Imprimer »</strong> pour lancer l'impression sur votre imprimante d'étiquettes.</div></li>
+  </ol>
+
+  <h3 id="s4-3">4.3 Mouvements de stock</h3>
+  <p>
+    Tous les changements de stock (entrées et sorties) sont tracés sous forme de mouvements horodatés et immuables.
+  </p>
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Inventaire → Mouvements</strong>.</div></li>
+    <li><div class="step-body">Le tableau affiche tous les mouvements avec : date, article/variante, delta (+/-), motif, référence et utilisateur.</div></li>
+    <li><div class="step-body">Utilisez les filtres pour restreindre par date, type de mouvement ou variante.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Type de mouvement</th><th>Impact stock</th><th>Déclencheur</th></tr></thead>
+    <tbody>
+      <tr><td>Vente</td><td>Sortie (−)</td><td>Confirmation d'une vente PDV</td></tr>
+      <tr><td>Réception</td><td>Entrée (+)</td><td>Réception d'un bon de commande</td></tr>
+      <tr><td>Ajustement</td><td>Entrée ou Sortie</td><td>Ajustement manuel (inventaire physique)</td></tr>
+      <tr><td>Retour</td><td>Entrée (+)</td><td>Retour article par un client</td></tr>
+      <tr><td>Transfert (sortie)</td><td>Sortie (−)</td><td>Expédition vers une autre agence</td></tr>
+      <tr><td>Transfert (entrée)</td><td>Entrée (+)</td><td>Réception depuis une autre agence</td></tr>
+      <tr><td>Endommagé</td><td>Sortie (−)</td><td>Mise au rebut d'articles endommagés</td></tr>
+      <tr><td>Initial</td><td>Entrée (+)</td><td>Stock de départ à la création de la variante</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s4-4">4.4 Ajustements de stock</h3>
+  <p>Un ajustement de stock permet de corriger manuellement le niveau de stock d'une variante après un inventaire physique ou pour toute autre raison justifiée.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Depuis la fiche produit ou la page Mouvements, cliquez sur <strong>« Ajuster stock »</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez la <strong>variante</strong> concernée (pointure + couleur).</div></li>
+    <li><div class="step-body">Saisissez le <strong>delta de quantité</strong> : positif pour une entrée (+5), négatif pour une sortie (−3).</div></li>
+    <li><div class="step-body">Sélectionnez le <strong>motif</strong> : Inventaire physique, Marchandise endommagée, Correction d'erreur, etc.</div></li>
+    <li><div class="step-body">Ajoutez des <strong>notes</strong> explicatives si nécessaire.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer l'ajustement »</strong>. Le mouvement est tracé avec votre nom d'utilisateur et l'horodatage.</div></li>
+  </ol>
+
+  <div class="warning">
+    <strong>Attention :</strong> Les ajustements de stock sont irréversibles. Un mouvement de correction inverse devra être créé en cas d'erreur. Tous les ajustements sont enregistrés dans le journal d'audit.
+  </div>
+
+  <h3 id="s4-5">4.5 Transferts entre dépôts / agences</h3>
+  <p>Si votre boutique dispose de plusieurs agences ou dépôts, vous pouvez transférer des articles de l'un à l'autre.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Inventaire → Transferts</strong> puis cliquez sur <strong>« Nouveau transfert »</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez le <strong>dépôt source</strong> (d'où partent les articles).</div></li>
+    <li><div class="step-body">Sélectionnez le <strong>dépôt destination</strong> (où arrivent les articles).</div></li>
+    <li><div class="step-body">Sélectionnez la <strong>variante</strong> et saisissez la <strong>quantité</strong> à transférer.</div></li>
+    <li><div class="step-body">Ajoutez des notes si nécessaire, puis cliquez sur <strong>« Créer le transfert »</strong>.</div></li>
+  </ol>
+
+  <h4>Cycle de vie d'un transfert</h4>
+  <table>
+    <thead><tr><th>Statut</th><th>Description</th><th>Action possible</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">En attente</span></td><td>Transfert créé, stock source pas encore déduit</td><td>Passer en transit / Annuler</td></tr>
+      <tr><td><span class="badge badge-yellow">En transit</span></td><td>Articles en cours d'acheminement, stock source déduit</td><td>Marquer comme reçu</td></tr>
+      <tr><td><span class="badge badge-green">Réceptionné</span></td><td>Articles reçus, stock destination crédité</td><td>Impression automatique étiquettes</td></tr>
+      <tr><td><span class="badge badge-red">Annulé</span></td><td>Transfert annulé, aucun impact stock</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip">
+    <strong>Réception :</strong> Lors de la réception d'un transfert, l'application propose d'imprimer automatiquement les étiquettes codes-barres des articles reçus.
+  </div>
+
+  <h3 id="s4-6">4.6 Ruptures de stock</h3>
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Inventaire → Stock bas</strong>.</div></li>
+    <li><div class="step-body">La page liste toutes les variantes dont le stock est inférieur ou égal au seuil d'alerte, ou à zéro.</div></li>
+    <li><div class="step-body">Cliquez sur un article pour accéder directement à sa fiche et créer un bon de commande fournisseur.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Consultez la page « Stock bas » chaque lundi pour anticiper vos commandes de réapprovisionnement de la semaine.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5 — FACTURATION
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s5">
+  <h2 class="section-title"><span class="sec-num">5</span> Facturation</h2>
+
+  <div class="intro-block">
+    Le module Facturation est disponible à partir du plan <strong>Pro Wholesale</strong>. Il permet d'émettre des factures TVA conformes à la réglementation algérienne, des bons de livraison et des avoirs.
+  </div>
+
+  <h3 id="s5-1">5.1 Factures clients</h3>
+
+  <h4>Créer une nouvelle facture</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Facturation → Nouvelle facture</strong>.</div></li>
+    <li><div class="step-body">Dans le panneau <strong>En-tête de facture</strong>, sélectionnez le client via le champ de recherche (tapez le nom ou le numéro de téléphone).</div></li>
+    <li><div class="step-body">Vérifiez ou modifiez la <strong>date de facture</strong> (par défaut : aujourd'hui).</div></li>
+    <li><div class="step-body">Saisissez la <strong>date d'échéance</strong> (date limite de paiement).</div></li>
+    <li><div class="step-body">Le <strong>préfixe de série</strong> est <code>FA</code> par défaut. Vous pouvez le modifier (ex : <code>PRO</code>).</div></li>
+    <li><div class="step-body">Cochez ou décochez <strong>« Appliquer TVA »</strong> (taux 19 % par défaut).</div></li>
+  </ol>
+
+  <h4>Ajouter des lignes de facture</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur <strong>« + Ajouter une ligne »</strong>.</div></li>
+    <li><div class="step-body">Pour chaque ligne, saisissez une description libre <strong>ou</strong> sélectionnez une variante de produit (la description et le prix se remplissent automatiquement).</div></li>
+    <li><div class="step-body">Ajustez la <strong>quantité</strong>, le <strong>prix unitaire HT</strong> et la <strong>remise (%)</strong> si applicable.</div></li>
+    <li><div class="step-body">Le <strong>total de la ligne</strong> est calculé automatiquement : <code>Qté × Prix HT × (1 − Remise%)</code>.</div></li>
+    <li><div class="step-body">Répétez pour chaque ligne. Utilisez l'icône de corbeille pour supprimer une ligne.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ ligne</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Description</td><td>Libellé de la prestation ou du produit</td><td>Oui</td></tr>
+      <tr><td>Variante</td><td>Liaison avec un article du catalogue (optionnel)</td><td>Non</td></tr>
+      <tr><td>Quantité</td><td>Nombre d'unités facturées</td><td>Oui</td></tr>
+      <tr><td>Prix unitaire HT</td><td>Prix hors taxes par unité (DZD)</td><td>Oui</td></tr>
+      <tr><td>Remise %</td><td>Taux de remise commerciale (0–100 %)</td><td>Non</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Totaux de la facture</h4>
+  <table>
+    <thead><tr><th>Montant</th><th>Calcul</th></tr></thead>
+    <tbody>
+      <tr><td>Total HT</td><td>Somme de toutes les lignes après remises</td></tr>
+      <tr><td>TVA (19 %)</td><td>Total HT × 19 % (si TVA activée)</td></tr>
+      <tr><td>Total TTC</td><td>Total HT + TVA</td></tr>
+      <tr><td>Total payé</td><td>Somme des paiements enregistrés</td></tr>
+      <tr><td>Reste à payer</td><td>Total TTC − Total payé</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Enregistrer des paiements</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la fiche facture, cliquez sur <strong>« Enregistrer un paiement »</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez la <strong>méthode de paiement</strong> (Espèces, Chèque, CCP, Virement).</div></li>
+    <li><div class="step-body">Saisissez le <strong>montant</strong> et la <strong>date</strong> du paiement.</div></li>
+    <li><div class="step-body">Ajoutez des notes si nécessaire (ex : numéro de chèque).</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>. Plusieurs paiements peuvent être enregistrés sur la même facture.</div></li>
+  </ol>
+
+  <h4>Statuts de facture</h4>
+  <table>
+    <thead><tr><th>Statut</th><th>Condition</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">Brouillon</span></td><td>Facture créée mais non envoyée</td></tr>
+      <tr><td><span class="badge badge-blue">Envoyée</span></td><td>Facture confirmée et transmise au client</td></tr>
+      <tr><td><span class="badge badge-yellow">Partielle</span></td><td>Paiement partiel enregistré (reste > 0)</td></tr>
+      <tr><td><span class="badge badge-green">Payée</span></td><td>Solde intégralement réglé</td></tr>
+      <tr><td><span class="badge badge-red">En retard</span></td><td>Date d'échéance dépassée, solde non nul</td></tr>
+      <tr><td><span class="badge badge-gray">Annulée</span></td><td>Facture annulée (irréversible)</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Télécharger le PDF</h4>
+  <ol class="steps">
+    <li><div class="step-body">Depuis la liste des factures ou la fiche facture, cliquez sur <strong>« Télécharger PDF »</strong>.</div></li>
+    <li><div class="step-body">Le PDF est généré avec le logo de votre boutique, vos informations légales (NIF, RC, AI), les lignes de facture, les totaux et le cachet.</div></li>
+    <li><div class="step-body">Vous pouvez également envoyer le PDF directement via WhatsApp en cliquant sur <strong>« Envoyer WhatsApp »</strong>.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Numérotation :</strong> Les factures sont numérotées automatiquement au format <code>FA-2026-00001</code>. La numérotation est continue et unique, garantissant la conformité fiscale.
+  </div>
+
+  <h3 id="s5-2">5.2 Bons de livraison</h3>
+  <p>Un bon de livraison (BL) documente la remise physique des marchandises correspondant à une facture.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Depuis la fiche facture, cliquez sur <strong>« Créer bon de livraison »</strong>.</div></li>
+    <li><div class="step-body">La date et les lignes sont reprises automatiquement de la facture liée.</div></li>
+    <li><div class="step-body">Saisissez le nom du <strong>livreur</strong> et ajoutez des notes si nécessaire.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>. Le BL est numéroté automatiquement.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Accès :</strong> Retrouvez tous vos bons de livraison dans <strong>Facturation → Bons de livraison</strong>. Chaque BL est lié à sa facture d'origine.
+  </div>
+
+  <h3 id="s5-3">5.3 Avoirs</h3>
+  <p>Un avoir (note de crédit) annule partiellement ou totalement une facture émise.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Depuis la fiche de la facture originale, cliquez sur <strong>« Créer un avoir »</strong>.</div></li>
+    <li><div class="step-body">Saisissez le <strong>motif</strong> de l'avoir (retour marchandise, erreur de facturation, remise commerciale, etc.).</div></li>
+    <li><div class="step-body">Ajoutez les lignes de l'avoir avec les montants à rembourser. Le taux de TVA est hérité de la facture originale.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>. L'avoir est numéroté automatiquement et lié à la facture d'origine.</div></li>
+  </ol>
+
+  <div class="warning">
+    <strong>Important :</strong> Un avoir ne restitue pas automatiquement le stock. Si des marchandises sont physiquement retournées, effectuez un ajustement de stock séparé (voir section 4.4).
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 6 — CLIENTS ET CRÉANCES
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s6">
+  <h2 class="section-title"><span class="sec-num">6</span> Clients et Créances</h2>
+
+  <h3 id="s6-1">6.1 Gestion des clients</h3>
+
+  <h4>Créer un client</h4>
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Clients → Liste clients</strong> et cliquez sur <strong>« + Nouveau client »</strong>.</div></li>
+    <li><div class="step-body">Remplissez le formulaire :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Nom</td><td>Nom complet ou raison sociale du client</td><td>Oui</td></tr>
+      <tr><td>Téléphone</td><td>Numéro de téléphone principal</td><td>Non</td></tr>
+      <tr><td>Email</td><td>Adresse e-mail pour les documents</td><td>Non</td></tr>
+      <tr><td>Adresse</td><td>Adresse postale complète</td><td>Non</td></tr>
+      <tr><td>Wilaya</td><td>Wilaya de résidence (liste des 58 wilayas d'Algérie)</td><td>Non</td></tr>
+      <tr><td>NIF</td><td>Numéro d'Identification Fiscale (pour clients B2B)</td><td>Non</td></tr>
+      <tr><td>RC</td><td>Registre du Commerce (pour clients B2B)</td><td>Non</td></tr>
+      <tr><td>Plafond de crédit (DZD)</td><td>Montant maximal d'encours autorisé pour ce client</td><td>Non</td></tr>
+      <tr><td>Notes</td><td>Remarques internes sur le client</td><td>Non</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Plafond de crédit :</strong> Lorsqu'un client dépasse son plafond de crédit autorisé, une alerte visuelle apparaît sur sa fiche et lors de la création de factures à son nom.
+  </div>
+
+  <h4>Fiche client — Onglets</h4>
+  <p>Cliquez sur un client dans la liste pour accéder à sa fiche détaillée avec les onglets suivants :</p>
+
+  <table>
+    <thead><tr><th>Onglet</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td>Aperçu</td><td>Informations générales, solde actuel, statut plafond de crédit</td></tr>
+      <tr><td>Grand livre</td><td>Toutes les écritures débit/crédit avec solde cumulé (voir section 6.2)</td></tr>
+      <tr><td>Chèques</td><td>Chèques reçus de ce client, statut, date d'échéance</td></tr>
+      <tr><td>Factures</td><td>Toutes les factures émises pour ce client</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s6-2">6.2 Grand livre client</h3>
+  <p>
+    Le grand livre est un relevé de compte chronologique listant tous les mouvements financiers du client : achats, paiements, avoirs.
+  </p>
+
+  <table>
+    <thead><tr><th>Colonne</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Date</td><td>Date de l'écriture</td></tr>
+      <tr><td>Description</td><td>Nature de l'opération (facture, paiement, avoir…)</td></tr>
+      <tr><td>Débit</td><td>Montant facturé (ce que le client doit)</td></tr>
+      <tr><td>Crédit</td><td>Montant payé ou avoir émis (ce qui réduit la dette)</td></tr>
+      <tr><td>Solde cumulé</td><td>Solde après chaque écriture (positif = client débiteur)</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s6-3">6.3 Tableau de vieillissement des créances</h3>
+  <p>
+    Le rapport d'ancienneté des créances classe les dettes clients par tranches de retard. C'est un outil essentiel de gestion de la trésorerie.
+  </p>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Clients → Créances</strong>.</div></li>
+    <li><div class="step-body">Le tableau affiche tous les clients ayant un solde impayé, avec leur dette ventilée par tranche.</div></li>
+    <li><div class="step-body">Filtrez par wilaya avec le sélecteur en haut pour cibler une région.</div></li>
+    <li><div class="step-body">Cliquez sur un nom de client pour accéder directement à sa fiche.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Exporter Excel »</strong> pour télécharger le rapport.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Colonne</th><th>Tranche</th><th>Code couleur</th></tr></thead>
+    <tbody>
+      <tr><td>Courant</td><td>0 à 30 jours de retard</td><td><span class="badge badge-blue">Bleu</span></td></tr>
+      <tr><td>31–60 j</td><td>31 à 60 jours de retard</td><td><span class="badge badge-yellow">Jaune</span></td></tr>
+      <tr><td>61–90 j</td><td>61 à 90 jours de retard</td><td><span class="badge badge-orange">Orange</span></td></tr>
+      <tr><td>+90 j</td><td>Plus de 90 jours de retard</td><td><span class="badge badge-red">Rouge</span></td></tr>
+      <tr><td>Total</td><td>Somme de toutes les tranches</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Action recommandée :</strong> Les créances dans la colonne +90 jours (rouge) requièrent une action urgente. Contactez ces clients en priorité.
+  </div>
+
+  <h3 id="s6-4">6.4 Suivi des chèques</h3>
+  <p>ShoeDZ intègre un registre de chèques pour suivre tous les chèques reçus de vos clients.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Clients → Chèques</strong> pour voir tous les chèques en attente d'encaissement.</div></li>
+    <li><div class="step-body">Pour chaque chèque, vous voyez : numéro, banque, montant, date d'échéance, client, statut.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Encaissé »</strong> pour marquer un chèque comme déposé en banque.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Impayé »</strong> pour signaler un chèque rejeté (chèque sans provision).</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Statut chèque</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-yellow">En attente</span></td><td>Chèque reçu, non encore présenté à la banque</td></tr>
+      <tr><td><span class="badge badge-green">Encaissé</span></td><td>Chèque déposé et encaissé avec succès</td></tr>
+      <tr><td><span class="badge badge-red">Impayé</span></td><td>Chèque rejeté par la banque (sans provision)</td></tr>
+      <tr><td><span class="badge badge-gray">Annulé</span></td><td>Chèque annulé pour toute autre raison</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Alerte échéance :</strong> Une bannière d'alerte dorée apparaît sur les chèques dont la date d'échéance est dans moins de <strong>3 jours</strong>. Une notification est également envoyée (voir section 9).
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 7 — FOURNISSEURS ET ACHATS
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s7">
+  <h2 class="section-title"><span class="sec-num">7</span> Fournisseurs et Achats</h2>
+
+  <h3 id="s7-1">7.1 Gestion des fournisseurs</h3>
+
+  <h4>Créer un fournisseur</h4>
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Fournisseurs</strong> et cliquez sur <strong>« + Nouveau fournisseur »</strong>.</div></li>
+    <li><div class="step-body">Remplissez le formulaire :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Raison sociale</td><td>Nom de la société fournisseur</td><td>Oui</td></tr>
+      <tr><td>Contact</td><td>Nom du responsable commercial</td><td>Non</td></tr>
+      <tr><td>Téléphone</td><td>Numéro de téléphone principal</td><td>Non</td></tr>
+      <tr><td>Email</td><td>Adresse e-mail du fournisseur</td><td>Non</td></tr>
+      <tr><td>Adresse</td><td>Adresse complète du fournisseur</td><td>Non</td></tr>
+      <tr><td>Pays d'origine</td><td>Pays de provenance des marchandises (ex : Chine, Turquie, Algérie)</td><td>Non</td></tr>
+      <tr><td>Conditions de paiement</td><td>Délai de paiement habituel (ex : 30 jours, comptant)</td><td>Non</td></tr>
+      <tr><td>Notes</td><td>Informations internes sur ce fournisseur</td><td>Non</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>.</div></li>
+  </ol>
+
+  <h4>Fiche fournisseur</h4>
+  <p>La fiche fournisseur affiche : les informations générales, le solde impayé, l'historique des bons de commande, les factures fournisseur et les paiements effectués.</p>
+
+  <h3 id="s7-2">7.2 Bons de commande</h3>
+
+  <h4>Créer un bon de commande</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la fiche fournisseur, cliquez sur <strong>« Nouveau bon de commande »</strong>, ou allez dans <strong>Fournisseurs → Bons de commande → + Nouveau</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez le <strong>fournisseur</strong>.</div></li>
+    <li><div class="step-body">Saisissez la <strong>date de livraison prévue</strong> et la <strong>référence</strong> interne.</div></li>
+    <li><div class="step-body">Ajoutez des lignes de commande : sélectionnez une variante (ou saisissez une description libre), indiquez la quantité commandée et le prix unitaire convenu.</div></li>
+    <li><div class="step-body">Ajoutez des notes si nécessaire, puis cliquez sur <strong>« Créer »</strong>.</div></li>
+  </ol>
+
+  <h4>Cycle de vie d'un bon de commande</h4>
+  <table>
+    <thead><tr><th>Statut</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">Brouillon</span></td><td>BC créé mais non transmis</td></tr>
+      <tr><td><span class="badge badge-blue">Envoyé</span></td><td>BC transmis au fournisseur</td></tr>
+      <tr><td><span class="badge badge-yellow">Partiel</span></td><td>Réception partielle effectuée</td></tr>
+      <tr><td><span class="badge badge-green">Reçu</span></td><td>Toutes les lignes reçues intégralement</td></tr>
+      <tr><td><span class="badge badge-red">Annulé</span></td><td>Commande annulée</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s7-3">7.3 Réception de marchandises</h3>
+  <p>La réception d'un bon de commande met à jour automatiquement les niveaux de stock.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Ouvrez le bon de commande concerné.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Réceptionner »</strong>.</div></li>
+    <li><div class="step-body">Pour chaque ligne, saisissez la <strong>quantité effectivement reçue</strong>. Vous pouvez recevoir moins que la quantité commandée (réception partielle).</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Valider la réception »</strong>.</div></li>
+    <li><div class="step-body">Le stock des variantes concernées est mis à jour automatiquement et un mouvement de type « Réception » est tracé.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Réception partielle :</strong> Si vous ne recevez qu'une partie des articles commandés, le BC passe en statut « Partiel ». Vous pourrez effectuer une seconde réception pour le reliquat.
+  </div>
+
+  <h3 id="s7-4">7.4 Factures et paiements fournisseurs</h3>
+
+  <h4>Enregistrer une facture fournisseur</h4>
+  <ol class="steps">
+    <li><div class="step-body">Depuis la fiche fournisseur ou la liste, cliquez sur <strong>« + Nouvelle facture fournisseur »</strong>.</div></li>
+    <li><div class="step-body">Saisissez le numéro de la facture fournisseur, la date, la date d'échéance et le montant total.</div></li>
+    <li><div class="step-body">Associez-la à un bon de commande si applicable.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer »</strong>.</div></li>
+  </ol>
+
+  <h4>Enregistrer un paiement fournisseur</h4>
+  <ol class="steps">
+    <li><div class="step-body">Depuis la facture fournisseur, cliquez sur <strong>« Enregistrer un paiement »</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez la méthode : Espèces, Chèque ou Virement bancaire.</div></li>
+    <li><div class="step-body">Pour un paiement par chèque, saisissez le numéro de chèque, la banque et la date d'échéance.</div></li>
+    <li><div class="step-body">Saisissez le montant et la date, puis cliquez sur <strong>« Confirmer »</strong>.</div></li>
+    <li><div class="step-body">Le solde impayé du fournisseur est mis à jour automatiquement.</div></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 8 — RAPPORTS ET ANALYTIQUES
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s8">
+  <h2 class="section-title"><span class="sec-num">8</span> Rapports et Analytiques</h2>
+
+  <h3 id="s8-1">8.1 Rapport journalier</h3>
+  <p>Le rapport journalier synthétise l'activité commerciale d'une journée donnée.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Rapports → Rapport journalier</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez la date souhaitée avec le sélecteur de date (par défaut : aujourd'hui).</div></li>
+    <li><div class="step-body">Le rapport affiche instantanément :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Indicateur</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Chiffre d'affaires</td><td>Total des ventes de la journée (DZD)</td></tr>
+      <tr><td>Nombre de ventes</td><td>Nombre de transactions effectuées</td></tr>
+      <tr><td>Nombre d'articles</td><td>Total d'unités vendues dans la journée</td></tr>
+      <tr><td>Top produits du jour</td><td>Articles les plus vendus de la journée</td></tr>
+      <tr><td>Ventilation par paiement</td><td>Répartition du CA par mode de paiement (Espèces, Chèque, CCP, Virement)</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="4">
+    <li><div class="step-body">Cliquez sur <strong>« Imprimer »</strong> pour imprimer le rapport, ou sur <strong>« Exporter CSV »</strong> pour l'ouvrir dans Excel.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Usage quotidien :</strong> Imprimez le rapport journalier en fin de journée pour valider la caisse et archiver l'activité.
+  </div>
+
+  <h3 id="s8-2">8.2 Analytiques de ventes</h3>
+
+  <div class="note">
+    <strong>Plan requis :</strong> Cette fonctionnalité est disponible à partir du plan <strong>Pro Retail</strong>.
+  </div>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Rapports → Analytiques ventes</strong>.</div></li>
+    <li><div class="step-body">Définissez la <strong>plage de dates</strong> (date de début et date de fin).</div></li>
+    <li><div class="step-body">Le rapport affiche :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Visualisation</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Tendances du CA</td><td>Graphique d'évolution du chiffre d'affaires sur la période sélectionnée</td></tr>
+      <tr><td>Ventes par catégorie</td><td>Répartition des ventes par catégorie de produit (Sneakers, Bottes, etc.)</td></tr>
+      <tr><td>Ventes par genre</td><td>Répartition Homme / Femme / Enfant / Unisexe</td></tr>
+      <tr><td>Top produits</td><td>Classement des articles les plus vendus sur la période</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s8-3">8.3 Rapport de stock</h3>
+
+  <div class="note">
+    <strong>Accès :</strong> Disponible pour les rôles Owner et Manager uniquement.
+  </div>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Rapports → Rapport stock</strong>.</div></li>
+    <li><div class="step-body">Le rapport présente :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Indicateur</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Valeur totale du stock</td><td>Stock × Prix d'achat pour toutes les variantes actives (DZD)</td></tr>
+      <tr><td>Niveaux de stock par variante</td><td>Tableau complet avec quantités et seuils d'alerte</td></tr>
+      <tr><td>Articles à rotation lente</td><td>Produits qui n'ont pas été vendus depuis plus de 60 jours</td></tr>
+      <tr><td>Articles à rotation rapide</td><td>Produits vendus le plus fréquemment</td></tr>
+      <tr><td>Ruptures</td><td>Liste des variantes à stock nul ou sous seuil</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 9 — NOTIFICATIONS
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s9">
+  <h2 class="section-title"><span class="sec-num">9</span> Notifications</h2>
+
+  <div class="intro-block">
+    Le système de notifications vous alerte proactivement des événements importants nécessitant votre attention, sans que vous ayez à vérifier manuellement chaque module.
+  </div>
+
+  <h3>Accéder aux notifications</h3>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'icône de <strong>cloche</strong> dans la barre supérieure. Un badge rouge indique le nombre de notifications non lues.</div></li>
+    <li><div class="step-body">Un panneau latéral s'ouvre, listant toutes les notifications récentes.</div></li>
+    <li><div class="step-body">Les notifications non lues sont affichées en fond légèrement coloré.</div></li>
+    <li><div class="step-body">Les notifications se rafraîchissent automatiquement toutes les <strong>60 secondes</strong>.</div></li>
+  </ol>
+
+  <h3>Types de notifications</h3>
+  <table>
+    <thead><tr><th>Type</th><th>Couleur</th><th>Déclencheur</th></tr></thead>
+    <tbody>
+      <tr><td>Chèque à encaisser</td><td><span class="badge" style="background:#fef9c3;color:#854d0e;">Doré</span></td><td>Chèque dont l'échéance est dans moins de 3 jours</td></tr>
+      <tr><td>Stock bas</td><td><span class="badge badge-orange">Orange</span></td><td>Variante dont le stock passe sous le seuil d'alerte</td></tr>
+      <tr><td>Facture en retard</td><td><span class="badge badge-red">Rouge</span></td><td>Facture dont la date d'échéance est dépassée</td></tr>
+      <tr><td>Général</td><td><span class="badge badge-blue">Bleu</span></td><td>Informations système, mises à jour</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Gérer les notifications</h3>
+  <ol class="steps">
+    <li><div class="step-body"><strong>Marquer une notification comme lue :</strong> Cliquez sur la notification. Elle disparaît du compteur de non-lues.</div></li>
+    <li><div class="step-body"><strong>Tout marquer comme lu :</strong> Cliquez sur le bouton <strong>« Tout marquer comme lu »</strong> en haut du panneau pour effacer le badge d'un coup.</div></li>
+    <li><div class="step-body"><strong>Accéder à l'objet lié :</strong> Certaines notifications sont cliquables et vous redirigent directement vers la facture, le chèque ou le produit concerné.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Configurez des seuils d'alerte réalistes pour vos variantes (section 4.2) afin que les notifications de stock bas arrivent suffisamment tôt pour passer commande.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 10 — PARAMÈTRES ET ADMINISTRATION
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s10">
+  <h2 class="section-title"><span class="sec-num">10</span> Paramètres et Administration</h2>
+
+  <p>Pour accéder aux paramètres, cliquez sur <strong>Paramètres</strong> dans la barre latérale. La page se compose d'un menu de navigation latéral avec plusieurs onglets.</p>
+
+  <h3 id="s10-1">10.1 Profil utilisateur</h3>
+  <p>Chaque utilisateur peut modifier ses propres informations de profil.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Dans Paramètres, cliquez sur l'onglet <strong>Profil</strong>.</div></li>
+    <li><div class="step-body">Modifiez les champs souhaités :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Prénom</td><td>Votre prénom (affiché dans l'interface et sur les documents)</td></tr>
+      <tr><td>Nom</td><td>Votre nom de famille</td></tr>
+      <tr><td>Téléphone</td><td>Votre numéro de téléphone personnel</td></tr>
+      <tr><td>Langue</td><td>Langue de l'interface : Français, Arabe (RTL), Anglais</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Cliquez sur <strong>« Sauvegarder »</strong>. Les modifications prennent effet immédiatement.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Langue :</strong> Le changement de langue affecte uniquement votre propre interface. Les autres utilisateurs conservent leur propre paramètre de langue.
+  </div>
+
+  <h3 id="s10-2">10.2 Informations boutique</h3>
+
+  <div class="note">
+    <strong>Accès :</strong> Onglet visible pour les rôles Owner et Manager uniquement.
+  </div>
+
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'onglet <strong>Boutique</strong>.</div></li>
+    <li><div class="step-body">Renseignez ou mettez à jour les informations :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td>Logo</td><td>Image du logo de votre boutique (PNG/JPG, max 2 Mo)</td><td>Imprimé sur les PDFs et reçus</td></tr>
+      <tr><td>Nom de la boutique</td><td>Raison sociale ou nom commercial</td><td>Tous les documents</td></tr>
+      <tr><td>Téléphone</td><td>Téléphone principal de la boutique</td><td>Reçus, factures</td></tr>
+      <tr><td>Adresse</td><td>Adresse physique de la boutique</td><td>Reçus, factures</td></tr>
+      <tr><td>Wilaya</td><td>Wilaya de localisation (58 wilayas)</td><td>Documents officiels</td></tr>
+      <tr><td>NIF</td><td>Numéro d'Identification Fiscale</td><td>Factures TVA (obligatoire)</td></tr>
+      <tr><td>RC</td><td>Registre du Commerce</td><td>Documents officiels</td></tr>
+      <tr><td>AI</td><td>Article d'Imposition</td><td>Documents officiels algériens</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Cliquez sur <strong>« Sauvegarder »</strong>.</div></li>
+  </ol>
+
+  <div class="warning">
+    <strong>Important :</strong> Complétez le NIF et le RC avant d'émettre vos premières factures. Ces informations sont obligatoires pour la conformité fiscale algérienne.
+  </div>
+
+  <h3 id="s10-3">10.3 Sécurité — Changer de mot de passe</h3>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'onglet <strong>Sécurité</strong>.</div></li>
+    <li><div class="step-body">Saisissez votre <strong>mot de passe actuel</strong>.</div></li>
+    <li><div class="step-body">Saisissez votre <strong>nouveau mot de passe</strong> (minimum 8 caractères).</div></li>
+    <li><div class="step-body">Confirmez le nouveau mot de passe dans le champ de confirmation.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Changer le mot de passe »</strong>.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Bonne pratique :</strong> Choisissez un mot de passe d'au moins 12 caractères combinant majuscules, minuscules, chiffres et caractères spéciaux.
+  </div>
+
+  <h3 id="s10-4">10.4 Gestion des utilisateurs</h3>
+
+  <div class="note">
+    <strong>Accès :</strong> Onglet visible pour les rôles Owner et Manager. Les Managers ne peuvent pas modifier le compte du Propriétaire.
+  </div>
+
+  <h4>Voir la liste des utilisateurs</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'onglet <strong>Utilisateurs</strong>.</div></li>
+    <li><div class="step-body">Le tableau affiche tous les comptes : nom, email, rôle, statut (actif/inactif).</div></li>
+  </ol>
+
+  <h4>Inviter un nouvel utilisateur</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur <strong>« Inviter un utilisateur »</strong>.</div></li>
+    <li><div class="step-body">Saisissez le prénom, le nom, l'adresse e-mail du nouvel utilisateur.</div></li>
+    <li><div class="step-body">Sélectionnez le <strong>rôle</strong> : Caissier ou Gérant (Manager). Seul le Propriétaire peut être assigné par le système.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Envoyer l'invitation »</strong>. Le nouvel utilisateur reçoit ses identifiants par e-mail.</div></li>
+  </ol>
+
+  <h4>Désactiver un utilisateur</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans le tableau, localisez l'utilisateur à désactiver.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Désactiver »</strong>.</div></li>
+    <li><div class="step-body">Confirmez la désactivation. L'utilisateur ne pourra plus se connecter mais ses données historiques sont conservées.</div></li>
+  </ol>
+
+  <div class="warning">
+    <strong>Attention :</strong> La désactivation est immédiate. Si l'utilisateur est connecté, sa session sera invalidée lors de la prochaine requête. Assurez-vous que le caissier a terminé ses ventes en cours avant de désactiver son compte.
+  </div>
+
+  <h3 id="s10-5">10.5 Agences et succursales</h3>
+
+  <div class="note">
+    <strong>Accès :</strong> Onglet visible pour les rôles Owner et Manager.
+  </div>
+
+  <p>Si vous gérez plusieurs points de vente, vous pouvez créer une agence (succursale) par lieu physique. Les stocks, ventes et transferts sont segmentés par agence.</p>
+
+  <h4>Créer une agence</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'onglet <strong>Agences</strong>.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Ajouter une agence »</strong>.</div></li>
+    <li><div class="step-body">Renseignez :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th><th>Obligatoire</th></tr></thead>
+    <tbody>
+      <tr><td>Nom</td><td>Nom de l'agence (ex : Agence centrale, Annexe Bab Ezzouar)</td><td>Oui</td></tr>
+      <tr><td>Wilaya</td><td>Wilaya de l'agence</td><td>Non</td></tr>
+      <tr><td>Téléphone</td><td>Numéro de téléphone de l'agence</td><td>Non</td></tr>
+      <tr><td>Adresse</td><td>Adresse physique de l'agence</td><td>Non</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="4">
+    <li><div class="step-body">Cliquez sur <strong>« Créer l'agence »</strong>.</div></li>
+  </ol>
+
+  <p>La liste des agences affiche pour chaque point de vente : nom, adresse, wilaya, téléphone, et le badge <span class="badge badge-blue">Siège</span> pour le siège social.</p>
+
+  <h3 id="s10-6">10.6 Abonnement</h3>
+
+  <p>ShoeDZ est disponible en plusieurs plans selon vos besoins :</p>
+
+  <table>
+    <thead><tr><th>Plan</th><th>Fonctionnalités incluses</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">Gratuit</span></td><td>PDV de base, inventaire limité, 1 utilisateur, 1 agence</td></tr>
+      <tr><td><span class="badge badge-blue">Pro Retail</span></td><td>PDV complet, inventaire illimité, multi-utilisateurs, analytiques de ventes, rapport de stock</td></tr>
+      <tr><td><span class="badge badge-purple">Pro Wholesale</span></td><td>Tout Pro Retail + Facturation B2B (TVA), bons de livraison, avoirs, gestion créances avancée</td></tr>
+      <tr><td><span class="badge badge-green">Enterprise</span></td><td>Tout Pro Wholesale + multi-agences illimitées, API, support dédié, SLA garanti</td></tr>
+    </tbody>
+  </table>
+
+  <p>Pour voir votre plan actuel et les fonctionnalités disponibles, allez dans <strong>Paramètres → Abonnement</strong>. Pour mettre à niveau votre plan, cliquez sur <strong>« Mettre à niveau »</strong> et suivez les instructions.</p>
+
+  <div class="tip">
+    <strong>Fonctionnalités verrouillées :</strong> Si vous tentez d'accéder à une fonctionnalité non incluse dans votre plan, une bannière vous informera du plan requis avec un bouton de mise à niveau direct.
+  </div>
+
+  <h3 id="s10-7">10.7 Journal d'activité (Audit)</h3>
+
+  <div class="note">
+    <strong>Accès :</strong> Disponible pour les rôles Owner et Manager. Le journal est accessible depuis <strong>Paramètres → Journal d'activité</strong> ou via le lien dans la barre latérale.
+  </div>
+
+  <p>
+    Le journal d'audit est un registre <strong>immuable</strong> de toutes les créations, modifications et suppressions effectuées dans le système. Il est conçu pour garantir la traçabilité et détecter toute anomalie.
+  </p>
+
+  <ol class="steps">
+    <li><div class="step-body">Allez dans <strong>Paramètres → Journal d'activité</strong>.</div></li>
+    <li><div class="step-body">Le tableau affiche les 25 entrées les plus récentes par défaut, avec pagination.</div></li>
+    <li><div class="step-body">Utilisez les filtres pour restreindre par <strong>type d'objet</strong> (Facture, Vente, Mouvement de stock, etc.) et par <strong>type d'action</strong> (Création, Modification, Suppression).</div></li>
+    <li><div class="step-body">Pour voir le détail d'une modification, cliquez sur <strong>« Voir diff »</strong> dans la colonne Détails. La comparaison avant/après s'affiche.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Colonne</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Date</td><td>Horodatage précis de l'action (format local algérien)</td></tr>
+      <tr><td>Utilisateur</td><td>Nom de l'utilisateur ayant effectué l'action</td></tr>
+      <tr><td>Action</td><td><span class="badge badge-green">Création</span> <span class="badge badge-yellow">Modification</span> <span class="badge badge-red">Suppression</span></td></tr>
+      <tr><td>Objet</td><td>Type de données modifié (Facture, Vente, Mouvement stock…) et son identifiant</td></tr>
+      <tr><td>Détails</td><td>Différentiel des champs modifiés (valeur avant → valeur après)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Important :</strong> Le journal d'audit est en lecture seule. Aucune entrée ne peut être modifiée ou supprimée, même par le propriétaire. C'est votre garantie de traçabilité.
+  </div>
+
+  <div class="tip">
+    <strong>Cas d'usage :</strong> Si vous constatez une anomalie dans vos stocks ou votre caisse, consultez le journal d'audit et filtrez sur « Mouvement stock » + « Suppression » ou « Modification » pour identifier l'action à l'origine de la divergence.
+  </div>
+
+  <hr class="divider">
+
+  <p style="text-align:center; color:#666; font-size:13px; margin-top:32px;">
+    <strong>ShoeDZ / Pointure ERP</strong> — Manuel Utilisateur v1.0<br>
+    Pour toute assistance : contactez votre administrateur système ou l'équipe ShoeDZ.<br>
+    <span style="color:#4f46e5;">© 2026 ShoeDZ — Tous droits réservés</span>
+  </p>
+
+</div>
+
+</body>
+</html>

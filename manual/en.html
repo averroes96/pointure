@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShoeDZ / Pointure — User Manual</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #333;
+      background: #fff;
+    }
+
+    /* ===== PRINT ===== */
+    @page { size: A4; margin: 20mm 18mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body { font-size: 12px; }
+      a { color: inherit; text-decoration: none; }
+    }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ===== COVER PAGE ===== */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+    }
+
+    .cover .brand-icon {
+      width: 90px;
+      height: 90px;
+      background: #4f46e5;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 32px;
+      font-size: 44px;
+    }
+
+    .cover h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .cover .tagline {
+      font-size: 20px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 40px;
+      letter-spacing: 1px;
+    }
+
+    .cover .badge-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .cover .badge {
+      background: rgba(79,70,229,0.35);
+      border: 1px solid rgba(79,70,229,0.6);
+      border-radius: 20px;
+      padding: 6px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      letter-spacing: 0.5px;
+    }
+
+    .cover .subtitle {
+      font-size: 32px;
+      font-weight: 700;
+      color: #a5b4fc;
+      margin-bottom: 16px;
+    }
+
+    .cover .meta {
+      margin-top: auto;
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 32px;
+      width: 100%;
+    }
+
+    .cover .meta span { margin: 0 12px; }
+
+    /* ===== TABLE OF CONTENTS ===== */
+    .toc-section {
+      padding: 56px 0 40px;
+      page-break-after: always;
+    }
+
+    .toc-section h2 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 32px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #4f46e5;
+    }
+
+    .toc {
+      list-style: none;
+    }
+
+    .toc > li {
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .toc > li > a {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 4px;
+      text-decoration: none;
+      color: #1a1a2e;
+      font-weight: 600;
+      font-size: 15px;
+      transition: color 0.2s;
+    }
+
+    .toc > li > a:hover { color: #4f46e5; }
+
+    .toc > li > a .toc-num {
+      background: #4f46e5;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .toc > li > a .toc-title { flex: 1; }
+
+    .toc > li > a .toc-dots {
+      flex: 1;
+      border-bottom: 1px dotted #ccc;
+      margin: 0 8px;
+      position: relative;
+      top: -3px;
+    }
+
+    .toc-sub {
+      list-style: none;
+      padding: 0 0 8px 32px;
+    }
+
+    .toc-sub li a {
+      display: block;
+      padding: 4px 4px;
+      text-decoration: none;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .toc-sub li a:hover { color: #4f46e5; }
+
+    /* ===== SECTION HEADINGS ===== */
+    .section {
+      padding: 48px 0 32px;
+      page-break-before: always;
+    }
+
+    .section:first-of-type { page-break-before: avoid; }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1a1a2e;
+      padding: 16px 20px;
+      border-left: 6px solid #4f46e5;
+      background: #f8f7ff;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 28px;
+    }
+
+    h2 .section-number {
+      color: #4f46e5;
+      margin-right: 8px;
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 28px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e8e8f0;
+    }
+
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 20px 0 8px;
+    }
+
+    p { margin-bottom: 12px; }
+
+    /* ===== LISTS ===== */
+    ol, ul {
+      padding-left: 24px;
+      margin-bottom: 14px;
+    }
+
+    ol li, ul li {
+      margin-bottom: 6px;
+    }
+
+    ol li::marker {
+      color: #4f46e5;
+      font-weight: 700;
+    }
+
+    /* ===== CALLOUT BOXES ===== */
+    .tip, .warning, .info, .note {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 18px 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+
+    .tip {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e3a5f;
+    }
+
+    .tip::before {
+      content: "💡 Tip: ";
+      font-weight: 700;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border-left: 4px solid #f97316;
+      color: #7c2d12;
+    }
+
+    .warning::before {
+      content: "⚠️ Warning: ";
+      font-weight: 700;
+    }
+
+    .info {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      color: #14532d;
+    }
+
+    .info::before {
+      content: "ℹ️ Note: ";
+      font-weight: 700;
+    }
+
+    .note {
+      background: #fdf4ff;
+      border-left: 4px solid #a855f7;
+      color: #4a044e;
+    }
+
+    .note::before {
+      content: "📌 Cross-reference: ";
+      font-weight: 700;
+    }
+
+    /* ===== TABLES ===== */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 18px 0;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead tr {
+      background: #1a1a2e;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 11px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    tbody tr:nth-child(even) { background: #f8f7ff; }
+    tbody tr:nth-child(odd) { background: #fff; }
+
+    tbody td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #ededf5;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .badge-field {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-required { background: #fee2e2; color: #991b1b; }
+    .badge-optional { background: #e0f2fe; color: #075985; }
+
+    /* ===== KEYBOARD SHORTCUTS ===== */
+    kbd {
+      display: inline-block;
+      padding: 3px 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      background: #1a1a2e;
+      color: #e0e0ff;
+      border-radius: 5px;
+      border-bottom: 2px solid #4f46e5;
+      white-space: nowrap;
+    }
+
+    /* ===== STATUS BADGES ===== */
+    .status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .status-draft    { background: #f1f5f9; color: #475569; }
+    .status-sent     { background: #dbeafe; color: #1d4ed8; }
+    .status-partial  { background: #fef9c3; color: #854d0e; }
+    .status-paid     { background: #dcfce7; color: #166534; }
+    .status-overdue  { background: #fee2e2; color: #991b1b; }
+    .status-cancelled{ background: #f3f4f6; color: #9ca3af; }
+    .status-pending  { background: #fef3c7; color: #92400e; }
+    .status-transit  { background: #e0f2fe; color: #0369a1; }
+    .status-received { background: #dcfce7; color: #166534; }
+
+    /* ===== CODE / PATH ===== */
+    code {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #1e293b;
+    }
+
+    /* ===== WORKFLOW DIAGRAM ===== */
+    .workflow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+
+    .workflow-step {
+      background: #4f46e5;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .workflow-arrow {
+      color: #4f46e5;
+      font-size: 20px;
+      padding: 0 8px;
+      font-weight: 700;
+    }
+
+    /* ===== SCREEN MOCKUP ===== */
+    .screen-mock {
+      background: #f8f7ff;
+      border: 2px solid #e0e0f0;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .screen-mock .mock-bar {
+      background: #1a1a2e;
+      color: #a5b4fc;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 12px;
+    }
+
+    /* ===== DIVIDERS ===== */
+    hr {
+      border: none;
+      border-top: 2px solid #f0f0f8;
+      margin: 32px 0;
+    }
+
+    /* ===== FOOTER ===== */
+    .manual-footer {
+      text-align: center;
+      padding: 32px 0 48px;
+      color: #9ca3af;
+      font-size: 12px;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 48px;
+    }
+
+    /* ===== ROLE ICONS ===== */
+    .role-tag {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .role-owner   { background: #fde68a; color: #78350f; }
+    .role-manager { background: #ddd6fe; color: #4c1d95; }
+    .role-cashier { background: #d1fae5; color: #065f46; }
+
+    /* ===== FEATURE FLAG ===== */
+    .plan-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #1a1a2e;
+      color: #a5b4fc;
+      margin-left: 6px;
+    }
+
+    /* ===== FIELD REQUIRED STAR ===== */
+    .req { color: #e53e3e; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     COVER PAGE
+     ============================================================ -->
+<div class="cover">
+  <div class="brand-icon">👟</div>
+  <h1>ShoeDZ</h1>
+  <p class="tagline">Pointure &mdash; Shoe Retail ERP</p>
+  <div class="badge-row">
+    <span class="badge">Language: English</span>
+    <span class="badge">Version 1.0</span>
+    <span class="badge">May 2026</span>
+  </div>
+  <p class="subtitle">User Manual</p>
+  <p style="color:rgba(255,255,255,0.55); font-size:14px; max-width:480px; margin-top:16px;">
+    Complete guide to Point of Sale, Inventory, Invoicing, Clients, Suppliers, Reports, and Administration
+  </p>
+  <div class="meta">
+    <span>ShoeDZ / Pointure</span>
+    <span>&bull;</span>
+    <span>Designed for Algerian Shoe Retailers</span>
+    <span>&bull;</span>
+    <span>&copy; 2026 Pointure</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     TABLE OF CONTENTS
+     ============================================================ -->
+<div class="container">
+<div class="toc-section">
+  <h2>Table of Contents</h2>
+  <ul class="toc">
+    <li>
+      <a href="#section-1">
+        <span class="toc-num">1</span>
+        <span class="toc-title">Introduction</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#intro-what">What is ShoeDZ?</a></li>
+        <li><a href="#intro-who">Who is it for?</a></li>
+        <li><a href="#intro-access">How to access the application</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-2">
+        <span class="toc-num">2</span>
+        <span class="toc-title">Getting Started</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#gs-login">Logging in</a></li>
+        <li><a href="#gs-dashboard">Dashboard overview</a></li>
+        <li><a href="#gs-navigation">Navigating the interface</a></li>
+        <li><a href="#gs-roles">User roles and permissions</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-3">
+        <span class="toc-num">3</span>
+        <span class="toc-title">Point of Sale (POS)</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#pos-open">Opening the POS</a></li>
+        <li><a href="#pos-search">Searching for products</a></li>
+        <li><a href="#pos-shortcuts">Keyboard shortcuts</a></li>
+        <li><a href="#pos-variants">Selecting a variant</a></li>
+        <li><a href="#pos-cart">Managing the cart</a></li>
+        <li><a href="#pos-payment">Recording payment</a></li>
+        <li><a href="#pos-confirm">Confirming the sale</a></li>
+        <li><a href="#pos-history">Sale history</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-4">
+        <span class="toc-num">4</span>
+        <span class="toc-title">Inventory Management</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#inv-products">Products</a></li>
+        <li><a href="#inv-variants">Product variants and barcodes</a></li>
+        <li><a href="#inv-movements">Stock movements</a></li>
+        <li><a href="#inv-adjustments">Stock adjustments</a></li>
+        <li><a href="#inv-lowstock">Low stock alerts</a></li>
+        <li><a href="#inv-transfers">Branch transfers</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-5">
+        <span class="toc-num">5</span>
+        <span class="toc-title">Invoicing</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#inv-create">Creating an invoice</a></li>
+        <li><a href="#inv-lineitems">Line items and totals</a></li>
+        <li><a href="#inv-payments">Recording invoice payments</a></li>
+        <li><a href="#inv-statuses">Invoice statuses</a></li>
+        <li><a href="#inv-pdf">PDF download</a></li>
+        <li><a href="#inv-delivery">Delivery notes</a></li>
+        <li><a href="#inv-credit">Credit notes (Avoirs)</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-6">
+        <span class="toc-num">6</span>
+        <span class="toc-title">Clients &amp; Receivables</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#clients-create">Creating a client</a></li>
+        <li><a href="#clients-detail">Client detail tabs</a></li>
+        <li><a href="#clients-ageing">Debt ageing report</a></li>
+        <li><a href="#clients-cheques">Cheque tracker</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-7">
+        <span class="toc-num">7</span>
+        <span class="toc-title">Suppliers &amp; Purchasing</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#sup-create">Creating a supplier</a></li>
+        <li><a href="#sup-po">Purchase orders</a></li>
+        <li><a href="#sup-receive">Receiving a purchase order</a></li>
+        <li><a href="#sup-payments">Supplier invoices &amp; payments</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-8">
+        <span class="toc-num">8</span>
+        <span class="toc-title">Reports &amp; Analytics</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#rep-daily">Daily report</a></li>
+        <li><a href="#rep-analytics">Sales analytics</a></li>
+        <li><a href="#rep-stock">Stock report</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-9">
+        <span class="toc-num">9</span>
+        <span class="toc-title">Notifications</span>
+        <span class="toc-dots"></span>
+      </a>
+    </li>
+    <li>
+      <a href="#section-10">
+        <span class="toc-num">10</span>
+        <span class="toc-title">Settings &amp; Administration</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#settings-profile">Profile tab</a></li>
+        <li><a href="#settings-business">Business tab</a></li>
+        <li><a href="#settings-users">Users tab</a></li>
+        <li><a href="#settings-branches">Branches tab</a></li>
+        <li><a href="#settings-billing">Billing tab</a></li>
+        <li><a href="#settings-audit">Audit log</a></li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<!-- ============================================================
+     SECTION 1 — INTRODUCTION
+     ============================================================ -->
+<div class="section" id="section-1">
+  <h2><span class="section-number">1.</span> Introduction</h2>
+
+  <h3 id="intro-what">1.1 What is ShoeDZ?</h3>
+  <p>
+    <strong>ShoeDZ</strong> (also branded as <strong>Pointure</strong>) is a cloud-based Enterprise Resource Planning (ERP) system purpose-built for Algerian shoe retailers. It consolidates every operation a modern shoe shop needs into a single, web-accessible application — from ringing up sales at the counter to tracking stock across multiple branches, managing wholesale invoicing, and monitoring outstanding client debts.
+  </p>
+  <p>
+    Because ShoeDZ is <em>multi-tenant</em>, each business gets its own isolated data environment. Your products, clients, transactions, and reports are completely private to your organisation.
+  </p>
+  <p>Key capabilities at a glance:</p>
+  <ul>
+    <li><strong>Point of Sale</strong> — Fast barcode-driven checkout with split-payment support.</li>
+    <li><strong>Inventory</strong> — Product catalogue with EU-size variants, barcodes, and branch-level stock.</li>
+    <li><strong>Invoicing</strong> — Professional wholesale invoicing with TVA, PDF export, and credit notes.</li>
+    <li><strong>Clients &amp; Receivables</strong> — Ledger, debt ageing, and cheque tracking.</li>
+    <li><strong>Suppliers &amp; Purchasing</strong> — Purchase orders and receiving workflow.</li>
+    <li><strong>Reports</strong> — Daily summaries, sales analytics, and stock valuation.</li>
+    <li><strong>Multi-branch</strong> — Manage multiple shop locations from one account.</li>
+  </ul>
+
+  <h3 id="intro-who">1.2 Who is ShoeDZ for?</h3>
+  <p>ShoeDZ is designed for three types of users inside a retail shoe business:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Typical Person</th>
+          <th>Primary Tasks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="role-tag role-owner">Owner</span></td>
+          <td>Business owner / director</td>
+          <td>Full access to all modules including cost prices, profit margins, audit log, billing, and user management.</td>
+        </tr>
+        <tr>
+          <td><span class="role-tag role-manager">Manager</span></td>
+          <td>Shop manager / supervisor</td>
+          <td>All operational tasks; manages users and branches. Cost visibility is configurable. Cannot change billing.</td>
+        </tr>
+        <tr>
+          <td><span class="role-tag role-cashier">Cashier</span></td>
+          <td>Sales assistant / cashier</td>
+          <td>POS sales only. Cannot see purchase prices, profit margins, reports, or administrative settings.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tip">
+    If you are a cashier and you cannot see a menu item described in this manual, it is most likely restricted to your role. Contact your manager or owner if you need broader access.
+  </div>
+
+  <h3 id="intro-access">1.3 How to Access the Application</h3>
+  <p>ShoeDZ runs entirely in a modern web browser — no software installation is required on most computers.</p>
+
+  <h4>Cloud (SaaS) Access</h4>
+  <ol>
+    <li>Open any modern browser (Google Chrome, Mozilla Firefox, Microsoft Edge, or Safari).</li>
+    <li>Navigate to the ShoeDZ web address provided by your administrator or during sign-up.</li>
+    <li>You will be presented with the login screen.</li>
+  </ol>
+
+  <h4>Local / On-Premise Installation</h4>
+  <ol>
+    <li>Your IT administrator will provide you with the internal server address (e.g., <code>http://192.168.1.10:8000</code>) or a local domain name.</li>
+    <li>Ensure you are connected to the same local network as the server.</li>
+    <li>Open the address in a browser. The application behaves identically to the cloud version.</li>
+  </ol>
+
+  <div class="tip">
+    ShoeDZ is optimised for desktop and tablet screens. On small smartphone screens some tables may require horizontal scrolling. For best performance at the point of sale, use a desktop or laptop browser.
+  </div>
+  <div class="warning">
+    Always use HTTPS (the padlock icon in your browser's address bar) when accessing ShoeDZ over the internet. If your IT provider has deployed the app on HTTP only within a local network, that is acceptable for an isolated LAN, but never enter your credentials over plain HTTP on a public network.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 2 — GETTING STARTED
+     ============================================================ -->
+<div class="section" id="section-2">
+  <h2><span class="section-number">2.</span> Getting Started</h2>
+
+  <h3 id="gs-login">2.1 Logging In</h3>
+  <p>When you open ShoeDZ you are taken directly to the login page.</p>
+  <ol>
+    <li>In the <strong>Email</strong> field, enter the email address associated with your account.</li>
+    <li>In the <strong>Password</strong> field, enter your password. Characters are hidden as you type.</li>
+    <li>Click the <strong>Log In</strong> button (or press <kbd>Enter</kbd>). If your credentials are correct, you will be redirected to the Dashboard.</li>
+  </ol>
+
+  <div class="screen-mock">
+    <div class="mock-bar">ShoeDZ — Login</div>
+    <strong>Email address</strong><br>
+    <code>you@example.com</code><br><br>
+    <strong>Password</strong><br>
+    <code>••••••••••</code><br><br>
+    <code>[ Log In ]</code>
+  </div>
+
+  <div class="warning">
+    After three consecutive failed login attempts the account is temporarily locked for security. Wait five minutes before trying again, or contact your administrator to reset your password.
+  </div>
+  <div class="tip">
+    If your organisation uses a demo instance, the default credentials are typically <code>admin@shoedz.dz</code> / <code>demo1234</code>. Change these immediately after your first login via <strong>Settings → Profile</strong>.
+  </div>
+
+  <h3 id="gs-dashboard">2.2 Dashboard Overview</h3>
+  <p>
+    After login you land on the <strong>Dashboard</strong>. This is your business's at-a-glance command centre. It is refreshed each time you navigate to it or reload the page.
+  </p>
+
+  <h4>KPI Cards (top row)</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Card</th><th>What it shows</th><th>Visible to</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Today's Revenue</strong></td>
+          <td>Total amount collected in sales today (all payment methods) for the current branch.</td>
+          <td>Owner, Manager</td>
+        </tr>
+        <tr>
+          <td><strong>Outstanding Debt</strong></td>
+          <td>Total unpaid balance across all clients with open invoices or account-balance deficits.</td>
+          <td>Owner, Manager</td>
+        </tr>
+        <tr>
+          <td><strong>Low Stock SKUs</strong></td>
+          <td>Count of product variants whose current stock is at or below their alert threshold.</td>
+          <td>Owner, Manager</td>
+        </tr>
+        <tr>
+          <td><strong>Cheques Due This Week</strong></td>
+          <td>Number of receivable cheques whose due date falls within the next 7 calendar days.</td>
+          <td>Owner, Manager</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    Each KPI card is clickable and takes you directly to the corresponding detail page — for example, clicking "Low Stock SKUs" opens the Low Stock report.
+  </div>
+
+  <h4>30-Day Revenue Chart</h4>
+  <p>
+    Below the KPI cards, a bar chart displays daily revenue totals for the past 30 days. Hover over any bar to see the exact figure for that day. This chart helps you spot weekly patterns, promotional peaks, and slow periods at a glance.
+  </p>
+
+  <h4>Top 5 Products Chart</h4>
+  <p>
+    A horizontal bar chart lists the five best-selling products (by quantity sold) in the current calendar month. Use this to identify your fastest movers and ensure they are always well-stocked.
+  </p>
+
+  <h3 id="gs-navigation">2.3 Navigating the Interface</h3>
+
+  <h4>Left Sidebar</h4>
+  <p>The sidebar is the main navigation menu. It is always visible on desktop. On tablets and small screens, tap the hamburger icon (☰) in the top bar to open or close it. The sidebar contains the following sections:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Sidebar Item</th><th>Description</th><th>Minimum Role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dashboard</td><td>KPI overview and charts.</td><td>Cashier</td></tr>
+        <tr><td>New Sale</td><td>Opens the Point of Sale screen.</td><td>Cashier</td></tr>
+        <tr><td>Sales History</td><td>List of all past sales with filters.</td><td>Cashier</td></tr>
+        <tr><td>Products</td><td>Product catalogue management.</td><td>Manager</td></tr>
+        <tr><td>Stock</td><td>Stock movements, adjustments, low stock, transfers.</td><td>Manager</td></tr>
+        <tr><td>Invoices</td><td>Wholesale invoicing module.</td><td>Manager</td></tr>
+        <tr><td>Clients</td><td>Client directory and receivables.</td><td>Manager</td></tr>
+        <tr><td>Suppliers</td><td>Supplier directory and purchase orders.</td><td>Manager</td></tr>
+        <tr><td>Reports</td><td>Daily, analytics, and stock reports.</td><td>Manager</td></tr>
+        <tr><td>Settings</td><td>Profile, business info, users, branches, billing.</td><td>Cashier (profile only)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Top Bar</h4>
+  <p>The top bar runs across the full width of the application and contains three controls:</p>
+  <ul>
+    <li><strong>Language Switcher</strong> — Click the flag or language code (FR / AR / EN) to instantly switch the interface language. Your preference is saved to your profile.</li>
+    <li><strong>Notifications Bell</strong> — Displays a red badge with the count of unread notifications. Click to open the notifications panel. See <a href="#section-9">Section 9</a> for full details.</li>
+    <li><strong>User Menu</strong> — Click your avatar or name to access quick links to your Profile settings and the Log Out option.</li>
+  </ul>
+
+  <h3 id="gs-roles">2.4 User Roles and Permissions</h3>
+  <p>
+    ShoeDZ uses a three-tier role model. Roles are assigned per user by an Owner or Manager in <strong>Settings → Users</strong>.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th><span class="role-tag role-owner">Owner</span></th>
+          <th><span class="role-tag role-manager">Manager</span></th>
+          <th><span class="role-tag role-cashier">Cashier</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Point of Sale</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>View sale history</td><td>✓</td><td>✓</td><td>✓ (own branch)</td></tr>
+        <tr><td>Product management</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>View purchase prices / margins</td><td>✓</td><td>Configurable</td><td>✗</td></tr>
+        <tr><td>Stock adjustments &amp; transfers</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Invoicing</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Client &amp; supplier management</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Reports</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>User management</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Branch management</td><td>✓</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Billing &amp; plan changes</td><td>✓</td><td>✗</td><td>✗</td></tr>
+        <tr><td>Audit log</td><td>✓</td><td>✓</td><td>✗</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    For details on creating and managing users, see <a href="#settings-users">Section 10.3 — Users Tab</a>.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 3 — POINT OF SALE
+     ============================================================ -->
+<div class="section" id="section-3">
+  <h2><span class="section-number">3.</span> Point of Sale (POS)</h2>
+  <p>
+    The Point of Sale (POS) module is the heart of ShoeDZ for day-to-day retail operations. It is designed for speed — a cashier should be able to complete a typical transaction in under 30 seconds.
+  </p>
+
+  <h3 id="pos-open">3.1 Opening the POS</h3>
+  <ol>
+    <li>From the left sidebar, click <strong>New Sale</strong>.</li>
+    <li>The POS screen loads with an empty cart on the right and a product search panel on the left.</li>
+    <li>If your business has multiple branches, verify the branch selector in the top bar shows your current location. Stock is drawn from the selected branch.</li>
+  </ol>
+  <div class="tip">
+    You can also press <kbd>F2</kbd> at any time while the POS is open to instantly focus the product search field — useful when your hands are on the keyboard or barcode scanner.
+  </div>
+
+  <h3 id="pos-search">3.2 Searching for Products</h3>
+  <p>ShoeDZ supports two methods of finding a product to add to the cart:</p>
+
+  <h4>Search by Name</h4>
+  <ol>
+    <li>Click in the search box at the top of the product panel (or press <kbd>F2</kbd>).</li>
+    <li>Start typing the product name, brand, or reference. Results appear below the search box after you type two or more characters.</li>
+    <li>Click on a product from the results list to select it. A variant selection panel will appear (see <a href="#pos-variants">Section 3.4</a>).</li>
+  </ol>
+
+  <h4>Search by Barcode (Scanner or Manual)</h4>
+  <ol>
+    <li>Ensure the search box is focused (press <kbd>F2</kbd> if needed).</li>
+    <li>Scan the barcode on the product with a USB or Bluetooth barcode scanner, or manually type the barcode number.</li>
+    <li>If the barcode string is <strong>8 or more digits long</strong> and corresponds to a known variant, ShoeDZ automatically adds one unit of that variant to the cart immediately — no further selection is needed. This is the fastest path for checkout.</li>
+    <li>If the barcode is fewer than 8 digits, the system treats the input as a text search.</li>
+  </ol>
+
+  <div class="tip">
+    When using a barcode scanner, make sure the scanner is configured to append an <strong>Enter</strong> keystroke after the barcode data. This is the default for most retail scanners and ensures the auto-add behaviour fires correctly.
+  </div>
+  <div class="warning">
+    If a scanned barcode is not found, ShoeDZ will display a "Product not found" message. Do not continue scanning other items — check that the variant's barcode has been correctly assigned in the product catalogue. See <a href="#inv-variants">Section 4.2</a>.
+  </div>
+
+  <h3 id="pos-shortcuts">3.3 Keyboard Shortcuts</h3>
+  <p>The following keyboard shortcuts are available within the POS screen to speed up operations:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Shortcut</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>F2</kbd></td><td>Focus the product search / barcode input field.</td></tr>
+        <tr><td><kbd>F10</kbd></td><td>Confirm the sale — opens the payment dialog (equivalent to clicking the "Confirm Sale" button).</td></tr>
+        <tr><td><kbd>Escape</kbd></td><td>Close any open dialog or cancel the current action.</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Submit the focused form or confirm a dialog.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="pos-variants">3.4 Selecting a Variant</h3>
+  <p>
+    After selecting a product by name (not via barcode scan), a variant selector panel appears. Each product can have multiple variants — combinations of EU size and colour.
+  </p>
+  <ol>
+    <li>In the variant panel, locate the <strong>Size</strong> grid (EU sizes 28–47). Sizes with no available stock are greyed out and cannot be selected.</li>
+    <li>Click the desired EU size button.</li>
+    <li>If the product is available in multiple colours at that size, colour swatches or colour name buttons appear. Click the desired colour.</li>
+    <li>Adjust the <strong>Quantity</strong> field. It defaults to 1. You can type directly or use the + / − buttons. You cannot enter a quantity greater than available stock.</li>
+    <li>Click <strong>Add to Cart</strong> (or press <kbd>Enter</kbd>). The line appears in the cart on the right.</li>
+  </ol>
+
+  <div class="warning">
+    If you attempt to add a quantity greater than available stock, ShoeDZ will show a validation error. If you need to override this (e.g., you know a shipment is incoming), contact your manager to perform a stock adjustment first.
+  </div>
+
+  <h3 id="pos-cart">3.5 Managing the Cart</h3>
+  <p>The cart panel on the right side of the POS screen lists all items added to the current transaction. The following operations are available per line item:</p>
+
+  <h4>Changing Quantity</h4>
+  <ol>
+    <li>Click the quantity value on a cart line. It becomes an editable field.</li>
+    <li>Type the new quantity, or use the <strong>+</strong> and <strong>−</strong> buttons.</li>
+    <li>Press <kbd>Enter</kbd> or click elsewhere to confirm. The line total updates automatically.</li>
+  </ol>
+
+  <h4>Removing an Item</h4>
+  <ol>
+    <li>Click the <strong>×</strong> (delete) icon at the end of the cart line.</li>
+    <li>The item is removed immediately from the cart.</li>
+  </ol>
+
+  <h4>Editing the Unit Price</h4>
+  <ol>
+    <li>Click the unit price value on a cart line. It becomes an editable field.</li>
+    <li>Enter the new price. This does not permanently change the product's catalogue price — it only affects this sale.</li>
+    <li>Press <kbd>Enter</kbd> to confirm.</li>
+  </ol>
+  <div class="warning">
+    Editing the unit price below the purchase price will result in a negative margin. ShoeDZ will display a warning but will not prevent the sale. Use this capability carefully.
+  </div>
+
+  <h4>Per-Line Discount</h4>
+  <ol>
+    <li>Click the discount icon (%) on a cart line.</li>
+    <li>Enter a discount percentage (e.g., <code>10</code> for 10% off that line).</li>
+    <li>Press <kbd>Enter</kbd>. The discounted line total is shown with the original price struck through.</li>
+  </ol>
+
+  <h4>Cart-Level Discount</h4>
+  <ol>
+    <li>In the cart summary section at the bottom, locate the <strong>Cart Discount</strong> field.</li>
+    <li>Enter a percentage discount to apply to the entire cart subtotal after any line-level discounts.</li>
+    <li>The total updates in real time.</li>
+  </ol>
+
+  <div class="tip">
+    A cart-level discount is applied to the subtotal after per-line discounts, so the two stack multiplicatively, not additively.
+  </div>
+
+  <h3 id="pos-payment">3.6 Recording Payment</h3>
+  <p>
+    ShoeDZ supports five payment methods and allows <strong>split payment</strong> — the customer can pay with a combination of methods in a single transaction.
+  </p>
+  <ol>
+    <li>Once the cart is complete, click <strong>Confirm Sale</strong> or press <kbd>F10</kbd>.</li>
+    <li>The Payment dialog opens, showing the <strong>Amount Due</strong>.</li>
+    <li>Select a payment method from the list below and enter the amount tendered for that method.</li>
+    <li>To add a second (or third) payment method, click <strong>+ Add Payment Method</strong> and repeat.</li>
+    <li>The <strong>Remaining Balance</strong> indicator shows how much is still unpaid. It must reach 0.00 DZD before you can finalise.</li>
+    <li>If cash is given and change is due, the <strong>Change</strong> amount is calculated and displayed automatically.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Payment Method</th><th>When to use</th><th>Extra fields</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cash</strong> (Espèces)</td>
+          <td>Physical banknotes and coins.</td>
+          <td>Amount received (change calculated automatically).</td>
+        </tr>
+        <tr>
+          <td><strong>Cheque</strong></td>
+          <td>Bank cheque from the customer.</td>
+          <td>Cheque number, bank name, due date (post-dated cheques supported).</td>
+        </tr>
+        <tr>
+          <td><strong>CCP</strong></td>
+          <td>Algeria Post (Algérie Poste) account transfer.</td>
+          <td>Reference number (optional).</td>
+        </tr>
+        <tr>
+          <td><strong>Virement Bancaire</strong></td>
+          <td>Bank wire transfer.</td>
+          <td>Reference / transfer number (optional).</td>
+        </tr>
+        <tr>
+          <td><strong>Account Balance</strong></td>
+          <td>Deduct from the client's credit balance (pre-paid account).</td>
+          <td>Client must be selected for this session; available balance shown.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    To use Account Balance, you must first associate the sale with a client. Click <strong>Assign Client</strong> in the cart panel before opening the payment dialog.
+  </div>
+  <div class="note">
+    Cheques entered here are automatically added to the Cheque Tracker for follow-up. See <a href="#clients-cheques">Section 6.4</a> for details.
+  </div>
+
+  <h3 id="pos-confirm">3.7 Confirming the Sale</h3>
+  <ol>
+    <li>Once the total tendered equals the amount due, click <strong>Finalise Sale</strong>.</li>
+    <li>ShoeDZ processes the transaction, deducts stock for each variant, and generates a unique <strong>Receipt Number</strong> (e.g., <code>REC-2026-00847</code>).</li>
+    <li>A confirmation screen appears with two action buttons:
+      <ul>
+        <li><strong>Print Receipt</strong> — Sends the receipt to the default printer. A thermal-printer-friendly layout is used automatically if a 58 mm or 80 mm receipt printer is set as the default.</li>
+        <li><strong>Share via WhatsApp</strong> — Opens WhatsApp (web or app) with a pre-formatted receipt message and the client's phone number pre-filled (if a client was assigned).</li>
+      </ul>
+    </li>
+    <li>Click <strong>New Sale</strong> to start a fresh transaction, or <strong>Close</strong> to return to the Dashboard.</li>
+  </ol>
+
+  <div class="warning">
+    Once a sale is finalised, it cannot be deleted — only a <em>return</em> can reverse it. If you accidentally confirm a wrong sale, go to Sales History, locate the receipt, and process a return. This re-credits the stock.
+  </div>
+
+  <h3 id="pos-history">3.8 Viewing Sale History</h3>
+  <ol>
+    <li>From the sidebar, click <strong>Sales History</strong>.</li>
+    <li>The list shows all completed sales, most recent first, with columns: Receipt Number, Date &amp; Time, Cashier, Items, Total, Payment Methods.</li>
+    <li>Use the filters at the top to narrow results:
+      <ul>
+        <li><strong>Date range</strong> — Start and end date pickers.</li>
+        <li><strong>Cashier</strong> — Filter by the user who made the sale.</li>
+        <li><strong>Payment Method</strong> — Show only sales paid by a specific method.</li>
+        <li><strong>Search</strong> — Enter a receipt number, product name, or client name.</li>
+      </ul>
+    </li>
+    <li>Click any row to open the full receipt detail — showing each line item, applied discounts, payment breakdown, and client (if assigned).</li>
+    <li>From the receipt detail page, you can reprint the receipt or share it via WhatsApp again.</li>
+  </ol>
+</div>
+
+<!-- ============================================================
+     SECTION 4 — INVENTORY MANAGEMENT
+     ============================================================ -->
+<div class="section" id="section-4">
+  <h2><span class="section-number">4.</span> Inventory Management</h2>
+  <p>
+    The Inventory module lets you build and maintain your complete product catalogue, manage stock levels per variant and branch, perform adjustments, and transfer goods between locations.
+  </p>
+
+  <h3 id="inv-products">4.1 Products</h3>
+
+  <h4>Viewing the Product List</h4>
+  <ol>
+    <li>From the sidebar, click <strong>Products</strong>.</li>
+    <li>The product grid shows a card or row for each product, with its image thumbnail, name, brand, category, and total stock.</li>
+    <li>Use the search bar to filter by name, brand, or reference. Use the dropdown filters for Category, Gender, or Season.</li>
+  </ol>
+
+  <h4>Creating a New Product</h4>
+  <ol>
+    <li>On the Products page, click the <strong>+ New Product</strong> button.</li>
+    <li>Fill in the product form. Fields marked <span class="req">*</span> are required.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Name</td><td><span class="badge-field badge-required">Required</span></td><td>The product's display name (e.g., "Nike Air Max 90").</td></tr>
+        <tr><td>Brand</td><td><span class="badge-field badge-optional">Optional</span></td><td>The manufacturer or brand (e.g., "Nike", "Adidas", "Santiag Local").</td></tr>
+        <tr><td>Reference</td><td><span class="badge-field badge-optional">Optional</span></td><td>Your internal SKU or the manufacturer's model code.</td></tr>
+        <tr><td>Category</td><td><span class="badge-field badge-required">Required</span></td><td>Choose from: Sneakers, Boots, Sandals, Formal, Sport, Kids, Slippers, Other.</td></tr>
+        <tr><td>Gender</td><td><span class="badge-field badge-required">Required</span></td><td>Men, Women, Kids, or Unisex.</td></tr>
+        <tr><td>Season</td><td><span class="badge-field badge-required">Required</span></td><td>All Year, Summer, Winter, or Spring-Fall.</td></tr>
+        <tr><td>Sale Price</td><td><span class="badge-field badge-required">Required</span></td><td>The default retail price in Algerian Dinar (DZD). This populates the POS automatically.</td></tr>
+        <tr><td>Purchase Price</td><td><span class="badge-field badge-optional">Optional</span></td><td>What you paid to the supplier. Used for margin calculation and stock valuation reports. Visible only to Owner (and Manager if configured).</td></tr>
+        <tr><td>Image</td><td><span class="badge-field badge-optional">Optional</span></td><td>Upload a product photo (JPG or PNG, max 5 MB). Displayed in the POS product search results.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol start="3">
+    <li>As you enter the Sale Price and Purchase Price, the <strong>Margin Preview</strong> badge updates in real time:
+      <ul>
+        <li><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-weight:700;">Green ≥ 20%</span> — Healthy margin.</li>
+        <li><span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:4px;font-weight:700;">Yellow &lt; 20%</span> — Low margin; review pricing.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Product</strong>. You are redirected to the product detail page where you can add variants.</li>
+  </ol>
+
+  <h4>Editing a Product</h4>
+  <ol>
+    <li>Open the product detail page by clicking the product in the list.</li>
+    <li>Click the <strong>Edit</strong> button.</li>
+    <li>Modify any fields and click <strong>Save Changes</strong>.</li>
+  </ol>
+  <div class="warning">
+    Changing a product's sale price does not retroactively change historical sales or existing invoice line items. It only affects new sales going forward.
+  </div>
+
+  <h3 id="inv-variants">4.2 Product Variants and Barcodes</h3>
+  <p>
+    Each product can have multiple variants, combining EU shoe size and colour. Variants are what gets tracked in stock, scanned at the POS, and printed on barcode labels.
+  </p>
+
+  <h4>Adding a Variant</h4>
+  <ol>
+    <li>On the product detail page, scroll to the <strong>Variants</strong> section.</li>
+    <li>Click <strong>+ Add Variant</strong>.</li>
+    <li>Select the <strong>EU Size</strong> from the dropdown (28–47).</li>
+    <li>Enter the <strong>Colour</strong> name (e.g., "Black", "White", "Red / White").</li>
+    <li>Set the <strong>Initial Stock Quantity</strong> for this variant at the current branch.</li>
+    <li>Set the <strong>Alert Threshold</strong> — when stock falls to or below this number, the variant appears in the Low Stock report and triggers a notification.</li>
+    <li>A <strong>Barcode</strong> is auto-generated for the variant. You can override it with a supplier-provided EAN-13 barcode if desired.</li>
+    <li>Click <strong>Save Variant</strong>.</li>
+  </ol>
+
+  <div class="tip">
+    You can add multiple variants at once using the <strong>Bulk Add</strong> option — click the arrow next to "+ Add Variant" and choose "Bulk Add". Enter a list of sizes separated by commas and a colour, and ShoeDZ will create all combinations.
+  </div>
+
+  <h4>Printing Barcode Labels</h4>
+  <ol>
+    <li>On the product detail page, click the <strong>Print Labels</strong> button.</li>
+    <li>In the label print dialog, select the specific variant(s) you want to print labels for.</li>
+    <li>Enter the number of copies for each variant (e.g., print 6 labels if you received 6 pairs).</li>
+    <li>Choose the label format (58 mm × 40 mm or 40 mm × 25 mm).</li>
+    <li>Click <strong>Print</strong>. A print-ready PDF is generated and opened in a new tab. Send it to your label printer.</li>
+  </ol>
+
+  <div class="note">
+    Labels include the product name, size, colour, price, and barcode. See <a href="#inv-transfers">Section 4.6</a> for how labels are automatically printed when receiving a stock transfer.
+  </div>
+
+  <h3 id="inv-movements">4.3 Stock Movements</h3>
+  <p>
+    Every change to stock quantity is recorded as a <strong>Stock Movement</strong>. This gives you a complete, auditable history of how your inventory has changed over time.
+  </p>
+  <ol>
+    <li>From the sidebar, expand <strong>Stock</strong> and click <strong>Stock Movements</strong>.</li>
+    <li>A table lists all movements, newest first.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Date &amp; Time</td><td>When the movement occurred.</td></tr>
+        <tr><td>Type</td><td>The reason for the movement (see types below).</td></tr>
+        <tr><td>Product / Variant</td><td>The specific product name, size, and colour affected.</td></tr>
+        <tr><td>Qty Delta</td><td>The change in quantity. Positive (+) means stock increased; negative (−) means stock decreased.</td></tr>
+        <tr><td>User</td><td>The staff member who caused the movement.</td></tr>
+        <tr><td>Branch</td><td>The branch whose stock was affected.</td></tr>
+        <tr><td>Notes</td><td>Optional free-text notes attached to the movement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Movement Types</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Type</th><th>When it occurs</th><th>Direction</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sale</td><td>Item sold at POS.</td><td>Decrease (−)</td></tr>
+        <tr><td>Reception</td><td>Purchase order fully or partially received.</td><td>Increase (+)</td></tr>
+        <tr><td>Adjustment</td><td>Manual stock adjustment by a manager.</td><td>+ or −</td></tr>
+        <tr><td>Return</td><td>Customer returned an item from a prior sale.</td><td>Increase (+)</td></tr>
+        <tr><td>Transfer Out</td><td>Stock sent from this branch to another.</td><td>Decrease (−)</td></tr>
+        <tr><td>Transfer In</td><td>Stock received from another branch.</td><td>Increase (+)</td></tr>
+        <tr><td>Damaged</td><td>Units written off as damaged/lost.</td><td>Decrease (−)</td></tr>
+        <tr><td>Initial</td><td>Opening stock set when a variant is first created.</td><td>Increase (+)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="inv-adjustments">4.4 Stock Adjustments</h3>
+  <p>
+    Use stock adjustments to correct discrepancies between the system count and a physical count, or to write off damaged stock.
+  </p>
+  <ol>
+    <li>From the Stock menu, click <strong>Adjustments</strong>.</li>
+    <li>Click <strong>+ New Adjustment</strong>.</li>
+    <li>In the adjustment form, fill in:
+      <ul>
+        <li><strong>Product Variant</strong> — Search and select the specific size and colour.</li>
+        <li><strong>Branch</strong> — The location whose stock you are adjusting.</li>
+        <li><strong>Quantity Delta</strong> — Enter a positive number to <em>add</em> stock, or a negative number to <em>remove</em> stock (e.g., <code>−3</code> to write off 3 damaged pairs).</li>
+        <li><strong>Reason</strong> — Select from: Physical Count, Damaged, Lost, Supplier Return, Other.</li>
+        <li><strong>Notes</strong> — Free-text explanation (recommended for accountability).</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Adjustment</strong>. The stock level is updated immediately and a corresponding Stock Movement record is created.</li>
+  </ol>
+
+  <div class="warning">
+    Stock adjustments are irreversible. If you make an error, you must create a second adjustment to reverse it. All adjustments are visible in the Audit Log.
+  </div>
+
+  <h3 id="inv-lowstock">4.5 Low Stock Alerts</h3>
+  <ol>
+    <li>From the Stock menu, click <strong>Low Stock</strong>.</li>
+    <li>A list of all variants currently at or below their alert threshold is displayed.</li>
+    <li>Each row shows: Product, Size, Colour, Branch, Current Stock, Alert Threshold.</li>
+    <li>Click any row to navigate directly to that product's detail page where you can create a purchase order or adjust the alert threshold.</li>
+  </ol>
+  <div class="tip">
+    The "Low Stock SKUs" number on the Dashboard is a direct count of items on this page. If the number is climbing, it is time to review your reorder cadence.
+  </div>
+
+  <h3 id="inv-transfers">4.6 Branch Transfers</h3>
+  <p>
+    If you operate multiple branches, use the transfer workflow to move stock between locations. Transfers maintain a full audit trail and ensure stock levels at both branches are accurately updated.
+  </p>
+
+  <h4>Creating a Transfer</h4>
+  <ol>
+    <li>From the Stock menu, click <strong>Transfers</strong>.</li>
+    <li>Click <strong>+ New Transfer</strong>.</li>
+    <li>Fill in the transfer form:
+      <ul>
+        <li><strong>From Branch</strong> — The source branch sending the stock.</li>
+        <li><strong>To Branch</strong> — The destination branch receiving the stock.</li>
+        <li><strong>Product Variant</strong> — Select the specific size and colour.</li>
+        <li><strong>Quantity</strong> — Number of pairs to transfer. Must not exceed available stock at the source branch.</li>
+        <li><strong>Notes</strong> — Optional instructions for the driver or receiving staff.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Create Transfer</strong>. The transfer is created with status <span class="status status-pending">Pending</span> and stock at the source branch is immediately reserved (not yet deducted).</li>
+  </ol>
+
+  <h4>Transfer Status Workflow</h4>
+  <div class="workflow">
+    <div class="workflow-step">Pending</div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step">In Transit</div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step">Received</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Meaning</th><th>Who advances it</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="status status-pending">Pending</span></td>
+          <td>Transfer created; stock reserved at source but not yet dispatched.</td>
+          <td>Manager at source branch marks it "Dispatched" → moves to In Transit.</td>
+        </tr>
+        <tr>
+          <td><span class="status status-transit">In Transit</span></td>
+          <td>Goods are on the way.</td>
+          <td>Manager at destination branch marks it "Received".</td>
+        </tr>
+        <tr>
+          <td><span class="status status-received">Received</span></td>
+          <td>Stock arrived; source branch stock is deducted; destination branch stock is increased.</td>
+          <td>System (automatic on receipt).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Receiving a Transfer</h4>
+  <ol>
+    <li>At the destination branch, open <strong>Stock → Transfers</strong>.</li>
+    <li>Find the transfer with status <span class="status status-transit">In Transit</span> and click it.</li>
+    <li>Click <strong>Receive Transfer</strong>.</li>
+    <li>Confirm or adjust the received quantity (e.g., if a box was damaged in transit and only part of the shipment arrived).</li>
+    <li>Click <strong>Confirm Receipt</strong>. Stock levels are updated and a <em>Transfer In</em> movement is created at the destination.</li>
+    <li>ShoeDZ automatically offers to <strong>print barcode labels</strong> for the received quantity. Click <strong>Print Labels</strong> or <strong>Skip</strong>.</li>
+  </ol>
+
+  <div class="tip">
+    If only part of the transfer arrives, you can receive a partial quantity. The remaining quantity stays <span class="status status-transit">In Transit</span> until a second receipt action is performed.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 5 — INVOICING
+     ============================================================ -->
+<div class="section" id="section-5">
+  <h2><span class="section-number">5.</span> Invoicing <span class="plan-badge">Pro Wholesale</span></h2>
+  <p>
+    The Invoicing module is available on the <strong>Pro Wholesale</strong> plan and above. It allows you to create professional Arabic-compliant invoices for B2B clients, track payments, and generate delivery notes and credit notes.
+  </p>
+  <div class="warning">
+    If you do not see the "Invoices" item in the sidebar, your current subscription plan does not include this module. Go to <strong>Settings → Billing</strong> to upgrade.
+  </div>
+
+  <h3 id="inv-create">5.1 Creating an Invoice</h3>
+  <ol>
+    <li>From the sidebar, click <strong>Invoices</strong>.</li>
+    <li>Click <strong>+ New Invoice</strong>.</li>
+    <li>Fill in the invoice header:
+      <ul>
+        <li><strong>Client</strong> — Search and select an existing client. The client's NIF, RC, and address are auto-filled. (Create the client first if they don't exist — see <a href="#clients-create">Section 6.1</a>.)</li>
+        <li><strong>Invoice Date</strong> — Defaults to today; adjust if needed.</li>
+        <li><strong>Due Date</strong> — Payment deadline. Overdue status is triggered automatically after this date.</li>
+        <li><strong>Series Prefix</strong> — Defaults to <code>FA</code> (from <em>Facture</em>). The number is auto-assigned sequentially (e.g., <code>FA-2026-00001</code>).</li>
+        <li><strong>TVA Toggle</strong> — Enable to apply the Algerian standard TVA rate of 19% to all line items. The rate is shown on the invoice and in the totals sidebar.</li>
+        <li><strong>Notes</strong> — Optional internal or client-facing notes printed at the bottom of the invoice.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Draft</strong> to save without finalising, or continue to add line items.</li>
+  </ol>
+
+  <h3 id="inv-lineitems">5.2 Line Items and Totals</h3>
+
+  <h4>Adding Line Items</h4>
+  <ol>
+    <li>In the <strong>Line Items</strong> section, click <strong>+ Add Line</strong>.</li>
+    <li>For each line, fill in:
+      <ul>
+        <li><strong>Description</strong> — Free text, or click the product/variant selector icon to pull the description and price from your catalogue.</li>
+        <li><strong>Quantity</strong> — Number of units.</li>
+        <li><strong>Unit Price (HT)</strong> — Price before tax, in DZD.</li>
+        <li><strong>Discount %</strong> — Optional per-line discount percentage.</li>
+      </ul>
+    </li>
+    <li>The <strong>Line Total HT</strong> is calculated automatically: <code>(Qty × Unit Price) × (1 − Discount%)</code>.</li>
+    <li>Repeat for all products or services on this invoice.</li>
+    <li>To remove a line, click the <strong>×</strong> icon on that row.</li>
+    <li>To reorder lines, drag and drop using the handle icon on the left of each row.</li>
+  </ol>
+
+  <h4>Totals Sidebar</h4>
+  <p>The right-side totals panel updates in real time as you add or edit lines:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Label</th><th>Calculation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Total HT</strong></td><td>Sum of all line totals before tax.</td></tr>
+        <tr><td><strong>TVA (19%)</strong></td><td>Total HT × 19% (only if TVA is enabled).</td></tr>
+        <tr><td><strong>Total TTC</strong></td><td>Total HT + TVA. This is the amount the client owes.</td></tr>
+        <tr><td><strong>Amount Paid</strong></td><td>Sum of all recorded payments against this invoice.</td></tr>
+        <tr><td><strong>Balance Due</strong></td><td>Total TTC − Amount Paid.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="inv-payments">5.3 Recording Invoice Payments</h3>
+  <p>When a client makes a payment against an invoice, record it as follows:</p>
+  <ol>
+    <li>Open the invoice detail page.</li>
+    <li>Scroll to the <strong>Payments</strong> section and click <strong>+ Record Payment</strong>.</li>
+    <li>Fill in the payment details:
+      <ul>
+        <li><strong>Method</strong> — Cash, Cheque, CCP, Virement Bancaire, or Account Balance.</li>
+        <li><strong>Amount</strong> — The amount paid in this instalment.</li>
+        <li><strong>Date</strong> — The date the payment was received.</li>
+        <li><strong>Reference</strong> — Optional cheque number, transfer reference, etc.</li>
+        <li><strong>Notes</strong> — Optional.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Payment</strong>. The Balance Due decreases by the payment amount.</li>
+    <li>Repeat for additional instalments if the client is paying in multiple parts.</li>
+  </ol>
+  <div class="tip">
+    You can record multiple partial payments against a single invoice. The invoice status will automatically change to <span class="status status-partial">Partial</span> after the first payment and <span class="status status-paid">Paid</span> when the balance reaches zero.
+  </div>
+
+  <h3 id="inv-statuses">5.4 Invoice Statuses</h3>
+  <div class="workflow">
+    <div class="workflow-step">Draft</div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step">Sent</div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step">Partial / Paid</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Meaning</th><th>Transition</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="status status-draft">Draft</span></td>
+          <td>Invoice created but not finalised. Can still be freely edited.</td>
+          <td>Click "Finalise Invoice" → Sent</td>
+        </tr>
+        <tr>
+          <td><span class="status status-sent">Sent</span></td>
+          <td>Invoice finalised and shared with the client. Line items locked.</td>
+          <td>First payment recorded → Partial</td>
+        </tr>
+        <tr>
+          <td><span class="status status-partial">Partial</span></td>
+          <td>At least one payment recorded; balance still outstanding.</td>
+          <td>Full payment recorded → Paid</td>
+        </tr>
+        <tr>
+          <td><span class="status status-paid">Paid</span></td>
+          <td>Invoice fully paid; balance = 0.</td>
+          <td>Terminal state.</td>
+        </tr>
+        <tr>
+          <td><span class="status status-overdue">Overdue</span></td>
+          <td>Due date passed and balance &gt; 0. System sets this automatically.</td>
+          <td>Payment recorded; balance becomes 0 → Paid</td>
+        </tr>
+        <tr>
+          <td><span class="status status-cancelled">Cancelled</span></td>
+          <td>Invoice voided. No payments expected.</td>
+          <td>Manual cancellation by Manager/Owner. A credit note should usually be created instead.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="warning">
+    Once an invoice moves to <span class="status status-sent">Sent</span> status, its line items cannot be edited. To correct an error, cancel the invoice and create a new one (or issue a credit note for the difference).
+  </div>
+
+  <h3 id="inv-pdf">5.5 PDF Download</h3>
+  <ol>
+    <li>Open any invoice in any status.</li>
+    <li>Click the <strong>Download PDF</strong> button.</li>
+    <li>A professionally formatted A4 PDF is generated and downloaded. It includes:
+      <ul>
+        <li>Your company logo (uploaded in Settings → Business).</li>
+        <li>Your company's NIF, RC, AI, address, and phone.</li>
+        <li>Client details (name, NIF, RC, address).</li>
+        <li>Invoice number (<code>FA-2026-00001</code>), date, and due date.</li>
+        <li>Itemised line table with HT amounts, discount, and TVA.</li>
+        <li>Totals block: HT, TVA, TTC.</li>
+        <li>Payment history and remaining balance.</li>
+        <li>Your bank account details (if configured in Settings).</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3 id="inv-delivery">5.6 Delivery Notes (Bons de Livraison)</h3>
+  <p>A delivery note accompanies a shipment and lists the goods physically delivered, without showing prices.</p>
+  <ol>
+    <li>Open the invoice to which this delivery relates.</li>
+    <li>Click <strong>+ Create Delivery Note</strong>.</li>
+    <li>The line items from the invoice are pre-filled. Adjust quantities if only part of the order is being delivered now.</li>
+    <li>Fill in:
+      <ul>
+        <li><strong>Delivery Date</strong> — Date goods were delivered.</li>
+        <li><strong>Delivered By</strong> — Name of the driver or logistics partner.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Delivery Note</strong>. The note is auto-numbered (e.g., <code>BL-2026-00032</code>) and linked to the invoice.</li>
+    <li>Download the PDF from the delivery note detail page. The PDF shows quantities and descriptions only — no prices.</li>
+  </ol>
+
+  <h3 id="inv-credit">5.7 Credit Notes (Avoirs)</h3>
+  <p>A credit note (avoir) reduces or reverses an amount owed on an existing invoice — for example, due to a returned shipment or a pricing error.</p>
+  <ol>
+    <li>Open the original invoice.</li>
+    <li>Click <strong>+ Create Credit Note</strong>.</li>
+    <li>Fill in:
+      <ul>
+        <li><strong>Linked Invoice</strong> — Pre-filled with the current invoice number.</li>
+        <li><strong>Reason</strong> — Free-text explanation (e.g., "3 pairs returned — wrong size").</li>
+        <li><strong>Line Items</strong> — The credit note inherits the invoice's TVA rate. Add or modify lines to reflect the amount being credited.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Credit Note</strong>. It is auto-numbered (e.g., <code>AV-2026-00008</code>).</li>
+    <li>The credited amount is reflected in the client's ledger as a debit entry, reducing their outstanding balance.</li>
+  </ol>
+
+  <div class="note">
+    Credit notes impact the client's running balance in the Ledger. See <a href="#clients-detail">Section 6.2 — Client Detail Tabs</a>.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 6 — CLIENTS & RECEIVABLES
+     ============================================================ -->
+<div class="section" id="section-6">
+  <h2><span class="section-number">6.</span> Clients &amp; Receivables</h2>
+  <p>
+    The Clients module lets you maintain a directory of your B2B and B2C clients, track what they owe, manage their cheques, and review their invoice history.
+  </p>
+
+  <h3 id="clients-create">6.1 Creating a Client</h3>
+  <ol>
+    <li>From the sidebar, click <strong>Clients</strong>.</li>
+    <li>Click <strong>+ New Client</strong>.</li>
+    <li>Fill in the client form:</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Full Name / Company Name</td><td><span class="badge-field badge-required">Required</span></td><td>The client's full name or legal business name.</td></tr>
+        <tr><td>Phone</td><td><span class="badge-field badge-required">Required</span></td><td>Primary contact phone number. Used for WhatsApp receipt sharing.</td></tr>
+        <tr><td>Email</td><td><span class="badge-field badge-optional">Optional</span></td><td>Email address for invoices and statements.</td></tr>
+        <tr><td>Address</td><td><span class="badge-field badge-optional">Optional</span></td><td>Street address, printed on invoices.</td></tr>
+        <tr><td>Wilaya</td><td><span class="badge-field badge-optional">Optional</span></td><td>Select from the 58 Algerian provinces. Used for regional analysis.</td></tr>
+        <tr><td>NIF</td><td><span class="badge-field badge-optional">Optional</span></td><td>Numéro d'Identification Fiscale — required for B2B TVA invoices.</td></tr>
+        <tr><td>RC</td><td><span class="badge-field badge-optional">Optional</span></td><td>Registre de Commerce number — required for B2B invoices.</td></tr>
+        <tr><td>Credit Limit</td><td><span class="badge-field badge-optional">Optional</span></td><td>Maximum outstanding balance allowed. ShoeDZ warns (but does not block) if this is exceeded.</td></tr>
+        <tr><td>Notes</td><td><span class="badge-field badge-optional">Optional</span></td><td>Internal notes about this client (not shown on invoices).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol start="4">
+    <li>Click <strong>Save Client</strong>. You are taken to the client detail page.</li>
+  </ol>
+
+  <h3 id="clients-detail">6.2 Client Detail Tabs</h3>
+  <p>The client detail page is divided into four tabs:</p>
+
+  <h4>Overview Tab</h4>
+  <p>Displays the client's contact information, credit limit, current outstanding balance, and a summary of recent activity (last sale date, number of open invoices).</p>
+
+  <h4>Ledger Tab</h4>
+  <p>The ledger provides a chronological, double-entry record of all financial transactions with this client:</p>
+  <ul>
+    <li><strong>Debit entries</strong> increase the client's balance (meaning they owe you more): e.g., a new invoice, a returned credit note.</li>
+    <li><strong>Credit entries</strong> decrease the client's balance: e.g., a payment received, a credit note issued.</li>
+    <li>The <strong>Running Balance</strong> column shows the cumulative balance at each point in time.</li>
+  </ul>
+  <p>Use the date range filter to narrow the ledger to a specific period. The <strong>Export to Excel</strong> button downloads the filtered ledger as an XLSX file.</p>
+
+  <h4>Cheques Tab</h4>
+  <p>Lists all cheques received from this client. Shows cheque number, bank, amount, due date, and status (Pending, Deposited, Bounced). See <a href="#clients-cheques">Section 6.4</a> for full details.</p>
+
+  <h4>Invoices Tab</h4>
+  <p>Lists all invoices linked to this client, with quick-filter buttons by status (All, Unpaid, Paid, Overdue). Click any invoice row to open the full invoice detail page.</p>
+
+  <h3 id="clients-ageing">6.3 Debt Ageing Report</h3>
+  <p>
+    The Debt Ageing report (Rapport d'Ancienneté des Créances) shows which clients owe you money and how long the debt has been outstanding. It is an essential tool for prioritising collections.
+  </p>
+  <ol>
+    <li>From the sidebar, go to <strong>Clients → Debt Ageing</strong>.</li>
+    <li>The report displays a table with one row per client who has an outstanding balance.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Client</td><td>Client name and phone number.</td></tr>
+        <tr>
+          <td style="background:#dcfce7;font-weight:600;">0–30 days</td>
+          <td>Amount overdue for 0 to 30 days. Shown in <strong style="color:#166534;">green</strong>.</td>
+        </tr>
+        <tr>
+          <td style="background:#fef9c3;font-weight:600;">31–60 days</td>
+          <td>Amount overdue 31–60 days. Shown in <strong style="color:#854d0e;">yellow</strong>.</td>
+        </tr>
+        <tr>
+          <td style="background:#fed7aa;font-weight:600;">61–90 days</td>
+          <td>Amount overdue 61–90 days. Shown in <strong style="color:#c2410c;">orange</strong>.</td>
+        </tr>
+        <tr>
+          <td style="background:#fee2e2;font-weight:600;">90+ days</td>
+          <td>Amount overdue more than 90 days. Shown in <strong style="color:#991b1b;">red</strong>.</td>
+        </tr>
+        <tr><td>Total</td><td>Sum of all ageing buckets for this client.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol start="3">
+    <li>Click any client's name to go directly to their client detail page.</li>
+    <li>Click <strong>Export to Excel</strong> to download the full ageing report as an XLSX file — useful for sharing with your accountant or for collections follow-up.</li>
+  </ol>
+
+  <div class="tip">
+    Sort the report by the "90+ days" column to immediately identify your most at-risk receivables.
+  </div>
+
+  <h3 id="clients-cheques">6.4 Cheque Tracker</h3>
+  <p>
+    The Cheque Tracker gives you a centralised view of every receivable cheque across all clients — critical in Algeria where post-dated cheques are a common payment instrument.
+  </p>
+  <ol>
+    <li>From the sidebar, go to <strong>Clients → Cheque Tracker</strong>.</li>
+    <li>The tracker lists all cheques sorted by due date (soonest first).</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Client</td><td>The client who provided the cheque.</td></tr>
+        <tr><td>Cheque Number</td><td>The printed number on the cheque.</td></tr>
+        <tr><td>Bank</td><td>Issuing bank name.</td></tr>
+        <tr><td>Amount</td><td>Face value of the cheque in DZD.</td></tr>
+        <tr><td>Due Date</td><td>The date the cheque can be deposited.</td></tr>
+        <tr><td>Status</td><td>Pending, Deposited, or Bounced.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Marking a Cheque as Deposited</h4>
+  <ol>
+    <li>Find the cheque row and click <strong>Actions → Mark as Deposited</strong>.</li>
+    <li>Confirm the deposit date.</li>
+    <li>The cheque status changes to <strong>Deposited</strong> and the client's ledger is updated with a credit entry.</li>
+  </ol>
+
+  <h4>Marking a Cheque as Bounced</h4>
+  <ol>
+    <li>Find the cheque row and click <strong>Actions → Mark as Bounced</strong>.</li>
+    <li>Enter the bounce reason (e.g., "Insufficient funds", "Account closed").</li>
+    <li>The cheque status changes to <strong>Bounced</strong>. The amount is added back to the client's outstanding balance. A notification is sent to the Owner and Manager.</li>
+  </ol>
+
+  <h4>3-Day Alert Banner</h4>
+  <p>
+    Any cheque whose due date falls within the next 3 calendar days displays a <strong style="color:#854d0e;">gold alert banner</strong> at the top of the Cheque Tracker page and contributes to the "Cheques Due This Week" KPI on the Dashboard.
+  </p>
+  <div class="tip">
+    Check the Cheque Tracker at the start of each work day to see which cheques you need to deposit today or this week.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 7 — SUPPLIERS & PURCHASING
+     ============================================================ -->
+<div class="section" id="section-7">
+  <h2><span class="section-number">7.</span> Suppliers &amp; Purchasing</h2>
+  <p>
+    The Suppliers module manages your supply chain — from maintaining your supplier directory and creating purchase orders, to receiving goods and tracking what you owe your suppliers.
+  </p>
+
+  <h3 id="sup-create">7.1 Creating a Supplier</h3>
+  <ol>
+    <li>From the sidebar, click <strong>Suppliers</strong>.</li>
+    <li>Click <strong>+ New Supplier</strong>.</li>
+    <li>Fill in the supplier form:</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Name</td><td><span class="badge-field badge-required">Required</span></td><td>Supplier company or individual name.</td></tr>
+        <tr><td>Contact Person</td><td><span class="badge-field badge-optional">Optional</span></td><td>Name of your main contact at this supplier.</td></tr>
+        <tr><td>Phone</td><td><span class="badge-field badge-optional">Optional</span></td><td>Primary phone number.</td></tr>
+        <tr><td>Email</td><td><span class="badge-field badge-optional">Optional</span></td><td>Email for purchase order communications.</td></tr>
+        <tr><td>Country</td><td><span class="badge-field badge-optional">Optional</span></td><td>Supplier's country (default: Algeria). Relevant for import documentation.</td></tr>
+        <tr><td>Payment Terms</td><td><span class="badge-field badge-optional">Optional</span></td><td>Free text (e.g., "30 days net", "Cash on delivery"). For reference only.</td></tr>
+        <tr><td>Notes</td><td><span class="badge-field badge-optional">Optional</span></td><td>Internal notes (ordering preferences, discount arrangements, etc.).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol start="4">
+    <li>Click <strong>Save Supplier</strong>.</li>
+  </ol>
+
+  <h3 id="sup-po">7.2 Purchase Orders</h3>
+  <p>Create a purchase order (PO) to formally document an order placed with a supplier.</p>
+  <ol>
+    <li>On the Suppliers list, click a supplier to open their detail page, then click <strong>+ New Purchase Order</strong>. Alternatively, navigate to <strong>Suppliers → Purchase Orders → + New PO</strong>.</li>
+    <li>Fill in the PO header:
+      <ul>
+        <li><strong>Supplier</strong> — Pre-selected if opened from a supplier's page.</li>
+        <li><strong>Expected Delivery Date</strong> — When you expect the goods to arrive.</li>
+        <li><strong>Reference</strong> — Your internal PO number or the supplier's order reference (optional).</li>
+        <li><strong>Destination Branch</strong> — Which branch will receive this stock.</li>
+        <li><strong>Notes</strong> — Any special instructions for the supplier.</li>
+      </ul>
+    </li>
+    <li>In the <strong>Line Items</strong> section, click <strong>+ Add Item</strong> for each product being ordered:
+      <ul>
+        <li><strong>Variant</strong> — Select the product variant (name, size, colour), or type a free-text description for a non-catalogue item.</li>
+        <li><strong>Quantity Ordered</strong> — Number of units ordered.</li>
+        <li><strong>Purchase Price</strong> — Price per unit agreed with the supplier.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Purchase Order</strong>. The PO is created with status <span class="status status-pending">Pending</span>.</li>
+  </ol>
+
+  <div class="tip">
+    Saving a purchase order does not yet change any stock levels. Stock is only updated when the PO is received (Section 7.3).
+  </div>
+
+  <h3 id="sup-receive">7.3 Receiving a Purchase Order</h3>
+  <p>When goods arrive at your branch, record the receipt against the purchase order to update stock levels.</p>
+  <ol>
+    <li>Open the purchase order (from <strong>Suppliers → Purchase Orders</strong>).</li>
+    <li>Click <strong>Receive Goods</strong>.</li>
+    <li>For each line item, enter the <strong>Received Quantity</strong>. If you received fewer than ordered (partial delivery), enter the actual received amount. You can receive the rest later.</li>
+    <li>Enter any notes (e.g., "2 boxes arrived damaged — returned to driver").</li>
+    <li>Click <strong>Confirm Receipt</strong>.</li>
+    <li>Stock levels at the destination branch are updated immediately. A <em>Reception</em> stock movement is created for each line.</li>
+    <li>If the purchase price on any line differs from the product's existing purchase price, ShoeDZ will ask if you want to <strong>update the product's purchase price</strong> to the new value. This affects future margin calculations.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>PO Status</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="status status-pending">Pending</span></td><td>Order placed; no goods received yet.</td></tr>
+        <tr><td><span class="status status-partial">Partial</span></td><td>Some goods received; order not yet complete.</td></tr>
+        <tr><td><span class="status status-received">Received</span></td><td>All ordered quantities have been received.</td></tr>
+        <tr><td><span class="status status-cancelled">Cancelled</span></td><td>Order cancelled (no stock movements made).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="sup-payments">7.4 Supplier Invoices &amp; Payments</h3>
+  <p>
+    After receiving goods, your supplier will issue you an invoice. Record it in ShoeDZ to track what you owe and maintain an accurate picture of your payables.
+  </p>
+  <ol>
+    <li>Open the purchase order and click <strong>+ Record Supplier Invoice</strong>.</li>
+    <li>Enter the supplier's invoice number, invoice date, and total amount (TTC).</li>
+    <li>Click <strong>Save Invoice</strong>.</li>
+  </ol>
+
+  <h4>Recording a Payment to a Supplier</h4>
+  <ol>
+    <li>Open the supplier invoice and click <strong>+ Record Payment</strong>.</li>
+    <li>Enter the payment method (Cash, Cheque, Virement Bancaire), amount, and date.</li>
+    <li>Click <strong>Save Payment</strong>. The outstanding supplier balance decreases accordingly.</li>
+  </ol>
+
+  <p>The supplier's detail page shows a running total of what your business owes that supplier across all open invoices.</p>
+
+  <div class="tip">
+    Keeping supplier invoices and payments up to date gives you accurate Accounts Payable figures for your accountant at month-end.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 8 — REPORTS & ANALYTICS
+     ============================================================ -->
+<div class="section" id="section-8">
+  <h2><span class="section-number">8.</span> Reports &amp; Analytics</h2>
+  <p>
+    ShoeDZ provides three core report types to help you make data-driven decisions. Reports are accessible from the <strong>Reports</strong> section in the sidebar.
+  </p>
+
+  <h3 id="rep-daily">8.1 Daily Report</h3>
+  <p>
+    The Daily Report gives you a complete financial summary for any single day. Use it at the end of each business day to reconcile the cash drawer and review performance.
+  </p>
+  <ol>
+    <li>From the sidebar, click <strong>Reports → Daily Report</strong>.</li>
+    <li>Use the <strong>Date Picker</strong> to select the day you want to review. Defaults to today.</li>
+    <li>The report loads automatically.</li>
+  </ol>
+
+  <h4>KPI Cards</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>KPI</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Total Revenue</td><td>Sum of all sales amounts for the selected day.</td></tr>
+        <tr><td>Number of Sales</td><td>Count of completed transactions (not returns).</td></tr>
+        <tr><td>Items Sold</td><td>Total number of individual pairs sold across all transactions.</td></tr>
+        <tr><td>Average Transaction Value</td><td>Total Revenue ÷ Number of Sales.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Top Products Table</h4>
+  <p>A ranked table of the day's best-selling products by quantity, showing product name, units sold, and revenue contribution.</p>
+
+  <h4>Payment Method Breakdown</h4>
+  <p>A table (and optionally a pie chart) showing how much revenue was collected via each payment method: Cash, Cheque, CCP, Virement Bancaire, Account Balance.</p>
+
+  <h4>Exporting the Daily Report</h4>
+  <ul>
+    <li><strong>Print</strong> — Click the Print button to open the browser print dialog. The report is formatted to fit on A4 paper.</li>
+    <li><strong>CSV Export</strong> — Click Export CSV to download a machine-readable file of the sales transactions for that day, suitable for importing into accounting software.</li>
+  </ul>
+
+  <h3 id="rep-analytics">8.2 Sales Analytics <span class="plan-badge">Pro Retail+</span></h3>
+  <p>
+    Sales Analytics provides trend analysis over custom date ranges — essential for spotting seasonal patterns, evaluating promotions, and forecasting.
+  </p>
+  <ol>
+    <li>Click <strong>Reports → Sales Analytics</strong>.</li>
+    <li>Set the <strong>Date Range</strong> using the start and end date pickers. Common presets (Last 7 days, Last 30 days, This month, Last month, This year) are available as quick buttons.</li>
+    <li>Optionally filter by <strong>Branch</strong> to compare performance across locations, or select "All Branches" for a consolidated view.</li>
+  </ol>
+
+  <h4>Revenue Trends Chart</h4>
+  <p>A line or bar chart of daily/weekly revenue over the selected period. Hover over any data point to see the precise value. Use this to identify which days or weeks perform best.</p>
+
+  <h4>Sales by Category</h4>
+  <p>A breakdown of revenue (and unit volume) by product category (Sneakers, Boots, Sandals, etc.). Useful for understanding which product types drive your business.</p>
+
+  <h4>Average Transaction Value</h4>
+  <p>Trend line showing how the average transaction value has changed over the period. A rising average suggests effective upselling or a shift toward higher-price products.</p>
+
+  <div class="warning">
+    The Sales Analytics module is only available on the <strong>Pro Retail+</strong> plan and above. If this page is not accessible, upgrade via <strong>Settings → Billing</strong>.
+  </div>
+
+  <h3 id="rep-stock">8.3 Stock Report <span class="role-tag role-manager" style="margin-left:6px;">Manager+</span></h3>
+  <p>
+    The Stock Report gives a snapshot of your current inventory value and identifies slow and fast-moving products.
+  </p>
+  <ol>
+    <li>Click <strong>Reports → Stock Report</strong>.</li>
+    <li>Select the <strong>Branch</strong> to report on, or choose "All Branches" for a consolidated figure.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Section</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Total Stock Value</td>
+          <td>Sum of (Current Quantity × Purchase Price) for all variants. Visible to Owner and Manager only.</td>
+        </tr>
+        <tr>
+          <td>Alert Threshold Summary</td>
+          <td>Count of variants at or below alert threshold, with a link to the Low Stock page.</td>
+        </tr>
+        <tr>
+          <td>Fast Movers</td>
+          <td>Products with the highest units sold in the last 30 days. Helps you prioritise reordering.</td>
+        </tr>
+        <tr>
+          <td>Slow Movers</td>
+          <td>Products with the lowest units sold in the last 90 days. Candidates for promotion or clearance.</td>
+        </tr>
+        <tr>
+          <td>Full Variant Table</td>
+          <td>Exportable table of every variant with current stock, purchase price, and total value.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    Export the full variant table to Excel and share it with your accountant for year-end inventory valuation.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 9 — NOTIFICATIONS
+     ============================================================ -->
+<div class="section" id="section-9">
+  <h2><span class="section-number">9.</span> Notifications</h2>
+  <p>
+    ShoeDZ's notification system proactively alerts you to events that require attention — overdue cheques, low stock, unpaid invoices, and general system messages — so you never miss a critical business event.
+  </p>
+
+  <h3>9.1 The Notification Bell</h3>
+  <p>
+    The bell icon (🔔) is located in the top bar on the right side, visible on every page of the application.
+  </p>
+  <ul>
+    <li>A <strong>red badge</strong> on the bell shows the count of unread notifications.</li>
+    <li>The bell <strong>refreshes automatically every 60 seconds</strong> — you do not need to reload the page to see new notifications.</li>
+    <li>Click the bell to open the notifications panel, which slides in from the right.</li>
+  </ul>
+
+  <h3>9.2 Notification Types</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Type</th><th>Colour</th><th>Triggered When</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cheque Due</strong></td>
+          <td><span style="background:#fef9c3;color:#78350f;padding:2px 8px;border-radius:4px;font-weight:700;">Gold</span></td>
+          <td>A receivable cheque's due date is within 3 days.</td>
+        </tr>
+        <tr>
+          <td><strong>Low Stock</strong></td>
+          <td><span style="background:#fed7aa;color:#7c2d12;padding:2px 8px;border-radius:4px;font-weight:700;">Orange</span></td>
+          <td>A product variant's stock falls to or below its alert threshold.</td>
+        </tr>
+        <tr>
+          <td><strong>Invoice Overdue</strong></td>
+          <td><span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:4px;font-weight:700;">Red</span></td>
+          <td>An invoice's due date has passed and the balance is still greater than zero.</td>
+        </tr>
+        <tr>
+          <td><strong>General</strong></td>
+          <td><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:4px;font-weight:700;">Blue</span></td>
+          <td>System messages: new user invited, plan renewal, software updates.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>9.3 Managing Notifications</h3>
+  <ol>
+    <li>Click the bell icon to open the notifications panel.</li>
+    <li>Notifications are listed with the most recent at the top. Each entry shows the type icon, a brief message, and a timestamp.</li>
+    <li>Click any individual notification to <strong>mark it as read</strong> (the unread badge decreases). If the notification is linked to a record (e.g., a specific cheque or invoice), clicking it will also navigate you to that record.</li>
+    <li>Click the <strong>"Mark all as read"</strong> button at the top of the panel to clear the entire unread count at once.</li>
+  </ol>
+
+  <div class="tip">
+    Make it a habit to check the notification bell at the start of each day. Red (Invoice Overdue) and Gold (Cheque Due) notifications in particular require timely action to protect your cash flow.
+  </div>
+  <div class="info">
+    Notifications are per-user and per-role. Cashiers only receive General notifications. Managers and Owners receive all notification types.
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 10 — SETTINGS & ADMINISTRATION
+     ============================================================ -->
+<div class="section" id="section-10">
+  <h2><span class="section-number">10.</span> Settings &amp; Administration</h2>
+  <p>
+    The Settings area lets you configure your personal profile, your business identity, your team, your branches, and your subscription. Access it from the sidebar by clicking <strong>Settings</strong>, or via the user menu in the top bar.
+  </p>
+
+  <h3 id="settings-profile">10.1 Profile Tab</h3>
+  <p>Every user can edit their own profile regardless of role.</p>
+  <ol>
+    <li>Click <strong>Settings</strong> in the sidebar, then select the <strong>Profile</strong> tab.</li>
+    <li>You can update the following fields:</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>First Name</td><td>Your given name.</td></tr>
+        <tr><td>Last Name</td><td>Your family name.</td></tr>
+        <tr><td>Phone</td><td>Your personal phone number (used for internal contact).</td></tr>
+        <tr><td>Language Preference</td><td>Choose FR (Français), AR (العربية), or EN (English). This sets the interface language for your account only — other users are unaffected.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol start="3">
+    <li>Click <strong>Save Profile</strong>.</li>
+  </ol>
+
+  <h4>Changing Your Password</h4>
+  <ol>
+    <li>On the Profile tab, click <strong>Change Password</strong>.</li>
+    <li>Enter your current password, then enter and confirm your new password.</li>
+    <li>Click <strong>Update Password</strong>.</li>
+  </ol>
+  <div class="warning">
+    Choose a strong password of at least 10 characters including a mix of letters, numbers, and symbols. Do not share your password with colleagues — each person should have their own account for accountability.
+  </div>
+
+  <h3 id="settings-business">10.2 Business Tab</h3>
+  <p>
+    The Business tab stores your company's legal and branding information, which appears on all generated PDFs (invoices, delivery notes, credit notes).
+  </p>
+  <div class="note">
+    Only Owners and Managers can edit the Business tab.
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Business Name</td><td>Your legal company or trade name (printed on all documents).</td></tr>
+        <tr><td>Phone</td><td>Business phone number (printed on invoices).</td></tr>
+        <tr><td>Address</td><td>Full street address.</td></tr>
+        <tr><td>Wilaya</td><td>Province of registration.</td></tr>
+        <tr><td>NIF</td><td>Numéro d'Identification Fiscale (printed on invoices for TVA compliance).</td></tr>
+        <tr><td>RC</td><td>Registre de Commerce number.</td></tr>
+        <tr><td>AI</td><td>Article d'Imposition — Algerian tax article number.</td></tr>
+        <tr><td>Logo</td><td>Upload your company logo (PNG or JPG, recommended 300×100 px or similar landscape format). This appears at the top of all PDF documents.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol>
+    <li>Click <strong>Save Business Info</strong> after making changes.</li>
+  </ol>
+  <div class="tip">
+    Filling in the NIF, RC, and AI fields is important for TVA invoice compliance. If you issue TVA invoices without these fields, they may not be legally accepted by your clients.
+  </div>
+
+  <h3 id="settings-users">10.3 Users Tab <span class="role-tag role-manager" style="margin-left:6px;">Manager+</span></h3>
+  <p>
+    Manage the people who have access to your ShoeDZ account. Only Managers and Owners can access this tab.
+  </p>
+
+  <h4>Viewing the Team</h4>
+  <ol>
+    <li>Navigate to <strong>Settings → Users</strong>.</li>
+    <li>The team list shows all active and inactive users with their name, email, role, last login date, and status.</li>
+  </ol>
+
+  <h4>Inviting a New User</h4>
+  <ol>
+    <li>Click <strong>+ Invite User</strong>.</li>
+    <li>Enter the new user's email address.</li>
+    <li>Select their <strong>Role</strong>: Owner, Manager, or Cashier.</li>
+    <li>Optionally assign them to a specific <strong>Branch</strong> (Cashiers can be restricted to one branch).</li>
+    <li>Click <strong>Send Invitation</strong>. The new user receives an email with a link to set their password and activate their account.</li>
+  </ol>
+
+  <div class="warning">
+    Invitation links expire after 48 hours. If a new user has not activated their account by then, resend the invitation from the Users tab.
+  </div>
+
+  <h4>Editing a User's Role</h4>
+  <ol>
+    <li>Find the user in the team list and click <strong>Edit</strong>.</li>
+    <li>Change the Role or Branch assignment.</li>
+    <li>Click <strong>Save Changes</strong>. The change takes effect at the user's next login.</li>
+  </ol>
+
+  <h4>Deactivating a User</h4>
+  <ol>
+    <li>Find the user and click <strong>Deactivate</strong>.</li>
+    <li>Confirm the action. The user is immediately logged out and can no longer log in.</li>
+    <li>All their historical records (sales, adjustments, etc.) are preserved and remain attributed to them.</li>
+  </ol>
+
+  <div class="tip">
+    When a staff member leaves, deactivate their account immediately rather than changing their password. Deactivation is instant and preserves the audit trail.
+  </div>
+
+  <h3 id="settings-branches">10.4 Branches Tab <span class="role-tag role-manager" style="margin-left:6px;">Manager+</span></h3>
+  <p>
+    If your business operates multiple shops, each location is configured as a Branch. Every product's stock is tracked per branch, and sales are recorded against the branch where they occur.
+  </p>
+
+  <h4>Viewing Branches</h4>
+  <ol>
+    <li>Navigate to <strong>Settings → Branches</strong>.</li>
+    <li>A list of all configured branches is shown with name, address, and whether it is the <strong>HQ (Headquarters)</strong> branch.</li>
+  </ol>
+
+  <h4>Creating a Branch</h4>
+  <ol>
+    <li>Click <strong>+ New Branch</strong>.</li>
+    <li>Fill in:
+      <ul>
+        <li><strong>Branch Name</strong> — A short, recognisable name (e.g., "Bab Ezzouar Store", "Oran Depot").</li>
+        <li><strong>Address</strong> — Full street address.</li>
+        <li><strong>Wilaya</strong> — Province.</li>
+        <li><strong>HQ Flag</strong> — Check this box if this is your main/headquarters location. Only one branch can be HQ.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Save Branch</strong>.</li>
+  </ol>
+
+  <div class="info">
+    After creating a new branch, remember to: (1) assign users to it in the Users tab, and (2) perform a stock adjustment or transfer to set the opening stock at that branch.
+  </div>
+
+  <h4>Editing a Branch</h4>
+  <ol>
+    <li>Click the branch name to open its detail.</li>
+    <li>Click <strong>Edit</strong>, modify fields, and click <strong>Save Changes</strong>.</li>
+  </ol>
+
+  <h3 id="settings-billing">10.5 Billing Tab <span class="role-tag role-owner" style="margin-left:6px;">Owner Only</span></h3>
+  <p>
+    The Billing tab shows your current subscription plan and allows the Owner to upgrade to a higher tier.
+  </p>
+  <ol>
+    <li>Navigate to <strong>Settings → Billing</strong>.</li>
+    <li>Your current plan, renewal date, and included features are displayed.</li>
+    <li>To upgrade, click <strong>Upgrade Plan</strong> and follow the on-screen payment instructions.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Plan</th><th>Key Features</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Starter</strong></td>
+          <td>POS, Inventory, basic Reports. Single branch. Up to 3 users.</td>
+        </tr>
+        <tr>
+          <td><strong>Pro Retail</strong></td>
+          <td>All Starter features + Clients &amp; Receivables, Cheque Tracker, Suppliers &amp; Purchasing, multi-branch, unlimited users.</td>
+        </tr>
+        <tr>
+          <td><strong>Pro Retail+</strong></td>
+          <td>All Pro Retail features + Sales Analytics module.</td>
+        </tr>
+        <tr>
+          <td><strong>Pro Wholesale</strong></td>
+          <td>All Pro Retail+ features + Invoicing module (invoices, delivery notes, credit notes, TVA).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warning">
+    Only the Owner role can view the Billing tab and change subscription plans. Managers and Cashiers cannot see billing information.
+  </div>
+
+  <h3 id="settings-audit">10.6 Audit Log <span class="role-tag role-manager" style="margin-left:6px;">Manager+</span></h3>
+  <p>
+    The Audit Log is an immutable, tamper-proof record of every significant action taken in ShoeDZ. It is the foundation of your business's accountability and governance.
+  </p>
+  <ol>
+    <li>Navigate to <strong>Settings → Audit Log</strong>.</li>
+    <li>A table of audit events is shown, newest first.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Timestamp</td><td>Exact date and time the action occurred (server time, UTC+1 for Algeria).</td></tr>
+        <tr><td>User</td><td>The name and email of the staff member who performed the action.</td></tr>
+        <tr><td>Action</td><td>The type of operation: Create, Update, or Delete.</td></tr>
+        <tr><td>Model / Object</td><td>The type of record affected (e.g., Product, Sale, Invoice, User).</td></tr>
+        <tr><td>Record ID</td><td>The unique identifier of the affected record.</td></tr>
+        <tr><td>Changes Diff</td><td>For Update actions, a before/after comparison showing exactly which fields changed and their old and new values.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Filtering the Audit Log</h4>
+  <ul>
+    <li><strong>Date Range</strong> — Filter by a specific time window.</li>
+    <li><strong>User</strong> — See all actions performed by a specific staff member.</li>
+    <li><strong>Action Type</strong> — Filter by Create, Update, or Delete.</li>
+    <li><strong>Model</strong> — Filter by the type of record (e.g., show only changes to Invoices).</li>
+    <li><strong>Search</strong> — Full-text search across all fields.</li>
+  </ul>
+
+  <div class="warning">
+    The Audit Log is read-only. Entries cannot be edited, deleted, or hidden. This ensures an authoritative, legally defensible record of all system activity.
+  </div>
+
+  <div class="tip">
+    If you ever suspect unauthorised activity — a product price changed without authorisation, stock that went missing — start your investigation in the Audit Log. Filter by the affected model and the suspected time window to identify exactly who made the change and what the previous value was.
+  </div>
+</div>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<div class="manual-footer">
+  <p><strong>ShoeDZ / Pointure</strong> &mdash; User Manual, Version 1.0</p>
+  <p>Language: English &nbsp;&bull;&nbsp; Published: May 2026</p>
+  <p style="margin-top:8px;">
+    For technical support, contact your system administrator or visit the ShoeDZ help portal.<br>
+    &copy; 2026 Pointure. All rights reserved.
+  </p>
+</div>
+
+</div><!-- /.container -->
+</body>
+</html>
