@@ -14,8 +14,12 @@ INTERNAL_IPS = ["127.0.0.1", "::1"]
 # In development, allow all origins for convenience
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Show emails in console
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Default to console; override by setting EMAIL_BACKEND in .env
+from decouple import config as _config  # noqa: E402
+EMAIL_BACKEND = _config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
 
 # Relaxed password validation in dev
 AUTH_PASSWORD_VALIDATORS = []  # noqa: F405
