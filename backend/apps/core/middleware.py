@@ -7,6 +7,7 @@ AFTER DRF has completed JWT token authentication, because at middleware time
 request.user is still AnonymousUser for Bearer token requests.
 """
 from .managers import clear_current_tenant, set_current_tenant
+from .signals import set_current_user
 
 
 class TenantMiddleware:
@@ -28,6 +29,7 @@ class TenantMiddleware:
             tenant = getattr(request.user, "tenant", None)
             request.tenant = tenant
             set_current_tenant(tenant)
+            set_current_user(request.user)
 
         try:
             response = self.get_response(request)

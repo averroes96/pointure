@@ -60,3 +60,55 @@ def _write_audit(instance, action, diff=None):
         object_repr=str(instance)[:300],
         diff=diff or {},
     )
+
+
+# ── Signal receivers ──────────────────────────────────────────────────────────
+
+def _is_audited(instance):
+    return instance.__class__.__name__ in AUDITED_MODELS
+
+
+@receiver(pre_save)
+def audit_pre_save(sender, instance, **kwargs):
+    """Capture the previous DB state before saving so we can diff it."""
+    if not _is_audited(instance):
+        return
+    if instance.pk:
+        try:
+            _pre_save_state.state = _model_to_dict(
+                sender.objects.get(pk=instance.pk)
+            )
+        except sender.DoesNotExist:
+            _pre_save_state.state = None
+    else:
+        _pre_save_state.state = None
+
+
+@receiver(post_save)
+def audit_post_save(sender, instance, created, **kwargs):
+    """Write a CREATE or UPDATE audit log entry."""
+    if not _is_audited(instance):
+        return
+
+    action = "create" if created else "update"
+    diff = {}
+
+    if not created:
+        before = getattr(_pre_save_state, "state", None) or {}
+        after = _model_to_dict(instance)
+        diff = {
+            field: {"from": before.get(field), "to": after.get(field)}
+            for field in after
+            if before.get(field) != after.get(field)
+        }
+
+    _write_audit(instance, action, diff)
+    _pre_save_state.state = None
+
+
+@receiver(post_delete)
+def audit_post_delete(sender, instance, **kwargs):
+    """Write a DELETE audit log entry."""
+    if not _is_audited(instance):
+        return
+    _write_audit(instance, "delete")

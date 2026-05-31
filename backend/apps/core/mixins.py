@@ -11,6 +11,7 @@ WHY initial() instead of middleware for JWT requests:
 from rest_framework.exceptions import PermissionDenied
 
 from apps.core.managers import set_current_tenant
+from apps.core.signals import set_current_user
 from apps.core.models import RoleChoices
 
 
@@ -45,6 +46,7 @@ class TenantScopedViewSetMixin:
             tenant = getattr(user, "tenant", None)
             request.tenant = tenant
             set_current_tenant(tenant)
+            set_current_user(user)
         else:
             # Superuser or anonymous — no tenant scope
             request.tenant = None
