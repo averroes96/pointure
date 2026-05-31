@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { COLORS } from "@/constants";
+import { C as COLORS } from "@/constants";
 import api from "@/lib/api";
 
 interface AppNotification {

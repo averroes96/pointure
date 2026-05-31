@@ -1,19 +1,43 @@
 import { StyleSheet, Text, View } from "react-native";
-import { COLORS } from "@/constants";
+import { C } from "@/constants";
+
+type Accent = "primary" | "success" | "warning" | "danger" | "neutral";
 
 interface KpiCardProps {
   label: string;
   value: string | number;
   sub?: string;
-  accent?: keyof typeof COLORS;
+  accent?: Accent;
+  icon?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
-export default function KpiCard({ label, value, sub, accent = "primary" }: KpiCardProps) {
-  const accentColor = COLORS[accent] as string;
+const ACCENT_STYLES: Record<Accent, { bg: string; value: string; dot: string }> = {
+  primary: { bg: C.primaryBg, value: C.primary, dot: C.primaryLight },
+  success: { bg: C.successBg, value: C.success, dot: C.success },
+  warning: { bg: C.warningBg, value: C.warning, dot: C.warning },
+  danger: { bg: C.dangerBg, value: C.danger, dot: C.danger },
+  neutral: { bg: C.surfaceAlt, value: C.textSecondary, dot: C.textMuted },
+};
+
+export default function KpiCard({
+  label,
+  value,
+  sub,
+  accent = "neutral",
+  icon,
+  fullWidth = false,
+}: KpiCardProps) {
+  const a = ACCENT_STYLES[accent];
   return (
-    <View style={styles.card}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: accentColor }]}>{value}</Text>
+    <View style={[styles.card, fullWidth && styles.fullWidth]}>
+      <View style={styles.top}>
+        <Text style={styles.label}>{label.toUpperCase()}</Text>
+        {icon ? (
+          <View style={[styles.iconWrap, { backgroundColor: a.bg }]}>{icon}</View>
+        ) : null}
+      </View>
+      <Text style={[styles.value, { color: a.value }]}>{value}</Text>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
     </View>
   );
@@ -22,28 +46,42 @@ export default function KpiCard({ label, value, sub, accent = "primary" }: KpiCa
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    margin: 4,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: C.white,
+    borderRadius: C.radius.lg,
+    padding: C.space.xl,
+    margin: C.space.xs,
+    ...C.shadow.sm,
+  },
+  fullWidth: { flex: undefined, marginHorizontal: C.space.xs },
+  top: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: C.space.sm,
   },
   label: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: "700",
+    color: C.textMuted,
+    letterSpacing: 0.8,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: C.radius.sm,
+    justifyContent: "center",
+    alignItems: "center",
   },
   value: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    color: C.text,
   },
   sub: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    marginTop: 2,
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: C.space.xs,
+    fontWeight: "500",
   },
 });

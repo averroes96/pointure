@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -6,12 +7,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { COLORS } from "@/constants";
+import { C } from "@/constants";
 import api from "@/lib/api";
 import { storeTokens } from "@/lib/auth";
 import { registerDeviceToken } from "@/lib/notifications";
@@ -19,7 +21,10 @@ import { registerDeviceToken } from "@/lib/notifications";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   async function handleLogin() {
     if (!email.trim() || !password) {
@@ -33,10 +38,10 @@ export default function LoginScreen() {
       await registerDeviceToken();
       router.replace("/(app)");
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ??
-        "Identifiants incorrects. Vérifiez votre email et mot de passe.";
-      Alert.alert("Connexion impossible", msg);
+      Alert.alert(
+        "Connexion impossible",
+        err?.response?.data?.detail ?? "Identifiants incorrects."
+      );
     } finally {
       setLoading(false);
     }
@@ -44,99 +49,169 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.card}>
-        <Text style={styles.brand}>👟 ShoeDZ</Text>
-        <Text style={styles.title}>Connexion</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Brand */}
+        <View style={styles.brand}>
+          <View style={styles.logoBox}>
+            <Text style={styles.logoEmoji}>👟</Text>
+          </View>
+          <Text style={styles.appName}>ShoeDZ</Text>
+          <Text style={styles.appSub}>Gestion de stock & ventes</Text>
+        </View>
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          placeholder="admin@votreentreprise.dz"
-          placeholderTextColor={COLORS.textMuted}
-          editable={!loading}
-        />
+        {/* Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Connexion</Text>
+          <Text style={styles.cardSub}>Accédez à votre espace de gestion</Text>
 
-        <Text style={styles.label}>Mot de passe</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="••••••••"
-          placeholderTextColor={COLORS.textMuted}
-          editable={!loading}
-          onSubmitEditing={handleLogin}
-          returnKeyType="go"
-        />
+          {/* Email */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Adresse email</Text>
+            <View style={[styles.inputWrap, emailFocused && styles.inputWrapFocused]}>
+              <Ionicons name="mail-outline" size={18} color={emailFocused ? C.primary : C.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                placeholder="vous@entreprise.dz"
+                placeholderTextColor={C.textMuted}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                editable={!loading}
+              />
+            </View>
+          </View>
 
-        <Pressable
-          style={[styles.btn, loading && styles.btnDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <Text style={styles.btnText}>Se connecter</Text>
-          )}
-        </Pressable>
-      </View>
+          {/* Password */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Mot de passe</Text>
+            <View style={[styles.inputWrap, passwordFocused && styles.inputWrapFocused]}>
+              <Ionicons name="lock-closed-outline" size={18} color={passwordFocused ? C.primary : C.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholder="••••••••"
+                placeholderTextColor={C.textMuted}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                editable={!loading}
+                onSubmitEditing={handleLogin}
+                returnKeyType="go"
+              />
+              <Pressable onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn}>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={C.textMuted}
+                />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Submit */}
+          <Pressable
+            style={[styles.btn, loading && styles.btnLoading]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={C.white} />
+            ) : (
+              <>
+                <Text style={styles.btnText}>Se connecter</Text>
+                <Ionicons name="arrow-forward" size={18} color={C.white} />
+              </>
+            )}
+          </Pressable>
+        </View>
+
+        <Text style={styles.footer}>ShoeDZ · Gestion chaussures Algérie</Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.primaryBg,
+  root: { flex: 1, backgroundColor: C.surface },
+  scroll: {
+    flexGrow: 1,
     justifyContent: "center",
-    padding: 24,
+    padding: C.space.xxl,
   },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 28,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  brand: { fontSize: 28, textAlign: "center", marginBottom: 4 },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.text,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  label: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: COLORS.text,
-    marginBottom: 16,
-    backgroundColor: COLORS.surface,
-  },
-  btn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+  brand: { alignItems: "center", marginBottom: C.space.xxxl },
+  logoBox: {
+    width: 72,
+    height: 72,
+    borderRadius: C.radius.xl,
+    backgroundColor: C.primaryBg,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginBottom: C.space.md,
+    borderWidth: 1,
+    borderColor: C.primaryBorder,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: COLORS.white, fontWeight: "700", fontSize: 16 },
+  logoEmoji: { fontSize: 36 },
+  appName: { fontSize: 28, fontWeight: "800", color: C.text, letterSpacing: -0.5 },
+  appSub: { fontSize: 14, color: C.textMuted, marginTop: 4, fontWeight: "500" },
+  card: {
+    backgroundColor: C.white,
+    borderRadius: C.radius.xl,
+    padding: C.space.xxl,
+    ...C.shadow.md,
+  },
+  cardTitle: { fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 4, letterSpacing: -0.3 },
+  cardSub: { fontSize: 14, color: C.textMuted, marginBottom: C.space.xxl, fontWeight: "500" },
+  fieldGroup: { marginBottom: C.space.lg },
+  label: { fontSize: 12, fontWeight: "700", color: C.textSecondary, marginBottom: C.space.sm, letterSpacing: 0.3 },
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderRadius: C.radius.md,
+    backgroundColor: C.surface,
+    paddingHorizontal: C.space.md,
+  },
+  inputWrapFocused: {
+    borderColor: C.primary,
+    backgroundColor: C.primaryBg,
+  },
+  inputIcon: { marginRight: C.space.sm },
+  input: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: C.text,
+  },
+  eyeBtn: { padding: C.space.xs },
+  btn: {
+    backgroundColor: C.primary,
+    borderRadius: C.radius.md,
+    paddingVertical: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: C.space.sm,
+    marginTop: C.space.sm,
+    ...C.shadow.sm,
+  },
+  btnLoading: { opacity: 0.7 },
+  btnText: { color: C.white, fontWeight: "700", fontSize: 16 },
+  footer: {
+    textAlign: "center",
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: C.space.xxl,
+  },
 });

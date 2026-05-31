@@ -11,14 +11,13 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.0",
     "@react-navigation/native": "^7.1.6",
     "@tanstack/react-query": "^5.56.0",
     "axios": "^1.7.7",
     "expo": "~54.0.0",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
-    "expo-device": "~8.0.10",
-    "expo-notifications": "~0.32.17",
     "expo-linking": "~7.0.0",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",

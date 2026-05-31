@@ -1,24 +1,47 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
-import { COLORS } from "@/constants";
+import { C } from "@/constants";
 
-function TabIcon({ emoji }: { emoji: string }) {
-  return <Text style={{ fontSize: 20 }}>{emoji}</Text>;
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+function TabIcon({
+  name,
+  focused,
+}: {
+  name: IoniconsName;
+  focused: boolean;
+}) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={focused ? C.primary : C.textMuted}
+    />
+  );
 }
 
 export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: C.primary,
+        tabBarInactiveTintColor: C.textMuted,
         tabBarStyle: {
-          backgroundColor: COLORS.white,
-          borderTopColor: COLORS.border,
+          backgroundColor: C.white,
+          borderTopColor: C.border,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
-        headerStyle: { backgroundColor: COLORS.primary },
-        headerTintColor: COLORS.white,
-        headerTitleStyle: { fontWeight: "700" },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+        },
+        headerStyle: { backgroundColor: C.white, shadowColor: "transparent" },
+        headerTintColor: C.text,
+        headerTitleStyle: { fontWeight: "700", fontSize: 17, color: C.text },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
@@ -26,7 +49,9 @@ export default function AppLayout() {
         options={{
           title: "Tableau de bord",
           tabBarLabel: "Accueil",
-          tabBarIcon: () => <TabIcon emoji="🏠" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "home" : "home-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -34,7 +59,9 @@ export default function AppLayout() {
         options={{
           title: "Scanner",
           tabBarLabel: "Scanner",
-          tabBarIcon: () => <TabIcon emoji="📷" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "barcode" : "barcode-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -42,18 +69,14 @@ export default function AppLayout() {
         options={{
           title: "Stock bas",
           tabBarLabel: "Stock",
-          tabBarIcon: () => <TabIcon emoji="📦" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "cube" : "cube-outline"} focused={focused} />
+          ),
         }}
       />
-      {/* Hidden screens — navigated to programmatically */}
-      <Tabs.Screen
-        name="inventory/[id]"
-        options={{ href: null, title: "Détail produit" }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{ href: null }}
-      />
+      {/* Hidden — navigated to programmatically */}
+      <Tabs.Screen name="inventory/[id]" options={{ href: null, title: "Détail produit" }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

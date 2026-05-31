@@ -38,6 +38,19 @@ class DeviceTokenViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+def _setup_tenant(request):
+    """Replicate TenantScopedViewSetMixin.initial() for plain APIViews."""
+    from apps.core.managers import set_current_tenant
+    user = request.user
+    if user.is_authenticated and not user.is_superuser:
+        tenant = getattr(user, "tenant", None)
+        request.tenant = tenant
+        set_current_tenant(tenant)
+    else:
+        request.tenant = None
+        set_current_tenant(None)
+
+
 class BarcodeScanView(APIView):
     """
     GET /mobile/scan/?barcode=<code>
@@ -49,6 +62,7 @@ class BarcodeScanView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        _setup_tenant(request)
         barcode = request.query_params.get("barcode", "").strip()
         if not barcode:
             return Response(
@@ -88,7 +102,7 @@ class BarcodeScanView(APIView):
         for branch in branches:
             qty = (
                 StockMovement.objects.filter(variant=variant, branch=branch)
-                .aggregate(total=Sum("quantity"))["total"]
+                .aggregate(total=Sum("quantity_delta"))["total"]
                 or 0
             )
             stock_by_branch.append(
@@ -139,6 +153,7 @@ class MobileDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        _setup_tenant(request)
         from django.utils import timezone
         from apps.sales.models import Sale
         from apps.clients.models import Client, Cheque
@@ -147,16 +162,24 @@ class MobileDashboardView(APIView):
         tenant = request.tenant
         today = timezone.now().date()
 
-        # Today's revenue
-        today_revenue = (
-            Sale.objects.filter(
+        from apps.core.models import RoleChoices
+        role = getattr(request.user, "role", None)
+        can_see_sales = role in (RoleChoices.OWNER, RoleChoices.MANAGER)
+
+        # Today's revenue — owners and managers only
+        payload: dict = {"as_of": str(today)}
+        if can_see_sales:
+            today_revenue = (
+                Sale.objects.filter(
+                    tenant=tenant, created_at__date=today, status="completed"
+                ).aggregate(total=Sum("total_amount"))["total"]
+                or Decimal("0")
+            )
+            sale_count_today = Sale.objects.filter(
                 tenant=tenant, created_at__date=today, status="completed"
-            ).aggregate(total=Sum("total_amount"))["total"]
-            or Decimal("0")
-        )
-        sale_count_today = Sale.objects.filter(
-            tenant=tenant, created_at__date=today, status="completed"
-        ).count()
+            ).count()
+            payload["today_revenue"] = today_revenue
+            payload["sale_count_today"] = sale_count_today
 
         # Low stock SKU count
         from apps.inventory.models import Variant
@@ -182,13 +205,12 @@ class MobileDashboardView(APIView):
             tenant=tenant, status__in=["draft", "sent"]
         ).count()
 
+        payload.update({
+            "low_stock_count": low_stock_count,
+            "cheques_due_soon": cheques_due_soon,
+            "pending_purchase_orders": pending_pos,
+        })
+
         return Response(
-            {
-                "today_revenue": today_revenue,
-                "sale_count_today": sale_count_today,
-                "low_stock_count": low_stock_count,
-                "cheques_due_soon": cheques_due_soon,
-                "pending_purchase_orders": pending_pos,
-                "as_of": str(today),
-            }
+            payload
         )
