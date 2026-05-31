@@ -24,6 +24,9 @@ pydyf==0.8.0
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
 
+# Mobile push notifications (Firebase Cloud Messaging)
+firebase-admin==6.5.0
+
 # Storage
 django-storages==1.14.4
 boto3==1.35.0

@@ -10,10 +10,10 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register("products", ProductViewSet, basename="product")
-router.register("variants", VariantViewSet, basename="variant")
-router.register("movements", StockMovementViewSet, basename="stock-movement")
-router.register("transfers", StockTransferViewSet, basename="stock-transfer")
-router.register("low-stock", LowStockViewSet, basename="low-stock")
+router.register(r"products", ProductViewSet, basename="product")
+router.register(r"variants", VariantViewSet, basename="variant")
+router.register(r"movements", StockMovementViewSet, basename="stock-movement")
+router.register(r"transfers", StockTransferViewSet, basename="stock-transfer")
+router.register(r"low-stock", LowStockViewSet, basename="low-stock")
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [path(r"", include(router.urls))]

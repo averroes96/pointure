@@ -58,6 +58,7 @@ LOCAL_APPS = [
     "apps.reports",
     "apps.notifications",
     "apps.licensing",
+    "apps.mobile",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -73,6 +74,15 @@ LICENSE_KEY = config("LICENSE_KEY", default="")
 LICENSE_SERVER_URL = config("LICENSE_SERVER_URL", default="https://licenses.shodz.app")
 LICENSE_GRACE_DAYS = 7   # Days the app can run without reaching the license server
 APP_VERSION = config("APP_VERSION", default="1.0.0")
+
+# ─────────────────────────────────────────────
+# Mobile / Push notifications (cloud mode only)
+# ─────────────────────────────────────────────
+# Provide ONE of the two. Base64 is preferred for container environments.
+# FIREBASE_CREDENTIALS_BASE64: base64-encoded service account JSON
+# FIREBASE_CREDENTIALS_JSON:   path to service account JSON file
+FIREBASE_CREDENTIALS_BASE64 = config("FIREBASE_CREDENTIALS_BASE64", default="")
+FIREBASE_CREDENTIALS_JSON = config("FIREBASE_CREDENTIALS_JSON", default="")
 
 # ─────────────────────────────────────────────
 # Middleware
