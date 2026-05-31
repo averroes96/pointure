@@ -6,6 +6,7 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from apps.core.throttling import MobileRateThrottle
 
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.mobile.models import DeviceToken
@@ -16,6 +17,7 @@ class DeviceTokenViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Register / unregister FCM and APNs push tokens."""
 
     serializer_class = DeviceTokenSerializer
+    throttle_classes = [MobileRateThrottle]
     http_method_names = ["get", "post", "delete", "head", "options"]
 
     def get_queryset(self):
@@ -60,6 +62,7 @@ class BarcodeScanView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [MobileRateThrottle]
 
     def get(self, request):
         _setup_tenant(request)
@@ -151,6 +154,7 @@ class MobileDashboardView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [MobileRateThrottle]
 
     def get(self, request):
         _setup_tenant(request)

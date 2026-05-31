@@ -201,9 +201,11 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/hour",
-        "login": "5/15min",
+        "anon": "200/day",
+        "user": "2000/hour",
+        "login": "5/minute",
+        "password_reset": "3/hour",
+        "mobile": "500/hour",
     },
 }
 
@@ -382,6 +384,66 @@ LOGGING = {
         "celery": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
+
+# ─────────────────────────────────────────────
+# Sentry — error monitoring & performance tracing
+# ─────────────────────────────────────────────
+SENTRY_DSN = config("SENTRY_DSN", default="")
+
+
+def _sentry_before_send(event, hint):
+    """Filter out events that add noise without actionable signal."""
+    if "exc_info" in hint:
+        exc_type, _, _ = hint["exc_info"]
+        noisy = (
+            "NotFound",
+            "PermissionDenied",
+            "AuthenticationFailed",
+            "NotAuthenticated",
+            "Throttled",
+        )
+        if exc_type and exc_type.__name__ in noisy:
+            return None
+    request = event.get("request", {})
+    if request.get("url", "").endswith("/healthz"):
+        return None
+    return event
+
+
+if SENTRY_DSN:
+    import logging
+
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(
+                transaction_style="url",
+                middleware_spans=False,
+                signals_spans=False,
+            ),
+            CeleryIntegration(monitor_beat_tasks=True),
+            LoggingIntegration(
+                level=logging.WARNING,
+                event_level=logging.ERROR,
+            ),
+        ],
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        release=config("APP_VERSION", default="dev"),
+        environment=config("DEPLOYMENT_MODE", default="cloud"),
+        send_default_pii=False,
+        ignore_errors=[
+            KeyboardInterrupt,
+            "django.exceptions.DisallowedHost",
+        ],
+        before_send=_sentry_before_send,
+    )
+
 
 # ─────────────────────────────────────────────
 # Admin Interface
