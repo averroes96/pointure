@@ -30,9 +30,11 @@ firebase-admin==6.5.0
 # Error monitoring
 sentry-sdk[django,celery]==2.14.0
 
-# Storage
+# Cloud storage — provider SDKs (install all; only the configured one is used at runtime)
 django-storages==1.14.4
-boto3==1.35.0
+boto3==1.35.0                  # AWS S3 · Cloudflare R2 · Backblaze B2 (S3-compatible)
+google-cloud-storage==2.18.2   # Google Cloud Storage
+azure-storage-blob==12.23.0    # Azure Blob Storage
 
 # Config Management
 python-decouple==3.8

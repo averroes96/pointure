@@ -285,6 +285,12 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),               # every 30 minutes
         "options": {"queue": "default"},
     },
+    # Database backup — only runs when BACKUP_ENABLED=true.
+    "database-backup": {
+        "task": "apps.core.tasks.backup_database",
+        "schedule": crontab(hour=2, minute=0),           # 02:00 daily
+        "options": {"queue": "default"},
+    },
 }
 
 # ─────────────────────────────────────────────
@@ -340,24 +346,100 @@ CORS_ALLOW_CREDENTIALS = True
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost")
 
 # ─────────────────────────────────────────────
-# Storage (S3 / local)
 # ─────────────────────────────────────────────
-USE_S3 = config("USE_S3", default=False, cast=bool)
+# Cloud Storage
+# ─────────────────────────────────────────────
+# STORAGE_PROVIDER selects the backend for uploaded media files.
+#
+# Provider          | Value          | Required env vars
+# ------------------|----------------|--------------------------------------------------
+# No cloud (dev)    | "local"        | — (uses filesystem)
+# Amazon S3         | "aws"          | STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY, STORAGE_BUCKET, STORAGE_REGION
+# Cloudflare R2     | "cloudflare"   | same as aws + STORAGE_ENDPOINT_URL
+# Backblaze B2      | "backblaze"    | same as aws + STORAGE_ENDPOINT_URL
+# Google Cloud      | "gcs"          | STORAGE_BUCKET, GCS_CREDENTIALS_BASE64 (or GOOGLE_APPLICATION_CREDENTIALS)
+# Azure Blob        | "azure"        | AZURE_ACCOUNT_NAME, AZURE_ACCOUNT_KEY, STORAGE_BUCKET
+#
+# Optional for all: STORAGE_CDN_DOMAIN — custom CDN domain in front of the bucket
 
-if USE_S3:
-    AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
-    AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default=None)
-    AWS_DEFAULT_ACL = "private"
-    AWS_S3_FILE_OVERWRITE = False
+STORAGE_PROVIDER = config("STORAGE_PROVIDER", default="local")
+
+_S3_COMPATIBLE = {"aws", "cloudflare", "backblaze", "minio"}
+
+if STORAGE_PROVIDER in _S3_COMPATIBLE:
+    AWS_ACCESS_KEY_ID       = config("STORAGE_ACCESS_KEY")
+    AWS_SECRET_ACCESS_KEY   = config("STORAGE_SECRET_KEY")
+    AWS_STORAGE_BUCKET_NAME = config("STORAGE_BUCKET")
+    AWS_S3_REGION_NAME      = config("STORAGE_REGION", default="auto")
+    _ep = config("STORAGE_ENDPOINT_URL", default="")
+    AWS_S3_ENDPOINT_URL     = _ep or None          # None → native AWS endpoint
+    AWS_DEFAULT_ACL         = "private"
+    AWS_S3_FILE_OVERWRITE   = False
+    AWS_QUERYSTRING_AUTH    = True
+    AWS_QUERYSTRING_EXPIRE  = 900                  # 15-min signed URLs
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
-    AWS_QUERYSTRING_EXPIRE = 900  # 15 min signed URLs
-
+    _cdn = config("STORAGE_CDN_DOMAIN", default="")
+    if _cdn:
+        AWS_S3_CUSTOM_DOMAIN = _cdn
+        AWS_QUERYSTRING_AUTH = False               # CDN serves files publicly
     STORAGES = {
-        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "default":    {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
+
+elif STORAGE_PROVIDER == "gcs":
+    import base64 as _b64, json as _json, os as _os, tempfile as _tmp
+    GS_BUCKET_NAME   = config("STORAGE_BUCKET")
+    GS_DEFAULT_ACL   = None                        # uniform bucket-level access
+    GS_FILE_OVERWRITE = False
+    GS_EXPIRATION    = 900
+    _creds_b64 = config("GCS_CREDENTIALS_BASE64", default="")
+    if _creds_b64:
+        _tf = _tmp.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        _json.dump(_json.loads(_b64.b64decode(_creds_b64)), _tf)
+        _tf.close()
+        _os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tf.name
+    _cdn = config("STORAGE_CDN_DOMAIN", default="")
+    if _cdn:
+        GS_CUSTOM_ENDPOINT = f"https://{_cdn}"
+    STORAGES = {
+        "default":    {"BACKEND": "storages.backends.gcloud.GoogleCloudStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+
+elif STORAGE_PROVIDER == "azure":
+    AZURE_ACCOUNT_NAME   = config("AZURE_ACCOUNT_NAME")
+    AZURE_ACCOUNT_KEY    = config("AZURE_ACCOUNT_KEY")
+    AZURE_CONTAINER      = config("STORAGE_BUCKET")
+    AZURE_OVERWRITE_FILES = False
+    AZURE_URL_EXPIRATION_SECS = 900
+    _cdn = config("STORAGE_CDN_DOMAIN", default="")
+    if _cdn:
+        AZURE_CUSTOM_DOMAIN = _cdn
+    STORAGES = {
+        "default":    {"BACKEND": "storages.backends.azure_storage.AzureStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+
+# ─────────────────────────────────────────────
+# Database Backup
+# ─────────────────────────────────────────────
+# Independent of STORAGE_PROVIDER — backups can go to a different bucket / provider.
+# Uses S3-compatible API (all four major providers support this):
+#   AWS S3         → leave BACKUP_ENDPOINT_URL empty
+#   Cloudflare R2  → BACKUP_ENDPOINT_URL=https://{account_id}.r2.cloudflarestorage.com
+#   Backblaze B2   → BACKUP_ENDPOINT_URL=https://s3.{region}.backblazeb2.com
+#   GCS (interop)  → BACKUP_ENDPOINT_URL=https://storage.googleapis.com
+#   Azure (Azurite)→ BACKUP_ENDPOINT_URL=http://127.0.0.1:10000/{account}
+
+BACKUP_ENABLED        = config("BACKUP_ENABLED", default=False, cast=bool)
+BACKUP_ACCESS_KEY     = config("BACKUP_ACCESS_KEY", default="")
+BACKUP_SECRET_KEY     = config("BACKUP_SECRET_KEY", default="")
+BACKUP_BUCKET         = config("BACKUP_BUCKET", default="")
+BACKUP_REGION         = config("BACKUP_REGION", default="auto")
+_bep = config("BACKUP_ENDPOINT_URL", default="")
+BACKUP_ENDPOINT_URL   = _bep or None
+BACKUP_RETENTION_DAYS = config("BACKUP_RETENTION_DAYS", default=30, cast=int)
 
 # ─────────────────────────────────────────────
 # Logging
