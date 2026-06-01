@@ -332,6 +332,7 @@ export interface Supplier {
 export interface POLine {
   id: number;
   variant: number | null;
+  variant_label: string | null;
   description: string;
   quantity_ordered: number;
   quantity_received: number;

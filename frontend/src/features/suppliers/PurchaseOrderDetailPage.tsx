@@ -10,10 +10,13 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, AlertTriangle, X,
-  ShoppingBag, Factory, Calendar, FileText, Truck, ChevronDown,
+  Factory, Calendar, FileText, Truck, ChevronDown,
+  Search, Plus, SkipForward,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
-import type { PurchaseOrder, POStatus } from "@/types";
+import ColourPicker from "@/components/ui/ColourPicker";
+import { getColourHex, getColourLabel } from "@/lib/colours";
+import type { PurchaseOrder, POLine, POStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -51,13 +54,583 @@ const STATUS_TRANSITIONS: Partial<Record<POStatus, { to: POStatus; label: string
 
 // ── Receive form ──────────────────────────────────────────────────────────────
 
+interface Discrepancy {
+  line_id: number;
+  description: string;
+  ordered: number;
+  received: number;
+  shortage: number;
+}
+
+// ── Line resolution types ─────────────────────────────────────────────────────
+
+interface VariantOption { id: number; label: string; }
+
+type ResolutionMode = "link" | "create" | "skip";
+
+interface NewVariantForm {
+  product_name: string;
+  brand: string;
+  category: string;
+  size_eu: string;
+  colour: string;
+  purchase_price: string;
+  sale_price: string;
+}
+
+interface LineResolution {
+  mode: ResolutionMode;
+  variantId?: number;
+  variantLabel?: string;
+  newVariant?: NewVariantForm;
+}
+
+const EMPTY_NEW_VARIANT: NewVariantForm = {
+  product_name: "", brand: "", category: "sneakers",
+  size_eu: "", colour: "", purchase_price: "", sale_price: "",
+};
+
+const CATEGORIES = [
+  { value: "sneakers", label: "Sneakers" },
+  { value: "boots", label: "Boots" },
+  { value: "sandals", label: "Sandales" },
+  { value: "formal", label: "Chaussures formelles" },
+  { value: "sport", label: "Sport" },
+  { value: "kids", label: "Enfants" },
+  { value: "slippers", label: "Chaussons" },
+  { value: "other", label: "Autre" },
+];
+
+// ── Variant search dropdown ───────────────────────────────────────────────────
+
+function VariantSearch({
+  onSelect,
+}: {
+  onSelect: (v: VariantOption) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const { data, isFetching } = useQuery<{ results: { id: number; product_name: string; size_eu: string; colour: string }[] }>({
+    queryKey: ["variants-search", query],
+    queryFn: () =>
+      api.get(`/inventory/variants/?search=${encodeURIComponent(query)}&page_size=8`).then((r) => r.data),
+    enabled: query.length >= 2,
+  });
+
+  const results = data?.results ?? [];
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+        <input
+          className="form-input pl-8 text-sm w-full"
+          placeholder="Rechercher un article…"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+      </div>
+      {open && query.length >= 2 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {isFetching && <div className="p-3 text-xs text-text-muted">Chargement…</div>}
+          {!isFetching && results.length === 0 && (
+            <div className="p-3 text-xs text-text-muted">Aucun résultat pour « {query} »</div>
+          )}
+          {results.map((v) => {
+            const label = `${v.product_name} · EU${v.size_eu}${v.colour ? ` · ${v.colour}` : ""}`;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-surface transition-colors"
+                onMouseDown={() => { onSelect({ id: v.id, label }); setQuery(label); setOpen(false); }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Per-line resolution row ───────────────────────────────────────────────────
+
+function LineResolutionRow({
+  line,
+  resolution,
+  onChange,
+}: {
+  line: POLine;
+  resolution: LineResolution | undefined;
+  onChange: (r: LineResolution) => void;
+}) {
+  const mode = resolution?.mode ?? "skip";
+
+  return (
+    <div className="border border-border rounded-lg p-3 space-y-2 bg-surface">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-text-primary truncate">{line.description}</span>
+        <div className="flex gap-1 flex-shrink-0">
+          {([["link", Search, "Lier"], ["create", Plus, "Créer"], ["skip", SkipForward, "Ignorer"]] as const).map(
+            ([m, Icon, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => onChange({ mode: m as ResolutionMode, newVariant: EMPTY_NEW_VARIANT })}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition-colors ${
+                  mode === m
+                    ? "bg-primary-600 text-white border-primary-600"
+                    : "bg-white text-text-muted border-border hover:border-primary-400"
+                }`}
+              >
+                <Icon size={11} />
+                {label}
+              </button>
+            )
+          )}
+        </div>
+      </div>
+
+      {mode === "link" && (
+        <VariantSearch
+          onSelect={(v) => onChange({ mode: "link", variantId: v.id, variantLabel: v.label })}
+        />
+      )}
+
+      {mode === "create" && (
+        <div className="grid grid-cols-2 gap-2">
+          {(["product_name", "brand", "size_eu", "purchase_price", "sale_price"] as const).map((field) => (
+            <input
+              key={field}
+              type={field === "size_eu" || field.includes("price") ? "number" : "text"}
+              placeholder={
+                { product_name: "Nom du produit *", brand: "Marque", size_eu: "Pointure EU *", purchase_price: "Prix achat *", sale_price: "Prix vente *" }[field]
+              }
+              className="form-input text-xs py-1.5"
+              value={(resolution?.newVariant as any)?.[field] ?? ""}
+              onChange={(e) =>
+                onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, [field]: e.target.value } })
+              }
+            />
+          ))}
+          <ColourPicker
+            value={resolution?.newVariant?.colour ?? ""}
+            onChange={(v) => onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, colour: v } })}
+            placeholder="Couleur"
+            className="col-span-1"
+          />
+          <select
+            className="form-input text-xs py-1.5 col-span-2"
+            value={resolution?.newVariant?.category ?? "sneakers"}
+            onChange={(e) =>
+              onChange({
+                mode: "create",
+                newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, category: e.target.value },
+              })
+            }
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {mode === "skip" && (
+        <p className="text-xs text-text-muted">
+          Cette ligne ne mettra pas à jour le stock (ex: frais de transport).
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Product search (for carton mode) ─────────────────────────────────────────
+
+interface ProductResult {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  purchase_price: string;
+  sale_price: string;
+}
+
+function ProductSearch({
+  selectedId,
+  selectedLabel,
+  onSelect,
+  onClear,
+}: {
+  selectedId: number | null;
+  selectedLabel: string | null;
+  onSelect: (p: ProductResult) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const { data, isFetching } = useQuery<{ results: ProductResult[] }>({
+    queryKey: ["products-search", query],
+    queryFn: () =>
+      api.get(`/inventory/products/?search=${encodeURIComponent(query)}&page_size=8`).then((r) => r.data),
+    enabled: query.length >= 2,
+  });
+
+  const results = data?.results ?? [];
+
+  if (selectedId) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-primary-50 border border-primary-200 rounded-lg text-sm">
+        <span className="flex-1 font-medium text-primary-700 truncate">{selectedLabel}</span>
+        <button type="button" onClick={onClear} className="text-text-muted hover:text-danger">
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+        <input
+          className="form-input pl-8 text-xs py-1.5 w-full"
+          placeholder="Rechercher un produit existant (optionnel)…"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+      </div>
+      {open && query.length >= 2 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {isFetching && <div className="p-3 text-xs text-text-muted">Chargement…</div>}
+          {!isFetching && results.length === 0 && (
+            <div className="p-3 text-xs text-text-muted">Aucun résultat — les champs ci-dessous créeront un nouveau produit.</div>
+          )}
+          {results.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-surface transition-colors"
+              onMouseDown={() => { onSelect(p); setQuery(""); setOpen(false); }}
+            >
+              <span className="font-medium">{p.name}</span>
+              {p.brand && <span className="text-text-muted ml-1.5">· {p.brand}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Carton mode ───────────────────────────────────────────────────────────────
+
+interface CartonConfig {
+  // Product
+  product_id: number | null;
+  product_name: string;
+  brand: string;
+  category: string;
+  purchase_price: string;
+  sale_price: string;
+  // Assortment definition
+  colours: string[];                                      // multiple colours
+  size_from: number;
+  size_to: number;
+  cartons_received: number;
+  // 2-D quantity matrix: colour → size → qty
+  // A standard carton has 1 pair per (colour, size) per carton.
+  quantities: Record<string, Record<number, number>>;
+}
+
+const DEFAULT_CARTON: CartonConfig = {
+  product_id: null, product_name: "", brand: "", category: "sneakers",
+  purchase_price: "", sale_price: "",
+  colours: [],
+  size_from: 36, size_to: 41,
+  cartons_received: 1,
+  quantities: {},
+};
+
+function getSizeRange(from: number, to: number): number[] {
+  if (!from || !to || from > to) return [];
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
+
+
+function CartonPanel({
+  line,
+  config,
+  onChange,
+}: {
+  line: POLine;
+  config: CartonConfig;
+  onChange: (c: CartonConfig) => void;
+}) {
+  const sizes = getSizeRange(config.size_from, config.size_to);
+  const { colours, quantities, cartons_received } = config;
+
+  // Grand total: sum of all (colour, size) cells
+  const grandTotal = colours.reduce(
+    (sum, c) => sum + sizes.reduce((s, sz) => s + (quantities[c]?.[sz] ?? 0), 0),
+    0
+  );
+  // Standard: 1 pair per (colour, size) per carton
+  const expectedTotal = colours.length * sizes.length * cartons_received;
+
+  function updateField(field: keyof CartonConfig, value: unknown) {
+    onChange({ ...config, [field]: value });
+  }
+
+  function updateQty(colour: string, size: number, qty: number) {
+    onChange({
+      ...config,
+      quantities: {
+        ...quantities,
+        [colour]: { ...quantities[colour], [size]: Math.max(0, qty) },
+      },
+    });
+  }
+
+  function addColour(colour: string) {
+    if (!colour || colours.includes(colour)) return;
+    // Init row with cartons_received per size
+    const row: Record<number, number> = {};
+    sizes.forEach((s) => { row[s] = cartons_received; });
+    onChange({
+      ...config,
+      colours: [...colours, colour],
+      quantities: { ...quantities, [colour]: row },
+    });
+  }
+
+  function removeColour(colour: string) {
+    const { [colour]: _, ...rest } = quantities;
+    onChange({ ...config, colours: colours.filter((c) => c !== colour), quantities: rest });
+  }
+
+  function applyEven() {
+    const newQty: Record<string, Record<number, number>> = {};
+    colours.forEach((c) => {
+      newQty[c] = {};
+      sizes.forEach((s) => { newQty[c][s] = cartons_received; });
+    });
+    onChange({ ...config, quantities: newQty });
+  }
+
+  // When size range or cartons_received changes, update existing rows
+  function handleCartonCountChange(n: number) {
+    const newQty: Record<string, Record<number, number>> = {};
+    colours.forEach((c) => {
+      newQty[c] = {};
+      sizes.forEach((s) => { newQty[c][s] = n; });
+    });
+    onChange({ ...config, cartons_received: n, quantities: newQty });
+  }
+
+  function handleRangeChange(field: "size_from" | "size_to", val: number) {
+    const newFrom = field === "size_from" ? val : config.size_from;
+    const newTo   = field === "size_to"   ? val : config.size_to;
+    const newSizes = getSizeRange(newFrom, newTo);
+    // Re-build quantity rows to match new size range
+    const newQty: Record<string, Record<number, number>> = {};
+    colours.forEach((c) => {
+      newQty[c] = {};
+      newSizes.forEach((s) => { newQty[c][s] = quantities[c]?.[s] ?? cartons_received; });
+    });
+    onChange({ ...config, [field]: val, quantities: newQty });
+  }
+
+  const isOk = grandTotal === expectedTotal && expectedTotal > 0;
+
+  return (
+    <div className="border border-primary-200 rounded-lg p-3 space-y-3 bg-primary-50/30">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-primary-400 flex-shrink-0" />
+        <span className="text-sm font-medium text-text-primary">{line.description}</span>
+      </div>
+
+      {/* Product search */}
+      <ProductSearch
+        selectedId={config.product_id}
+        selectedLabel={config.product_id ? config.product_name : null}
+        onSelect={(p) => onChange({ ...config, product_id: p.id, product_name: p.name, brand: p.brand, category: p.category, purchase_price: p.purchase_price, sale_price: p.sale_price })}
+        onClear={() => onChange({ ...config, product_id: null, product_name: "" })}
+      />
+
+      {/* Product fields */}
+      <div className="grid grid-cols-2 gap-2">
+        {(["product_name", "brand", "purchase_price", "sale_price"] as const).map((field) => (
+          <input key={field}
+            type={field.includes("price") ? "number" : "text"}
+            placeholder={{ product_name: "Nom du produit *", brand: "Marque", purchase_price: "Prix achat (DZD) *", sale_price: "Prix vente (DZD) *" }[field]}
+            value={(config as any)[field]}
+            onChange={(e) => updateField(field, e.target.value)}
+            className="form-input text-xs py-1.5"
+            readOnly={config.product_id != null && field === "product_name"}
+          />
+        ))}
+        <select value={config.category} onChange={(e) => updateField("category", e.target.value)} className="form-input text-xs py-1.5 col-span-2">
+          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+      </div>
+
+      {/* Carton config row */}
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="text-text-muted text-xs">Cartons</span>
+          <input type="number" min={1} value={cartons_received}
+            onChange={(e) => handleCartonCountChange(parseInt(e.target.value) || 1)}
+            className="form-input py-1 w-14 text-center text-sm font-mono"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-text-muted text-xs">EU</span>
+          <input type="number" min={24} max={50} value={config.size_from}
+            onChange={(e) => handleRangeChange("size_from", parseInt(e.target.value) || 36)}
+            className="form-input py-1 w-12 text-center text-sm font-mono"
+          />
+          <span className="text-text-muted">→</span>
+          <input type="number" min={24} max={50} value={config.size_to}
+            onChange={(e) => handleRangeChange("size_to", parseInt(e.target.value) || 41)}
+            className="form-input py-1 w-12 text-center text-sm font-mono"
+          />
+        </div>
+        <button type="button" onClick={applyEven}
+          disabled={!colours.length || !sizes.length}
+          className="btn-secondary btn-sm"
+        >
+          Répartir (×{cartons_received})
+        </button>
+      </div>
+
+      {/* Colour selector */}
+      <div className="space-y-1">
+        <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Couleurs du carton</span>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {colours.map((c) => (
+            <span key={c} className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-border rounded-full text-xs font-medium">
+              {getColourHex(c) && (
+                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getColourHex(c)!, border: c === "white" ? "1px solid #e5e7eb" : "none" }} />
+              )}
+              {getColourLabel(c)}
+              <button type="button" onClick={() => removeColour(c)} className="text-text-muted hover:text-danger ml-0.5"><X size={10} /></button>
+            </span>
+          ))}
+          <div className="w-40">
+            <ColourPicker
+              value=""
+              onChange={addColour}
+              placeholder="+ Ajouter couleur"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 2-D matrix: colours × sizes */}
+      {colours.length > 0 && sizes.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="text-xs border-collapse w-full">
+            <thead>
+              <tr>
+                <th className="text-left py-1 pr-3 text-text-muted font-semibold w-28">Couleur</th>
+                {sizes.map((s) => (
+                  <th key={s} className="text-center px-1 py-1 text-text-muted font-semibold w-10">EU{s}</th>
+                ))}
+                <th className="text-right pl-2 py-1 text-text-muted font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {colours.map((colour) => {
+                const rowTotal = sizes.reduce((sum, s) => sum + (quantities[colour]?.[s] ?? 0), 0);
+                return (
+                  <tr key={colour}>
+                    <td className="py-1 pr-3">
+                      <div className="flex items-center gap-1.5">
+                        {getColourHex(colour) && (
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getColourHex(colour)!, border: colour === "white" ? "1px solid #e5e7eb" : "none" }} />
+                        )}
+                        <span className="font-medium text-text-primary truncate">{getColourLabel(colour)}</span>
+                      </div>
+                    </td>
+                    {sizes.map((s) => (
+                      <td key={s} className="px-0.5 py-0.5">
+                        <input
+                          type="number" min={0}
+                          value={quantities[colour]?.[s] ?? 0}
+                          onChange={(e) => updateQty(colour, s, parseInt(e.target.value) || 0)}
+                          className="w-10 text-center py-0.5 text-xs font-mono border border-border rounded bg-white focus:outline-none focus:border-primary-400"
+                        />
+                      </td>
+                    ))}
+                    <td className="pl-2 text-right font-semibold text-text-primary">{rowTotal}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border">
+                <td className="py-1 pr-3 text-xs text-text-muted font-semibold">Total / taille</td>
+                {sizes.map((s) => (
+                  <td key={s} className="px-0.5 py-1 text-center text-xs font-semibold text-text-primary">
+                    {colours.reduce((sum, c) => sum + (quantities[c]?.[s] ?? 0), 0)}
+                  </td>
+                ))}
+                <td className={`pl-2 text-right text-xs font-bold ${isOk ? "text-success" : "text-warning"}`}>
+                  {grandTotal}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {/* Summary */}
+      <div className={`flex items-center gap-2 text-sm font-medium ${isOk ? "text-success" : "text-warning"}`}>
+        {isOk ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+        {grandTotal} paire{grandTotal !== 1 ? "s" : ""} · {colours.length} couleur{colours.length !== 1 ? "s" : ""} · {sizes.length} pointure{sizes.length !== 1 ? "s" : ""}
+        {!isOk && colours.length > 0 && sizes.length > 0 && (
+          <span className="text-xs font-normal text-text-muted">
+            — attendu {expectedTotal} ({cartons_received} carton{cartons_received > 1 ? "s" : ""} × {colours.length * sizes.length} variantes)
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main receive form ─────────────────────────────────────────────────────────
+
 function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => void }) {
   const queryClient = useQueryClient();
   const [quantities, setQuantities] = useState<Record<number, number>>(
     Object.fromEntries(po.lines.map((l) => [l.id, l.quantity_received]))
   );
+  const [blReference, setBlReference] = useState("");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+
+  // Resolution state for lines that have no catalog variant linked
+  const unlinkedLines = po.lines.filter((l) => !l.variant);
+  const [resolutions, setResolutions] = useState<Record<number, LineResolution>>(() =>
+    Object.fromEntries(unlinkedLines.map((l) => [l.id, { mode: "skip" as ResolutionMode }]))
+  );
+
+  // Carton mode — replaces LineResolutionRow for unlinked lines
+  const [cartonMode, setCartonMode] = useState(false);
+  const [cartonConfigs, setCartonConfigs] = useState<Record<number, CartonConfig>>(() =>
+    Object.fromEntries(unlinkedLines.map((l) => [l.id, { ...DEFAULT_CARTON, product_name: l.description }]))
+  );
 
   // Sync if po.lines change (refetch after successful mutation)
   useEffect(() => {
@@ -65,22 +638,87 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
   }, [po.lines.map((l) => `${l.id}:${l.quantity_received}`).join(",")]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api.post(`/suppliers/purchase-orders/${po.id}/receive/`, {
-        lines: po.lines.map((l) => ({
-          id: l.id,
-          quantity_received: quantities[l.id] ?? l.quantity_received,
-        })),
-      }).then((r) => r.data),
-    onSuccess: () => {
+    mutationFn: () => {
+      const lines = po.lines.map((l) => {
+        const base = { id: l.id, quantity_received: quantities[l.id] ?? l.quantity_received };
+        if (l.variant) return base; // already linked — no extra resolution needed
+
+        // Carton mode: flatten 2-D (colour × size) matrix into carton_sizes
+        if (cartonMode) {
+          const cfg = cartonConfigs[l.id];
+          if (!cfg) return base;
+          const sizes = getSizeRange(cfg.size_from, cfg.size_to);
+          const carton_sizes = cfg.colours.flatMap((colour) =>
+            sizes
+              .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
+              .map((s) => ({
+                size_eu: s,
+                quantity: cfg.quantities[colour][s],
+                new_variant: {
+                  product_id: cfg.product_id ?? null,
+                  product_name: cfg.product_name,
+                  brand: cfg.brand,
+                  category: cfg.category,
+                  size_eu: s,
+                  colour,
+                  purchase_price: parseFloat(cfg.purchase_price) || 0,
+                  sale_price: parseFloat(cfg.sale_price) || 0,
+                },
+              }))
+          );
+          const total = carton_sizes.reduce((sum, cs) => sum + cs.quantity, 0);
+          return { id: l.id, quantity_received: total, carton_sizes };
+        }
+
+        // Standard mode: single variant resolution
+        const res = resolutions[l.id];
+        if (res?.mode === "link" && res.variantId)
+          return { ...base, variant_id: res.variantId };
+        if (res?.mode === "create" && res.newVariant)
+          return {
+            ...base,
+            new_variant: {
+              ...res.newVariant,
+              purchase_price: parseFloat(res.newVariant.purchase_price) || 0,
+              sale_price: parseFloat(res.newVariant.sale_price) || 0,
+            },
+          };
+        return base; // skip
+      });
+      return api.post(`/suppliers/purchase-orders/${po.id}/receive/`, {
+        lines,
+        bl_reference: blReference.trim(),
+      }).then((r) => r.data);
+    },
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["purchase-order", po.id] });
-      setOk(true);
-      setTimeout(() => { setOk(false); onSuccess(); }, 1000);
+      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+      if (data.discrepancies?.length) {
+        setDiscrepancies(data.discrepancies);
+      } else {
+        setOk(true);
+        setTimeout(() => { setOk(false); onSuccess(); }, 1200);
+      }
     },
     onError: (err) => setErrMsg(getApiError(err)),
   });
 
   const canReceive = po.status !== "cancelled" && po.status !== "received";
+
+  // Partial reception detection — used to show confirmation popup
+  const [showPartialConfirm, setShowPartialConfirm] = useState(false);
+
+  function handleConfirmClick() {
+    const wouldBePartial = po.lines.some((l) => {
+      const received = quantities[l.id] ?? l.quantity_received;
+      return received < l.quantity_ordered;
+    });
+    if (wouldBePartial) {
+      setShowPartialConfirm(true);
+    } else {
+      mutation.mutate();
+    }
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -104,7 +742,44 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
 
       {ok && (
         <div className="mx-5 mt-4 flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
-          <CheckCircle size={13} /> Réception enregistrée.
+          <CheckCircle size={13} /> Réception enregistrée — stock mis à jour automatiquement.
+        </div>
+      )}
+
+      {discrepancies.length > 0 && (
+        <div className="mx-5 mt-4 space-y-2">
+          <div className="flex items-center gap-2 px-3 py-2 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning font-medium">
+            <AlertTriangle size={13} />
+            {discrepancies.length} écart{discrepancies.length > 1 ? "s" : ""} détecté{discrepancies.length > 1 ? "s" : ""} — stock mis à jour avec les quantités reçues.
+          </div>
+          <div className="border border-warning/30 rounded-lg overflow-hidden text-xs">
+            <table className="w-full">
+              <thead className="bg-warning/5">
+                <tr>
+                  <th className="text-left px-3 py-2 font-semibold text-text-muted">Article</th>
+                  <th className="text-center px-3 py-2 font-semibold text-text-muted">Commandé</th>
+                  <th className="text-center px-3 py-2 font-semibold text-text-muted">Reçu</th>
+                  <th className="text-center px-3 py-2 font-semibold text-warning">Manquant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {discrepancies.map((d) => (
+                  <tr key={d.line_id} className="border-t border-warning/20">
+                    <td className="px-3 py-1.5 text-text-primary">{d.description}</td>
+                    <td className="px-3 py-1.5 text-center font-mono">{d.ordered}</td>
+                    <td className="px-3 py-1.5 text-center font-mono">{d.received}</td>
+                    <td className="px-3 py-1.5 text-center font-mono font-bold text-warning">-{d.shortage}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button
+            className="btn-secondary btn-sm w-full"
+            onClick={() => { setDiscrepancies([]); onSuccess(); }}
+          >
+            Fermer
+          </button>
         </div>
       )}
 
@@ -173,17 +848,133 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
       </div>
 
       {canReceive && (
-        <div className="card-body border-t border-border flex justify-end">
-          <button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className="btn-primary"
-          >
-            {mutation.isPending
-              ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
-              : <><CheckCircle size={14} /> Confirmer la réception</>
-            }
-          </button>
+        <div className="card-body border-t border-border space-y-4">
+          {/* Resolution panel for unlinked lines */}
+          {unlinkedLines.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+                  {unlinkedLines.length} ligne{unlinkedLines.length > 1 ? "s" : ""} sans article catalogue
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setCartonMode((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                    cartonMode
+                      ? "bg-primary-600 text-white border-primary-600"
+                      : "border-border text-text-muted hover:border-primary-400"
+                  }`}
+                >
+                  📦 Mode carton
+                </button>
+              </div>
+
+              {cartonMode
+                ? unlinkedLines.map((line) => (
+                    <CartonPanel
+                      key={line.id}
+                      line={line}
+                      config={cartonConfigs[line.id] ?? { ...DEFAULT_CARTON, product_name: line.description }}
+                      onChange={(cfg) => setCartonConfigs((prev) => ({ ...prev, [line.id]: cfg }))}
+                    />
+                  ))
+                : unlinkedLines.map((line) => (
+                    <LineResolutionRow
+                      key={line.id}
+                      line={line}
+                      resolution={resolutions[line.id]}
+                      onChange={(r) => setResolutions((prev) => ({ ...prev, [line.id]: r }))}
+                    />
+                  ))}
+            </div>
+          )}
+
+          {/* BL reference + confirm */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-text-secondary whitespace-nowrap">
+              N° BL fournisseur
+            </label>
+            <input
+              type="text"
+              value={blReference}
+              onChange={(e) => setBlReference(e.target.value)}
+              placeholder="Référence bon de livraison (optionnel)"
+              className="form-input flex-1 text-sm"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={handleConfirmClick}
+              disabled={mutation.isPending}
+              className="btn-primary"
+            >
+              {mutation.isPending
+                ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
+                : <><CheckCircle size={14} /> Confirmer la réception</>
+              }
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Partial reception confirmation dialog */}
+      {showPartialConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-warning" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-text-primary">Réception partielle</h3>
+                <p className="text-sm text-text-muted mt-1">
+                  Certaines lignes ont une quantité reçue inférieure à la quantité commandée.
+                  La commande passera en statut <strong>Partiel</strong>.
+                  Le stock sera mis à jour uniquement pour les quantités reçues.
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-border rounded-lg overflow-hidden text-sm">
+              <table className="w-full">
+                <thead className="bg-surface">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-text-muted">Article</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-text-muted">Commandé</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-warning">Reçu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {po.lines
+                    .filter((l) => (quantities[l.id] ?? l.quantity_received) < l.quantity_ordered)
+                    .map((l) => (
+                      <tr key={l.id} className="border-t border-border">
+                        <td className="px-3 py-2 text-text-primary">{l.description}</td>
+                        <td className="px-3 py-2 text-center font-mono">{l.quantity_ordered}</td>
+                        <td className="px-3 py-2 text-center font-mono font-semibold text-warning">
+                          {quantities[l.id] ?? l.quantity_received}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowPartialConfirm(false)}
+              >
+                Modifier les quantités
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => { setShowPartialConfirm(false); mutation.mutate(); }}
+              >
+                Confirmer quand même
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
