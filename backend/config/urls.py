@@ -46,6 +46,7 @@ api_v1 = [
     path("reports/", include("apps.reports.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("mobile/", include("apps.mobile.urls")),
+    path("loyalty/", include("apps.loyalty.urls")),
     # OpenAPI
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

@@ -70,9 +70,12 @@ class CreateSaleSerializer(serializers.Serializer):
     cart_discount = serializers.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    redeem_points = serializers.IntegerField(min_value=0, default=0, required=False)
     notes = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, data):
+        from apps.clients.models import Client
+
         # Validate all variants exist and have sufficient stock
         tenant = self.context["request"].tenant
         item_errors = []
@@ -91,11 +94,49 @@ class CreateSaleSerializer(serializers.Serializer):
         if item_errors:
             raise serializers.ValidationError({"items": item_errors})
 
-        # Validate payment total covers sale total
+        # Validate loyalty point redemption
+        redeem_points = data.get("redeem_points", 0)
+        if redeem_points > 0:
+            client_id = data.get("client_id")
+            if not client_id:
+                raise serializers.ValidationError(
+                    {"redeem_points": "Un client doit être sélectionné pour racheter des points."}
+                )
+            try:
+                from apps.loyalty.models import LoyaltyAccount, LoyaltyProgram
+                program = LoyaltyProgram.objects.get(tenant=tenant, is_active=True)
+                account = LoyaltyAccount.objects.get(tenant=tenant, client_id=client_id)
+                if account.points_balance < redeem_points:
+                    raise serializers.ValidationError(
+                        {"redeem_points": f"Solde insuffisant ({account.points_balance} pts disponibles)."}
+                    )
+                if redeem_points < program.min_redemption_points:
+                    raise serializers.ValidationError(
+                        {"redeem_points": f"Minimum {program.min_redemption_points} points requis pour un rachat."}
+                    )
+                # Stash for create_sale to avoid re-querying
+                data["_loyalty_program"] = program
+                data["_loyalty_account"] = account
+            except LoyaltyProgram.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"redeem_points": "Aucun programme de fidélité actif pour ce commerce."}
+                )
+            except LoyaltyAccount.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"redeem_points": "Ce client n'a pas encore de compte fidélité."}
+                )
+
+        # Validate payment total covers sale total (after redemption discount)
         items_total = sum(
             (item["unit_price"] * item["quantity"]) - item["discount_amount"]
             for item in data["items"]
         ) - data["cart_discount"]
+
+        # Account for redemption discount in payment total check
+        if redeem_points > 0 and data.get("_loyalty_program"):
+            from apps.loyalty.models import LoyaltyProgram
+            redemption_dzd = data["_loyalty_program"].dzd_for_points(redeem_points)
+            items_total = items_total - redemption_dzd
 
         payment_total = sum(p["amount"] for p in data["payments"])
 
@@ -112,6 +153,11 @@ class CreateSaleSerializer(serializers.Serializer):
         """Create the sale, items, payments, and stock movements atomically."""
         from apps.clients.models import Client
 
+        # Pop loyalty data (not model fields)
+        redeem_points = validated_data.pop("redeem_points", 0)
+        _loyalty_program = validated_data.pop("_loyalty_program", None)
+        _loyalty_account = validated_data.pop("_loyalty_account", None)
+
         # Resolve optional FKs
         branch = None
         if validated_data.get("branch_id"):
@@ -122,12 +168,15 @@ class CreateSaleSerializer(serializers.Serializer):
         if validated_data.get("client_id"):
             client = Client.objects.get(pk=validated_data["client_id"], tenant=tenant)
 
-        # Compute total
+        # Compute total — apply loyalty redemption as an additional cart discount
         items_total = sum(
             (item["unit_price"] * item["quantity"]) - item["discount_amount"]
             for item in validated_data["items"]
         )
         cart_discount = validated_data.get("cart_discount", Decimal("0.00"))
+        if redeem_points > 0 and _loyalty_program:
+            redemption_dzd = _loyalty_program.dzd_for_points(redeem_points)
+            cart_discount = cart_discount + redemption_dzd
         total = items_total - cart_discount
 
         # Generate receipt number
@@ -185,7 +234,103 @@ class CreateSaleSerializer(serializers.Serializer):
                 notes=payment_data.get("notes", ""),
             )
 
+        # ── Loyalty: redeem then earn ─────────────────────────────────────────
+        loyalty_summary = self._process_loyalty(
+            sale=sale,
+            tenant=tenant,
+            client=client,
+            receipt_number=receipt_number,
+            redeem_points=redeem_points,
+            loyalty_program=_loyalty_program,
+            loyalty_account=_loyalty_account,
+        )
+        sale._loyalty_summary = loyalty_summary
+
         return sale
+
+    @staticmethod
+    def _process_loyalty(sale, tenant, client, receipt_number, redeem_points,
+                         loyalty_program, loyalty_account) -> dict:
+        """
+        Apply point redemption and auto-earn points for the sale.
+        Returns {"points_earned": int, "points_redeemed": int}.
+        Wrapped in a silent try/except so a loyalty bug never blocks a sale.
+        """
+        import logging
+        from django.utils import timezone
+
+        logger = logging.getLogger(__name__)
+        result = {"points_earned": 0, "points_redeemed": 0}
+        try:
+            from apps.loyalty.models import (
+                LoyaltyAccount,
+                LoyaltyProgram,
+                LoyaltyTransaction,
+                TransactionTypeChoices,
+            )
+
+            # 1. Redeem
+            if redeem_points > 0 and loyalty_account and loyalty_program:
+                loyalty_account.points_balance -= redeem_points
+                if loyalty_account.points_balance < 0:
+                    loyalty_account.points_balance = 0
+                loyalty_account.save(update_fields=["points_balance"])
+                LoyaltyTransaction.objects.create(
+                    account=loyalty_account,
+                    points=-redeem_points,
+                    transaction_type=TransactionTypeChoices.REDEEM,
+                    reference_type="Sale",
+                    reference_id=str(sale.pk),
+                    description=f"Rachat sur vente {receipt_number}",
+                    balance_after=loyalty_account.points_balance,
+                )
+                result["points_redeemed"] = redeem_points
+
+            # 2. Earn (only when a client is linked and a program exists)
+            if not client:
+                return result
+            program = loyalty_program or LoyaltyProgram.objects.filter(
+                tenant=tenant, is_active=True
+            ).first()
+            if not program:
+                return result
+
+            account, _ = LoyaltyAccount.objects.get_or_create(
+                tenant=tenant,
+                client=client,
+                defaults={"tier": "bronze"},
+            )
+            pts = program.points_for_amount(sale.total_amount, account.tier)
+            if pts <= 0:
+                return result
+
+            account.points_balance += pts
+            account.total_earned += pts
+            account.recompute_tier()
+            account.save()
+
+            expires_at = None
+            if program.expiry_months:
+                expires_at = timezone.now() + timezone.timedelta(
+                    days=30 * program.expiry_months
+                )
+
+            LoyaltyTransaction.objects.create(
+                account=account,
+                points=pts,
+                transaction_type=TransactionTypeChoices.EARN,
+                reference_type="Sale",
+                reference_id=str(sale.pk),
+                description=f"Points gagnés — {receipt_number}",
+                balance_after=account.points_balance,
+                expires_at=expires_at,
+            )
+            result["points_earned"] = pts
+
+        except Exception:
+            logger.exception("Loyalty processing failed for sale %s — points not awarded.", sale.pk)
+
+        return result
 
 
 class ReturnItemInput(serializers.Serializer):

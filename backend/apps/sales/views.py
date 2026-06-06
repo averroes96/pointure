@@ -34,7 +34,11 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             tenant=request.tenant,
             cashier=request.user,
         )
-        return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
+        resp_data = SaleSerializer(sale).data
+        loyalty = getattr(sale, "_loyalty_summary", {})
+        resp_data["points_earned"] = loyalty.get("points_earned", 0)
+        resp_data["points_redeemed"] = loyalty.get("points_redeemed", 0)
+        return Response(resp_data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def returns(self, request, pk=None):
