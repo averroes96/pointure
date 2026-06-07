@@ -3,15 +3,233 @@
  * Paginated list of completed/cancelled sales with filters and receipt download.
  */
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
-import type { Sale } from "@/types";
+import type { Sale, SaleItem, PaymentMethod } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "cash", label: "Espèces" },
+  { value: "cheque", label: "Chèque" },
+  { value: "ccp", label: "CCP" },
+  { value: "virement", label: "Virement" },
+  { value: "account", label: "Compte client" },
+];
+
+// ── Return Modal ──────────────────────────────────────────────────────────────
+
+interface ReturnItemState {
+  item: SaleItem;
+  selected: boolean;
+  quantity: number;
+  restock: boolean;
+}
+
+function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [toast, setToast] = useState<string | null>(null);
+
+  const [itemStates, setItemStates] = useState<ReturnItemState[]>(
+    (sale.items ?? []).map((item) => ({
+      item,
+      selected: false,
+      quantity: item.quantity,
+      restock: true,
+    }))
+  );
+  const [reason, setReason] = useState("");
+  const [refundAmount, setRefundAmount] = useState(
+    parseFloat(sale.total_amount || "0").toFixed(2)
+  );
+  const [refundMethod, setRefundMethod] = useState<PaymentMethod>("cash");
+
+  const selectedItems = itemStates.filter((s) => s.selected);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.post(`/sales/${sale.id}/returns/`, {
+        items: selectedItems.map((s) => ({
+          variant_id: s.item.variant,
+          quantity: s.quantity,
+          restock: s.restock,
+        })),
+        reason,
+        refund_amount: refundAmount,
+        refund_method: refundMethod,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      onClose();
+    },
+    onError: (err: any) => {
+      const msg =
+        err?.response?.data?.detail ||
+        String(Object.values(err?.response?.data ?? {})[0] ?? "") ||
+        "Erreur lors du retour.";
+      setToast(msg);
+    },
+  });
+
+  function updateItem(index: number, patch: Partial<ReturnItemState>) {
+    setItemStates((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  }
+
+  const canSubmit =
+    selectedItems.length > 0 &&
+    reason.trim() &&
+    parseFloat(refundAmount) >= 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <h2 className="font-semibold text-text-primary">Traiter un retour</h2>
+            <p className="text-xs text-text-muted">Reçu {sale.receipt_number || `#${sale.id}`}</p>
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-sm text-text-muted">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          {/* Item selection */}
+          <div>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
+              Articles à retourner
+            </p>
+            <div className="space-y-2">
+              {itemStates.map((s, i) => (
+                <div
+                  key={s.item.id}
+                  className={cn(
+                    "border border-border rounded-lg p-3 transition-colors",
+                    s.selected && "border-primary-300 bg-primary-50/30"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={s.selected}
+                      onChange={(e) => updateItem(i, { selected: e.target.checked })}
+                      className="mt-0.5 accent-primary-600"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-text-primary">{s.item.variant_str}</div>
+                      <div className="text-xs text-text-muted">
+                        {s.item.quantity} × {formatDZD(s.item.unit_price)} DZD
+                      </div>
+                    </div>
+                  </div>
+
+                  {s.selected && (
+                    <div className="mt-2 ms-7 flex items-center gap-4 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-xs">
+                        <span className="text-text-muted">Qté retournée:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={s.item.quantity}
+                          value={s.quantity}
+                          onChange={(e) =>
+                            updateItem(i, {
+                              quantity: Math.min(
+                                Math.max(1, parseInt(e.target.value) || 1),
+                                s.item.quantity
+                              ),
+                            })
+                          }
+                          className="w-16 px-2 py-1 border border-border rounded text-center font-mono text-sm"
+                        />
+                        <span className="text-text-muted">/ {s.item.quantity}</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={s.restock}
+                          onChange={(e) => updateItem(i, { restock: e.target.checked })}
+                          className="accent-primary-600"
+                        />
+                        <span className="text-text-muted">Remettre en stock</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="form-label">Motif du retour *</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="form-input"
+              placeholder="Ex: Pointure incorrecte, défaut…"
+            />
+          </div>
+
+          {/* Refund */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Montant remboursé (DZD)</label>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                className="form-input font-mono"
+              />
+            </div>
+            <div>
+              <label className="form-label">Moyen de remboursement</label>
+              <select
+                value={refundMethod}
+                onChange={(e) => setRefundMethod(e.target.value as PaymentMethod)}
+                className="form-input"
+              >
+                {PAYMENT_METHOD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-border flex items-center justify-between gap-3">
+          {toast && (
+            <p className="text-xs text-danger flex-1">{toast}</p>
+          )}
+          <div className="text-xs text-text-muted">
+            {selectedItems.length} article{selectedItems.length !== 1 ? "s" : ""} sélectionné{selectedItems.length !== 1 ? "s" : ""}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
+              Annuler
+            </button>
+            <button
+              onClick={() => mutation.mutate()}
+              className="btn-primary btn-sm"
+              disabled={!canSubmit || mutation.isPending}
+            >
+              {mutation.isPending ? "Traitement…" : "Confirmer le retour"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tous" },
@@ -20,24 +238,22 @@ const STATUS_OPTIONS = [
   { value: "refunded", label: "Remboursée" },
 ];
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash: "Espèces",
-  cheque: "Chèque",
-  ccp: "CCP",
-  virement: "Virement",
-  account: "Compte client",
-};
+const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
+  PAYMENT_METHOD_OPTIONS.map((o) => [o.value, o.label])
+);
 
 export default function SalesHistoryPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const storeName = user?.tenant?.name ?? "ShoeDZ";
+  const isManager = user?.role === "owner" || user?.role === "manager";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [returnSale, setReturnSale] = useState<Sale | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Sale>>({
     queryKey: ["sales", { search, status, dateFrom, dateTo, page }],
@@ -193,7 +409,7 @@ export default function SalesHistoryPage() {
                     </td>
                     <td className="text-text-muted text-sm">{formatDate(sale.created_at)}</td>
                     <td className="text-sm">{sale.cashier_name || "—"}</td>
-                    <td className="text-sm">{sale.client ? `Client #${sale.client}` : <span className="text-text-muted italic">Comptoir</span>}</td>
+                    <td className="text-sm">{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">Comptoir</span>)}</td>
                     <td>
                       <div className="flex flex-wrap gap-1">
                         {sale.payments?.map((p, i) => (
@@ -225,13 +441,24 @@ export default function SalesHistoryPage() {
                       </span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="btn-ghost btn-sm text-primary-500"
-                        title="Imprimer le bon de vente"
-                        onClick={() => printReceipt(sale, storeName)}
-                      >
-                        <Printer size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="btn-ghost btn-sm text-primary-500"
+                          title="Imprimer le bon de vente"
+                          onClick={() => printReceipt(sale, storeName)}
+                        >
+                          <Printer size={14} />
+                        </button>
+                        {isManager && sale.status === "completed" && (
+                          <button
+                            className="btn-ghost btn-sm text-warning"
+                            title="Traiter un retour"
+                            onClick={() => setReturnSale(sale)}
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
 
@@ -321,6 +548,10 @@ export default function SalesHistoryPage() {
           </div>
         )}
       </div>
+
+      {returnSale && (
+        <ReturnModal sale={returnSale} onClose={() => setReturnSale(null)} />
+      )}
     </div>
   );
 }

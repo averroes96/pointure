@@ -5,10 +5,13 @@ import { BranchProvider } from "@/features/auth/BranchContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import api from "@/lib/api";
 
-// ── Setup redirect: checks once on mount whether setup is needed ─────────────
+// ── Setup redirect: checks once per session whether setup is needed ──────────
+const _setupChecked = { done: false };
 function SetupRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
+    if (_setupChecked.done) return;
+    _setupChecked.done = true;
     api
       .get("/setup/status/")
       .then((r) => {

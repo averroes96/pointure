@@ -16,6 +16,7 @@ from apps.core.models import Tenant, User
 class SetupStatusView(APIView):
     authentication_classes = []
     permission_classes = []
+    throttle_classes = []  # health-check; never rate-limit
 
     def get(self, request):
         # Only relevant in local mode; in cloud mode setup is always "done"

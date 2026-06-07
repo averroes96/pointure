@@ -164,6 +164,7 @@ export interface Sale {
   cashier: number;
   cashier_name: string;
   client: number | null;
+  client_name: string | null;
   status: SaleStatus;
   total_amount: string;
   discount_amount: string;

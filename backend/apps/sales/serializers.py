@@ -31,11 +31,12 @@ class SaleSerializer(serializers.ModelSerializer):
     balance_due = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     amount_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True)
+    client_name = serializers.CharField(source="client.name", default=None, read_only=True)
 
     class Meta:
         model = Sale
         fields = [
-            "id", "branch", "cashier", "cashier_name", "client", "status",
+            "id", "branch", "cashier", "cashier_name", "client", "client_name", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due",
             "receipt_number", "notes", "items", "payments", "created_at",
         ]
@@ -378,4 +379,59 @@ class CreateReturnSerializer(serializers.Serializer):
                     user=processed_by,
                 )
 
+        self._reverse_loyalty(sale, return_obj, data["refund_amount"])
         return return_obj
+
+    @staticmethod
+    def _reverse_loyalty(sale, return_obj, refund_amount):
+        """Deduct loyalty points proportional to the refunded amount. Silent — never blocks a return."""
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            if not sale.client_id:
+                return
+            from decimal import Decimal as D
+            from apps.loyalty.models import LoyaltyAccount, LoyaltyTransaction, TransactionTypeChoices
+
+            account = LoyaltyAccount.objects.filter(
+                tenant=sale.tenant, client_id=sale.client_id
+            ).first()
+            if not account:
+                return
+
+            # Find the original EARN transaction for this sale
+            earn_tx = LoyaltyTransaction.objects.filter(
+                account=account,
+                transaction_type=TransactionTypeChoices.EARN,
+                reference_type="Sale",
+                reference_id=str(sale.pk),
+            ).first()
+            if not earn_tx or earn_tx.points <= 0:
+                return
+
+            sale_total = D(sale.total_amount)
+            if sale_total <= 0:
+                return
+
+            # Proportional deduction: refund_amount / sale_total × points_earned
+            proportion = min(D(refund_amount) / sale_total, D("1.0"))
+            pts_to_deduct = int(earn_tx.points * proportion)
+            if pts_to_deduct <= 0:
+                return
+
+            pts_to_deduct = min(pts_to_deduct, account.points_balance)
+            account.points_balance -= pts_to_deduct
+            account.recompute_tier()
+            account.save()
+
+            LoyaltyTransaction.objects.create(
+                account=account,
+                points=-pts_to_deduct,
+                transaction_type=TransactionTypeChoices.ADJUST,
+                reference_type="Return",
+                reference_id=str(return_obj.pk),
+                description=f"Retour — déduction proportionnelle ({int(proportion * 100)}%)",
+                balance_after=account.points_balance,
+            )
+        except Exception:
+            logger.exception("Loyalty reversal failed for return %s — skipped.", return_obj.pk)
