@@ -4,6 +4,7 @@ from .models import (
     LoyaltyAccount,
     LoyaltyProgram,
     LoyaltyTransaction,
+    TierChoices,
     TIER_PROGRESSION,
 )
 
@@ -19,6 +20,10 @@ class LoyaltyProgramSerializer(serializers.ModelSerializer):
             "redemption_value",
             "dzd_per_100_points",
             "min_redemption_points",
+            "silver_threshold",
+            "gold_threshold",
+            "silver_multiplier",
+            "gold_multiplier",
             "expiry_months",
             "is_active",
             "created_at",
@@ -75,14 +80,21 @@ class LoyaltyAccountSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "enrolled_at"]
 
+    def _progression(self, obj):
+        """Return ascending [(tier, threshold)] using program config when available."""
+        program = LoyaltyProgram.objects.filter(tenant_id=obj.tenant_id, is_active=True).first()
+        if program:
+            return [(TierChoices.SILVER, program.silver_threshold), (TierChoices.GOLD, program.gold_threshold)]
+        return TIER_PROGRESSION
+
     def get_next_tier(self, obj) -> str | None:
-        for tier, threshold in TIER_PROGRESSION:
+        for tier, threshold in self._progression(obj):
             if obj.total_earned < threshold:
                 return tier
         return None
 
     def get_points_to_next_tier(self, obj) -> int | None:
-        for _, threshold in TIER_PROGRESSION:
+        for _, threshold in self._progression(obj):
             if obj.total_earned < threshold:
                 return threshold - obj.total_earned
         return None
@@ -111,14 +123,20 @@ class LoyaltyAccountSummarySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "enrolled_at"]
 
+    def _progression(self, obj):
+        program = LoyaltyProgram.objects.filter(tenant_id=obj.tenant_id, is_active=True).first()
+        if program:
+            return [(TierChoices.SILVER, program.silver_threshold), (TierChoices.GOLD, program.gold_threshold)]
+        return TIER_PROGRESSION
+
     def get_next_tier(self, obj) -> str | None:
-        for tier, threshold in TIER_PROGRESSION:
+        for tier, threshold in self._progression(obj):
             if obj.total_earned < threshold:
                 return tier
         return None
 
     def get_points_to_next_tier(self, obj) -> int | None:
-        for _, threshold in TIER_PROGRESSION:
+        for _, threshold in self._progression(obj):
             if obj.total_earned < threshold:
                 return threshold - obj.total_earned
         return None

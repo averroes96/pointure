@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, type LucideIcon } from "lucide-react";
+import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, RotateCcw, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { downloadCSV } from "@/lib/csvExport";
 import { openPrintPopup } from "@/lib/printPopup";
@@ -23,6 +23,8 @@ interface DailyReport {
   date: string;
   total_revenue: string;
   sale_count: number;
+  total_refunds: string;
+  net_revenue: string;
   cash_total: string;
   ccp_total: string;
   virement_total: string;
@@ -118,20 +120,20 @@ function buildDailyReportHtml(data: DailyReport, date: string): string {
 
   <div class="kpis">
     <div class="kpi">
-      <div class="kpi-label">CA du jour</div>
+      <div class="kpi-label">CA brut</div>
       <div class="kpi-value">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Retours</div>
+      <div class="kpi-value" style="color:#c0392b;">− ${Number(data.total_refunds).toLocaleString("fr-DZ")} DZD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">CA net</div>
+      <div class="kpi-value" style="color:#27ae60;">${Number(data.net_revenue).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Nb ventes</div>
       <div class="kpi-value">${data.sale_count}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Articles vendus</div>
-      <div class="kpi-value">${data.items_sold}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Chèques reçus</div>
-      <div class="kpi-value">${Number(data.cheque_total).toLocaleString("fr-DZ")} DZD</div>
     </div>
   </div>
 
@@ -242,25 +244,34 @@ export default function DailyReportPage() {
       {data && !isLoading && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <KPICard
-              label="CA du jour"
+              label="CA brut du jour"
               value={formatDZD(data.total_revenue) + " DZD"}
               icon={TrendingUp}
               color="bg-primary-500"
+              sub={`${data.sale_count} vente(s)`}
             />
             <KPICard
-              label="Nb ventes"
-              value={data.sale_count}
-              icon={BarChart2}
-              color="bg-accent"
-              sub="transactions"
+              label="Retours / Remboursements"
+              value={"− " + formatDZD(data.total_refunds) + " DZD"}
+              icon={RotateCcw}
+              color="bg-danger"
             />
+            <KPICard
+              label="CA net du jour"
+              value={formatDZD(data.net_revenue) + " DZD"}
+              icon={BarChart2}
+              color="bg-success"
+              sub="brut − retours"
+            />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
             <KPICard
               label="Articles vendus"
               value={data.items_sold}
               icon={ShoppingBag}
-              color="bg-success"
+              color="bg-accent"
               sub="unités"
             />
             <KPICard

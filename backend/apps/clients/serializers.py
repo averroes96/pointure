@@ -11,7 +11,7 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = [
             "id", "name", "phone", "email", "address", "wilaya",
-            "nif", "rc", "credit_limit", "cached_balance",
+            "client_type", "nif", "rc", "credit_limit", "cached_balance",
             "is_over_credit_limit", "is_active", "notes", "created_at",
         ]
         read_only_fields = ["id", "cached_balance", "is_over_credit_limit", "created_at"]

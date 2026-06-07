@@ -54,6 +54,10 @@ interface ProgramFormData {
   points_per_100dzd: number;
   redemption_value: number;
   min_redemption_points: number;
+  silver_threshold: number;
+  gold_threshold: number;
+  silver_multiplier: number;
+  gold_multiplier: number;
   expiry_months: string;
   is_active: boolean;
 }
@@ -64,12 +68,16 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
   const isOwner = user?.role === "owner";
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<ProgramFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isDirty } } = useForm<ProgramFormData>({
     defaultValues: program
       ? {
           points_per_100dzd: program.points_per_100dzd,
           redemption_value: program.redemption_value,
           min_redemption_points: program.min_redemption_points,
+          silver_threshold: program.silver_threshold,
+          gold_threshold: program.gold_threshold,
+          silver_multiplier: parseFloat(program.silver_multiplier),
+          gold_multiplier: parseFloat(program.gold_multiplier),
           expiry_months: program.expiry_months?.toString() ?? "",
           is_active: program.is_active,
         }
@@ -77,10 +85,17 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
           points_per_100dzd: 1,
           redemption_value: 100,
           min_redemption_points: 500,
+          silver_threshold: 5000,
+          gold_threshold: 15000,
+          silver_multiplier: 1.2,
+          gold_multiplier: 1.5,
           expiry_months: "",
           is_active: true,
         },
   });
+
+  const watched = watch(["silver_threshold", "gold_threshold", "silver_multiplier", "gold_multiplier"]);
+  const [silverThreshold, goldThreshold, silverMultiplier, goldMultiplier] = watched;
 
   const mutation = useMutation({
     mutationFn: (data: ProgramFormData) => {
@@ -160,7 +175,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
           </div>
         </div>
 
-        {/* Min redemption */}
+        {/* Min redemption + expiry */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="form-label">Minimum de points pour racheter</label>
@@ -185,6 +200,49 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
           </div>
         </div>
 
+        {/* Tier thresholds */}
+        <div className="border border-border rounded-xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+            <Zap size={12} /> Niveaux de fidélité
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Seuil Argent (pts cumulés)</label>
+              <input type="number" min={1}
+                {...register("silver_threshold", { required: true, valueAsNumber: true, min: 1 })}
+                className="form-input" disabled={!isOwner}
+              />
+            </div>
+            <div>
+              <label className="form-label">Multiplicateur Argent</label>
+              <input type="number" min={1} step={0.01}
+                {...register("silver_multiplier", { required: true, valueAsNumber: true, min: 1 })}
+                className="form-input" disabled={!isOwner}
+              />
+            </div>
+            <div>
+              <label className="form-label">Seuil Or (pts cumulés)</label>
+              <input type="number" min={1}
+                {...register("gold_threshold", { required: true, valueAsNumber: true, min: 1 })}
+                className="form-input" disabled={!isOwner}
+              />
+            </div>
+            <div>
+              <label className="form-label">Multiplicateur Or</label>
+              <input type="number" min={1} step={0.01}
+                {...register("gold_multiplier", { required: true, valueAsNumber: true, min: 1 })}
+                className="form-input" disabled={!isOwner}
+              />
+            </div>
+          </div>
+          {/* Live preview */}
+          <div className="rounded-lg bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 space-y-1">
+            <p>🥉 <strong>Bronze</strong> — 0 pts — ×1</p>
+            <p>🥈 <strong>Argent</strong> — {(silverThreshold || 5000).toLocaleString("fr-DZ")} pts — ×{silverMultiplier || 1.2}</p>
+            <p>🥇 <strong>Or</strong> — {(goldThreshold || 15000).toLocaleString("fr-DZ")} pts — ×{goldMultiplier || 1.5}</p>
+          </div>
+        </div>
+
         {/* Active toggle */}
         <label className="flex items-center gap-3 cursor-pointer">
           <input
@@ -195,16 +253,6 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
           />
           <span className="text-sm text-text-primary">Programme actif</span>
         </label>
-
-        {/* Summary box */}
-        <div className="rounded-xl bg-primary-50 border border-primary-100 p-4 text-xs text-primary-700 space-y-1.5">
-          <p className="font-semibold text-primary-800 flex items-center gap-1.5">
-            <Zap size={13} /> Niveaux de fidélité
-          </p>
-          <p>🥉 <strong>Bronze</strong> — 0 pts cumulés — multiplicateur ×1</p>
-          <p>🥈 <strong>Argent</strong> — 5 000 pts cumulés — multiplicateur ×1.2</p>
-          <p>🥇 <strong>Or</strong> — 15 000 pts cumulés — multiplicateur ×1.5</p>
-        </div>
 
         {isOwner && (
           <button

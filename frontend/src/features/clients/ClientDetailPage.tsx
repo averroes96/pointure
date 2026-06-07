@@ -389,6 +389,17 @@ function ClientInfoTab({
                 {client.is_active ? "Actif" : "Inactif"}
               </span>
             </div>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+              <span className="text-sm text-text-secondary">Type de client</span>
+              <span className={cn(
+                "text-xs font-semibold px-2 py-0.5 rounded-full border",
+                client.client_type === "wholesale"
+                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                  : "bg-blue-50 text-blue-700 border-blue-200"
+              )}>
+                {client.client_type === "wholesale" ? "Grossiste" : "Particulier / Détail"}
+              </span>
+            </div>
             {client.notes && (
               <p className="mt-3 text-sm text-text-muted border-t border-border pt-3">
                 {client.notes}
@@ -1046,6 +1057,14 @@ export default function ClientDetailPage() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={cn("badge", client.is_active ? "badge-success" : "badge-neutral")}>
                   {client.is_active ? "Actif" : "Inactif"}
+                </span>
+                <span className={cn(
+                  "text-2xs font-semibold px-1.5 py-0.5 rounded-full border",
+                  client.client_type === "wholesale"
+                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    : "bg-blue-50 text-blue-700 border-blue-200"
+                )}>
+                  {client.client_type === "wholesale" ? "Gros" : "Détail"}
                 </span>
                 {client.wilaya && (
                   <span className="text-xs text-text-muted">{wilayaLabel(client.wilaya)}</span>

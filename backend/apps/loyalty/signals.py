@@ -13,6 +13,9 @@ from django.dispatch import receiver
 def auto_enroll_client(sender, instance, created, **kwargs):
     if not created:
         return
+    # Loyalty is a retail-only benefit — wholesale clients are excluded
+    if getattr(instance, "client_type", "retail") != "retail":
+        return
 
     tenant = getattr(instance, "tenant", None)
     if not tenant:

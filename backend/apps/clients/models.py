@@ -10,6 +10,11 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import WILAYA_CHOICES, TenantScopedModel
 
 
+class ClientTypeChoices(models.TextChoices):
+    RETAIL = "retail", _("Retail")
+    WHOLESALE = "wholesale", _("Wholesale")
+
+
 class ChequeStatusChoices(models.TextChoices):
     PENDING = "pending", _("Pending")
     DEPOSITED = "deposited", _("Deposited")
@@ -34,6 +39,12 @@ class Client(TenantScopedModel):
     email = models.EmailField(_("Email"), blank=True)
     address = models.TextField(_("Address"), blank=True)
     wilaya = models.CharField(_("Wilaya"), max_length=2, choices=WILAYA_CHOICES, blank=True)
+    client_type = models.CharField(
+        _("Client Type"), max_length=10,
+        choices=ClientTypeChoices.choices,
+        default=ClientTypeChoices.RETAIL,
+        db_index=True,
+    )
 
     # Professional info (for wholesale clients)
     nif = models.CharField(_("NIF"), max_length=20, blank=True)

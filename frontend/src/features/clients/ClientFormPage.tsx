@@ -23,7 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
-import type { Client } from "@/types";
+import type { Client, ClientType } from "@/types";
 import { cn } from "@/lib/utils";
 import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
 
@@ -35,6 +35,7 @@ interface FormState {
   email: string;
   address: string;
   wilaya: string;
+  client_type: ClientType;
   nif: string;
   rc: string;
   credit_limit: string;
@@ -48,6 +49,7 @@ const EMPTY_FORM: FormState = {
   email: "",
   address: "",
   wilaya: "",
+  client_type: "retail",
   nif: "",
   rc: "",
   credit_limit: "0",
@@ -115,6 +117,7 @@ export default function ClientFormPage() {
       email: existingClient.email ?? "",
       address: existingClient.address ?? "",
       wilaya: existingClient.wilaya ?? "",
+      client_type: existingClient.client_type ?? "retail",
       nif: existingClient.nif ?? "",
       rc: existingClient.rc ?? "",
       credit_limit: existingClient.credit_limit ?? "0",
@@ -331,6 +334,36 @@ export default function ClientFormPage() {
               <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
                 Conditions commerciales
               </h2>
+
+              {/* Client type toggle */}
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-1.5">
+                  <Building2 size={11} className="flex-shrink-0" />
+                  Type de client
+                </label>
+                <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+                  {(["retail", "wholesale"] as ClientType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, client_type: t }))}
+                      className={cn(
+                        "flex-1 py-2 font-medium transition-colors",
+                        form.client_type === t
+                          ? "bg-primary-500 text-white"
+                          : "bg-surface text-text-muted hover:bg-surface/80"
+                      )}
+                    >
+                      {t === "retail" ? "Détail" : "Gros"}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-text-muted mt-1">
+                  {form.client_type === "retail"
+                    ? "Client particulier — éligible au programme fidélité."
+                    : "Partenaire grossiste — exclu du programme fidélité."}
+                </p>
+              </div>
 
               <Field
                 label="Limite de crédit (DZD)"

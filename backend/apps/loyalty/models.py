@@ -58,6 +58,22 @@ class LoyaltyProgram(TenantScopedModel):
         _("Minimum redeemable points"),
         default=500,
     )
+    silver_threshold = models.PositiveIntegerField(
+        _("Silver tier threshold (lifetime pts)"),
+        default=5_000,
+    )
+    gold_threshold = models.PositiveIntegerField(
+        _("Gold tier threshold (lifetime pts)"),
+        default=15_000,
+    )
+    silver_multiplier = models.DecimalField(
+        _("Silver tier earn multiplier"),
+        max_digits=4, decimal_places=2, default=Decimal("1.20"),
+    )
+    gold_multiplier = models.DecimalField(
+        _("Gold tier earn multiplier"),
+        max_digits=4, decimal_places=2, default=Decimal("1.50"),
+    )
     expiry_months = models.PositiveIntegerField(
         _("Point expiry (months)"),
         null=True,
@@ -75,11 +91,25 @@ class LoyaltyProgram(TenantScopedModel):
     def __str__(self) -> str:
         return f"Programme fidélité — {self.tenant}"
 
+    def tier_thresholds(self) -> list[tuple[str, int]]:
+        """Descending [(tier, min_lifetime_pts)] — highest match wins in recompute_tier."""
+        return [
+            (TierChoices.GOLD, self.gold_threshold),
+            (TierChoices.SILVER, self.silver_threshold),
+            (TierChoices.BRONZE, 0),
+        ]
+
+    def tier_multiplier(self, tier: str) -> Decimal:
+        if tier == TierChoices.GOLD:
+            return Decimal(self.gold_multiplier)
+        if tier == TierChoices.SILVER:
+            return Decimal(self.silver_multiplier)
+        return Decimal("1.0")
+
     def points_for_amount(self, amount: Decimal, tier: str = TierChoices.BRONZE) -> int:
         """Compute points to earn for a given sale amount, applying the tier multiplier."""
-        multiplier = TIER_MULTIPLIERS.get(tier, Decimal("1.0"))
         base = int(amount / 100) * self.points_per_100dzd
-        return int(Decimal(base) * multiplier)
+        return int(Decimal(base) * self.tier_multiplier(tier))
 
     def dzd_for_points(self, points: int) -> Decimal:
         """Convert a point amount into its DZD redemption value."""
@@ -113,9 +143,12 @@ class LoyaltyAccount(TenantScopedModel):
     def __str__(self) -> str:
         return f"{self.client} — {self.points_balance} pts ({self.get_tier_display()})"
 
-    def recompute_tier(self) -> bool:
+    def recompute_tier(self, program: "LoyaltyProgram | None" = None) -> bool:
         """Update tier based on lifetime total_earned. Returns True if tier changed."""
-        for tier, threshold in TIER_THRESHOLDS:
+        if program is None:
+            program = LoyaltyProgram.objects.filter(tenant_id=self.tenant_id, is_active=True).first()
+        thresholds = program.tier_thresholds() if program else TIER_THRESHOLDS
+        for tier, threshold in thresholds:
             if self.total_earned >= threshold:
                 if self.tier != tier:
                     self.tier = tier

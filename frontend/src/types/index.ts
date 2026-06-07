@@ -186,6 +186,8 @@ export interface Sale {
 export type ChequeStatus = "pending" | "deposited" | "bounced" | "cancelled";
 export type ChequeDirection = "receivable" | "payable";
 
+export type ClientType = "retail" | "wholesale";
+
 export interface Client {
   id: number;
   name: string;
@@ -193,6 +195,7 @@ export interface Client {
   email: string;
   address: string;
   wilaya: string;
+  client_type: ClientType;
   nif: string;
   rc: string;
   credit_limit: string;
@@ -457,6 +460,10 @@ export interface LoyaltyProgram {
   redemption_value: number;
   dzd_per_100_points: string;
   min_redemption_points: number;
+  silver_threshold: number;
+  gold_threshold: number;
+  silver_multiplier: string;
+  gold_multiplier: string;
   expiry_months: number | null;
   is_active: boolean;
   created_at: string;

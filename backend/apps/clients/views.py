@@ -21,7 +21,7 @@ from .serializers import (
 class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
-    filterset_fields = ["wilaya", "is_active"]
+    filterset_fields = ["wilaya", "is_active", "client_type"]
     search_fields = ["name", "phone", "nif", "rc"]
     ordering_fields = ["name", "cached_balance", "created_at"]
     ordering = ["name"]

@@ -12,12 +12,17 @@ export default function ClientsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [clientType, setClientType] = useState("");
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Client>>({
-    queryKey: ["clients", { search, page }],
-    queryFn: () =>
-      api.get(`/clients/?search=${search}&page=${page}&ordering=-cached_balance`).then((r) => r.data),
+    queryKey: ["clients", { search, clientType, page }],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), ordering: "-cached_balance" });
+      if (search) params.set("search", search);
+      if (clientType) params.set("client_type", clientType);
+      return api.get(`/clients/?${params}`).then((r) => r.data);
+    },
   });
 
   const clients = data?.results ?? [];
@@ -35,16 +40,27 @@ export default function ClientsPage() {
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="form-input ps-9"
-          placeholder="Nom, téléphone, NIF..."
-        />
+      {/* Search + type filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="form-input ps-9"
+            placeholder="Nom, téléphone, NIF..."
+          />
+        </div>
+        <select
+          value={clientType}
+          onChange={(e) => { setClientType(e.target.value); setPage(1); }}
+          className="form-input max-w-[160px]"
+        >
+          <option value="">Tous les types</option>
+          <option value="retail">Détail</option>
+          <option value="wholesale">Gros</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -80,7 +96,17 @@ export default function ClientsPage() {
                   onClick={() => navigate(`/clients/${client.id}`)}
                 >
                   <td>
-                    <div className="font-medium text-text-primary">{client.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-text-primary">{client.name}</span>
+                      <span className={cn(
+                        "text-2xs font-semibold px-1.5 py-0.5 rounded-full border",
+                        client.client_type === "wholesale"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      )}>
+                        {client.client_type === "wholesale" ? "Gros" : "Détail"}
+                      </span>
+                    </div>
                     {client.nif && <div className="text-xs text-text-muted">NIF: {client.nif}</div>}
                   </td>
                   <td>
