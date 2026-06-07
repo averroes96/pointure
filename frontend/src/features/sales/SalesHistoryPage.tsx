@@ -5,13 +5,19 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
-import type { Sale, SaleItem, PaymentMethod } from "@/types";
+import type { Sale, SaleItem, PaymentMethod, LoyaltyTier } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+
+const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon: typeof Star }> = {
+  bronze: { label: "Bronze", className: "text-amber-700 bg-amber-100", Icon: Medal },
+  silver: { label: "Silver", className: "text-slate-600 bg-slate-100", Icon: Star },
+  gold:   { label: "Gold",   className: "text-yellow-600 bg-yellow-100", Icon: Trophy },
+};
 
 const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Espèces" },
@@ -409,7 +415,25 @@ export default function SalesHistoryPage() {
                     </td>
                     <td className="text-text-muted text-sm">{formatDate(sale.created_at)}</td>
                     <td className="text-sm">{sale.cashier_name || "—"}</td>
-                    <td className="text-sm">{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">Comptoir</span>)}</td>
+                    <td className="text-sm">
+                      <div className="flex flex-col gap-0.5">
+                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">Comptoir</span>)}</span>
+                        {sale.loyalty_tier && (() => {
+                          const { label, className, Icon } = TIER_CONFIG[sale.loyalty_tier];
+                          return (
+                            <span className="flex items-center gap-1">
+                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-semibold ${className}`}>
+                                <Icon size={9} />
+                                {label}
+                              </span>
+                              <span className="text-2xs text-text-muted font-mono">
+                                {(sale.loyalty_points ?? 0).toLocaleString()} pts
+                              </span>
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </td>
                     <td>
                       <div className="flex flex-wrap gap-1">
                         {sale.payments?.map((p, i) => (

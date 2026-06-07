@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { downloadCSV } from "@/lib/csvExport";
+import { openPrintPopup } from "@/lib/printPopup";
 
 interface TopProduct {
   name: string;
@@ -64,6 +65,103 @@ function KPICard({
   );
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: "Espèces", cheque: "Chèque", ccp: "CCP",
+  virement: "Virement", account: "Compte client",
+};
+
+function buildDailyReportHtml(data: DailyReport, date: string): string {
+  const paymentRows = data.payment_breakdown
+    .map((r) => `
+      <tr>
+        <td>${PAYMENT_LABELS[r.method] ?? r.method}</td>
+        <td style="text-align:right;">${r.count}</td>
+        <td style="text-align:right;font-weight:600;">${Number(r.amount).toLocaleString("fr-DZ")} DZD</td>
+      </tr>`)
+    .join("");
+
+  const productRows = data.top_products.slice(0, 5)
+    .map((p, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.brand} ${p.name}</td>
+        <td style="text-align:right;">${p.units}</td>
+        <td style="text-align:right;font-weight:600;">${Number(p.revenue).toLocaleString("fr-DZ")} DZD</td>
+      </tr>`)
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Rapport journalier ${date}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:Arial,sans-serif; font-size:12px; color:#000; padding:12mm; }
+    h1  { font-size:18px; font-weight:700; margin-bottom:2px; }
+    h2  { font-size:13px; font-weight:600; margin:12px 0 6px; border-bottom:1px solid #ccc; padding-bottom:3px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0; }
+    .kpi  { border:1px solid #ddd; border-radius:6px; padding:8px 10px; }
+    .kpi-label { font-size:10px; color:#666; }
+    .kpi-value { font-size:15px; font-weight:700; margin-top:2px; }
+    table { width:100%; border-collapse:collapse; font-size:11px; }
+    th,td { padding:5px 8px; border-bottom:1px solid #eee; text-align:left; }
+    th { background:#f5f5f5; font-weight:600; font-size:10px; text-transform:uppercase; }
+    tfoot td { border-top:2px solid #ccc; font-weight:700; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px; }
+    @media print { @page { margin:0; } body { padding:8mm; } }
+  </style>
+</head>
+<body>
+  <h1>Rapport journalier</h1>
+  <p style="font-size:11px;color:#555;margin-top:2px;">Date&nbsp;: ${date}</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">CA du jour</div>
+      <div class="kpi-value">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Nb ventes</div>
+      <div class="kpi-value">${data.sale_count}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Articles vendus</div>
+      <div class="kpi-value">${data.items_sold}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Chèques reçus</div>
+      <div class="kpi-value">${Number(data.cheque_total).toLocaleString("fr-DZ")} DZD</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h2>Répartition des paiements</h2>
+      <table>
+        <thead><tr><th>Mode</th><th style="text-align:right;">Nb</th><th style="text-align:right;">Montant</th></tr></thead>
+        <tbody>${paymentRows}</tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td style="text-align:right;">${data.sale_count}</td>
+            <td style="text-align:right;">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div>
+      <h2>Top 5 articles</h2>
+      <table>
+        <thead><tr><th>#</th><th>Article</th><th style="text-align:right;">Qté</th><th style="text-align:right;">CA</th></tr></thead>
+        <tbody>${productRows}</tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 export default function DailyReportPage() {
   const { t } = useTranslation();
   const [date, setDate] = useState<string>(todayISO());
@@ -101,7 +199,7 @@ export default function DailyReportPage() {
           <h1 className="text-xl font-bold text-text-primary">Rapport journalier</h1>
           <p className="text-sm text-text-muted">Synthèse des ventes par jour</p>
         </div>
-        <button onClick={() => window.print()} className="btn-secondary">
+        <button onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date), "210mm", 15)} disabled={!data} className="btn-secondary">
           <Printer size={16} />
           Imprimer
         </button>

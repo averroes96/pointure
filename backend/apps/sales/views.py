@@ -13,7 +13,11 @@ from .serializers import CreateReturnSerializer, CreateSaleSerializer, SaleSeria
 
 
 class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    queryset = Sale.objects.prefetch_related("items__variant__product", "payments")
+    queryset = Sale.objects.prefetch_related(
+        "items__variant__product",
+        "payments",
+        "client__loyalty_accounts",
+    )
     serializer_class = SaleSerializer
     filterset_fields = ["branch", "cashier", "status", "client"]
     search_fields = ["receipt_number"]
@@ -44,7 +48,17 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def returns(self, request, pk=None):
         """Process a return for this sale."""
         sale = self.get_object()
-        serializer = CreateReturnSerializer(data=request.data)
+        if sale.status == "refunded":
+            return Response(
+                {"detail": "Cette vente a déjà été entièrement remboursée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if sale.status != "completed":
+            return Response(
+                {"detail": "Seules les ventes complétées peuvent être retournées."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = CreateReturnSerializer(data=request.data, context={"sale": sale})
         serializer.is_valid(raise_exception=True)
         return_obj = serializer.create_return(sale, processed_by=request.user)
         return Response(

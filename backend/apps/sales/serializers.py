@@ -2,6 +2,7 @@
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
@@ -32,11 +33,30 @@ class SaleSerializer(serializers.ModelSerializer):
     amount_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True)
     client_name = serializers.CharField(source="client.name", default=None, read_only=True)
+    loyalty_tier = serializers.SerializerMethodField()
+    loyalty_points = serializers.SerializerMethodField()
+
+    def _loyalty_account(self, obj):
+        if not obj.client_id:
+            return None
+        for acct in obj.client.loyalty_accounts.all():
+            if acct.tenant_id == obj.tenant_id:
+                return acct
+        return None
+
+    def get_loyalty_tier(self, obj):
+        acct = self._loyalty_account(obj)
+        return acct.tier if acct else None
+
+    def get_loyalty_points(self, obj):
+        acct = self._loyalty_account(obj)
+        return acct.points_balance if acct else None
 
     class Meta:
         model = Sale
         fields = [
-            "id", "branch", "cashier", "cashier_name", "client", "client_name", "status",
+            "id", "branch", "cashier", "cashier_name", "client", "client_name",
+            "loyalty_tier", "loyalty_points", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due",
             "receipt_number", "notes", "items", "payments", "created_at",
         ]
@@ -346,6 +366,46 @@ class CreateReturnSerializer(serializers.Serializer):
     refund_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
     refund_method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
 
+    def validate(self, data):
+        sale = self.context.get("sale")
+        if not sale:
+            return data
+
+        # Build a map of how many units of each variant were sold
+        sold_qty: dict[int, int] = {
+            item.variant_id: item.quantity for item in sale.items.all()
+        }
+
+        # Build a map of how many units have already been returned across all prior returns
+        already_returned: dict[int, int] = {}
+        qs = ReturnItem.objects.filter(
+            return_obj__original_sale=sale
+        ).values("variant_id").annotate(total=Sum("quantity"))
+        for row in qs:
+            already_returned[row["variant_id"]] = row["total"]
+
+        errors = []
+        for item in data["items"]:
+            vid = item["variant_id"]
+            new_qty = item["quantity"]
+            original = sold_qty.get(vid)
+            if original is None:
+                errors.append(
+                    f"La variante {vid} ne fait pas partie de cette vente."
+                )
+                continue
+            already = already_returned.get(vid, 0)
+            if already + new_qty > original:
+                remaining = original - already
+                errors.append(
+                    f"Variante {vid}&nbsp;: {already} déjà retourné(s), "
+                    f"maximum {remaining} retournable(s)."
+                )
+        if errors:
+            raise serializers.ValidationError({"items": errors})
+
+        return data
+
     @transaction.atomic
     def create_return(self, sale, processed_by):
         tenant = sale.tenant
@@ -380,6 +440,20 @@ class CreateReturnSerializer(serializers.Serializer):
                 )
 
         self._reverse_loyalty(sale, return_obj, data["refund_amount"])
+
+        # Mark sale as refunded if every sold item is now fully returned
+        sold = {item.variant_id: item.quantity for item in sale.items.all()}
+        returned = dict(
+            ReturnItem.objects
+            .filter(return_obj__original_sale=sale)
+            .values("variant_id")
+            .annotate(total=Sum("quantity"))
+            .values_list("variant_id", "total")
+        )
+        if all(returned.get(vid, 0) >= qty for vid, qty in sold.items()):
+            sale.status = "refunded"
+            sale.save(update_fields=["status"])
+
         return return_obj
 
     @staticmethod

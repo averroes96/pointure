@@ -165,6 +165,8 @@ export interface Sale {
   cashier_name: string;
   client: number | null;
   client_name: string | null;
+  loyalty_tier: LoyaltyTier | null;
+  loyalty_points: number | null;
   status: SaleStatus;
   total_amount: string;
   discount_amount: string;
