@@ -442,6 +442,65 @@ export interface Notification {
 }
 
 // ─────────────────────────────────────────────
+// Loyalty
+// ─────────────────────────────────────────────
+
+export type LoyaltyTier = "bronze" | "silver" | "gold";
+export type LoyaltyTransactionType = "earn" | "redeem" | "adjust" | "expire";
+
+export interface LoyaltyProgram {
+  id: number;
+  points_per_100dzd: number;
+  redemption_value: number;
+  dzd_per_100_points: string;
+  min_redemption_points: number;
+  expiry_months: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyTransaction {
+  id: number;
+  points: number;
+  transaction_type: LoyaltyTransactionType;
+  reference_type: string;
+  reference_id: string;
+  description: string;
+  balance_after: number;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface LoyaltyAccount {
+  id: number;
+  client: number;
+  client_name: string;
+  client_phone: string;
+  points_balance: number;
+  total_earned: number;
+  tier: LoyaltyTier;
+  tier_display: string;
+  next_tier: LoyaltyTier | null;
+  points_to_next_tier: number | null;
+  enrolled_at: string;
+  transactions: LoyaltyTransaction[];
+}
+
+export interface LoyaltyAccountSummary {
+  id: number;
+  client: number;
+  client_name: string;
+  points_balance: number;
+  total_earned: number;
+  tier: LoyaltyTier;
+  tier_display: string;
+  next_tier: LoyaltyTier | null;
+  points_to_next_tier: number | null;
+  enrolled_at: string;
+}
+
+// ─────────────────────────────────────────────
 // Auth
 // ─────────────────────────────────────────────
 

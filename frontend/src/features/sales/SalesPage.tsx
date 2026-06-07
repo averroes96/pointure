@@ -1,20 +1,20 @@
 /**
  * POS Sales Screen
  * - Left panel: product search (by name or barcode HID input)
- * - Right panel: cart with line items, discount, payment split
+ * - Right panel: client selector, cart, loyalty redemption, payment
  * - Keyboard: F2 = focus search, F10 = confirm sale
- * - Fully operable via keyboard alone (barcode scanner workflows)
  */
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Product, Sale, Variant } from "@/types";
+import type { Client, Product, Sale, Variant, LoyaltyAccountSummary, LoyaltyProgram } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
 
 interface CartItem {
   variant: Variant;
@@ -32,6 +32,229 @@ interface PaymentLine {
   amount: number;
 }
 
+const TIER_ICON = { bronze: Medal, silver: Star, gold: Trophy } as const;
+const TIER_COLOUR = {
+  bronze: "text-amber-700 bg-amber-50",
+  silver: "text-slate-600 bg-slate-100",
+  gold: "text-yellow-700 bg-yellow-50",
+} as const;
+
+// ── Quick-create client modal ─────────────────────────────────────────────
+
+function CreateClientModal({
+  prefillName,
+  onCreated,
+  onClose,
+}: {
+  prefillName: string;
+  onCreated: (c: Client) => void;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(prefillName);
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.post("/clients/", { name: name.trim(), phone: phone.trim() }).then((r) => r.data),
+    onSuccess: (client: Client) => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      onCreated(client);
+    },
+    onError: (err) => setError(getApiError(err)),
+  });
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) { setError("Le nom est obligatoire."); return; }
+    setError("");
+    mutation.mutate();
+  }
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+          <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
+            <UserPlus size={16} className="text-primary-500" />
+          </div>
+          <h3 className="font-semibold text-text-primary">Nouveau client</h3>
+          <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="px-5 py-4 space-y-3">
+          {error && (
+            <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2">{error}</div>
+          )}
+          <div>
+            <label className="form-label">Nom <span className="text-danger">*</span></label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="form-input"
+              placeholder="Nom complet"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="form-label">Téléphone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="form-input"
+              placeholder="0x xx xx xx xx"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Annuler
+            </button>
+            <button type="submit" className="btn-primary flex-1" disabled={mutation.isPending}>
+              {mutation.isPending ? "Création…" : "Créer et sélectionner"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Client selector combobox ──────────────────────────────────────────────
+
+function ClientSelector({
+  selected,
+  onSelect,
+  onClear,
+}: {
+  selected: Client | null;
+  onSelect: (c: Client) => void;
+  onClear: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data, isFetching } = useQuery<PaginatedResponse<Client>>({
+    queryKey: ["clients", "pos", search],
+    queryFn: () =>
+      api.get(`/clients/?search=${encodeURIComponent(search)}&page_size=6`).then((r) => r.data),
+    enabled: search.length >= 2,
+  });
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 border border-primary-100">
+        <UserCircle size={15} className="text-primary-500 flex-shrink-0" />
+        <span className="text-sm font-medium text-primary-700 flex-1 truncate">{selected.name}</span>
+        {selected.phone && (
+          <span className="text-xs text-primary-400">{selected.phone}</span>
+        )}
+        <button onClick={onClear} className="text-primary-400 hover:text-primary-600">
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  const hasResults = !!data && data.results.length > 0;
+  const showDropdown = open && search.length >= 2 && !isFetching;
+
+  return (
+    <>
+      {showCreate && (
+        <CreateClientModal
+          prefillName={search}
+          onCreated={(c) => { onSelect(c); setSearch(""); setOpen(false); setShowCreate(false); }}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
+
+      <div ref={ref} className="relative">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-white">
+          <User size={14} className="text-text-muted flex-shrink-0" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Rechercher un client (nom, téléphone)…"
+            className="flex-1 text-sm outline-none bg-transparent text-text-primary placeholder:text-text-muted"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="flex-shrink-0 text-xs flex items-center gap-1 text-primary-500 hover:text-primary-700 font-medium"
+            title="Créer un nouveau client"
+          >
+            <UserPlus size={14} />
+          </button>
+        </div>
+
+        {showDropdown && (
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-lg overflow-hidden">
+            {hasResults ? (
+              <>
+                {data.results.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => { onSelect(c); setSearch(""); setOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-surface transition-colors border-b border-border last:border-0"
+                  >
+                    <UserCircle size={14} className="text-text-muted flex-shrink-0" />
+                    <span className="text-sm font-medium text-text-primary">{c.name}</span>
+                    {c.phone && <span className="text-xs text-text-muted ml-auto">{c.phone}</span>}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setShowCreate(true); setOpen(false); }}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
+                >
+                  <UserPlus size={14} />
+                  Créer "{search}"
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setShowCreate(true); setOpen(false); }}
+                className="flex items-center gap-2 w-full px-3 py-3 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                <UserPlus size={14} />
+                Créer le client "{search}"
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────
+
 export default function SalesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -42,9 +265,14 @@ export default function SalesPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartDiscount, setCartDiscount] = useState(0);
   const [payments, setPayments] = useState<PaymentLine[]>([{ method: "cash", amount: 0 }]);
-  const [receipt, setReceipt] = useState<Sale | null>(null);
+  const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState(0);
+
   const { user } = useAuth();
   const { currentBranch } = useBranch();
+  const { canAccess } = usePlan();
+  const hasLoyalty = canAccess("pro_retail");
 
   // F2 / F10 keyboard shortcuts
   useEffect(() => {
@@ -56,7 +284,7 @@ export default function SalesPage() {
     return () => window.removeEventListener("keydown", handler);
   });
 
-  // Product search query
+  // Product search
   const { data: productResults } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", "pos-search", search],
     queryFn: () =>
@@ -72,8 +300,32 @@ export default function SalesPage() {
     enabled: search.length >= 8 && /^\d+$/.test(search),
   });
 
-  const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity - item.discount, 0) - cartDiscount;
-  const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+  // Loyalty program config — only fetch for pro_retail+ plans
+  const { data: programData } = useQuery<{ results: LoyaltyProgram[] }>({
+    queryKey: ["loyalty-program"],
+    queryFn: () => api.get("/loyalty/programs/").then((r) => r.data),
+    enabled: hasLoyalty,
+    staleTime: 5 * 60 * 1000,
+  });
+  const loyaltyProgram = programData?.results?.[0] ?? null;
+
+  // Client's loyalty account — only when a client is selected and plan allows it
+  const { data: loyaltyAccount } = useQuery<LoyaltyAccountSummary>({
+    queryKey: ["loyalty-account-summary", selectedClient?.id],
+    queryFn: () =>
+      api.get(`/loyalty/accounts/by-client/?client_id=${selectedClient!.id}`).then((r) => r.data),
+    enabled: hasLoyalty && !!selectedClient && !!loyaltyProgram?.is_active,
+    retry: false,
+  });
+
+  // Redemption DZD: floor(pts / redemption_value * 100)
+  const redemptionDzd = redeemPoints > 0 && loyaltyProgram
+    ? Math.floor(redeemPoints / loyaltyProgram.redemption_value * 100)
+    : 0;
+
+  const itemsTotal = cart.reduce((s, i) => s + i.unit_price * i.quantity - i.discount, 0);
+  const total = Math.max(0, itemsTotal - cartDiscount - redemptionDzd);
+  const paymentTotal = payments.reduce((s, p) => s + p.amount, 0);
 
   const addToCart = (variant: Variant, product: Product) => {
     setCart((prev) => {
@@ -83,29 +335,16 @@ export default function SalesPage() {
           i.variant.id === variant.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, {
-        variant,
-        product,
-        quantity: 1,
-        unit_price: parseFloat(product.sale_price),
-        discount: 0,
-      }];
+      return [...prev, { variant, product, quantity: 1, unit_price: parseFloat(product.sale_price), discount: 0 }];
     });
     setSearch("");
     setSelectedProduct(null);
-    // Sync the cash payment to the new cart total.
-    // We compute the new total from the updater function's result rather than
-    // reading the stale `total` closure, so we use a functional setCart pattern.
-    // The easiest correct approach: reset to 0 here and let the useEffect below
-    // keep it in sync whenever cart changes.
   };
 
   const updateQuantity = (variantId: number, delta: number) => {
     setCart((prev) =>
       prev.map((i) =>
-        i.variant.id === variantId
-          ? { ...i, quantity: Math.max(1, i.quantity + delta) }
-          : i
+        i.variant.id === variantId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i
       )
     );
   };
@@ -114,9 +353,7 @@ export default function SalesPage() {
     setCart((prev) => prev.filter((i) => i.variant.id !== variantId));
   };
 
-  // Keep the first payment line in sync with the cart total whenever the cart
-  // or discount changes. Only auto-update if the user hasn't manually edited
-  // a non-cash payment or split the payment across multiple methods.
+  // Auto-sync first payment line to total
   useEffect(() => {
     if (payments.length === 1 && payments[0].method === "cash") {
       setPayments([{ method: "cash", amount: Math.max(0, total) }]);
@@ -127,8 +364,6 @@ export default function SalesPage() {
   // Sale mutation
   const saleMutation = useMutation({
     mutationFn: () => {
-      // Guarantee at least one payment line — fall back to full total in cash
-      // if the user left all amounts at 0.
       const effectivePayments = payments.filter((p: PaymentLine) => p.amount > 0);
       const paymentLines: PaymentLine[] = effectivePayments.length > 0
         ? effectivePayments
@@ -136,6 +371,8 @@ export default function SalesPage() {
 
       return api.post("/sales/", {
         branch: currentBranch?.id ?? null,
+        client_id: selectedClient?.id ?? null,
+        redeem_points: redeemPoints,
         items: cart.map((i) => ({
           variant_id: i.variant.id,
           quantity: i.quantity,
@@ -153,8 +390,11 @@ export default function SalesPage() {
       setReceipt(data);
       setCart([]);
       setCartDiscount(0);
+      setRedeemPoints(0);
       setPayments([{ method: "cash", amount: 0 }]);
+      setSelectedClient(null);
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
     },
   });
 
@@ -163,25 +403,45 @@ export default function SalesPage() {
     saleMutation.mutate();
   }
 
-  // After barcode scan, auto-add to cart
+  // Auto barcode scan → add to cart
   useEffect(() => {
     if (barcodeResult?.results?.length === 1) {
       const variant = barcodeResult.results[0];
-      // Fetch product info
       api.get(`/inventory/products/${variant.product}/`).then((r) => {
         addToCart(variant, r.data);
       });
     }
   }, [barcodeResult]);
 
+  // ── Receipt screen ────────────────────────────────────────────────────
+
   if (receipt) {
+    const ptsEarned = receipt.points_earned ?? 0;
+    const ptsRedeemed = receipt.points_redeemed ?? 0;
     return (
       <div className="max-w-sm mx-auto text-center py-12">
         <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
           <Check size={32} className="text-success" />
         </div>
         <h2 className="text-xl font-bold text-text-primary mb-2">Vente confirmée!</h2>
-        <p className="text-text-muted text-sm mb-4">Reçu: <strong>{receipt.receipt_number}</strong></p>
+        <p className="text-text-muted text-sm mb-3">Reçu: <strong>{receipt.receipt_number}</strong></p>
+
+        {(ptsEarned > 0 || ptsRedeemed > 0) && (
+          <div className="mb-4 rounded-xl bg-primary-50 border border-primary-100 p-3 text-sm">
+            {ptsRedeemed > 0 && (
+              <p className="text-primary-700">
+                <Gift size={14} className="inline mr-1" />
+                {ptsRedeemed} points rachetés (−{redemptionDzd} DZD)
+              </p>
+            )}
+            {ptsEarned > 0 && (
+              <p className="text-success font-semibold mt-1">
+                +{ptsEarned} points de fidélité gagnés
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-3 justify-center flex-wrap">
           <button className="btn-secondary" onClick={() => setReceipt(null)}>
             Nouvelle vente
@@ -207,6 +467,12 @@ export default function SalesPage() {
       </div>
     );
   }
+
+  // ── POS layout ────────────────────────────────────────────────────────
+
+  const canRedeem = !!loyaltyAccount &&
+    !!loyaltyProgram?.is_active &&
+    loyaltyAccount.points_balance >= (loyaltyProgram?.min_redemption_points ?? 999999);
 
   return (
     <div className="flex gap-4 h-[calc(100vh-120px)]">
@@ -254,7 +520,6 @@ export default function SalesPage() {
                   </div>
                 </div>
 
-                {/* Variant selector */}
                 {selectedProduct?.id === product.id && (
                   <div className="px-4 pb-3 bg-primary-50">
                     <div className="text-xs text-text-muted mb-2">Choisir pointure et couleur:</div>
@@ -300,6 +565,61 @@ export default function SalesPage() {
             </h2>
           </div>
 
+          {/* Client selector */}
+          <div className="px-4 py-3 border-b border-border">
+            <ClientSelector
+              selected={selectedClient}
+              onSelect={(c) => { setSelectedClient(c); setRedeemPoints(0); }}
+              onClear={() => { setSelectedClient(null); setRedeemPoints(0); }}
+            />
+
+            {/* Loyalty account info */}
+            {loyaltyAccount && loyaltyProgram?.is_active && (
+              <div className="mt-2.5 flex items-center gap-2">
+                {(() => {
+                  const TierIcon = TIER_ICON[loyaltyAccount.tier];
+                  return (
+                    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold", TIER_COLOUR[loyaltyAccount.tier])}>
+                      <TierIcon size={11} />
+                      {loyaltyAccount.tier_display}
+                    </span>
+                  );
+                })()}
+                <span className="text-xs text-text-muted">
+                  <strong className="text-text-primary">{loyaltyAccount.points_balance.toLocaleString()}</strong> pts disponibles
+                </span>
+
+                {canRedeem && (
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <Gift size={13} className="text-primary-500" />
+                    <input
+                      type="number"
+                      value={redeemPoints || ""}
+                      onChange={(e) => {
+                        const v = Math.min(
+                          parseInt(e.target.value) || 0,
+                          loyaltyAccount.points_balance
+                        );
+                        setRedeemPoints(v);
+                      }}
+                      min={0}
+                      max={loyaltyAccount.points_balance}
+                      step={loyaltyProgram.min_redemption_points}
+                      placeholder="Pts"
+                      className="w-20 px-2 py-1 text-xs border border-border rounded text-center font-mono"
+                    />
+                    {redeemPoints > 0 && (
+                      <span className="text-xs text-primary-600 font-medium whitespace-nowrap">
+                        = −{redemptionDzd} DZD
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Cart items */}
           <div className="flex-1 overflow-auto divide-y divide-border">
             {cart.length === 0 && (
               <div className="py-12 text-center text-text-muted text-sm">
@@ -378,6 +698,15 @@ export default function SalesPage() {
               />
               <span className="text-xs">DZD</span>
             </div>
+
+            {/* Redemption row */}
+            {redemptionDzd > 0 && (
+              <div className="flex items-center gap-2 text-primary-600">
+                <Gift size={13} />
+                <span className="text-sm flex-1">Remise fidélité ({redeemPoints} pts)</span>
+                <span className="text-sm font-mono font-medium">−{formatDZD(redemptionDzd)} DZD</span>
+              </div>
+            )}
 
             {/* Total */}
             <div className="flex items-center justify-between py-2 border-t border-border">

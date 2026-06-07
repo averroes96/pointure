@@ -28,16 +28,23 @@ import {
   Building2,
   X,
   Pencil,
+  Gift,
+  Trophy,
+  Star,
+  Medal,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
-import type { Client, ClientLedgerEntry, Cheque, Invoice } from "@/types";
+import type { Client, ClientLedgerEntry, Cheque, Invoice, LoyaltyAccount, LoyaltyTransaction } from "@/types";
 import { cn, whatsappLink, getStatusBadgeClass } from "@/lib/utils";
 import { wilayaLabel } from "@/lib/wilayas";
+import { useAuth } from "@/features/auth/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type ActiveTab = "info" | "ledger" | "cheques" | "invoices";
+type ActiveTab = "info" | "ledger" | "cheques" | "invoices" | "loyalty";
 
 interface PaymentFormState {
   amount: string;
@@ -58,6 +65,7 @@ const TABS: { key: ActiveTab; label: string }[] = [
   { key: "ledger", label: "Relevé de compte" },
   { key: "cheques", label: "Chèques" },
   { key: "invoices", label: "Factures" },
+  { key: "loyalty", label: "Fidélité" },
 ];
 
 // ── Info Field helper ──────────────────────────────────────────────────────
@@ -751,12 +759,218 @@ function InvoicesTab({ clientId }: { clientId: number }) {
   );
 }
 
+// ── Loyalty Tab ───────────────────────────────────────────────────────────
+
+const TIER_CONFIG = {
+  bronze: { label: "Bronze", colour: "text-amber-700 bg-amber-50 border-amber-200", icon: Medal, bar: "bg-amber-500" },
+  silver: { label: "Argent", colour: "text-slate-600 bg-slate-50 border-slate-200", icon: Star, bar: "bg-slate-500" },
+  gold: { label: "Or", colour: "text-yellow-700 bg-yellow-50 border-yellow-300", icon: Trophy, bar: "bg-yellow-500" },
+} as const;
+
+const TX_CONFIG: Record<string, { label: string; colour: string }> = {
+  earn:   { label: "Gain",          colour: "text-success" },
+  redeem: { label: "Rachat",        colour: "text-primary-600" },
+  adjust: { label: "Ajustement",    colour: "text-text-muted" },
+  expire: { label: "Expiration",    colour: "text-danger" },
+};
+
+function LoyaltyTab({ clientId }: { clientId: number }) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const isManager = user?.role === "owner" || user?.role === "manager";
+
+  const [adjustPoints, setAdjustPoints] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjustToast, setAdjustToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const { data: account, isLoading, isError } = useQuery<LoyaltyAccount>({
+    queryKey: ["loyalty-account", clientId],
+    queryFn: () =>
+      api.get(`/loyalty/accounts/by-client/?client_id=${clientId}`).then((r) => {
+        // by-client returns summary; fetch full account with transactions
+        return api.get(`/loyalty/accounts/${r.data.id}/`).then((r2) => r2.data);
+      }),
+    retry: 1,
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/loyalty/accounts/${account!.id}/adjust/`, {
+        points: parseInt(adjustPoints),
+        description: adjustNote || "Ajustement manuel",
+      }).then((r) => r.data),
+    onSuccess: () => {
+      setAdjustToast({ msg: "Ajustement enregistré.", type: "success" });
+      setAdjustPoints("");
+      setAdjustNote("");
+      qc.invalidateQueries({ queryKey: ["loyalty-account", clientId] });
+    },
+    onError: (err) => setAdjustToast({ msg: getApiError(err), type: "error" }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="card p-6 space-y-3 animate-pulse">
+        <div className="h-20 bg-border rounded-xl" />
+        <div className="h-40 bg-border rounded-xl" />
+      </div>
+    );
+  }
+
+  if (isError || !account) {
+    return (
+      <div className="card p-8 text-center">
+        <Gift size={36} className="mx-auto text-text-muted mb-3 opacity-40" />
+        <p className="text-sm font-medium text-text-primary">Ce client n'a pas encore de compte fidélité.</p>
+        <p className="text-xs text-text-muted mt-1">
+          Un compte est créé automatiquement lors de sa première vente avec un programme de fidélité actif.
+        </p>
+      </div>
+    );
+  }
+
+  const tierCfg = TIER_CONFIG[account.tier];
+  const TierIcon = tierCfg.icon;
+  const nextTierPts = account.points_to_next_tier;
+  const progressPct = nextTierPts
+    ? Math.round(((account.total_earned % (account.total_earned + nextTierPts)) / (account.total_earned + nextTierPts)) * 100)
+    : 100;
+
+  return (
+    <div className="space-y-4">
+      {/* Header card */}
+      <div className="card p-5">
+        <div className="flex items-center gap-4">
+          <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border-2", tierCfg.colour)}>
+            <TierIcon size={26} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn("text-xs font-bold px-2.5 py-0.5 rounded-full border", tierCfg.colour)}>
+                {tierCfg.label}
+              </span>
+              {account.next_tier && (
+                <span className="text-xs text-text-muted">
+                  → {TIER_CONFIG[account.next_tier as keyof typeof TIER_CONFIG]?.label}
+                </span>
+              )}
+            </div>
+            <p className="text-2xl font-bold text-text-primary">
+              {account.points_balance.toLocaleString()} pts
+            </p>
+            <p className="text-xs text-text-muted">{account.total_earned.toLocaleString()} pts cumulés au total</p>
+          </div>
+          {account.next_tier && nextTierPts && (
+            <div className="text-right text-xs text-text-muted">
+              <p className="font-medium text-text-primary">{nextTierPts.toLocaleString()} pts</p>
+              <p>pour passer {TIER_CONFIG[account.next_tier as keyof typeof TIER_CONFIG]?.label}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        {account.next_tier && (
+          <div className="mt-4">
+            <div className="h-2 bg-border rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all", tierCfg.bar)}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-1 text-2xs text-text-muted">
+              <span>{account.tier}</span>
+              <span>{account.next_tier}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manual adjustment (manager+) */}
+      {isManager && (
+        <div className="card p-4">
+          <h3 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+            <TrendingUp size={15} />
+            Ajustement manuel
+          </h3>
+          {adjustToast && (
+            <div className={cn(
+              "mb-3 rounded-lg px-3 py-2 text-xs font-medium",
+              adjustToast.type === "success" ? "bg-success-light text-success" : "bg-danger-light text-danger"
+            )}>
+              {adjustToast.msg}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={adjustPoints}
+              onChange={(e) => setAdjustPoints(e.target.value)}
+              placeholder="Points (ex: +100 ou -50)"
+              className="form-input flex-1 text-sm"
+            />
+            <input
+              type="text"
+              value={adjustNote}
+              onChange={(e) => setAdjustNote(e.target.value)}
+              placeholder="Motif (optionnel)"
+              className="form-input flex-1 text-sm"
+            />
+            <button
+              onClick={() => adjustMutation.mutate()}
+              disabled={!adjustPoints || adjustMutation.isPending}
+              className="btn-primary btn-sm"
+            >
+              Appliquer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction history */}
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-text-primary">Historique des points</h3>
+        </div>
+        {account.transactions.length === 0 ? (
+          <div className="py-8 text-center text-sm text-text-muted">Aucune transaction.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {account.transactions.map((tx: LoyaltyTransaction) => {
+              const cfg = TX_CONFIG[tx.transaction_type] ?? { label: tx.transaction_type, colour: "" };
+              return (
+                <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className={cn(
+                    "text-sm font-bold font-mono w-16 text-right flex-shrink-0",
+                    tx.points > 0 ? "text-success" : "text-danger"
+                  )}>
+                    {tx.points > 0 ? "+" : ""}{tx.points}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-text-primary truncate">{tx.description || cfg.label}</p>
+                    <p className="text-xs text-text-muted">{formatDate(tx.created_at)}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-text-muted">Solde</p>
+                    <p className="text-sm font-mono font-medium">{tx.balance_after.toLocaleString()}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const clientId = Number(id);
+  const { canAccess } = usePlan();
+  const hasLoyalty = canAccess("pro_retail");
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("info");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -865,7 +1079,7 @@ export default function ClientDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-border overflow-x-auto">
-          {TABS.map((tab) => (
+          {TABS.filter((t) => t.key !== "loyalty" || hasLoyalty).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -888,6 +1102,7 @@ export default function ClientDetailPage() {
         {activeTab === "ledger" && <LedgerTab clientId={clientId} />}
         {activeTab === "cheques" && <ChequesTab clientId={clientId} />}
         {activeTab === "invoices" && <InvoicesTab clientId={clientId} />}
+        {activeTab === "loyalty" && hasLoyalty && <LoyaltyTab clientId={clientId} />}
       </div>
 
       {/* Payment modal */}

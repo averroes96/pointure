@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart,
-  Settings, ShoppingBag, ArrowLeftRight, Shield,
+  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -75,6 +75,7 @@ function useNavSections(): NavSection[] {
         { to: "/clients", labelKey: "nav.client_list", icon: Users, managerOnly: true },
         { to: "/clients/ageing", labelKey: "nav.debt_ageing", icon: TrendingDown, managerOnly: true },
         { to: "/cheques", labelKey: "nav.cheque_tracker", icon: CreditCard, managerOnly: true },
+        { to: "/loyalty", label: "Fidélité", icon: Gift, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
     {

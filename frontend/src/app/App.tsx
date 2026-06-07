@@ -70,6 +70,9 @@ const StockReportPage = lazy(() => import("@/features/reports/StockReportPage"))
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const AuditLogPage = lazy(() => import("@/features/settings/AuditLogPage"));
 
+// Loyalty
+const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
+
 // UI
 const UpgradePromptModal = lazy(() => import("@/components/ui/UpgradePromptModal"));
 
@@ -175,6 +178,9 @@ function AppRoutes() {
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/audit-log" element={<AuditLogPage />} />
+
+          {/* Loyalty */}
+          <Route path="loyalty" element={<LoyaltyPage />} />
 
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
