@@ -3,9 +3,11 @@ import logging
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.plan_permissions import PlanRequired
 from .models import (
     LoyaltyAccount,
     LoyaltyProgram,
@@ -16,21 +18,23 @@ from .serializers import (
     LoyaltyAccountSerializer,
     LoyaltyAccountSummarySerializer,
     LoyaltyProgramSerializer,
-    LoyaltyTransactionSerializer,
 )
 
 logger = logging.getLogger(__name__)
+
+_LOYALTY_PLAN = "pro_retail"
 
 
 class LoyaltyProgramViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """
     CRUD for a tenant's loyalty programme configuration.
     Each tenant should have at most one program; the UI enforces this.
-    Owner-only for write operations.
+    Owner-only for write operations. Requires plan >= pro_retail.
     """
 
     queryset = LoyaltyProgram.objects.all()
     serializer_class = LoyaltyProgramSerializer
+    permission_classes = [IsAuthenticated, PlanRequired(_LOYALTY_PLAN)]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def perform_create(self, serializer):
@@ -49,12 +53,14 @@ class LoyaltyProgramViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """
     Read-only list/retrieve for loyalty accounts.
-    Managers and owners can look up any account.
-    Provides a 'by-client' shortcut and a manual 'adjust' action.
+    Requires plan >= pro_retail.
+    Provides a 'by-client' shortcut (auto-creates account if missing) and
+    a manual 'adjust' action.
     """
 
     queryset = LoyaltyAccount.objects.select_related("client").prefetch_related("transactions")
     serializer_class = LoyaltyAccountSerializer
+    permission_classes = [IsAuthenticated, PlanRequired(_LOYALTY_PLAN)]
     filterset_fields = ["client", "tier"]
     search_fields = ["client__name", "client__phone"]
     ordering_fields = ["points_balance", "total_earned", "enrolled_at"]
@@ -64,8 +70,12 @@ class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelView
     def by_client(self, request):
         """
         GET /loyalty/accounts/by-client/?client_id=<id>
-        Used by the POS to fetch a client's account without knowing the account PK.
-        Returns the summary serializer (no transaction history) for speed.
+
+        Used by the POS and client detail page.
+        - If an account already exists: return it.
+        - If no account exists but the tenant has an active programme: create
+          one (Bronze, 0 pts) and return it.
+        - If no programme is configured: return 404.
         """
         client_id = request.query_params.get("client_id")
         if not client_id:
@@ -73,16 +83,37 @@ class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelView
                 {"detail": "client_id est requis."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         account = (
             LoyaltyAccount.objects.filter(tenant=request.tenant, client_id=client_id)
             .select_related("client")
             .first()
         )
+
         if not account:
-            return Response(
-                {"detail": "Aucun compte fidélité trouvé."},
-                status=status.HTTP_404_NOT_FOUND,
+            # Auto-create if an active programme exists for this tenant
+            program = LoyaltyProgram.objects.filter(
+                tenant=request.tenant, is_active=True
+            ).first()
+            if not program:
+                return Response(
+                    {"detail": "Aucun programme de fidélité actif pour ce commerce."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            from apps.clients.models import Client
+            try:
+                client = Client.objects.get(pk=client_id, tenant=request.tenant)
+            except Client.DoesNotExist:
+                return Response(
+                    {"detail": "Client introuvable."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            account, _ = LoyaltyAccount.objects.get_or_create(
+                tenant=request.tenant,
+                client=client,
+                defaults={"tier": "bronze"},
             )
+
         return Response(LoyaltyAccountSummarySerializer(account).data)
 
     @action(detail=True, methods=["post"], url_path="adjust")
@@ -111,7 +142,6 @@ class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelView
         if points > 0:
             account.total_earned += points
             account.recompute_tier()
-        # Prevent negative balance
         if account.points_balance < 0:
             account.points_balance = 0
         account.save()
