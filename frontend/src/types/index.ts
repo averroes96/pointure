@@ -138,7 +138,7 @@ export interface StockTransfer {
 // ─────────────────────────────────────────────
 
 export type PaymentMethod = "cash" | "cheque" | "ccp" | "virement" | "account";
-export type SaleStatus = "completed" | "cancelled" | "refunded";
+export type SaleStatus = "completed" | "cancelled" | "refunded" | "partially_paid";
 
 export interface SaleItem {
   id: number;
@@ -174,9 +174,17 @@ export interface Sale {
   balance_due: string;
   receipt_number: string;
   notes: string;
+  due_date: string | null;
   items: SaleItem[];
   payments: Payment[];
   created_at: string;
+}
+
+export interface StoreSettings {
+  id: number;
+  min_versement_pct: number;
+  versement_due_days: number;
+  versement_requires_client: boolean;
 }
 
 // ─────────────────────────────────────────────

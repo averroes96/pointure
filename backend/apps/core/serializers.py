@@ -1,7 +1,7 @@
 """Core serializers: Tenant, User, Branch."""
 from rest_framework import serializers
 
-from .models import AuditLog, Branch, Tenant, User
+from .models import AuditLog, Branch, StoreSettings, Tenant, User
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -77,6 +77,13 @@ class AuditLogSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.get_full_name() or obj.user.email
         return "System"
+
+
+class StoreSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreSettings
+        fields = ["id", "min_versement_pct", "versement_due_days", "versement_requires_client"]
+        read_only_fields = ["id"]
 
 
 class MeSerializer(serializers.ModelSerializer):

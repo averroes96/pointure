@@ -58,7 +58,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "branch", "cashier", "cashier_name", "client", "client_name",
             "loyalty_tier", "loyalty_points", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due",
-            "receipt_number", "notes", "items", "payments", "created_at",
+            "receipt_number", "notes", "due_date", "items", "payments", "created_at",
         ]
         read_only_fields = ["id", "created_at", "receipt_number"]
 
@@ -93,6 +93,7 @@ class CreateSaleSerializer(serializers.Serializer):
     )
     redeem_points = serializers.IntegerField(min_value=0, default=0, required=False)
     notes = serializers.CharField(required=False, allow_blank=True)
+    is_versement = serializers.BooleanField(default=False)
 
     def validate(self, data):
         from apps.clients.models import Client
@@ -161,6 +162,28 @@ class CreateSaleSerializer(serializers.Serializer):
 
         payment_total = sum(p["amount"] for p in data["payments"])
 
+        # Versement validation
+        is_versement = data.get("is_versement", False)
+        if is_versement:
+            from apps.core.models import StoreSettings
+            tenant = self.context["request"].tenant
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+            min_pct = store_settings.min_versement_pct if store_settings else 30
+            due_days = store_settings.versement_due_days if store_settings else 90
+            requires_client = store_settings.versement_requires_client if store_settings else True
+
+            min_required = items_total * Decimal(min_pct) / Decimal("100")
+            if payment_total < min_required:
+                raise serializers.ValidationError(
+                    {"payments": f"L'acompte minimum pour un versement est de {min_pct}% du total ({min_required:.2f} DZD)."}
+                )
+            if requires_client and not data.get("client_id"):
+                raise serializers.ValidationError(
+                    {"client_id": "Un client doit être sélectionné pour un versement."}
+                )
+            # Stash for create_sale
+            data["_versement_due_days"] = due_days
+
         # Allow underpayment (creates account balance) but not overpayment > 10%
         if payment_total > items_total * Decimal("1.1"):
             raise serializers.ValidationError(
@@ -178,6 +201,8 @@ class CreateSaleSerializer(serializers.Serializer):
         redeem_points = validated_data.pop("redeem_points", 0)
         _loyalty_program = validated_data.pop("_loyalty_program", None)
         _loyalty_account = validated_data.pop("_loyalty_account", None)
+        is_versement = validated_data.pop("is_versement", False)
+        versement_due_days = validated_data.pop("_versement_due_days", 90)
 
         # Resolve optional FKs
         branch = None
@@ -214,6 +239,15 @@ class CreateSaleSerializer(serializers.Serializer):
             seq = 1
         receipt_number = f"{prefix}-{seq:04d}"
 
+        # Determine status and due_date for versement
+        payment_total = sum(p["amount"] for p in validated_data["payments"])
+        if is_versement and payment_total < total:
+            sale_status = "partially_paid"
+            due_date = today + datetime.timedelta(days=versement_due_days)
+        else:
+            sale_status = "completed"
+            due_date = None
+
         sale = Sale.objects.create(
             tenant=tenant,
             branch=branch,
@@ -223,6 +257,8 @@ class CreateSaleSerializer(serializers.Serializer):
             discount_amount=cart_discount,
             notes=validated_data.get("notes", ""),
             receipt_number=receipt_number,
+            status=sale_status,
+            due_date=due_date,
         )
 
         # Create items + stock movements
@@ -256,16 +292,20 @@ class CreateSaleSerializer(serializers.Serializer):
             )
 
         # ── Loyalty: redeem then earn ─────────────────────────────────────────
-        loyalty_summary = self._process_loyalty(
-            sale=sale,
-            tenant=tenant,
-            client=client,
-            receipt_number=receipt_number,
-            redeem_points=redeem_points,
-            loyalty_program=_loyalty_program,
-            loyalty_account=_loyalty_account,
-        )
-        sale._loyalty_summary = loyalty_summary
+        # Skip loyalty for versement — points awarded only when sale completes
+        if is_versement and sale_status == "partially_paid":
+            sale._loyalty_summary = {"points_earned": 0, "points_redeemed": 0}
+        else:
+            loyalty_summary = self._process_loyalty(
+                sale=sale,
+                tenant=tenant,
+                client=client,
+                receipt_number=receipt_number,
+                redeem_points=redeem_points,
+                loyalty_program=_loyalty_program,
+                loyalty_account=_loyalty_account,
+            )
+            sale._loyalty_summary = loyalty_summary
 
         return sale
 
@@ -352,6 +392,12 @@ class CreateSaleSerializer(serializers.Serializer):
             logger.exception("Loyalty processing failed for sale %s — points not awarded.", sale.pk)
 
         return result
+
+
+class AddPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
+    notes = serializers.CharField(required=False, allow_blank=True)
 
 
 class ReturnItemInput(serializers.Serializer):

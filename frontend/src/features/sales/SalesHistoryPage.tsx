@@ -5,10 +5,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
+import { printBonVersement } from "@/lib/versement";
 import type { Sale, SaleItem, PaymentMethod, LoyaltyTier } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -237,11 +238,130 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   );
 }
 
+// ── Add Payment Modal ─────────────────────────────────────────────────────────
+
+function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [amount, setAmount] = useState(parseFloat(sale.balance_due || "0").toFixed(2));
+  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.post(`/sales/${sale.id}/add-payment/`, {
+        amount: parseFloat(amount).toFixed(2),
+        method,
+        notes,
+      }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      onClose();
+    },
+    onError: (err: any) => {
+      const msg =
+        err?.response?.data?.detail ||
+        String(Object.values(err?.response?.data ?? {})[0] ?? "") ||
+        "Erreur lors de l'ajout du paiement.";
+      setError(msg);
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <h2 className="font-semibold text-text-primary">Ajouter un paiement</h2>
+            <p className="text-xs text-text-muted">Versement {sale.receipt_number || `#${sale.id}`}</p>
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-sm text-text-muted"><X size={16} /></button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {/* Sale summary */}
+          <div className="rounded-lg bg-surface p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-text-muted">Total vente</span>
+              <span className="font-mono font-semibold">{formatDZD(sale.total_amount)} DZD</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Deja paye</span>
+              <span className="font-mono text-success">{formatDZD(sale.amount_paid)} DZD</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-1">
+              <span className="text-text-muted font-medium">Solde restant</span>
+              <span className="font-mono font-bold text-danger">{formatDZD(sale.balance_due)} DZD</span>
+            </div>
+            {sale.due_date && (
+              <div className="flex justify-between text-xs">
+                <span className="text-text-muted">Echeance</span>
+                <span>{sale.due_date}</span>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2">{error}</div>
+          )}
+
+          <div>
+            <label className="form-label">Montant (DZD) *</label>
+            <input
+              type="number"
+              min={0.01}
+              step={100}
+              max={parseFloat(sale.balance_due || "0")}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="form-input font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="form-label">Moyen de paiement</label>
+            <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="form-input">
+              {PAYMENT_METHOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label">Notes</label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="form-input"
+              placeholder="Optionnel"
+            />
+          </div>
+        </div>
+
+        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+          <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
+            Annuler
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            className="btn-primary btn-sm"
+            disabled={mutation.isPending || parseFloat(amount) <= 0}
+          >
+            {mutation.isPending ? "Traitement..." : "Confirmer le paiement"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_OPTIONS = [
   { value: "", label: "Tous" },
-  { value: "completed", label: "Complétée" },
-  { value: "cancelled", label: "Annulée" },
-  { value: "refunded", label: "Remboursée" },
+  { value: "completed", label: "Complete" },
+  { value: "partially_paid", label: "En versement" },
+  { value: "cancelled", label: "Annulee" },
+  { value: "refunded", label: "Remboursee" },
 ];
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
@@ -251,6 +371,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
 export default function SalesHistoryPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const storeName = user?.tenant?.name ?? "ShoeDZ";
   const isManager = user?.role === "owner" || user?.role === "manager";
   const [search, setSearch] = useState("");
@@ -260,6 +381,15 @@ export default function SalesHistoryPage() {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [returnSale, setReturnSale] = useState<Sale | null>(null);
+  const [addPaymentSale, setAddPaymentSale] = useState<Sale | null>(null);
+
+  const cancelVersementMutation = useMutation({
+    mutationFn: (saleId: number) =>
+      api.post(`/sales/${saleId}/cancel/`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+    },
+  });
 
   const { data, isLoading } = useQuery<PaginatedResponse<Sale>>({
     queryKey: ["sales", { search, status, dateFrom, dateTo, page }],
@@ -280,6 +410,7 @@ export default function SalesHistoryPage() {
   const pageTotalRevenue = sales
     .filter((s) => s.status === "completed")
     .reduce((sum, s) => sum + parseFloat(s.total_amount || "0"), 0);
+  const partiallyPaidCount = sales.filter((s) => s.status === "partially_paid").length;
 
   return (
     <div className="space-y-4">
@@ -310,6 +441,13 @@ export default function SalesHistoryPage() {
             <span className="text-sm text-text-muted">Ventes (page):</span>
             <span className="font-mono font-semibold text-primary-600">{sales.filter((s) => s.status === "completed").length}</span>
           </div>
+          {partiallyPaidCount > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-warning-light rounded-lg border border-warning/30">
+              <Receipt size={16} className="text-warning" />
+              <span className="text-sm text-text-muted">En versement:</span>
+              <span className="font-mono font-semibold text-warning">{partiallyPaidCount}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -447,6 +585,18 @@ export default function SalesHistoryPage() {
                       <span className={cn("badge", getStatusBadgeClass(sale.status))}>
                         {STATUS_OPTIONS.find((o) => o.value === sale.status)?.label ?? sale.status}
                       </span>
+                      {sale.status === "partially_paid" && sale.due_date && (() => {
+                        const dueMs = new Date(sale.due_date).getTime() - Date.now();
+                        const dueDays = Math.ceil(dueMs / (1000 * 60 * 60 * 24));
+                        return (
+                          <p className={cn(
+                            "text-2xs mt-0.5 font-mono",
+                            dueDays < 0 ? "text-danger font-semibold" : dueDays < 7 ? "text-warning" : "text-text-muted"
+                          )}>
+                            {dueDays < 0 ? `En retard ${Math.abs(dueDays)}j` : `Ech. ${sale.due_date}`}
+                          </p>
+                        );
+                      })()}
                     </td>
                     <td className="text-end font-mono">
                       {formatDZD(sale.total_amount)}
@@ -468,8 +618,12 @@ export default function SalesHistoryPage() {
                       <div className="flex items-center gap-1">
                         <button
                           className="btn-ghost btn-sm text-primary-500"
-                          title="Imprimer le bon de vente"
-                          onClick={() => printReceipt(sale, storeName)}
+                          title="Imprimer"
+                          onClick={() =>
+                            sale.status === "partially_paid"
+                              ? printBonVersement(sale, storeName)
+                              : printReceipt(sale, storeName)
+                          }
                         >
                           <Printer size={14} />
                         </button>
@@ -481,6 +635,29 @@ export default function SalesHistoryPage() {
                           >
                             <RotateCcw size={14} />
                           </button>
+                        )}
+                        {isManager && sale.status === "partially_paid" && (
+                          <>
+                            <button
+                              className="btn-ghost btn-sm text-amber-600"
+                              title="Ajouter un paiement"
+                              onClick={() => setAddPaymentSale(sale)}
+                            >
+                              <Plus size={14} />
+                            </button>
+                            <button
+                              className="btn-ghost btn-sm text-danger"
+                              title="Annuler le versement"
+                              onClick={() => {
+                                if (confirm(`Annuler le versement ${sale.receipt_number} ?`)) {
+                                  cancelVersementMutation.mutate(sale.id);
+                                }
+                              }}
+                              disabled={cancelVersementMutation.isPending}
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -575,6 +752,9 @@ export default function SalesHistoryPage() {
 
       {returnSale && (
         <ReturnModal sale={returnSale} onClose={() => setReturnSale(null)} />
+      )}
+      {addPaymentSale && (
+        <AddPaymentModal sale={addPaymentSale} onClose={() => setAddPaymentSale(null)} />
       )}
     </div>
   );

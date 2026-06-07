@@ -1,6 +1,8 @@
 """Sales API views."""
 import datetime
+from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -8,8 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
-from .models import Sale
-from .serializers import CreateReturnSerializer, CreateSaleSerializer, SaleSerializer
+from .models import Payment, Sale
+from .serializers import AddPaymentSerializer, CreateReturnSerializer, CreateSaleSerializer, SaleSerializer
 
 
 class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -43,6 +45,66 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         resp_data["points_earned"] = loyalty.get("points_earned", 0)
         resp_data["points_redeemed"] = loyalty.get("points_redeemed", 0)
         return Response(resp_data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="add-payment")
+    def add_payment(self, request, pk=None):
+        """Add a payment to a partially_paid sale."""
+        sale = self.get_object()
+        if sale.status != "partially_paid":
+            return Response(
+                {"detail": "Seules les ventes en cours de versement acceptent des paiements supplementaires."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = AddPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        from django.db.models import Sum as DjSum
+
+        with transaction.atomic():
+            Payment.objects.create(
+                sale=sale,
+                amount=data["amount"],
+                method=data["method"],
+                notes=data.get("notes", ""),
+            )
+            total_paid = sale.payments.aggregate(t=DjSum("amount"))["t"] or Decimal("0.00")
+            if total_paid >= sale.total_amount:
+                sale.status = "completed"
+                sale.save(update_fields=["status"])
+                loyalty_summary = CreateSaleSerializer._process_loyalty(
+                    sale=sale,
+                    tenant=sale.tenant,
+                    client=sale.client,
+                    receipt_number=sale.receipt_number,
+                    redeem_points=0,
+                    loyalty_program=None,
+                    loyalty_account=None,
+                )
+            else:
+                loyalty_summary = {"points_earned": 0, "points_redeemed": 0}
+
+        resp_data = SaleSerializer(sale).data
+        resp_data["points_earned"] = loyalty_summary.get("points_earned", 0)
+        return Response(resp_data)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        """Cancel a partially_paid sale (manager/owner only)."""
+        if request.user.role not in ("owner", "manager"):
+            return Response(
+                {"detail": "Seuls les managers peuvent annuler un versement."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        sale = self.get_object()
+        if sale.status != "partially_paid":
+            return Response(
+                {"detail": "Seules les ventes en cours de versement peuvent etre annulees ici."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        sale.status = "cancelled"
+        sale.save(update_fields=["status"])
+        return Response(SaleSerializer(sale).data)
 
     @action(detail=True, methods=["post"])
     def returns(self, request, pk=None):
@@ -110,6 +172,24 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         total_revenue = sales_qs.aggregate(total=Sum("total_amount"))["total"] or 0
         sale_count = sales_qs.count()
 
+        # Versement metrics
+        versement_payments_qs = Payment.objects.filter(
+            sale__tenant=request.tenant,
+            sale__created_at__date=target_date,
+            sale__status="partially_paid",
+        )
+        if branch_id:
+            versement_payments_qs = versement_payments_qs.filter(sale__branch_id=branch_id)
+        versement_collected = versement_payments_qs.aggregate(total=Sum("amount"))["total"] or 0
+
+        outstanding_versements_qs = Sale.objects.filter(
+            tenant=request.tenant,
+            status="partially_paid",
+        )
+        if branch_id:
+            outstanding_versements_qs = outstanding_versements_qs.filter(branch_id=branch_id)
+        outstanding_versements = outstanding_versements_qs.count()
+
         return Response(
             {
                 "date": str(target_date),
@@ -119,5 +199,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 "total_refunds": total_refunds,
                 "net_revenue": total_revenue - total_refunds,
                 "by_payment_method": method_breakdown,
+                "versement_collected_today": versement_collected,
+                "outstanding_versements": outstanding_versements,
             }
         )

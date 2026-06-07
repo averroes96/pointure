@@ -22,6 +22,7 @@ class SaleStatusChoices(models.TextChoices):
     COMPLETED = "completed", _("Completed")
     CANCELLED = "cancelled", _("Cancelled")
     REFUNDED = "refunded", _("Refunded")
+    PARTIALLY_PAID = "partially_paid", _("Partially Paid")
 
 
 class Sale(TenantScopedModel):
@@ -37,7 +38,7 @@ class Sale(TenantScopedModel):
         related_name="sales"
     )
     status = models.CharField(
-        _("Status"), max_length=12, choices=SaleStatusChoices.choices,
+        _("Status"), max_length=15, choices=SaleStatusChoices.choices,
         default=SaleStatusChoices.COMPLETED,
     )
     total_amount = models.DecimalField(
@@ -48,6 +49,7 @@ class Sale(TenantScopedModel):
     )
     notes = models.TextField(_("Notes"), blank=True)
     receipt_number = models.CharField(_("Receipt Number"), max_length=30, blank=True, db_index=True)
+    due_date = models.DateField(_("Payment Due Date"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

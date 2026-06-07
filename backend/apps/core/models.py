@@ -235,3 +235,29 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} {self.model_name}#{self.object_id} by {self.user}"
+
+
+# ─────────────────────────────────────────────
+# StoreSettings
+# ─────────────────────────────────────────────
+
+class StoreSettings(TenantScopedModel):
+    """Per-tenant configurable store policies."""
+    min_versement_pct = models.PositiveSmallIntegerField(
+        _("Minimum versement (% of total)"), default=30,
+        help_text="Minimum percentage of sale total required as first payment for versement."
+    )
+    versement_due_days = models.PositiveIntegerField(
+        _("Versement due (days)"), default=90,
+        help_text="Days from first payment before the versement is considered overdue."
+    )
+    versement_requires_client = models.BooleanField(
+        _("Versement requires a linked client"), default=True,
+    )
+
+    class Meta:
+        verbose_name = _("Store Settings")
+        verbose_name_plural = _("Store Settings")
+
+    def __str__(self):
+        return f"Settings — {self.tenant}"

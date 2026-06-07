@@ -9,12 +9,13 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.core.models import AuditLog, Branch, Tenant, User
+from apps.core.models import AuditLog, Branch, StoreSettings, Tenant, User
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.serializers import (
     AuditLogSerializer,
     BranchSerializer,
     MeSerializer,
+    StoreSettingsSerializer,
     TenantSerializer,
     UserCreateSerializer,
     UserSerializer,
@@ -141,7 +142,7 @@ class AuditLogViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
         return Response(list(data))
 
 
-class TenantSettingsView(viewsets.GenericViewSet):
+class TenantSettingsView(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     """Tenant settings (Owner only)."""
     serializer_class = TenantSerializer
     permission_classes = [IsAuthenticated]
@@ -167,6 +168,29 @@ class TenantSettingsView(viewsets.GenericViewSet):
         from rest_framework.exceptions import PermissionDenied
         if self.request.user.role != RoleChoices.OWNER:
             raise PermissionDenied("Only the owner can change tenant settings.")
+
+
+class StoreSettingsView(TenantScopedViewSetMixin, viewsets.GenericViewSet):
+    """Store settings (Owner only)."""
+    serializer_class = StoreSettingsSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=["get"])
+    def current(self, request):
+        settings_obj, _ = StoreSettings.objects.get_or_create(tenant=request.tenant)
+        return Response(StoreSettingsSerializer(settings_obj).data)
+
+    @action(detail=False, methods=["patch"])
+    def update_settings(self, request):
+        from apps.core.models import RoleChoices
+        from rest_framework.exceptions import PermissionDenied
+        if request.user.role != RoleChoices.OWNER:
+            raise PermissionDenied("Only the owner can change store settings.")
+        settings_obj, _ = StoreSettings.objects.get_or_create(tenant=request.tenant)
+        serializer = StoreSettingsSerializer(settings_obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class PasswordResetRequestView(APIView):

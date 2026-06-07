@@ -10,8 +10,9 @@ import { useTranslation } from "react-i18next";
 import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
+import { printBonVersement } from "@/lib/versement";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Client, Product, Sale, Variant, LoyaltyAccountSummary, LoyaltyProgram } from "@/types";
+import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
@@ -268,6 +269,7 @@ export default function SalesPage() {
   const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [redeemPoints, setRedeemPoints] = useState(0);
+  const [isVersement, setIsVersement] = useState(false);
 
   const { user } = useAuth();
   const { currentBranch } = useBranch();
@@ -308,6 +310,13 @@ export default function SalesPage() {
     staleTime: 5 * 60 * 1000,
   });
   const loyaltyProgram = programData?.results?.[0] ?? null;
+
+  // Store settings (versement config)
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Client's loyalty account — only when a client is selected and plan allows it
   const { data: loyaltyAccount } = useQuery<LoyaltyAccountSummary>({
@@ -353,13 +362,14 @@ export default function SalesPage() {
     setCart((prev) => prev.filter((i) => i.variant.id !== variantId));
   };
 
-  // Auto-sync first payment line to total
+  // Auto-sync first payment line to total (skip in versement mode)
   useEffect(() => {
+    if (isVersement) return;
     if (payments.length === 1 && payments[0].method === "cash") {
       setPayments([{ method: "cash", amount: Math.max(0, total) }]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
+  }, [total, isVersement]);
 
   // Sale mutation
   const saleMutation = useMutation({
@@ -384,6 +394,7 @@ export default function SalesPage() {
           amount: Number(p.amount).toFixed(2),
         })),
         cart_discount: cartDiscount.toFixed(2),
+        is_versement: isVersement,
       }).then((r) => r.data);
     },
     onSuccess: (data) => {
@@ -393,6 +404,7 @@ export default function SalesPage() {
       setRedeemPoints(0);
       setPayments([{ method: "cash", amount: 0 }]);
       setSelectedClient(null);
+      setIsVersement(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
     },
@@ -418,25 +430,65 @@ export default function SalesPage() {
   if (receipt) {
     const ptsEarned = receipt.points_earned ?? 0;
     const ptsRedeemed = receipt.points_redeemed ?? 0;
+    const isVersementReceipt = receipt.status === "partially_paid";
+
+    if (isVersementReceipt) {
+      return (
+        <div className="max-w-sm mx-auto text-center py-12">
+          <div className="w-16 h-16 bg-warning-light rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check size={32} className="text-warning" />
+          </div>
+          <h2 className="text-xl font-bold text-text-primary mb-2">Versement enregistre!</h2>
+          <p className="text-text-muted text-sm mb-1">Recu: <strong>{receipt.receipt_number}</strong></p>
+          {receipt.client_name && (
+            <p className="text-text-muted text-sm mb-1">Client: <strong>{receipt.client_name}</strong></p>
+          )}
+          <div className="mb-4 mt-3 rounded-xl bg-warning-light border border-warning/30 p-3 text-sm space-y-1">
+            <p className="text-text-primary">
+              Acompte verse: <strong className="font-mono">{formatDZD(receipt.amount_paid)} DZD</strong>
+            </p>
+            <p className="text-danger font-semibold">
+              Solde restant: <span className="font-mono">{formatDZD(receipt.balance_due)} DZD</span>
+            </p>
+            {receipt.due_date && (
+              <p className="text-text-muted text-xs">Echeance: {receipt.due_date}</p>
+            )}
+          </div>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <button className="btn-secondary" onClick={() => setReceipt(null)}>
+              Nouvelle vente
+            </button>
+            <button
+              className="btn-primary flex items-center gap-2"
+              onClick={() => printBonVersement(receipt, user?.tenant?.name ?? "ShoeDZ")}
+            >
+              <Printer size={16} />
+              Bon de versement
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-sm mx-auto text-center py-12">
         <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
           <Check size={32} className="text-success" />
         </div>
-        <h2 className="text-xl font-bold text-text-primary mb-2">Vente confirmée!</h2>
-        <p className="text-text-muted text-sm mb-3">Reçu: <strong>{receipt.receipt_number}</strong></p>
+        <h2 className="text-xl font-bold text-text-primary mb-2">Vente confirmee!</h2>
+        <p className="text-text-muted text-sm mb-3">Recu: <strong>{receipt.receipt_number}</strong></p>
 
         {(ptsEarned > 0 || ptsRedeemed > 0) && (
           <div className="mb-4 rounded-xl bg-primary-50 border border-primary-100 p-3 text-sm">
             {ptsRedeemed > 0 && (
               <p className="text-primary-700">
                 <Gift size={14} className="inline mr-1" />
-                {ptsRedeemed} points rachetés (−{redemptionDzd} DZD)
+                {ptsRedeemed} points rachetes (−{redemptionDzd} DZD)
               </p>
             )}
             {ptsEarned > 0 && (
               <p className="text-success font-semibold mt-1">
-                +{ptsEarned} points de fidélité gagnés
+                +{ptsEarned} points de fidelite gagnes
               </p>
             )}
           </div>
@@ -456,12 +508,12 @@ export default function SalesPage() {
           <button
             className="btn-secondary flex items-center gap-2"
             onClick={() => {
-              const message = `🧾 Reçu de vente — ShoeDZ\nN° ${receipt.receipt_number}\nTotal: ${receipt.total_amount} DZD\n${receipt.items?.length} article(s)\nMerci pour votre achat! 👟`;
+              const message = `Recu de vente — ShoeDZ\nN° ${receipt.receipt_number}\nTotal: ${receipt.total_amount} DZD\n${receipt.items?.length} article(s)\nMerci pour votre achat!`;
               const link = `https://wa.me/?text=${encodeURIComponent(message)}`;
               window.open(link, "_blank");
             }}
           >
-            📲 {t("sales.share_whatsapp")}
+            {t("sales.share_whatsapp")}
           </button>
         </div>
       </div>
@@ -716,6 +768,46 @@ export default function SalesPage() {
               </span>
             </div>
 
+            {/* Versement toggle */}
+            <div className={cn(
+              "flex items-center justify-between py-1.5 border rounded-lg px-3",
+              storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
+            )}>
+              <div>
+                <p className="text-sm font-medium text-text-primary">Versement (acompte)</p>
+                <p className="text-xs text-text-muted">
+                  Min. {storeSettings?.min_versement_pct ?? 30}% = {formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100)} DZD
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (storeSettings?.versement_requires_client && !selectedClient) return;
+                  const next = !isVersement;
+                  setIsVersement(next);
+                  if (next) {
+                    const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
+                    setPayments([{ method: "cash", amount: minAmt }]);
+                  } else {
+                    setPayments([{ method: "cash", amount: total }]);
+                  }
+                }}
+                className={cn(
+                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                  isVersement ? "bg-warning" : "bg-border",
+                  storeSettings?.versement_requires_client && !selectedClient ? "cursor-not-allowed" : ""
+                )}
+                role="switch"
+                aria-checked={isVersement}
+                title={storeSettings?.versement_requires_client && !selectedClient ? "Selectionnez un client pour activer le versement" : ""}
+              >
+                <span className={cn(
+                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform",
+                  isVersement ? "translate-x-5" : "translate-x-0"
+                )} />
+              </button>
+            </div>
+
             {/* Payment methods */}
             <div className="space-y-2">
               {payments.map((payment, i) => (
@@ -752,6 +844,24 @@ export default function SalesPage() {
               ))}
             </div>
 
+            {/* Versement minimum warning */}
+            {isVersement && (() => {
+              const minPct = storeSettings?.min_versement_pct ?? 30;
+              const minAmt = total * minPct / 100;
+              const belowMin = paymentTotal < minAmt;
+              return (
+                <div className={cn(
+                  "text-xs px-2 py-1.5 rounded",
+                  belowMin ? "bg-danger-light text-danger" : "bg-success/10 text-success"
+                )}>
+                  {belowMin
+                    ? `Acompte minimum: ${formatDZD(Math.ceil(minAmt))} DZD`
+                    : `Solde restant: ${formatDZD(total - paymentTotal)} DZD`
+                  }
+                </div>
+              );
+            })()}
+
             {/* Confirm */}
             {saleMutation.isError && (
               <div className="text-xs text-danger bg-danger-light px-2 py-1.5 rounded">
@@ -761,11 +871,20 @@ export default function SalesPage() {
 
             <button
               onClick={handleConfirmSale}
-              disabled={cart.length === 0 || saleMutation.isPending}
+              disabled={
+                cart.length === 0 ||
+                saleMutation.isPending ||
+                (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100)
+              }
               className="btn-primary w-full justify-center py-3 text-base"
             >
               {saleMutation.isPending ? (
                 "Traitement..."
+              ) : isVersement ? (
+                <>
+                  <Check size={18} />
+                  Versement — {formatDZD(paymentTotal)} DZD
+                </>
               ) : (
                 <>
                   <Check size={18} />

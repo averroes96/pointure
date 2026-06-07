@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Building2, Shield, Users, MapPin, Upload, type LucideIcon } from "lucide-react";
+import { User, Building2, Shield, Users, MapPin, Upload, Banknote, type LucideIcon } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
-import type { User as UserType, Branch, Tenant } from "@/types";
+import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
@@ -725,9 +725,113 @@ function AgencesTab() {
   );
 }
 
+// ─── Tab: Versements ─────────────────────────────────────────────────────
+
+interface VersementsFormData {
+  min_versement_pct: number;
+  versement_due_days: number;
+  versement_requires_client: boolean;
+}
+
+function VersementsTab() {
+  const queryClient = useQueryClient();
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const { data: settings, isLoading } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+  });
+
+  const { register, handleSubmit, formState: { isDirty } } = useForm<VersementsFormData>({
+    values: settings
+      ? {
+          min_versement_pct: settings.min_versement_pct,
+          versement_due_days: settings.versement_due_days,
+          versement_requires_client: settings.versement_requires_client,
+        }
+      : { min_versement_pct: 30, versement_due_days: 90, versement_requires_client: true },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: VersementsFormData) =>
+      api.patch("/core/store-settings/update_settings/", data).then((r) => r.data),
+    onSuccess: () => {
+      setToast({ msg: "Parametres de versement mis a jour.", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+    },
+    onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
+  });
+
+  function onSubmit(data: VersementsFormData) {
+    setToast(null);
+    mutation.mutate({
+      ...data,
+      min_versement_pct: Number(data.min_versement_pct),
+      versement_due_days: Number(data.versement_due_days),
+    });
+  }
+
+  if (isLoading) return <div className="text-text-muted py-4">Chargement...</div>;
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
+      {toast && <Toast message={toast.msg} type={toast.type} />}
+
+      <div>
+        <label className="form-label">Acompte minimum (%)</label>
+        <input
+          type="number"
+          min={1}
+          max={100}
+          {...register("min_versement_pct", { required: "Obligatoire", min: 1, max: 100 })}
+          className="form-input"
+        />
+        <p className="text-xs text-text-muted mt-1">
+          Pourcentage du total de la vente requis comme premier paiement.
+        </p>
+      </div>
+
+      <div>
+        <label className="form-label">Delai de paiement (jours)</label>
+        <input
+          type="number"
+          min={1}
+          {...register("versement_due_days", { required: "Obligatoire", min: 1 })}
+          className="form-input"
+        />
+        <p className="text-xs text-text-muted mt-1">
+          Nombre de jours avant qu'un versement soit considere en retard.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="versement_requires_client"
+          {...register("versement_requires_client")}
+          className="w-4 h-4 accent-primary-600"
+        />
+        <label htmlFor="versement_requires_client" className="text-sm text-text-primary cursor-pointer">
+          Exiger un client pour les versements
+        </label>
+      </div>
+
+      <div className="flex items-center justify-end pt-2">
+        <button
+          type="submit"
+          disabled={mutation.isPending || !isDirty}
+          className="btn-primary"
+        >
+          {mutation.isPending ? "Enregistrement..." : "Sauvegarder"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Main SettingsPage ───────────────────────────────────────────────────
 
-type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences";
+type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences" | "versements";
 
 interface Tab {
   key: TabKey;
@@ -739,9 +843,10 @@ interface Tab {
 const TABS: Tab[] = [
   { key: "profil", label: "Profil", icon: User },
   { key: "boutique", label: "Boutique", icon: Building2, roles: ["owner", "manager"] },
-  { key: "securite", label: "Sécurité", icon: Shield },
+  { key: "securite", label: "Securite", icon: Shield },
   { key: "utilisateurs", label: "Utilisateurs", icon: Users, roles: ["owner", "manager"] },
   { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
+  { key: "versements", label: "Versements", icon: Banknote, roles: ["owner"] },
 ];
 
 export default function SettingsPage() {
@@ -820,6 +925,8 @@ export default function SettingsPage() {
             {activeTab === "utilisateurs" && <UsersTab />}
 
             {activeTab === "agences" && <AgencesTab />}
+
+            {activeTab === "versements" && <VersementsTab />}
           </div>
         </div>
       </div>
