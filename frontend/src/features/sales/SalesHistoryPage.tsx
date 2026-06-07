@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban } from "lucide-react";
 import { Link } from "react-router-dom";
-import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
+import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
 import type { Sale, SaleItem, PaymentMethod, LoyaltyTier } from "@/types";
@@ -73,12 +73,8 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       onClose();
     },
-    onError: (err: any) => {
-      const msg =
-        err?.response?.data?.detail ||
-        String(Object.values(err?.response?.data ?? {})[0] ?? "") ||
-        "Erreur lors du retour.";
-      setToast(msg);
+    onError: (err) => {
+      setToast(getApiError(err));
     },
   });
 
@@ -258,12 +254,8 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       onClose();
     },
-    onError: (err: any) => {
-      const msg =
-        err?.response?.data?.detail ||
-        String(Object.values(err?.response?.data ?? {})[0] ?? "") ||
-        "Erreur lors de l'ajout du paiement.";
-      setError(msg);
+    onError: (err) => {
+      setError(getApiError(err));
     },
   });
 
