@@ -10,8 +10,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
-from .models import Payment, Sale
-from .serializers import AddPaymentSerializer, CreateReturnSerializer, CreateSaleSerializer, SaleSerializer
+from .models import CashReconciliation, Payment, Return, Sale
+from .serializers import (
+    AddPaymentSerializer, CashReconciliationSerializer, CreateReconciliationSerializer,
+    CreateReturnSerializer, CreateSaleSerializer, SaleSerializer,
+)
 
 
 class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -203,3 +206,110 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 "outstanding_versements": outstanding_versements,
             }
         )
+
+
+class CashReconciliationViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
+    queryset = CashReconciliation.objects.all()
+    serializer_class = CashReconciliationSerializer
+    ordering = ["-date"]
+
+    def get_queryset(self):
+        return CashReconciliation.objects.filter(
+            tenant=self.request.tenant
+        ).select_related("submitted_by", "approved_by", "branch")
+
+    @action(detail=False, methods=["get"])
+    def history(self, request):
+        """List recent reconciliations with optional date/branch filters."""
+        qs = self.get_queryset()
+        date_filter = request.query_params.get("date")
+        branch_filter = request.query_params.get("branch")
+        if date_filter:
+            qs = qs.filter(date=date_filter)
+        if branch_filter:
+            qs = qs.filter(branch_id=branch_filter)
+        return Response(CashReconciliationSerializer(qs[:60], many=True).data)
+
+    @action(detail=False, methods=["post"])
+    def submit(self, request):
+        """Submit an end-of-day reconciliation. Fetches system totals automatically."""
+        serializer = CreateReconciliationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        target_date = data["date"]
+        branch_id = data.get("branch")
+
+        # Block re-submission of an already-approved reconciliation
+        existing = CashReconciliation.objects.filter(
+            tenant=request.tenant, date=target_date, branch_id=branch_id
+        ).first()
+        if existing and existing.status == "approved":
+            return Response(
+                {"detail": "Cette fermeture de caisse a déjà été approuvée et ne peut plus être modifiée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Snapshot system totals for completed sales on this date
+        sales_qs = Sale.objects.filter(
+            tenant=request.tenant, created_at__date=target_date, status="completed"
+        )
+        if branch_id:
+            sales_qs = sales_qs.filter(branch_id=branch_id)
+
+        by_method = Payment.objects.filter(sale__in=sales_qs).values("method").annotate(
+            total=Sum("amount")
+        )
+        method_totals = {row["method"]: row["total"] or Decimal("0") for row in by_method}
+
+        returns_qs = Return.objects.filter(tenant=request.tenant, created_at__date=target_date)
+        if branch_id:
+            returns_qs = returns_qs.filter(original_sale__branch_id=branch_id)
+        total_refunds = returns_qs.aggregate(total=Sum("refund_amount"))["total"] or Decimal("0")
+
+        system_snapshot = {
+            "system_cash": method_totals.get("cash", Decimal("0")),
+            "system_cheque": method_totals.get("cheque", Decimal("0")),
+            "system_ccp": method_totals.get("ccp", Decimal("0")),
+            "system_virement": method_totals.get("virement", Decimal("0")),
+            "system_account": method_totals.get("account", Decimal("0")),
+            "system_sales_count": sales_qs.count(),
+            "system_total_refunds": total_refunds,
+        }
+        actual = {
+            "actual_cash": data["actual_cash"],
+            "actual_cheque": data["actual_cheque"],
+            "actual_ccp": data["actual_ccp"],
+            "actual_virement": data["actual_virement"],
+            "notes": data["notes"],
+            "submitted_by": request.user,
+        }
+
+        if existing:
+            for k, v in {**system_snapshot, **actual}.items():
+                setattr(existing, k, v)
+            existing.save()
+            return Response(CashReconciliationSerializer(existing).data)
+
+        rec = CashReconciliation.objects.create(
+            tenant=request.tenant,
+            date=target_date,
+            branch_id=branch_id,
+            **system_snapshot,
+            **actual,
+        )
+        return Response(CashReconciliationSerializer(rec).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        """Approve a pending reconciliation — manager/owner only."""
+        if request.user.role not in ("owner", "manager"):
+            return Response({"detail": "Seuls les managers peuvent approuver une fermeture de caisse."}, status=403)
+        rec = self.get_object()
+        if rec.status == "approved":
+            return Response({"detail": "Déjà approuvé."}, status=status.HTTP_400_BAD_REQUEST)
+        rec.status = "approved"
+        rec.approved_by = request.user
+        rec.approved_at = timezone.now()
+        rec.save(update_fields=["status", "approved_by", "approved_at"])
+        return Response(CashReconciliationSerializer(rec).data)

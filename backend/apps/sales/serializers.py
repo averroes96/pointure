@@ -6,7 +6,7 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
-from .models import Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem
+from .models import CashReconciliation, Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -555,3 +555,72 @@ class CreateReturnSerializer(serializers.Serializer):
             )
         except Exception:
             logger.exception("Loyalty reversal failed for return %s — skipped.", return_obj.pk)
+
+
+class CashReconciliationSerializer(serializers.ModelSerializer):
+    submitted_by_name = serializers.CharField(source="submitted_by.full_name", read_only=True, default=None)
+    approved_by_name = serializers.CharField(source="approved_by.full_name", read_only=True, default=None)
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default=None)
+    gap_cash = serializers.SerializerMethodField()
+    gap_cheque = serializers.SerializerMethodField()
+    gap_ccp = serializers.SerializerMethodField()
+    gap_virement = serializers.SerializerMethodField()
+    total_system = serializers.SerializerMethodField()
+    total_actual = serializers.SerializerMethodField()
+    total_gap = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashReconciliation
+        fields = [
+            "id", "date", "branch", "branch_name", "status",
+            "submitted_by", "submitted_by_name",
+            "approved_by", "approved_by_name",
+            "system_cash", "system_cheque", "system_ccp", "system_virement",
+            "system_account", "system_sales_count", "system_total_refunds",
+            "actual_cash", "actual_cheque", "actual_ccp", "actual_virement",
+            "gap_cash", "gap_cheque", "gap_ccp", "gap_virement",
+            "total_system", "total_actual", "total_gap",
+            "notes", "approved_at", "created_at",
+        ]
+        read_only_fields = [
+            "id", "submitted_by", "approved_by", "status",
+            "system_cash", "system_cheque", "system_ccp", "system_virement",
+            "system_account", "system_sales_count", "system_total_refunds",
+            "approved_at", "created_at",
+        ]
+
+    def _gap(self, actual, system):
+        return str(actual - system)
+
+    def get_gap_cash(self, obj):
+        return self._gap(obj.actual_cash, obj.system_cash)
+
+    def get_gap_cheque(self, obj):
+        return self._gap(obj.actual_cheque, obj.system_cheque)
+
+    def get_gap_ccp(self, obj):
+        return self._gap(obj.actual_ccp, obj.system_ccp)
+
+    def get_gap_virement(self, obj):
+        return self._gap(obj.actual_virement, obj.system_virement)
+
+    def get_total_system(self, obj):
+        return str(obj.system_cash + obj.system_cheque + obj.system_ccp + obj.system_virement)
+
+    def get_total_actual(self, obj):
+        return str(obj.actual_cash + obj.actual_cheque + obj.actual_ccp + obj.actual_virement)
+
+    def get_total_gap(self, obj):
+        actual = obj.actual_cash + obj.actual_cheque + obj.actual_ccp + obj.actual_virement
+        system = obj.system_cash + obj.system_cheque + obj.system_ccp + obj.system_virement
+        return str(actual - system)
+
+
+class CreateReconciliationSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    branch = serializers.IntegerField(required=False, allow_null=True)
+    actual_cash = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_cheque = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_ccp = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_virement = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    notes = serializers.CharField(required=False, allow_blank=True, default="")

@@ -150,3 +150,52 @@ class ReturnItem(models.Model):
 
     class Meta:
         verbose_name = _("Return Item")
+
+
+class CashReconciliation(TenantScopedModel):
+    """End-of-day cash drawer reconciliation — one per date/branch."""
+    date = models.DateField(_("Date"))
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="reconciliations",
+    )
+    submitted_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True,
+        related_name="submitted_reconciliations",
+    )
+    approved_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="approved_reconciliations",
+    )
+    status = models.CharField(
+        _("Status"), max_length=20,
+        choices=[("pending", "En attente"), ("approved", "Approuvé")],
+        default="pending",
+    )
+
+    # System snapshot (filled automatically at submission time)
+    system_cash = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    system_cheque = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    system_ccp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    system_virement = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    system_account = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    system_sales_count = models.PositiveIntegerField(default=0)
+    system_total_refunds = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+
+    # Actual counted amounts
+    actual_cash = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_cheque = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_ccp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    actual_virement = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+
+    notes = models.TextField(_("Notes"), blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Cash Reconciliation")
+        unique_together = [("tenant", "date", "branch")]
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"Reconciliation {self.date} — {self.branch or 'All branches'}"

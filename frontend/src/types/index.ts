@@ -187,6 +187,41 @@ export interface StoreSettings {
   versement_requires_client: boolean;
 }
 
+export type ReconciliationStatus = "pending" | "approved";
+
+export interface CashReconciliation {
+  id: number;
+  date: string;
+  branch: number | null;
+  branch_name: string | null;
+  status: ReconciliationStatus;
+  submitted_by: number | null;
+  submitted_by_name: string | null;
+  approved_by: number | null;
+  approved_by_name: string | null;
+  system_cash: string;
+  system_cheque: string;
+  system_ccp: string;
+  system_virement: string;
+  system_account: string;
+  system_sales_count: number;
+  system_total_refunds: string;
+  actual_cash: string;
+  actual_cheque: string;
+  actual_ccp: string;
+  actual_virement: string;
+  gap_cash: string;
+  gap_cheque: string;
+  gap_ccp: string;
+  gap_virement: string;
+  total_system: string;
+  total_actual: string;
+  total_gap: string;
+  notes: string;
+  approved_at: string | null;
+  created_at: string;
+}
+
 // ─────────────────────────────────────────────
 // Clients
 // ─────────────────────────────────────────────

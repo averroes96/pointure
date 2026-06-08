@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart,
-  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift,
+  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -46,6 +46,7 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/sales/new", labelKey: "nav.new_sale", icon: ShoppingCart },
         { to: "/sales", labelKey: "nav.sale_history", icon: History },
+        { to: "/sales/reconciliation", label: "Fermeture de caisse", icon: ClipboardCheck },
       ],
     },
     {

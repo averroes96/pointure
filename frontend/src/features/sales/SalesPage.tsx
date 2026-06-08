@@ -4,7 +4,7 @@
  * - Right panel: client selector, cart, loyalty redemption, payment
  * - Keyboard: F2 = focus search, F10 = confirm sale
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus } from "lucide-react";
@@ -270,6 +270,7 @@ export default function SalesPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
+  const [scanStatus, setScanStatus] = useState<"idle" | "found" | "not_found">("idle");
 
   const { user } = useAuth();
   const { currentBranch } = useBranch();
@@ -336,7 +337,7 @@ export default function SalesPage() {
   const total = Math.max(0, itemsTotal - cartDiscount - redemptionDzd);
   const paymentTotal = payments.reduce((s, p) => s + p.amount, 0);
 
-  const addToCart = (variant: Variant, product: Product) => {
+  const addToCart = useCallback((variant: Variant, product: Product) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.variant.id === variant.id);
       if (existing) {
@@ -348,7 +349,7 @@ export default function SalesPage() {
     });
     setSearch("");
     setSelectedProduct(null);
-  };
+  }, []);
 
   const updateQuantity = (variantId: number, delta: number) => {
     setCart((prev) =>
@@ -415,15 +416,66 @@ export default function SalesPage() {
     saleMutation.mutate();
   }
 
-  // Auto barcode scan → add to cart
+  // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
     if (barcodeResult?.results?.length === 1) {
       const variant = barcodeResult.results[0];
       api.get(`/inventory/products/${variant.product}/`).then((r) => {
         addToCart(variant, r.data);
+        setScanStatus("found");
+        setTimeout(() => setScanStatus("idle"), 1200);
       });
     }
-  }, [barcodeResult]);
+  }, [barcodeResult, addToCart]);
+
+  // Global keyboard-wedge scanner listener.
+  // Scanners emit characters very fast (<50 ms apart) then send Enter.
+  // This handles scans when focus is anywhere except the search input itself
+  // (which already has the React-Query path above).
+  useEffect(() => {
+    const MIN_LEN = 6;
+    const SPEED_MS = 50;
+    let buffer = "";
+    let lastAt = 0;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement === searchRef.current) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      const now = Date.now();
+
+      if (e.key === "Enter") {
+        const code = buffer;
+        buffer = "";
+        if (code.length >= MIN_LEN) {
+          e.preventDefault();
+          api.get(`/inventory/variants/?barcode=${encodeURIComponent(code)}`).then((r) => {
+            const variants: Variant[] = r.data.results ?? [];
+            if (variants.length === 1) {
+              api.get(`/inventory/products/${variants[0].product}/`).then((pr) => {
+                addToCart(variants[0], pr.data);
+                setScanStatus("found");
+                setTimeout(() => setScanStatus("idle"), 1200);
+              });
+            } else {
+              setScanStatus("not_found");
+              setTimeout(() => setScanStatus("idle"), 1500);
+            }
+          });
+        }
+      } else if (e.key.length === 1) {
+        if (now - lastAt < SPEED_MS) {
+          buffer += e.key;
+        } else {
+          buffer = e.key;
+        }
+        lastAt = now;
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [addToCart]);
 
   // ── Receipt screen ────────────────────────────────────────────────────
 
@@ -532,7 +584,7 @@ export default function SalesPage() {
       <div className="w-full lg:w-1/2 xl:w-3/5 flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.new_sale")}</h1>
-          <p className="text-xs text-text-muted">F2 = rechercher · F10 = confirmer</p>
+          <p className="text-xs text-text-muted">F2 = rechercher · F10 = confirmer · scanner code-barres partout</p>
         </div>
 
         <div className="relative">
@@ -546,6 +598,21 @@ export default function SalesPage() {
             placeholder={t("sales.search_product")}
             autoFocus
           />
+          {scanStatus !== "idle" && (
+            <div
+              className={cn(
+                "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full pointer-events-none",
+                scanStatus === "found" && "bg-success-light text-success",
+                scanStatus === "not_found" && "bg-danger-light text-danger",
+              )}
+            >
+              {scanStatus === "found" ? (
+                <><Check size={11} /> Ajouté</>
+              ) : (
+                <><X size={11} /> Introuvable</>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Search results */}

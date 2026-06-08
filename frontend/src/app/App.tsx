@@ -40,6 +40,7 @@ const LowStockPage = lazy(() => import("@/features/inventory/LowStockPage"));
 // Sales
 const SalesPage = lazy(() => import("@/features/sales/SalesPage"));
 const SalesHistoryPage = lazy(() => import("@/features/sales/SalesHistoryPage"));
+const ReconciliationPage = lazy(() => import("@/features/sales/ReconciliationPage"));
 
 // Invoicing
 const InvoiceListPage = lazy(() => import("@/features/invoicing/InvoiceListPage"));
@@ -119,6 +120,7 @@ function AppRoutes() {
           <Route path="sales">
             <Route index element={<SalesHistoryPage />} />
             <Route path="new" element={<SalesPage />} />
+            <Route path="reconciliation" element={<ReconciliationPage />} />
           </Route>
 
           {/* Invoicing */}
