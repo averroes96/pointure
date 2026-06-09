@@ -15,7 +15,12 @@ import { useBranch } from "@/features/auth/BranchContext";
 import type { CashReconciliation } from "@/types";
 
 function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -252,7 +257,7 @@ export default function ReconciliationPage() {
   const branchId = currentBranch?.id ?? null;
 
   // System totals from daily summary
-  const { data: summary, isLoading: summaryLoading } = useQuery<{
+  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useQuery<{
     by_payment_method: Record<string, number>;
     sale_count: number;
     total_refunds: number;
@@ -421,6 +426,17 @@ export default function ReconciliationPage() {
           {summaryLoading ? (
             <div className="card-body text-text-muted text-sm py-8 text-center">
               Chargement des totaux système…
+            </div>
+          ) : summaryError ? (
+            <div className="card-body text-danger text-sm py-8 text-center">
+              Impossible de charger les totaux pour cette date.
+            </div>
+          ) : summary?.sale_count === 0 ? (
+            <div className="card-body py-8 text-center space-y-1">
+              <p className="text-text-primary font-medium text-sm">Aucune vente enregistrée pour le {date}</p>
+              <p className="text-text-muted text-xs">
+                Vérifiez la date sélectionnée — les ventes sont filtrées par date locale (heure Algérie).
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
