@@ -199,3 +199,57 @@ class CashReconciliation(TenantScopedModel):
 
     def __str__(self):
         return f"Reconciliation {self.date} — {self.branch or 'All branches'}"
+
+
+class Exchange(TenantScopedModel):
+    """Returns-as-exchange: customer returns old items and receives new ones in one transaction."""
+    original_sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="exchanges")
+    processed_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, related_name="exchanges_processed"
+    )
+    reason = models.TextField(_("Reason"), blank=True)
+    # Positive when customer owes extra (new items more expensive than returned)
+    extra_payment_amount = models.DecimalField(
+        _("Extra Payment"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    extra_payment_method = models.CharField(
+        _("Extra Payment Method"), max_length=10, choices=PaymentMethodChoices.choices, blank=True
+    )
+    # Positive when store refunds cash (returned items more expensive than new)
+    refund_amount = models.DecimalField(
+        _("Cash Refund"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Exchange")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Exchange #{self.pk} from {self.original_sale}"
+
+
+class ExchangeReturnItem(models.Model):
+    """Item returned by the customer as part of an exchange (restocked)."""
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, related_name="returned_items")
+    variant = models.ForeignKey(
+        "inventory.Variant", on_delete=models.PROTECT, related_name="exchange_returns"
+    )
+    quantity = models.PositiveIntegerField(_("Quantity"))
+    unit_price = models.DecimalField(_("Original Unit Price"), max_digits=12, decimal_places=2)
+
+    class Meta:
+        verbose_name = _("Exchange Return Item")
+
+
+class ExchangeNewItem(models.Model):
+    """New item given to the customer as part of an exchange (deducted from stock)."""
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, related_name="new_items")
+    variant = models.ForeignKey(
+        "inventory.Variant", on_delete=models.PROTECT, related_name="exchange_new_items"
+    )
+    quantity = models.PositiveIntegerField(_("Quantity"))
+    unit_price = models.DecimalField(_("Unit Price"), max_digits=12, decimal_places=2)
+
+    class Meta:
+        verbose_name = _("Exchange New Item")

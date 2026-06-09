@@ -177,6 +177,7 @@ export interface Sale {
   due_date: string | null;
   items: SaleItem[];
   payments: Payment[];
+  exchange_count: number;
   created_at: string;
 }
 
@@ -185,6 +186,39 @@ export interface StoreSettings {
   min_versement_pct: number;
   versement_due_days: number;
   versement_requires_client: boolean;
+}
+
+// ─────────────────────────────────────────────
+// Exchanges
+// ─────────────────────────────────────────────
+
+export interface ExchangeReturnItem {
+  id: number;
+  variant: number;
+  variant_str: string;
+  quantity: number;
+  unit_price: string;
+}
+
+export interface ExchangeNewItem {
+  id: number;
+  variant: number;
+  variant_str: string;
+  quantity: number;
+  unit_price: string;
+}
+
+export interface Exchange {
+  id: number;
+  original_sale: number;
+  processed_by: number | null;
+  reason: string;
+  extra_payment_amount: string;
+  extra_payment_method: PaymentMethod | "";
+  refund_amount: string;
+  returned_items: ExchangeReturnItem[];
+  new_items: ExchangeNewItem[];
+  created_at: string;
 }
 
 export type ReconciliationStatus = "pending" | "approved";

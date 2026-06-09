@@ -6,7 +6,10 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
-from .models import CashReconciliation, Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem
+from .models import (
+    CashReconciliation, Exchange, ExchangeNewItem, ExchangeReturnItem,
+    Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem,
+)
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -35,6 +38,7 @@ class SaleSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source="client.name", default=None, read_only=True)
     loyalty_tier = serializers.SerializerMethodField()
     loyalty_points = serializers.SerializerMethodField()
+    exchange_count = serializers.IntegerField(source="exchanges.count", read_only=True)
 
     def _loyalty_account(self, obj):
         if not obj.client_id:
@@ -58,7 +62,8 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "branch", "cashier", "cashier_name", "client", "client_name",
             "loyalty_tier", "loyalty_points", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due",
-            "receipt_number", "notes", "due_date", "items", "payments", "created_at",
+            "receipt_number", "notes", "due_date", "items", "payments",
+            "exchange_count", "created_at",
         ]
         read_only_fields = ["id", "created_at", "receipt_number"]
 
@@ -422,13 +427,18 @@ class CreateReturnSerializer(serializers.Serializer):
             item.variant_id: item.quantity for item in sale.items.all()
         }
 
-        # Build a map of how many units have already been returned across all prior returns
+        # Build a map of how many units have already been used (returned or exchanged)
         already_returned: dict[int, int] = {}
-        qs = ReturnItem.objects.filter(
+        for row in ReturnItem.objects.filter(
             return_obj__original_sale=sale
-        ).values("variant_id").annotate(total=Sum("quantity"))
-        for row in qs:
+        ).values("variant_id").annotate(total=Sum("quantity")):
             already_returned[row["variant_id"]] = row["total"]
+        for row in ExchangeReturnItem.objects.filter(
+            exchange__original_sale=sale
+        ).values("variant_id").annotate(total=Sum("quantity")):
+            already_returned[row["variant_id"]] = (
+                already_returned.get(row["variant_id"], 0) + row["total"]
+            )
 
         errors = []
         for item in data["items"]:
@@ -624,3 +634,244 @@ class CreateReconciliationSerializer(serializers.Serializer):
     actual_ccp = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_virement = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+# ─── Exchange input ───────────────────────────────────────────────────────────
+
+class ExchangeReturnItemInput(serializers.Serializer):
+    variant_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1)
+
+
+class ExchangeNewItemInput(serializers.Serializer):
+    variant_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1)
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class CreateExchangeSerializer(serializers.Serializer):
+    """
+    Input for POST /api/v1/sales/{id}/exchange/
+    returned_items must be a subset of the original sale's items.
+    new_items can be any in-stock variant.
+    """
+    returned_items = ExchangeReturnItemInput(many=True, min_length=1)
+    new_items = ExchangeNewItemInput(many=True, min_length=1)
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+    extra_payment_method = serializers.ChoiceField(
+        choices=PaymentMethodChoices.choices, required=False, allow_blank=True, default=""
+    )
+
+    def validate(self, data):
+        sale = self.context.get("sale")
+        request = self.context.get("request")
+        if not sale:
+            return data
+
+        # Hard limit: 3 exchanges per sale
+        MAX_EXCHANGES = 3
+        exchange_count = Exchange.objects.filter(original_sale=sale).count()
+        if exchange_count >= MAX_EXCHANGES:
+            raise serializers.ValidationError(
+                {"non_field_errors": f"Cette vente a déjà été échangée {exchange_count} fois. Maximum {MAX_EXCHANGES} échanges par vente."}
+            )
+
+        tenant = request.tenant if request else sale.tenant
+
+        # Build sold quantity and original price maps
+        sold_qty: dict[int, int] = {}
+        sold_price: dict[int, Decimal] = {}
+        for item in sale.items.all():
+            sold_qty[item.variant_id] = item.quantity
+            sold_price[item.variant_id] = item.unit_price
+
+        # Count already-used units per variant (returns + prior exchanges)
+        already_used: dict[int, int] = {}
+        for row in ReturnItem.objects.filter(
+            return_obj__original_sale=sale
+        ).values("variant_id").annotate(total=Sum("quantity")):
+            already_used[row["variant_id"]] = row["total"]
+        for row in ExchangeReturnItem.objects.filter(
+            exchange__original_sale=sale
+        ).values("variant_id").annotate(total=Sum("quantity")):
+            already_used[row["variant_id"]] = (
+                already_used.get(row["variant_id"], 0) + row["total"]
+            )
+
+        errors = []
+
+        # Validate returned items belong to sale and have enough remaining qty
+        for item in data["returned_items"]:
+            vid = item["variant_id"]
+            new_qty = item["quantity"]
+            original = sold_qty.get(vid)
+            if original is None:
+                errors.append(f"La variante {vid} ne fait pas partie de cette vente.")
+                continue
+            already = already_used.get(vid, 0)
+            if already + new_qty > original:
+                remaining = original - already
+                errors.append(
+                    f"Variante {vid} : {already} déjà utilisé(s), "
+                    f"maximum {remaining} échangeable(s)."
+                )
+            # Stash original price for create_exchange to use
+            item["_unit_price"] = sold_price.get(vid, Decimal("0"))
+
+        # Validate new items exist and have sufficient stock
+        for item in data["new_items"]:
+            vid = item["variant_id"]
+            try:
+                variant = Variant.objects.get(pk=vid, tenant=tenant)
+                item["_variant"] = variant
+                if variant.stock_qty < item["quantity"]:
+                    errors.append(
+                        f"Stock insuffisant pour la variante {vid} "
+                        f"(disponible : {variant.stock_qty}, demandé : {item['quantity']})."
+                    )
+            except Variant.DoesNotExist:
+                errors.append(f"La variante {vid} est introuvable.")
+
+        if errors:
+            raise serializers.ValidationError({"items": errors})
+
+        # Compute price difference
+        returned_value = sum(
+            item["_unit_price"] * item["quantity"] for item in data["returned_items"]
+        )
+        new_value = sum(
+            item["unit_price"] * item["quantity"] for item in data["new_items"]
+        )
+        diff = new_value - returned_value
+
+        data["_returned_value"] = returned_value
+        data["_new_value"] = new_value
+        data["_price_diff"] = diff
+
+        if diff > Decimal("0") and not data.get("extra_payment_method"):
+            raise serializers.ValidationError(
+                {"extra_payment_method": "Le moyen de paiement est requis quand le client paie un supplément."}
+            )
+
+        return data
+
+    @transaction.atomic
+    def create_exchange(self, sale, processed_by):
+        tenant = sale.tenant
+        data = self.validated_data
+        diff = data["_price_diff"]
+
+        extra_payment_amount = max(diff, Decimal("0"))
+        refund_amount = max(-diff, Decimal("0"))
+
+        exchange_obj = Exchange.objects.create(
+            tenant=tenant,
+            original_sale=sale,
+            processed_by=processed_by,
+            reason=data.get("reason", ""),
+            extra_payment_amount=extra_payment_amount,
+            extra_payment_method=data.get("extra_payment_method", "") if extra_payment_amount > 0 else "",
+            refund_amount=refund_amount,
+        )
+
+        # Returned items: restock
+        for item_data in data["returned_items"]:
+            variant = Variant.objects.get(pk=item_data["variant_id"], tenant=tenant)
+            ExchangeReturnItem.objects.create(
+                exchange=exchange_obj,
+                variant=variant,
+                quantity=item_data["quantity"],
+                unit_price=item_data["_unit_price"],
+            )
+            StockMovement.objects.create(
+                tenant=tenant,
+                variant=variant,
+                branch=sale.branch,
+                quantity_delta=item_data["quantity"],
+                reason=MovementReasonChoices.RETURN,
+                reference_id=str(exchange_obj.pk),
+                reference_type="Exchange",
+                user=processed_by,
+            )
+
+        # New items: deduct from stock
+        for item_data in data["new_items"]:
+            variant = item_data["_variant"]
+            ExchangeNewItem.objects.create(
+                exchange=exchange_obj,
+                variant=variant,
+                quantity=item_data["quantity"],
+                unit_price=item_data["unit_price"],
+            )
+            StockMovement.objects.create(
+                tenant=tenant,
+                variant=variant,
+                branch=sale.branch,
+                quantity_delta=-item_data["quantity"],
+                reason=MovementReasonChoices.SALE,
+                reference_id=str(exchange_obj.pk),
+                reference_type="Exchange",
+                user=processed_by,
+            )
+
+        # Swap SaleItem variants: the sale now reflects what the customer actually has
+        returned_list = data["returned_items"]
+        new_list = data["new_items"]
+        for ret, new in zip(returned_list, new_list):
+            SaleItem.objects.filter(
+                sale=sale, variant_id=ret["variant_id"]
+            ).update(
+                variant=new["_variant"],
+                unit_price=new["unit_price"],
+                discount_amount=Decimal("0.00"),
+            )
+
+        # Award loyalty points only on extra payment (customer pays more)
+        if extra_payment_amount > 0 and sale.client_id:
+            self._award_exchange_loyalty(sale, exchange_obj, extra_payment_amount, tenant)
+
+        return exchange_obj
+
+    @staticmethod
+    def _award_exchange_loyalty(sale, exchange_obj, amount, tenant):
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            from django.utils import timezone
+            from apps.loyalty.models import (
+                LoyaltyAccount, LoyaltyProgram,
+                LoyaltyTransaction, TransactionTypeChoices,
+            )
+
+            program = LoyaltyProgram.objects.filter(tenant=tenant, is_active=True).first()
+            if not program:
+                return
+
+            account, _ = LoyaltyAccount.objects.get_or_create(
+                tenant=tenant, client=sale.client, defaults={"tier": "bronze"}
+            )
+            pts = program.points_for_amount(amount, account.tier)
+            if pts <= 0:
+                return
+
+            account.points_balance += pts
+            account.total_earned += pts
+            account.recompute_tier()
+            account.save()
+
+            expires_at = None
+            if program.expiry_months:
+                expires_at = timezone.now() + timezone.timedelta(days=30 * program.expiry_months)
+
+            LoyaltyTransaction.objects.create(
+                account=account,
+                points=pts,
+                transaction_type=TransactionTypeChoices.EARN,
+                reference_type="Exchange",
+                reference_id=str(exchange_obj.pk),
+                description=f"Points gagnés — supplément échange #{exchange_obj.pk}",
+                balance_after=account.points_balance,
+                expires_at=expires_at,
+            )
+        except Exception:
+            logger.exception("Loyalty processing failed for exchange %s — skipped.", exchange_obj.pk)

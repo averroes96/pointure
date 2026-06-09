@@ -12,8 +12,8 @@ from rest_framework.response import Response
 from apps.core.mixins import TenantScopedViewSetMixin
 from .models import CashReconciliation, Payment, Return, Sale
 from .serializers import (
-    AddPaymentSerializer, CashReconciliationSerializer, CreateReconciliationSerializer,
-    CreateReturnSerializer, CreateSaleSerializer, SaleSerializer,
+    AddPaymentSerializer, CashReconciliationSerializer, CreateExchangeSerializer,
+    CreateReconciliationSerializer, CreateReturnSerializer, CreateSaleSerializer, SaleSerializer,
 )
 
 
@@ -22,6 +22,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "items__variant__product",
         "payments",
         "client__loyalty_accounts",
+        "exchanges",
     )
     serializer_class = SaleSerializer
     filterset_fields = ["branch", "cashier", "status", "client"]
@@ -130,6 +131,28 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             {"id": return_obj.pk, "message": "Return processed successfully."},
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["post"])
+    def exchange(self, request, pk=None):
+        """Process a return-as-exchange for this sale."""
+        sale = self.get_object()
+        if sale.status == "refunded":
+            return Response(
+                {"detail": "Cette vente a déjà été entièrement remboursée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if sale.status != "completed":
+            return Response(
+                {"detail": "Seules les ventes complétées peuvent faire l'objet d'un échange."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = CreateExchangeSerializer(
+            data=request.data, context={"sale": sale, "request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.create_exchange(sale, processed_by=request.user)
+        sale.refresh_from_db()
+        return Response(SaleSerializer(sale).data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"], url_path="daily-summary")
     def daily_summary(self, request):

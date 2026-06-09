@@ -5,11 +5,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
+import ExchangeModal from "./ExchangeModal";
 import type { Sale, SaleItem, PaymentMethod, LoyaltyTier } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -373,6 +374,7 @@ export default function SalesHistoryPage() {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [returnSale, setReturnSale] = useState<Sale | null>(null);
+  const [exchangeSale, setExchangeSale] = useState<Sale | null>(null);
   const [addPaymentSale, setAddPaymentSale] = useState<Sale | null>(null);
 
   const cancelVersementMutation = useMutation({
@@ -620,13 +622,27 @@ export default function SalesHistoryPage() {
                           <Printer size={14} />
                         </button>
                         {isManager && sale.status === "completed" && (
-                          <button
-                            className="btn-ghost btn-sm text-warning"
-                            title="Traiter un retour"
-                            onClick={() => setReturnSale(sale)}
-                          >
-                            <RotateCcw size={14} />
-                          </button>
+                          <>
+                            <button
+                              className="btn-ghost btn-sm text-warning"
+                              title="Traiter un retour"
+                              onClick={() => setReturnSale(sale)}
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                            <button
+                              className="btn-ghost btn-sm text-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                              title={
+                                (sale.exchange_count ?? 0) >= 3
+                                  ? "Maximum 3 échanges atteint"
+                                  : "Traiter un échange"
+                              }
+                              disabled={(sale.exchange_count ?? 0) >= 3}
+                              onClick={() => setExchangeSale(sale)}
+                            >
+                              <ArrowLeftRight size={14} />
+                            </button>
+                          </>
                         )}
                         {isManager && sale.status === "partially_paid" && (
                           <>
@@ -744,6 +760,9 @@ export default function SalesHistoryPage() {
 
       {returnSale && (
         <ReturnModal sale={returnSale} onClose={() => setReturnSale(null)} />
+      )}
+      {exchangeSale && (
+        <ExchangeModal sale={exchangeSale} onClose={() => setExchangeSale(null)} />
       )}
       {addPaymentSale && (
         <AddPaymentModal sale={addPaymentSale} onClose={() => setAddPaymentSale(null)} />
