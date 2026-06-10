@@ -1,18 +1,18 @@
 """
-Fly.io deployment settings.
-Inherits production hardening but adapts for containerised free-tier hosting:
-  - Email optional (console backend when SMTP vars are absent)
-  - WhiteNoise serves static files (no nginx reverse proxy)
-  - SSL handled at Fly edge, not inside Django
-  - Stdout-only logging (Fly captures stdout)
-  - Celery beat slowed to stay within Upstash free tier (10 k cmd/day)
+Render.com deployment settings.
+Inherits production hardening and adapts for Render's free-tier web service:
+  - SSL terminated at Render edge, not inside Django
+  - WhiteNoise serves static files (no nginx)
+  - Email optional (console fallback when SMTP vars are absent)
+  - Stdout-only logging (Render captures stdout)
+  - Celery tasks run eagerly in-process (no background worker on free tier)
 """
 from decouple import config
 
 from .production import *  # noqa: F401, F403
 
 # ─────────────────────────────────────────────
-# SSL — terminated at Fly edge, not in Django
+# SSL — terminated at Render edge proxy
 # ─────────────────────────────────────────────
 SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -28,7 +28,7 @@ if not EMAIL_HOST_USER:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # ─────────────────────────────────────────────
-# Static files — WhiteNoise (no nginx on Fly.io)
+# Static files — WhiteNoise (no nginx on Render free tier)
 # ─────────────────────────────────────────────
 _mw = list(MIDDLEWARE)  # noqa: F405
 _mw.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
@@ -42,12 +42,15 @@ STORAGES = {
 }
 
 # ─────────────────────────────────────────────
-# Logging — stdout only (Fly captures all stdout logs)
+# Logging — stdout only (Render captures all stdout logs)
 # ─────────────────────────────────────────────
 LOGGING["root"]["handlers"] = ["console"]  # noqa: F405
 LOGGING["handlers"].pop("file", None)  # noqa: F405
 
 # ─────────────────────────────────────────────
-# Celery beat — poll every 5 min to stay within Upstash 10 k cmd/day free tier
-# (passed via --max-interval in fly.toml process command)
+# Celery — run tasks eagerly in the web process.
+# Render's free tier has no background worker support.
+# PDF generation and notifications still work; they just run synchronously.
 # ─────────────────────────────────────────────
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

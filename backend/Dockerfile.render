@@ -2,7 +2,7 @@ FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=config.settings.fly
+ENV DJANGO_SETTINGS_MODULE=config.settings.render
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -25,8 +25,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-# Collect static files at build time with a dummy SECRET_KEY.
-# Django never uses SECRET_KEY for static file hashing — the value is irrelevant here.
+# Collect static files at build time.
+# SECRET_KEY is required by Django settings at import time but not used for hashing.
 RUN SECRET_KEY=build-time-placeholder \
     DATABASE_URL=sqlite:////tmp/build.db \
     python manage.py collectstatic --no-input
