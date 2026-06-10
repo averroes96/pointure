@@ -1,0 +1,49 @@
+# Fly.io configuration for ShoeDZ backend
+# Deploy: fly deploy --config backend/fly.toml
+# Secrets: fly secrets set KEY=value --app shodz-api
+
+app = "shodz-api"
+primary_region = "cdg"   # Paris — change to nearest region for your audience
+
+[build]
+  dockerfile = "Dockerfile.fly"
+
+[env]
+  DJANGO_SETTINGS_MODULE = "config.settings.fly"
+  DEPLOYMENT_MODE        = "cloud"
+  STORAGE_PROVIDER       = "local"
+  PORT                   = "8000"
+
+# Runs against the new image BEFORE traffic switches to it.
+# Migrations are safe here — the old version keeps serving until this finishes.
+[deploy]
+  release_command = "python manage.py migrate --no-input"
+
+[http_service]
+  internal_port        = 8000
+  force_https          = true
+  auto_stop_machines   = false   # keep warm — no cold starts for demos
+  auto_start_machines  = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+# Three process groups — one VM each (fits Fly.io free tier: 3 shared VMs)
+[processes]
+  web    = "gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
+  worker = "celery -A config worker -l info -Q default,pdf,notifications --concurrency 2"
+  beat   = "celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler --max-interval 300"
+
+# Persistent volume for uploaded media files (product images etc.)
+# Create once: fly volumes create shodz_media --size 1 --app shodz-api
+[[mounts]]
+  source      = "shodz_media"
+  destination = "/app/media"
+
+[[vm]]
+  memory   = "256mb"
+  cpu_kind = "shared"
+  cpus     = 1
