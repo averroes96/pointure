@@ -126,6 +126,58 @@
     "mark_bounced": "مرفوض",
     "days_until_due": "أيام"
   },
+  "payment_method": {
+    "cash": "نقداً",
+    "cheque": "شيك",
+    "ccp": "CCP",
+    "virement": "تحويل بنكي",
+    "account": "رصيد الحساب"
+  },
+  "category": {
+    "sneakers": "أحذية رياضية",
+    "boots": "أحذية طويلة",
+    "sandals": "صنادل",
+    "formal": "أحذية رسمية",
+    "sport": "رياضة",
+    "kids": "أطفال",
+    "slippers": "شباشب",
+    "other": "أخرى"
+  },
+  "notification": {
+    "title": "الإشعارات",
+    "empty": "لا توجد إشعارات",
+    "mark_all_read": "تحديد الكل كمقروء",
+    "type_cheque_due": "شيك مستحق",
+    "type_low_stock": "مخزون منخفض",
+    "type_invoice_overdue": "فاتورة متأخرة",
+    "type_general": "عام"
+  },
+  "supplier": {
+    "new": "مورد جديد",
+    "edit": "تعديل المورد",
+    "name": "اسم الشركة",
+    "contact_name": "جهة الاتصال",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "origin_country": "البلد الأصلي",
+    "payment_terms": "شروط الدفع",
+    "address": "العنوان",
+    "notes": "ملاحظات",
+    "is_active": "نشط"
+  },
+  "transfer_status": {
+    "pending": "قيد الانتظار",
+    "in_transit": "في الطريق",
+    "received": "مستلم",
+    "cancelled": "ملغى"
+  },
+  "po_status": {
+    "draft": "مسودة",
+    "sent": "مرسل",
+    "partial": "جزئي",
+    "received": "مستلم",
+    "cancelled": "ملغى"
+  },
   "common": {
     "save": "حفظ",
     "cancel": "إلغاء",
