@@ -66,6 +66,11 @@ class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelView
     ordering_fields = ["points_balance", "total_earned", "enrolled_at"]
     ordering = ["-total_earned"]
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return LoyaltyAccountSummarySerializer
+        return LoyaltyAccountSerializer
+
     @action(detail=False, methods=["get"], url_path="by-client")
     def by_client(self, request):
         """

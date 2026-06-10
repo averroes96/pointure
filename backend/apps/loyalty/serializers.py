@@ -101,8 +101,9 @@ class LoyaltyAccountSerializer(serializers.ModelSerializer):
 
 
 class LoyaltyAccountSummarySerializer(serializers.ModelSerializer):
-    """Lightweight — used in POS client lookup (no transaction history)."""
+    """Lightweight — used in POS client lookup and accounts list (no transaction history)."""
     client_name = serializers.CharField(source="client.name", read_only=True)
+    client_phone = serializers.CharField(source="client.phone", read_only=True)
     tier_display = serializers.CharField(source="get_tier_display", read_only=True)
     next_tier = serializers.SerializerMethodField()
     points_to_next_tier = serializers.SerializerMethodField()
@@ -113,6 +114,7 @@ class LoyaltyAccountSummarySerializer(serializers.ModelSerializer):
             "id",
             "client",
             "client_name",
+            "client_phone",
             "points_balance",
             "total_earned",
             "tier",

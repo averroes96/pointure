@@ -578,6 +578,7 @@ export interface LoyaltyAccountSummary {
   id: number;
   client: number;
   client_name: string;
+  client_phone: string;
   points_balance: number;
   total_earned: number;
   tier: LoyaltyTier;
