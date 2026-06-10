@@ -14,7 +14,12 @@ services:
         value: local
       - key: SECRET_KEY
         generateValue: true
-      # Set these manually in the Render dashboard after first deploy:
+      # Superuser created automatically on first deploy
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      # External services — set from Neon and Upstash dashboards
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
