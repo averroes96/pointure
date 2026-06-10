@@ -31,8 +31,12 @@ RUN SECRET_KEY=build-time-placeholder \
     DATABASE_URL=sqlite:////tmp/build.db \
     python manage.py collectstatic --no-input
 
+COPY entrypoint.render.sh /entrypoint.render.sh
+RUN chmod +x /entrypoint.render.sh
+
 RUN addgroup --system django && adduser --system --ingroup django django
 RUN chown -R django:django /app
 USER django
 
 EXPOSE 8000
+CMD ["/entrypoint.render.sh"]
