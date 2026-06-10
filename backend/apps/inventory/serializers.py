@@ -99,7 +99,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
         fields = [
             "id", "variant", "variant_str", "branch", "branch_name",
             "quantity_delta", "reason", "reference_id", "reference_type",
-            "notes", "user_email", "timestamp",
+            "bl_reference", "notes", "user_email", "timestamp",
         ]
         read_only_fields = ["id", "timestamp", "user_email"]
 

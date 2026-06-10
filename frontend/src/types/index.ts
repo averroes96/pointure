@@ -107,6 +107,8 @@ export interface StockMovement {
   quantity_delta: number;
   reason: MovementReason;
   reference_id: string;
+  reference_type: string;
+  bl_reference: string;
   notes: string;
   user_email: string;
   timestamp: string;

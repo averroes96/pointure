@@ -215,6 +215,7 @@ class StockMovement(TenantScopedModel):
     )
     reference_id = models.CharField(_("Reference ID"), max_length=50, blank=True)
     reference_type = models.CharField(_("Reference Type"), max_length=50, blank=True)
+    bl_reference = models.CharField(_("BL Reference"), max_length=100, blank=True)
     notes = models.TextField(_("Notes"), blank=True)
     user = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="stock_movements"

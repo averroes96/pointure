@@ -243,6 +243,25 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                         cs_qty = cs.get("quantity", 0)
                         if cs_qty <= 0:
                             continue
+                        total_received += cs_qty
+
+                    # Guard: cumulative received must not exceed ordered
+                    if line.quantity_received + total_received > line.quantity_ordered:
+                        return Response(
+                            {
+                                "detail": (
+                                    f"Ligne {line.id}: la quantité reçue cumulée "
+                                    f"({line.quantity_received + total_received}) dépasse "
+                                    f"la quantité commandée ({line.quantity_ordered})."
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    for cs in carton_sizes:
+                        cs_qty = cs.get("quantity", 0)
+                        if cs_qty <= 0:
+                            continue
 
                         cs_variant = None
                         if cs.get("variant_id"):
@@ -272,14 +291,14 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                                 reason=MovementReasonChoices.RECEPTION,
                                 reference_id=str(po.id),
                                 reference_type="PurchaseOrder",
+                                bl_reference=bl_reference,
                                 notes=f"{notes_base} | EU{cs['size_eu']}",
                                 user=request.user,
                             )
                             movements_created += 1
 
-                        total_received += cs_qty
-
-                    line.quantity_received = total_received
+                    # Accumulate (not replace) so second partial receives are tracked correctly
+                    line.quantity_received += total_received
                     line.save(update_fields=["quantity_received"])
 
                 else:
@@ -315,6 +334,17 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     line.refresh_from_db(fields=["variant"])
 
                     new_qty = ld["quantity_received"]
+                    if new_qty > line.quantity_ordered:
+                        return Response(
+                            {
+                                "detail": (
+                                    f"Ligne {line.id}: la quantité reçue ({new_qty}) "
+                                    f"dépasse la quantité commandée ({line.quantity_ordered})."
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
                     delta = new_qty - line.quantity_received
                     line.quantity_received = new_qty
                     line.save(update_fields=["quantity_received"])
@@ -328,6 +358,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                             reason=MovementReasonChoices.RECEPTION,
                             reference_id=str(po.id),
                             reference_type="PurchaseOrder",
+                            bl_reference=bl_reference,
                             notes=notes_base,
                             user=request.user,
                         )
