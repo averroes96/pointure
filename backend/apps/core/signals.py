@@ -36,6 +36,9 @@ def _get_tenant_from_instance(instance):
 
 def _json_safe(value):
     """Convert a value to a JSON-serializable type."""
+    from django.db.models.fields.files import FieldFile
+    if isinstance(value, FieldFile):
+        return value.name  # relative path string, or None
     if isinstance(value, decimal.Decimal):
         return str(value)
     if isinstance(value, (datetime.date, datetime.datetime)):
