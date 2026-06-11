@@ -57,6 +57,24 @@ STORAGES = {
 LOGGING["root"]["handlers"] = ["console"]  # noqa: F405
 
 # ─────────────────────────────────────────────
+# Cache — use Redis if available, otherwise in-memory (free tier has no Redis)
+# ─────────────────────────────────────────────
+_redis_url = config("REDIS_URL", default="")
+if _redis_url and _redis_url.startswith(("redis://", "rediss://", "unix://")):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+# ─────────────────────────────────────────────
 # Celery — run tasks eagerly in-process (no background worker on free tier)
 # ─────────────────────────────────────────────
 CELERY_TASK_ALWAYS_EAGER = True
