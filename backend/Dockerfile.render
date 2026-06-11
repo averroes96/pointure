@@ -25,6 +25,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
+# Ensure the static source dir exists (STATICFILES_DIRS references it)
+RUN mkdir -p /app/static
+
 # Collect static files at build time.
 # SECRET_KEY is required by Django settings at import time but not used for hashing.
 RUN SECRET_KEY=build-time-placeholder \
