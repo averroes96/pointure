@@ -29,6 +29,9 @@ COPY . .
 # SECRET_KEY is required by Django settings at import time but not used for hashing.
 RUN SECRET_KEY=build-time-placeholder \
     DATABASE_URL=sqlite:////tmp/build.db \
+    EMAIL_HOST=localhost \
+    EMAIL_HOST_USER=build@example.com \
+    EMAIL_HOST_PASSWORD=placeholder \
     python manage.py collectstatic --no-input
 
 COPY entrypoint.render.sh /entrypoint.render.sh
