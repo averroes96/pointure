@@ -1,8 +1,10 @@
 """
 AuditLog signals — automatically record create/update/delete on financial models.
 """
-import json
+import datetime
+import decimal
 import threading
+import uuid
 
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
@@ -30,6 +32,19 @@ def get_current_user():
 
 def _get_tenant_from_instance(instance):
     return getattr(instance, "tenant", None)
+
+
+def _json_safe(value):
+    """Convert a value to a JSON-serializable type."""
+    if isinstance(value, decimal.Decimal):
+        return str(value)
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def _model_to_dict(instance):
@@ -97,7 +112,10 @@ def audit_post_save(sender, instance, created, **kwargs):
         before = getattr(_pre_save_state, "state", None) or {}
         after = _model_to_dict(instance)
         diff = {
-            field: {"from": before.get(field), "to": after.get(field)}
+            field: {
+                "from": _json_safe(before.get(field)),
+                "to": _json_safe(after.get(field)),
+            }
             for field in after
             if before.get(field) != after.get(field)
         }
