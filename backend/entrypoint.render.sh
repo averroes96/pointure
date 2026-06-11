@@ -18,8 +18,8 @@ print('yes' if Tenant.objects.filter(name='ShoeDZ Demo Store').exists() else 'no
 " 2>/dev/null)
 
 if [ "$SEEDED" = "no" ]; then
-    echo "==> Seeding demo data..."
-    python manage.py seed_demo
+    echo "==> Seeding demo data in background (gunicorn starts immediately)..."
+    python manage.py seed_demo &
 else
     echo "==> Demo data already present, skipping."
 fi
