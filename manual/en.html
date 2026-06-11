@@ -496,8 +496,8 @@
   <p class="tagline">Pointure &mdash; Shoe Retail ERP</p>
   <div class="badge-row">
     <span class="badge">Language: English</span>
-    <span class="badge">Version 1.0</span>
-    <span class="badge">May 2026</span>
+    <span class="badge">Version 1.1</span>
+    <span class="badge">June 2026</span>
   </div>
   <p class="subtitle">User Manual</p>
   <p style="color:rgba(255,255,255,0.55); font-size:14px; max-width:480px; margin-top:16px;">
@@ -559,6 +559,8 @@
         <li><a href="#pos-payment">Recording payment</a></li>
         <li><a href="#pos-confirm">Confirming the sale</a></li>
         <li><a href="#pos-history">Sale history</a></li>
+        <li><a href="#pos-exchange">Exchange / Return</a></li>
+        <li><a href="#pos-reconciliation">Cash Reconciliation (End-of-Day Closing)</a></li>
       </ul>
     </li>
     <li>
@@ -650,6 +652,18 @@
         <li><a href="#settings-branches">Branches tab</a></li>
         <li><a href="#settings-billing">Billing tab</a></li>
         <li><a href="#settings-audit">Audit log</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-11">
+        <span class="toc-num">11</span>
+        <span class="toc-title">Loyalty Program</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#loyalty-config">11.1 Configuration</a></li>
+        <li><a href="#loyalty-stats">11.2 Statistics &amp; Leaderboard</a></li>
+        <li><a href="#loyalty-accounts">11.3 Loyalty Accounts</a></li>
       </ul>
     </li>
   </ul>
@@ -838,6 +852,7 @@
         <tr><td>Suppliers</td><td>Supplier directory and purchase orders.</td><td>Manager</td></tr>
         <tr><td>Reports</td><td>Daily, analytics, and stock reports.</td><td>Manager</td></tr>
         <tr><td>Settings</td><td>Profile, business info, users, branches, billing.</td><td>Cashier (profile only)</td></tr>
+        <tr><td>Loyalty</td><td>Programme configuration and customer loyalty accounts.</td><td>Owner, Manager</td></tr>
       </tbody>
     </table>
   </div>
@@ -1092,6 +1107,135 @@
     <li>Click any row to open the full receipt detail — showing each line item, applied discounts, payment breakdown, and client (if assigned).</li>
     <li>From the receipt detail page, you can reprint the receipt or share it via WhatsApp again.</li>
   </ol>
+
+  <h3 id="pos-exchange">3.9 Exchange / Return</h3>
+  <p>
+    The Exchange / Return feature allows you to process a partial or full return of items from a completed sale and, optionally, replace them with new items in a single operation. It is available exclusively on <strong>completed</strong> sales.
+  </p>
+
+  <div class="warning">
+    This feature is only available on sales with <strong>completed</strong> status. You cannot initiate an exchange or return on a sale that is already partially returned, cancelled, or still in progress.
+  </div>
+
+  <h4>Starting an Exchange or Return</h4>
+  <ol>
+    <li>Open <strong>Sales History</strong> from the sidebar.</li>
+    <li>Locate and click the completed sale you wish to process.</li>
+    <li>On the sale detail page, click the <strong>Exchange / Return</strong> button.</li>
+    <li>The Exchange / Return dialog opens, displaying all line items from the original sale.</li>
+  </ol>
+
+  <h4>Selecting Returned Items</h4>
+  <ol>
+    <li>In the <strong>Items Being Returned</strong> section, check the box next to each product the customer is bringing back.</li>
+    <li>Adjust the <strong>Return Quantity</strong> for each selected item. You cannot return more than the original quantity sold.</li>
+  </ol>
+
+  <h4>Adding New Items (for Exchange)</h4>
+  <ol>
+    <li>In the <strong>New Items</strong> section, use the product search (by name or barcode) to find the replacement product(s) the customer wants.</li>
+    <li>Select the variant (size and colour) and quantity for each new item.</li>
+    <li>You may add multiple new items or leave this section empty for a pure return with no replacement.</li>
+  </ol>
+
+  <h4>Understanding the Computed Difference</h4>
+  <p>ShoeDZ automatically calculates the value difference between the returned items and the new items:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Scenario</th><th>Result</th><th>Action Required</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>New items value <strong>&gt;</strong> returned items value</td>
+          <td>Customer pays the difference.</td>
+          <td>Select a payment method: <strong>Cash, Cheque, CCP, Virement Bancaire,</strong> or <strong>Account Balance</strong>.</td>
+        </tr>
+        <tr>
+          <td>Returned items value <strong>&gt;</strong> new items value</td>
+          <td>Store refunds the difference to the customer.</td>
+          <td>Refund is issued in <strong>cash</strong>. Ensure the cash drawer has sufficient funds.</td>
+        </tr>
+        <tr>
+          <td>Values are <strong>equal</strong></td>
+          <td>Perfect swap — no money changes hands.</td>
+          <td>No payment or refund required.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Completing the Exchange / Return</h4>
+  <ol>
+    <li>Enter a <strong>Reason</strong> for the exchange or return (free text, e.g., "Wrong size", "Defective sole", "Customer preference").</li>
+    <li>If a payment is due, select the payment method and confirm the amount.</li>
+    <li>Click <strong>Confirm</strong>.</li>
+    <li>ShoeDZ automatically:
+      <ul>
+        <li>Re-credits stock for the returned variants.</li>
+        <li>Deducts stock for the new items issued.</li>
+        <li>Records a <em>Return</em> stock movement for each returned item.</li>
+        <li>Links the exchange record to the original sale for full traceability.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <div class="info">
+    Stock adjustments from an exchange are immediate and appear in Stock Movements with type <strong>Return</strong>. The original sale record is updated to reflect the exchange with a link to the new transaction.
+  </div>
+
+  <h3 id="pos-reconciliation">3.10 Cash Reconciliation (End-of-Day Closing)</h3>
+  <p>
+    The Cash Reconciliation feature provides a formal end-of-day cash drawer closing procedure. It compares the amounts the system recorded for each payment method against the actual amounts the cashier counts at close of business, and flags any discrepancies.
+  </p>
+  <p>
+    Navigate to <strong>Sales → Cash Reconciliation</strong> (route: <code>/sales/reconciliation</code>).
+  </p>
+
+  <h4>Creating a Reconciliation</h4>
+  <ol>
+    <li>On the Cash Reconciliation page, the <strong>Date</strong> field defaults to today. Change it if you are closing a prior day.</li>
+    <li>The system automatically populates the <strong>System Totals</strong> column — the amounts recorded in completed sales for each payment method on that date:
+      <ul>
+        <li>Cash (Espèces)</li>
+        <li>Cheque</li>
+        <li>CCP</li>
+        <li>Bank Transfer (Virement Bancaire)</li>
+      </ul>
+    </li>
+    <li>The cashier physically counts the drawer and enters the <strong>Actual Counted Amount</strong> for each payment method in the corresponding input fields.</li>
+    <li>ShoeDZ immediately computes the <strong>Gap</strong> for each method (Actual − System):
+      <ul>
+        <li><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-weight:700;">Green</span> — Gap is zero: drawer matches the system exactly.</li>
+        <li><span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:4px;font-weight:700;">Orange</span> — Surplus: the drawer contains more than the system recorded.</li>
+        <li><span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:4px;font-weight:700;">Red</span> — Shortfall: the drawer contains less than the system recorded.</li>
+      </ul>
+    </li>
+    <li>Enter any relevant <strong>Notes</strong> (e.g., "50 DZD coin shortage", "Petty cash payout 200 DZD").</li>
+    <li>Click <strong>Submit for Review</strong>. The reconciliation is saved with status <span class="status status-pending">Pending</span>.</li>
+  </ol>
+
+  <h4>Manager / Owner Approval</h4>
+  <ol>
+    <li>A Manager or Owner opens the reconciliation record from the Cash Reconciliation list.</li>
+    <li>They review the system totals, actual counts, and gaps for each payment method.</li>
+    <li>If satisfied, click <strong>Approve</strong>. The status changes to <span class="status status-paid">Approved</span>.</li>
+    <li>If corrections are needed, the reconciliation can be sent back to the cashier with a note.</li>
+  </ol>
+
+  <h4>Printing the Closing Report</h4>
+  <ol>
+    <li>On any reconciliation record (Pending or Approved), click <strong>Print Closing Report</strong>.</li>
+    <li>A formatted A4 report is generated showing: date, branch, cashier name, system totals, actual amounts, gaps per method, notes, and approval status.</li>
+    <li>This report is suitable for filing with your daily accounting records.</li>
+  </ol>
+
+  <div class="tip">
+    Perform the end-of-day reconciliation before leaving the shop each evening. Investigating discrepancies is far easier the same day while events are still fresh.
+  </div>
+  <div class="note">
+    Reconciliation records are linked to the branch where they are created. In a multi-branch setup, each branch closes its own drawer independently.
+  </div>
 </div>
 
 <!-- ============================================================
@@ -1221,17 +1365,17 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Type</th><th>When it occurs</th><th>Direction</th></tr>
+        <tr><th>Type</th><th>When it occurs</th><th>Direction</th><th>BL Reference</th></tr>
       </thead>
       <tbody>
-        <tr><td>Sale</td><td>Item sold at POS.</td><td>Decrease (−)</td></tr>
-        <tr><td>Reception</td><td>Purchase order fully or partially received.</td><td>Increase (+)</td></tr>
-        <tr><td>Adjustment</td><td>Manual stock adjustment by a manager.</td><td>+ or −</td></tr>
-        <tr><td>Return</td><td>Customer returned an item from a prior sale.</td><td>Increase (+)</td></tr>
-        <tr><td>Transfer Out</td><td>Stock sent from this branch to another.</td><td>Decrease (−)</td></tr>
-        <tr><td>Transfer In</td><td>Stock received from another branch.</td><td>Increase (+)</td></tr>
-        <tr><td>Damaged</td><td>Units written off as damaged/lost.</td><td>Decrease (−)</td></tr>
-        <tr><td>Initial</td><td>Opening stock set when a variant is first created.</td><td>Increase (+)</td></tr>
+        <tr><td>Sale</td><td>Item sold at POS.</td><td>Decrease (−)</td><td>—</td></tr>
+        <tr><td>Reception</td><td>Purchase order fully or partially received.</td><td>Increase (+)</td><td>Supplier delivery note no. (optional)</td></tr>
+        <tr><td>Adjustment</td><td>Manual stock adjustment by a manager.</td><td>+ or −</td><td>—</td></tr>
+        <tr><td>Return</td><td>Customer returned an item from a prior sale.</td><td>Increase (+)</td><td>—</td></tr>
+        <tr><td>Transfer Out</td><td>Stock sent from this branch to another.</td><td>Decrease (−)</td><td>—</td></tr>
+        <tr><td>Transfer In</td><td>Stock received from another branch.</td><td>Increase (+)</td><td>—</td></tr>
+        <tr><td>Damaged</td><td>Units written off as damaged/lost.</td><td>Decrease (−)</td><td>—</td></tr>
+        <tr><td>Initial</td><td>Opening stock set when a variant is first created.</td><td>Increase (+)</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
@@ -1758,12 +1902,17 @@
   <ol>
     <li>Open the purchase order (from <strong>Suppliers → Purchase Orders</strong>).</li>
     <li>Click <strong>Receive Goods</strong>.</li>
+    <li>Enter the <strong>BL Reference</strong> — the supplier's delivery note number (e.g., BL-2026-0842). This field is optional but strongly recommended for traceability. It is stored on every stock movement created by this receipt.</li>
     <li>For each line item, enter the <strong>Received Quantity</strong>. If you received fewer than ordered (partial delivery), enter the actual received amount. You can receive the rest later.</li>
     <li>Enter any notes (e.g., "2 boxes arrived damaged — returned to driver").</li>
     <li>Click <strong>Confirm Receipt</strong>.</li>
-    <li>Stock levels at the destination branch are updated immediately. A <em>Reception</em> stock movement is created for each line.</li>
+    <li>Stock levels at the destination branch are updated immediately. A <em>Reception</em> stock movement is created for each line, stamped with the BL reference.</li>
     <li>If the purchase price on any line differs from the product's existing purchase price, ShoeDZ will ask if you want to <strong>update the product's purchase price</strong> to the new value. This affects future margin calculations.</li>
   </ol>
+
+  <div class="warning">
+    <strong>Over-receive guard:</strong> The system will not allow receiving more units than were ordered on any line. If the entered quantity exceeds the ordered quantity, an error is shown and the receipt is blocked. Create a new purchase order if you need to account for extra units delivered above the original order.
+  </div>
 
   <div class="table-wrap">
     <table>
@@ -2220,11 +2369,182 @@
 </div>
 
 <!-- ============================================================
+     SECTION 11 — LOYALTY PROGRAM
+     ============================================================ -->
+<div class="section" id="section-11">
+  <h2><span class="section-number">11.</span> Loyalty Program <span class="role-tag role-manager" style="margin-left:6px;">Manager+</span></h2>
+  <p>
+    The Loyalty Program module lets you reward repeat customers with points on every purchase. Points accumulate into tiers that unlock multiplier bonuses, and can be redeemed for discounts at the point of sale. The module is accessible from the <strong>Loyalty</strong> item in the left sidebar and is divided into two tabs: <strong>Programme</strong> and <strong>Accounts</strong>.
+  </p>
+
+  <h3 id="loyalty-config">11.1 Configuration (Programme Tab)</h3>
+  <p>
+    The Programme tab is where you design the rules of your loyalty scheme. Navigate to <strong>Loyalty → Programme</strong>.
+  </p>
+
+  <h4>Programme Settings</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Setting</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Points per 100 DZD</strong></td>
+          <td>How many loyalty points a customer earns for every 100 DZD spent. For example, a value of <code>5</code> means 5 points per 100 DZD — a 1 000 DZD purchase awards 50 points.</td>
+        </tr>
+        <tr>
+          <td><strong>Redemption Value (DZD per point)</strong></td>
+          <td>The monetary value of one point when redeemed. For example, <code>2</code> means each point is worth 2 DZD off a future purchase.</td>
+        </tr>
+        <tr>
+          <td><strong>Minimum Redemption Points</strong></td>
+          <td>The minimum number of points a customer must have accumulated before they are allowed to redeem. Prevents micro-redemptions.</td>
+        </tr>
+        <tr>
+          <td><strong>Point Expiry (months)</strong></td>
+          <td>Optional. If set, points that have not been earned or redeemed within this many months are automatically expired. Leave blank for points that never expire.</td>
+        </tr>
+        <tr>
+          <td><strong>Active</strong></td>
+          <td>Master toggle. When off, the programme is suspended — no points are earned or redeemed — but all existing balances are preserved.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Tier Configuration</h4>
+  <p>The programme supports three tiers. Customers are automatically promoted to a higher tier when their lifetime accumulated points reach the configured threshold.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Tier</th><th>Threshold</th><th>Multiplier</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span style="background:#fef9c3;color:#78350f;padding:2px 10px;border-radius:10px;font-weight:700;">Bronze</span></td>
+          <td>Base tier — all customers start here.</td>
+          <td>×1.0</td>
+          <td>Standard points earn rate.</td>
+        </tr>
+        <tr>
+          <td><span style="background:#e2e8f0;color:#334155;padding:2px 10px;border-radius:10px;font-weight:700;">Silver</span></td>
+          <td>Configurable points threshold (e.g., 500 pts).</td>
+          <td>×1.2</td>
+          <td>Customer earns 20% more points per purchase.</td>
+        </tr>
+        <tr>
+          <td><span style="background:#fde68a;color:#78350f;padding:2px 10px;border-radius:10px;font-weight:700;">Gold</span></td>
+          <td>Higher configurable threshold (e.g., 2 000 pts).</td>
+          <td>×1.5</td>
+          <td>Customer earns 50% more points per purchase.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    Set your Silver and Gold thresholds based on average annual spend. A customer who buys 4–5 pairs per year at 4 000 DZD each should realistically be able to reach Silver within 12–18 months.
+  </div>
+
+  <ol>
+    <li>Adjust the settings and tier thresholds as required.</li>
+    <li>Click <strong>Save Programme</strong> to apply the changes.</li>
+  </ol>
+
+  <div class="warning">
+    Changing the <strong>Points per 100 DZD</strong> or <strong>Redemption Value</strong> takes effect immediately on all future transactions. Existing point balances are not retroactively recalculated.
+  </div>
+
+  <h3 id="loyalty-stats">11.2 Statistics &amp; Leaderboard (Programme Tab)</h3>
+  <p>
+    Below the configuration panel on the Programme tab, ShoeDZ displays live statistics about your loyalty scheme's performance.
+  </p>
+
+  <h4>Tier Distribution</h4>
+  <p>A summary showing how many customers are currently in each tier (Bronze, Silver, Gold). Use this to gauge whether your thresholds are well-calibrated — if almost nobody has reached Silver, consider lowering the threshold.</p>
+
+  <h4>Total Outstanding Points</h4>
+  <p>The total number of unredeemed points held across all active loyalty accounts. This figure represents a future liability — points that customers may eventually redeem as discounts.</p>
+
+  <h4>Top-20 Leaderboard</h4>
+  <p>A ranked table of your top 20 loyalty customers by current points balance, showing:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Rank</td><td>Position on the leaderboard (1 = highest points balance).</td></tr>
+        <tr><td>Customer Name</td><td>The client's name linked to their loyalty account.</td></tr>
+        <tr><td>Tier</td><td>Current tier badge (Bronze, Silver, or Gold).</td></tr>
+        <tr><td>Points Balance</td><td>Current unredeemed points.</td></tr>
+        <tr><td>Last Activity</td><td>Date of the most recent point earn or redemption.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    Use the leaderboard to identify your most loyal customers and consider offering them exclusive promotions or early access to new collections.
+  </div>
+
+  <h3 id="loyalty-accounts">11.3 Loyalty Accounts (Accounts Tab)</h3>
+  <p>
+    The Accounts tab provides a searchable, full list of every customer loyalty account in the system. Navigate to <strong>Loyalty → Accounts</strong>.
+  </p>
+
+  <h4>Browsing and Searching Accounts</h4>
+  <ol>
+    <li>The accounts table lists all customers who have a loyalty account, with columns: Customer Name, Tier, Points Balance, and Last Activity.</li>
+    <li>Use the <strong>Search</strong> field to filter by customer name.</li>
+    <li>Click any row to open the customer's loyalty account detail.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Customer Name</td><td>The client's name, linked to their client record.</td></tr>
+        <tr><td>Tier</td><td>Current tier: Bronze, Silver, or Gold.</td></tr>
+        <tr><td>Points Balance</td><td>Current unredeemed point balance.</td></tr>
+        <tr><td>Last Activity</td><td>Date of the last point transaction (earn or redemption).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Manual Point Adjustment</h4>
+  <p>
+    Managers and Owners can manually credit or debit points on a loyalty account — for example, to correct an error, award a goodwill gesture, or reverse a fraudulent redemption.
+  </p>
+  <ol>
+    <li>Open the loyalty account detail page for the customer.</li>
+    <li>Click <strong>Manual Adjustment</strong>.</li>
+    <li>Fill in the adjustment form:
+      <ul>
+        <li><strong>Points</strong> — Enter a <em>positive</em> number to credit (add) points, or a <em>negative</em> number to debit (remove) points.</li>
+        <li><strong>Reason</strong> — Mandatory free-text explanation for the adjustment (recorded in the account history).</li>
+      </ul>
+    </li>
+    <li>Click <strong>Confirm Adjustment</strong>.</li>
+  </ol>
+
+  <div class="warning">
+    A manual debit cannot reduce a customer's points balance below zero. If you enter a debit larger than the current balance, ShoeDZ will block the adjustment and display a validation error.
+  </div>
+
+  <div class="info">
+    All manual adjustments are recorded in the customer's point transaction history with the adjusting user's name, timestamp, and reason — ensuring full accountability.
+  </div>
+</div>
+
+<!-- ============================================================
      FOOTER
      ============================================================ -->
 <div class="manual-footer">
-  <p><strong>ShoeDZ / Pointure</strong> &mdash; User Manual, Version 1.0</p>
-  <p>Language: English &nbsp;&bull;&nbsp; Published: May 2026</p>
+  <p><strong>ShoeDZ / Pointure</strong> &mdash; User Manual, Version 1.1</p>
+  <p>Language: English &nbsp;&bull;&nbsp; Published: June 2026</p>
   <p style="margin-top:8px;">
     For technical support, contact your system administrator or visit the ShoeDZ help portal.<br>
     &copy; 2026 Pointure. All rights reserved.

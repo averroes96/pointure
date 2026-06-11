@@ -260,8 +260,8 @@
   <p class="subtitle">Manuel Utilisateur</p>
   <div class="meta">
     <p><strong>Application :</strong> ShoeDZ / Pointure ERP</p>
-    <p><strong>Version :</strong> 1.0</p>
-    <p><strong>Date :</strong> Mai 2026</p>
+    <p><strong>Version :</strong> 1.1</p>
+    <p><strong>Date :</strong> Juin 2026</p>
     <p><strong>Destination :</strong> Détaillants algériens de chaussures</p>
     <div class="badge-lang">Français</div>
   </div>
@@ -305,6 +305,8 @@
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-3">Gestion du panier</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-4">Paiement et confirmation</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-5">Historique des ventes</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-6">Échange / Retour de marchandises</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s3-7">Réconciliation de caisse</a></span></div>
     </div>
 
     <div class="toc-entry">
@@ -379,6 +381,16 @@
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-5">Agences et succursales</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-6">Abonnement</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s10-7">Journal d'activité (Audit)</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">11</span>
+      <span class="toc-title"><a href="#s11">Programme de fidélité</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-1">Configuration</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-2">Statistiques et classement</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-3">Comptes fidélité</a></span></div>
     </div>
 
   </ol>
@@ -543,6 +555,7 @@
       <tr><td>Clients</td><td>Liste clients, Créances, Chèques</td><td>Owner, Manager</td></tr>
       <tr><td>Fournisseurs</td><td>Liste, Bons de commande</td><td>Owner, Manager</td></tr>
       <tr><td>Rapports</td><td>Rapport journalier, Analytiques, Stock</td><td>Owner, Manager</td></tr>
+      <tr><td>Fidélité</td><td>Programme, Comptes</td><td>Owner, Manager</td></tr>
       <tr><td>Paramètres</td><td>Profil, Boutique, Sécurité, Utilisateurs, Agences</td><td>Tous (limité selon rôle)</td></tr>
     </tbody>
   </table>
@@ -718,6 +731,125 @@
       <tr><td><span class="badge badge-yellow">Remboursée</span></td><td>Vente ayant fait l'objet d'un remboursement</td></tr>
     </tbody>
   </table>
+
+  <h3 id="s3-6">3.6 Échange / Retour de marchandises</h3>
+
+  <div class="intro-block">
+    La fonction d'échange permet, depuis le détail d'une vente <span class="badge badge-green">Complétée</span>, de traiter simultanément le retour d'articles par le client et la délivrance de nouveaux articles. Les stocks sont automatiquement mis à jour et la différence financière est calculée et réglée en temps réel.
+  </div>
+
+  <div class="note">
+    <strong>Conditions :</strong> Cette fonction n'est disponible que sur les ventes dont le statut est <span class="badge badge-green">Complétée</span>. Les ventes annulées ou remboursées ne peuvent pas faire l'objet d'un échange.
+  </div>
+
+  <h4>Ouvrir le formulaire d'échange</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans <strong>Ventes → Historique</strong>, cliquez sur la vente concernée pour ouvrir son détail.</div></li>
+    <li><div class="step-body">Cliquez sur le bouton <strong>« Échanger / Retourner »</strong>.</div></li>
+    <li><div class="step-body">La fenêtre d'échange s'ouvre, affichant les articles de la vente d'origine.</div></li>
+  </ol>
+
+  <h4>Sélectionner les articles retournés</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la section <strong>« Articles retournés »</strong>, cochez les articles que le client rapporte.</div></li>
+    <li><div class="step-body">Pour chaque article coché, ajustez la <strong>quantité retournée</strong> (doit être inférieure ou égale à la quantité vendue).</div></li>
+  </ol>
+
+  <h4>Ajouter les nouveaux articles</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la section <strong>« Nouveaux articles »</strong>, utilisez la barre de recherche pour trouver les articles souhaités par le client.</div></li>
+    <li><div class="step-body">Cliquez sur un article pour afficher la grille de variantes et sélectionnez la variante souhaitée.</div></li>
+    <li><div class="step-body">Ajustez la quantité si nécessaire. Répétez pour chaque nouvel article.</div></li>
+  </ol>
+
+  <h4>Calcul automatique de la différence</h4>
+  <p>Le système calcule la différence financière en temps réel :</p>
+
+  <table>
+    <thead><tr><th>Situation</th><th>Résultat</th><th>Action requise</th></tr></thead>
+    <tbody>
+      <tr><td>Valeur nouveaux articles &gt; valeur retournés</td><td>Le client doit payer la différence</td><td>Choisir un mode de paiement (Espèces, Chèque, CCP, Virement)</td></tr>
+      <tr><td>Valeur retournés &gt; valeur nouveaux articles</td><td>Le magasin rembourse la différence</td><td>Remboursement automatiquement en espèces</td></tr>
+      <tr><td>Valeurs égales</td><td>Aucun mouvement d'argent</td><td>Aucune action supplémentaire</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Saisir le motif et confirmer</h4>
+  <ol class="steps">
+    <li><div class="step-body">Saisissez un <strong>motif</strong> dans le champ prévu (ex : mauvaise pointure, défaut de fabrication).</div></li>
+    <li><div class="step-body">Si un complément est dû par le client, sélectionnez la <strong>méthode de paiement</strong>.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Confirmer l'échange »</strong>.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Impact sur le stock :</strong> À la confirmation, les articles retournés réintègrent automatiquement le stock (mouvement de type <em>Retour</em>) et les nouveaux articles en sortent (mouvement de type <em>Vente</em>). Tout est tracé dans le journal de mouvements de stock.
+  </div>
+
+  <div class="warning">
+    <strong>Attention :</strong> Un échange confirmé est définitif. En cas d'erreur, créez un nouvel échange correctif ou effectuez un ajustement de stock manuel (section 4.4).
+  </div>
+
+  <h3 id="s3-7">3.7 Réconciliation de caisse</h3>
+
+  <div class="intro-block">
+    La réconciliation de caisse est l'opération de fermeture de journée : le caissier compte les fonds physiques et les compare aux montants enregistrés dans le système. Tout écart est signalé et soumis à l'approbation d'un Manager ou Propriétaire.
+  </div>
+
+  <div class="note">
+    <strong>Accès :</strong> Accessible via <strong>Ventes → Réconciliation</strong>. La soumission est ouverte à tous les utilisateurs (Caissier inclus) ; l'approbation est réservée aux rôles Owner et Manager.
+  </div>
+
+  <h4>Créer une réconciliation</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Ventes → Réconciliation</strong>.</div></li>
+    <li><div class="step-body">Sélectionnez la <strong>date</strong> de fermeture (par défaut : aujourd'hui).</div></li>
+    <li><div class="step-body">Le système affiche les <strong>montants enregistrés</strong> pour chaque méthode de paiement de la journée.</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Méthode de paiement</th><th>Montant enregistré</th><th>Montant compté</th><th>Écart</th></tr></thead>
+    <tbody>
+      <tr><td>Espèces</td><td>Total des ventes en espèces</td><td>À saisir par le caissier</td><td>Calculé automatiquement</td></tr>
+      <tr><td>Chèque</td><td>Total des ventes par chèque</td><td>À saisir par le caissier</td><td>Calculé automatiquement</td></tr>
+      <tr><td>CCP</td><td>Total des ventes CCP</td><td>À saisir par le caissier</td><td>Calculé automatiquement</td></tr>
+      <tr><td>Virement</td><td>Total des ventes par virement</td><td>À saisir par le caissier</td><td>Calculé automatiquement</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="4">
+    <li><div class="step-body">Pour chaque méthode, saisissez le <strong>montant réellement compté</strong> dans le champ correspondant.</div></li>
+    <li><div class="step-body">L'écart s'affiche automatiquement par méthode avec un code couleur :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Couleur de l'écart</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-green">Vert (0 DZD)</span></td><td>Aucun écart — caisse équilibrée</td></tr>
+      <tr><td><span class="badge badge-orange">Orange (excédent)</span></td><td>Le caissier a compté plus que le système — excédent de caisse</td></tr>
+      <tr><td><span class="badge badge-red">Rouge (manquant)</span></td><td>Le caissier a compté moins que le système — manquant de caisse</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="6">
+    <li><div class="step-body">Ajoutez des <strong>notes</strong> explicatives si nécessaire (ex : cause probable d'un écart).</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Soumettre »</strong>. La réconciliation passe au statut <span class="badge badge-yellow">En attente</span>.</div></li>
+  </ol>
+
+  <h4>Approbation par le Manager / Propriétaire</h4>
+  <ol class="steps">
+    <li><div class="step-body">Le Manager ou Propriétaire voit la liste des réconciliations <span class="badge badge-yellow">En attente</span> dans <strong>Ventes → Réconciliation</strong>.</div></li>
+    <li><div class="step-body">Il clique sur une réconciliation pour consulter les détails et les écarts.</div></li>
+    <li><div class="step-body">Il clique sur <strong>« Approuver »</strong>. Le statut passe à <span class="badge badge-green">Approuvée</span>.</div></li>
+    <li><div class="step-body">Il peut cliquer sur <strong>« Imprimer »</strong> pour générer le rapport de fermeture de journée.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Bonne pratique :</strong> Effectuez la réconciliation chaque soir avant de fermer la boutique, idéalement en présence du responsable. Le rapport imprimé constitue un justificatif de caisse quotidien.
+  </div>
+
+  <div class="warning">
+    <strong>Attention :</strong> Une réconciliation soumise ne peut plus être modifiée par le caissier. Si une correction est nécessaire avant approbation, contactez un Manager pour qu'il supprime la réconciliation et vous permette d'en créer une nouvelle.
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -810,16 +942,16 @@
   </ol>
 
   <table>
-    <thead><tr><th>Type de mouvement</th><th>Impact stock</th><th>Déclencheur</th></tr></thead>
+    <thead><tr><th>Type de mouvement</th><th>Impact stock</th><th>Déclencheur</th><th>Référence BL</th></tr></thead>
     <tbody>
-      <tr><td>Vente</td><td>Sortie (−)</td><td>Confirmation d'une vente PDV</td></tr>
-      <tr><td>Réception</td><td>Entrée (+)</td><td>Réception d'un bon de commande</td></tr>
-      <tr><td>Ajustement</td><td>Entrée ou Sortie</td><td>Ajustement manuel (inventaire physique)</td></tr>
-      <tr><td>Retour</td><td>Entrée (+)</td><td>Retour article par un client</td></tr>
-      <tr><td>Transfert (sortie)</td><td>Sortie (−)</td><td>Expédition vers une autre agence</td></tr>
-      <tr><td>Transfert (entrée)</td><td>Entrée (+)</td><td>Réception depuis une autre agence</td></tr>
-      <tr><td>Endommagé</td><td>Sortie (−)</td><td>Mise au rebut d'articles endommagés</td></tr>
-      <tr><td>Initial</td><td>Entrée (+)</td><td>Stock de départ à la création de la variante</td></tr>
+      <tr><td>Vente</td><td>Sortie (−)</td><td>Confirmation d'une vente PDV</td><td>—</td></tr>
+      <tr><td>Réception</td><td>Entrée (+)</td><td>Réception d'un bon de commande</td><td>N° BL fournisseur (optionnel)</td></tr>
+      <tr><td>Ajustement</td><td>Entrée ou Sortie</td><td>Ajustement manuel (inventaire physique)</td><td>—</td></tr>
+      <tr><td>Retour</td><td>Entrée (+)</td><td>Retour article par un client</td><td>—</td></tr>
+      <tr><td>Transfert (sortie)</td><td>Sortie (−)</td><td>Expédition vers une autre agence</td><td>—</td></tr>
+      <tr><td>Transfert (entrée)</td><td>Entrée (+)</td><td>Réception depuis une autre agence</td><td>—</td></tr>
+      <tr><td>Endommagé</td><td>Sortie (−)</td><td>Mise au rebut d'articles endommagés</td><td>—</td></tr>
+      <tr><td>Initial</td><td>Entrée (+)</td><td>Stock de départ à la création de la variante</td><td>—</td></tr>
     </tbody>
   </table>
 
@@ -1176,13 +1308,18 @@
   <ol class="steps">
     <li><div class="step-body">Ouvrez le bon de commande concerné.</div></li>
     <li><div class="step-body">Cliquez sur <strong>« Réceptionner »</strong>.</div></li>
+    <li><div class="step-body">Saisissez la <strong>Référence BL</strong> — le numéro du bon de livraison du fournisseur (ex : BL-2026-0842). Ce champ est optionnel mais recommandé pour la traçabilité.</div></li>
     <li><div class="step-body">Pour chaque ligne, saisissez la <strong>quantité effectivement reçue</strong>. Vous pouvez recevoir moins que la quantité commandée (réception partielle).</div></li>
     <li><div class="step-body">Cliquez sur <strong>« Valider la réception »</strong>.</div></li>
-    <li><div class="step-body">Le stock des variantes concernées est mis à jour automatiquement et un mouvement de type « Réception » est tracé.</div></li>
+    <li><div class="step-body">Le stock des variantes concernées est mis à jour automatiquement et un mouvement de type « Réception » est tracé avec la référence BL.</div></li>
   </ol>
 
+  <div class="warning">
+    <strong>Protection contre le sur-réceptionné :</strong> Le système n'autorise pas de recevoir une quantité supérieure à ce qui a été commandé sur chaque ligne. Si vous saisissez une quantité trop élevée, un message d'erreur s'affichera et la réception sera bloquée.
+  </div>
+
   <div class="tip">
-    <strong>Réception partielle :</strong> Si vous ne recevez qu'une partie des articles commandés, le BC passe en statut « Partiel ». Vous pourrez effectuer une seconde réception pour le reliquat.
+    <strong>Réception partielle :</strong> Si vous ne recevez qu'une partie des articles commandés, le BC passe en statut « Partiel ». Vous pourrez effectuer une seconde réception pour le reliquat. Les quantités reçues s'accumulent correctement à chaque réception.
   </div>
 
   <h3 id="s7-4">7.4 Factures et paiements fournisseurs</h3>
@@ -1523,10 +1660,159 @@
     <strong>Cas d'usage :</strong> Si vous constatez une anomalie dans vos stocks ou votre caisse, consultez le journal d'audit et filtrez sur « Mouvement stock » + « Suppression » ou « Modification » pour identifier l'action à l'origine de la divergence.
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 11 — PROGRAMME DE FIDÉLITÉ
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s11">
+  <h2 class="section-title"><span class="sec-num">11</span> Programme de fidélité</h2>
+
+  <div class="intro-block">
+    Le module Fidélité permet de récompenser vos clients réguliers en leur attribuant des points à chaque achat. Les points sont convertibles en remises lors des prochains achats. Le programme est entièrement configurable et s'appuie sur un système de paliers (niveaux) pour encourager la fidélisation à long terme.
+  </div>
+
+  <div class="note">
+    <strong>Accès :</strong> Le module Fidélité est accessible depuis la barre latérale via <strong>Fidélité</strong>. Il est réservé aux rôles Owner et Manager. Le module se compose de deux onglets : <strong>Programme</strong> et <strong>Comptes</strong>.
+  </div>
+
+  <h3 id="s11-1">11.1 Configuration du programme</h3>
+
+  <p>L'onglet <strong>Programme</strong> permet de définir les règles d'attribution et d'utilisation des points, ainsi que les paliers de fidélité.</p>
+
+  <h4>Paramètres généraux</h4>
+  <ol class="steps">
+    <li><div class="step-body">Dans la barre latérale, cliquez sur <strong>Fidélité</strong> puis sur l'onglet <strong>Programme</strong>.</div></li>
+    <li><div class="step-body">Configurez les paramètres suivants :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Paramètre</th><th>Description</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td>Points par 100 DZD</td><td>Nombre de points attribués pour chaque tranche de 100 DZD dépensée</td><td>1 point / 100 DZD</td></tr>
+      <tr><td>Valeur de rachat (DZD/point)</td><td>Valeur en DZD accordée lors de l'utilisation d'un point en caisse</td><td>5 DZD / point</td></tr>
+      <tr><td>Solde minimum de rachat</td><td>Nombre de points minimum que le client doit posséder pour pouvoir les utiliser</td><td>200 points</td></tr>
+      <tr><td>Expiration (mois)</td><td>Durée de validité des points à compter de leur attribution. Laissez vide pour des points sans expiration.</td><td>24 mois (optionnel)</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Paliers de fidélité</h4>
+  <p>Le programme comprend trois paliers. Chaque palier bénéficie d'un multiplicateur de points qui s'applique automatiquement dès que le client atteint le seuil cumulé.</p>
+
+  <table>
+    <thead><tr><th>Palier</th><th>Seuil (points cumulés)</th><th>Multiplicateur</th><th>Avantage exemple</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-yellow">Bronze</span></td><td>Palier de base (0 point)</td><td>× 1,0</td><td>Taux standard</td></tr>
+      <tr><td><span class="badge badge-gray">Argent</span></td><td>Ex : 5 000 points</td><td>Ex : × 1,2</td><td>+20 % de points sur chaque achat</td></tr>
+      <tr><td><span class="badge badge-orange">Or</span></td><td>Ex : 15 000 points</td><td>Ex : × 1,5</td><td>+50 % de points sur chaque achat</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Pour chaque palier Argent et Or, saisissez le <strong>seuil de points cumulés</strong> et le <strong>multiplicateur</strong> souhaité.</div></li>
+    <li><div class="step-body">Activez ou désactivez le programme via le bouton <strong>« Programme actif »</strong>. Lorsque le programme est désactivé, aucun point n'est attribué ni utilisable.</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Enregistrer la configuration »</strong> pour appliquer les modifications.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Avant d'activer le programme pour la première fois, testez avec un client fictif pour vérifier que les ratios d'attribution et de rachat correspondent à votre stratégie commerciale.
+  </div>
+
+  <div class="warning">
+    <strong>Important :</strong> La modification des paramètres (taux, seuils, multiplicateurs) s'applique aux transactions futures uniquement. Les points déjà acquis par les clients ne sont pas recalculés rétroactivement.
+  </div>
+
+  <h3 id="s11-2">11.2 Statistiques et classement</h3>
+
+  <p>Le panneau de statistiques, affiché en bas de l'onglet <strong>Programme</strong>, offre une vue d'ensemble du programme en temps réel.</p>
+
+  <h4>Indicateurs de distribution par palier</h4>
+  <table>
+    <thead><tr><th>Indicateur</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Clients Bronze</td><td>Nombre de comptes fidélité au palier Bronze</td></tr>
+      <tr><td>Clients Argent</td><td>Nombre de comptes fidélité au palier Argent</td></tr>
+      <tr><td>Clients Or</td><td>Nombre de comptes fidélité au palier Or</td></tr>
+      <tr><td>Total points en circulation</td><td>Somme de tous les points non encore utilisés, représentant un engagement financier potentiel</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Classement des 20 meilleurs clients (Leaderboard)</h4>
+  <p>Le tableau de classement liste les 20 clients ayant cumulé le plus de points depuis leur inscription au programme.</p>
+
+  <table>
+    <thead><tr><th>Colonne</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Rang</td><td>Position dans le classement (1 = meilleur client)</td></tr>
+      <tr><td>Client</td><td>Nom du client</td></tr>
+      <tr><td>Palier</td><td>Badge du palier actuel (<span class="badge badge-yellow">Bronze</span> / <span class="badge badge-gray">Argent</span> / <span class="badge badge-orange">Or</span>)</td></tr>
+      <tr><td>Points cumulés</td><td>Total de tous les points gagnés depuis le début (y compris ceux déjà utilisés)</td></tr>
+      <tr><td>Solde actuel</td><td>Points disponibles non encore utilisés</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Consultez le classement régulièrement pour identifier vos clients VIP. Vous pouvez utiliser cette liste pour leur adresser des offres personnalisées ou les inviter à des événements exclusifs.
+  </div>
+
+  <h3 id="s11-3">11.3 Comptes fidélité</h3>
+
+  <p>L'onglet <strong>Comptes</strong> donne accès à la liste complète de tous les comptes fidélité clients, avec la possibilité d'effectuer des ajustements manuels de points.</p>
+
+  <h4>Consulter les comptes</h4>
+  <ol class="steps">
+    <li><div class="step-body">Cliquez sur l'onglet <strong>Comptes</strong>.</div></li>
+    <li><div class="step-body">Le tableau liste tous les clients inscrits au programme avec les informations suivantes :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Colonne</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Client</td><td>Nom complet du client</td></tr>
+      <tr><td>Palier</td><td>Palier actuel (<span class="badge badge-yellow">Bronze</span>, <span class="badge badge-gray">Argent</span> ou <span class="badge badge-orange">Or</span>)</td></tr>
+      <tr><td>Solde de points</td><td>Nombre de points disponibles (non utilisés)</td></tr>
+      <tr><td>Dernière activité</td><td>Date de la dernière transaction ayant généré ou consommé des points</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="3">
+    <li><div class="step-body">Utilisez la barre de <strong>recherche</strong> en haut du tableau pour filtrer les clients par nom.</div></li>
+  </ol>
+
+  <h4>Ajustement manuel de points</h4>
+  <p>Un Manager ou Propriétaire peut créditer ou débiter manuellement le solde de points d'un client (ex : geste commercial, correction d'une erreur).</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Dans le tableau des comptes, cliquez sur le bouton <strong>« Ajuster »</strong> à droite du compte client concerné.</div></li>
+    <li><div class="step-body">La fenêtre d'ajustement s'ouvre, affichant le solde actuel du client.</div></li>
+    <li><div class="step-body">Saisissez le <strong>nombre de points</strong> à ajuster :</div></li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Valeur saisie</th><th>Effet</th></tr></thead>
+    <tbody>
+      <tr><td>Valeur positive (ex : +500)</td><td>Crédite 500 points sur le compte du client</td></tr>
+      <tr><td>Valeur négative (ex : −200)</td><td>Débite 200 points du compte du client</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="steps" start="4">
+    <li><div class="step-body">Saisissez un <strong>motif</strong> expliquant l'ajustement (ex : geste commercial, correction d'erreur de caisse).</div></li>
+    <li><div class="step-body">Cliquez sur <strong>« Confirmer »</strong>.</div></li>
+  </ol>
+
+  <div class="warning">
+    <strong>Attention :</strong> Le solde d'un compte fidélité ne peut jamais être inférieur à 0. Si vous saisissez une valeur négative supérieure au solde actuel, l'opération sera refusée. Le solde sera ramené à 0 au minimum. Tous les ajustements manuels sont enregistrés dans le journal d'audit.
+  </div>
+
+  <div class="tip">
+    <strong>Utilisation en caisse :</strong> Lorsqu'un client souhaite utiliser ses points lors d'un achat au PDV, le caissier peut sélectionner le mode de paiement <strong>« Points fidélité »</strong> dans l'écran de paiement, à condition que le client ait atteint le solde minimum de rachat configuré. La valeur des points est automatiquement convertie en DZD et déduite du total.
+  </div>
+
   <hr class="divider">
 
   <p style="text-align:center; color:#666; font-size:13px; margin-top:32px;">
-    <strong>ShoeDZ / Pointure ERP</strong> — Manuel Utilisateur v1.0<br>
+    <strong>ShoeDZ / Pointure ERP</strong> — Manuel Utilisateur v1.1<br>
     Pour toute assistance : contactez votre administrateur système ou l'équipe ShoeDZ.<br>
     <span style="color:#4f46e5;">© 2026 ShoeDZ — Tous droits réservés</span>
   </p>
