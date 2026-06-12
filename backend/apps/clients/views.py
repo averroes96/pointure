@@ -27,6 +27,8 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering = ["name"]
 
     def perform_create(self, serializer):
+        from apps.core.plan_permissions import check_quota
+        check_quota(self.request, "clients", Client.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
 
     @action(detail=True, methods=["get"])

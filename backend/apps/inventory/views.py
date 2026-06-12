@@ -37,6 +37,11 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return ProductListSerializer
         return ProductSerializer
 
+    def perform_create(self, serializer):
+        from apps.core.plan_permissions import check_quota
+        check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
+        serializer.save(tenant=self.request.tenant)
+
     @action(detail=True, methods=["post"], url_path="generate-variants")
     def generate_variants(self, request, pk=None):
         """Bulk create variants for this product."""

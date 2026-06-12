@@ -1,13 +1,20 @@
 """
-Plan-based DRF permission classes.
+Plan-based DRF permission classes and quota enforcement.
 
 Usage:
+    # Feature gate (binary):
     class MyViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
+
+    # Quota check (in perform_create):
+    def perform_create(self, serializer):
+        check_quota(self.request, "clients", Client.objects.filter(tenant=self.request.tenant).count())
+        serializer.save(tenant=self.request.tenant)
 
 `PlanRequired(min_plan)` returns a *class* (not an instance) so DRF can
 instantiate it normally via `permission()` in `get_permissions()`.
 """
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
 PLAN_RANK = {
@@ -16,6 +23,84 @@ PLAN_RANK = {
     "pro_wholesale": 2,
     "enterprise": 3,
 }
+
+# Per-plan resource quotas. None means unlimited.
+PLAN_QUOTAS: dict[str, dict[str, int | None]] = {
+    "free": {
+        "clients": 100,
+        "products": 50,
+        "users": 3,
+        "branches": 1,
+    },
+    "pro_retail": {
+        "clients": None,
+        "products": None,
+        "users": 10,
+        "branches": 3,
+    },
+    "pro_wholesale": {
+        "clients": None,
+        "products": None,
+        "users": None,
+        "branches": 5,
+    },
+    "enterprise": {
+        "clients": None,
+        "products": None,
+        "users": None,
+        "branches": None,
+    },
+}
+
+_RESOURCE_LABELS = {
+    "clients": "clients",
+    "products": "produits",
+    "users": "utilisateurs",
+    "branches": "agences",
+}
+
+
+def check_quota(request, resource: str, current_count: int) -> None:
+    """
+    Raise PermissionDenied (HTTP 403) if the tenant has reached their quota.
+
+    Args:
+        request:       The DRF request object (provides request.tenant and request.user).
+        resource:      One of "clients", "products", "users", "branches".
+        current_count: The number of existing records for this tenant.
+    """
+    if not request or not request.user:
+        return
+    if request.user.is_superuser:
+        return
+
+    tenant = getattr(request, "tenant", None)
+    if not tenant:
+        return
+
+    plan = getattr(tenant, "plan", "free") or "free"
+    limits = PLAN_QUOTAS.get(plan, PLAN_QUOTAS["free"])
+    limit = limits.get(resource)
+
+    if limit is None:
+        return  # unlimited on this plan
+
+    if current_count >= limit:
+        label = _RESOURCE_LABELS.get(resource, resource)
+        raise PermissionDenied(
+            detail={
+                "error": "quota_exceeded",
+                "resource": resource,
+                "limit": limit,
+                "current": current_count,
+                "current_plan": plan,
+                "message": (
+                    f"Limite atteinte : votre plan {plan} autorise {limit} {label} maximum. "
+                    f"Passez à un plan supérieur pour en créer davantage."
+                ),
+                "upgrade_url": "/settings/billing",
+            }
+        )
 
 
 def PlanRequired(min_plan: str) -> type:

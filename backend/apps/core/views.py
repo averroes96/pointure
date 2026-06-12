@@ -83,6 +83,8 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self.require_manager()
+        from apps.core.plan_permissions import check_quota
+        check_quota(self.request, "users", User.objects.filter(tenant=self.request.tenant).count())
         # Capture the plain-text password before the serializer hashes it
         temp_password = self.request.data.get("password", "")
         user = serializer.save(tenant=self.request.tenant)
@@ -112,6 +114,8 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self.require_manager()
+        from apps.core.plan_permissions import check_quota
+        check_quota(self.request, "branches", Branch.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
 
 
