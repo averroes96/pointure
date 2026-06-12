@@ -31,6 +31,92 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         check_quota(self.request, "clients", Client.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
 
+    @action(detail=False, methods=["post"], url_path="import")
+    def import_clients(self, request):
+        """
+        POST /clients/import/
+        Body: multipart/form-data with field 'file' (CSV or XLSX).
+        Query: ?dry_run=true to validate without saving.
+
+        CSV columns:
+          name* , phone, address, wilaya, client_type, nif, rc, notes
+        (* required)
+        Deduplication: rows whose phone already exists for this tenant are skipped.
+        """
+        from apps.core.imports import parse_upload
+
+        self.require_manager()
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response({"detail": "Champ 'file' manquant."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dry_run = request.query_params.get("dry_run", "").lower() in ("1", "true", "yes")
+        tenant = request.tenant
+
+        rows, parse_error = parse_upload(file_obj)
+        if parse_error:
+            return Response({"detail": parse_error}, status=status.HTTP_400_BAD_REQUEST)
+        if not rows:
+            return Response({"detail": "Le fichier est vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        VALID_CLIENT_TYPES = {"retail", "wholesale"}
+
+        created = 0
+        skipped = 0
+        errors = []
+
+        # Pre-load existing phones to avoid N+1 in the loop
+        existing_phones = set(
+            Client.objects.filter(tenant=tenant).exclude(phone="")
+            .values_list("phone", flat=True)
+        )
+
+        with transaction.atomic():
+            for i, row in enumerate(rows, start=2):
+                name = row.get("name", "").strip()
+                if not name:
+                    errors.append({"row": i, "message": "Le nom est obligatoire."})
+                    continue
+
+                phone = row.get("phone", "").strip()
+                if phone and phone in existing_phones:
+                    skipped += 1
+                    continue
+
+                client_type = row.get("client_type", "retail").strip().lower() or "retail"
+                if client_type not in VALID_CLIENT_TYPES:
+                    client_type = "retail"
+
+                wilaya = row.get("wilaya", "").strip()
+                if len(wilaya) > 2:
+                    wilaya = wilaya[:2]
+
+                if not dry_run:
+                    Client.objects.create(
+                        tenant=tenant,
+                        name=name,
+                        phone=phone,
+                        address=row.get("address", "").strip(),
+                        wilaya=wilaya,
+                        client_type=client_type,
+                        nif=row.get("nif", "").strip(),
+                        rc=row.get("rc", "").strip(),
+                    )
+                    if phone:
+                        existing_phones.add(phone)
+
+                created += 1
+
+            if dry_run:
+                transaction.set_rollback(True)
+
+        return Response({
+            "dry_run": dry_run,
+            "created": created,
+            "skipped": skipped,
+            "errors": errors,
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["get"])
     def ledger(self, request, pk=None):
         """Client account statement."""

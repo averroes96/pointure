@@ -1,19 +1,29 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, Search, AlertTriangle, Package } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, Upload } from "lucide-react";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import ImportModal from "@/components/ui/ImportModal";
+
+const PRODUCT_TEMPLATE = `brand,name,category,gender,sale_price,purchase_price,size_eu,colour,alert_threshold
+Nike,Air Max 90,sneakers,M,8500,5000,40,Noir,3
+Nike,Air Max 90,sneakers,M,8500,5000,41,Noir,3
+Nike,Air Max 90,sneakers,M,8500,5000,42,Blanc,3
+Adidas,Stan Smith,sneakers,U,7500,4500,39,Blanc,3
+`;
 
 export default function ProductsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [showImport, setShowImport] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", { search, page }],
@@ -25,6 +35,16 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-4">
+      {showImport && (
+        <ImportModal
+          title="Importer des produits"
+          endpoint="/inventory/products/import/"
+          templateCsv={PRODUCT_TEMPLATE}
+          templateFilename="modele_produits.csv"
+          onSuccess={() => { qc.invalidateQueries({ queryKey: ["products"] }); setShowImport(false); }}
+          onClose={() => setShowImport(false)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -32,10 +52,16 @@ export default function ProductsPage() {
           <p className="text-sm text-text-muted">{data?.count ?? 0} {t("inventory.product")}(s)</p>
         </div>
         {user?.role !== "cashier" && (
-          <Link to="/inventory/products/new" className="btn-primary">
-            <Plus size={16} />
-            {t("common.new")}
-          </Link>
+          <div className="flex gap-2">
+            <button onClick={() => setShowImport(true)} className="btn-secondary">
+              <Upload size={16} />
+              Importer
+            </button>
+            <Link to="/inventory/products/new" className="btn-primary">
+              <Plus size={16} />
+              {t("common.new")}
+            </Link>
+          </div>
         )}
       </div>
 

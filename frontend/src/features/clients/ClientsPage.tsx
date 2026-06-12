@@ -1,19 +1,27 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, AlertCircle, MessageCircle } from "lucide-react";
+import { Plus, Search, AlertCircle, MessageCircle, Upload } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Client } from "@/types";
 import { cn, whatsappLink } from "@/lib/utils";
 import { wilayaName } from "@/lib/wilayas";
+import ImportModal from "@/components/ui/ImportModal";
+
+const CLIENT_TEMPLATE = `name,phone,address,wilaya,client_type,nif,rc
+Ahmed Benali,0555123456,Rue des Fleurs Alger,16,retail,,
+Société ABC SARL,0770987654,Zone Industrielle Oran,31,wholesale,123456789,RC/31/A/0001
+`;
 
 export default function ClientsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [clientType, setClientType] = useState("");
   const [page, setPage] = useState(1);
+  const [showImport, setShowImport] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Client>>({
     queryKey: ["clients", { search, clientType, page }],
@@ -29,15 +37,31 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-4">
+      {showImport && (
+        <ImportModal
+          title="Importer des clients"
+          endpoint="/clients/import/"
+          templateCsv={CLIENT_TEMPLATE}
+          templateFilename="modele_clients.csv"
+          onSuccess={() => { qc.invalidateQueries({ queryKey: ["clients"] }); setShowImport(false); }}
+          onClose={() => setShowImport(false)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.client_list")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} clients</p>
         </div>
-        <Link to="/clients/new" className="btn-primary">
-          <Plus size={16} />
-          {t("client.new")}
-        </Link>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-secondary">
+            <Upload size={16} />
+            Importer
+          </button>
+          <Link to="/clients/new" className="btn-primary">
+            <Plus size={16} />
+            {t("client.new")}
+          </Link>
+        </div>
       </div>
 
       {/* Search + type filter */}

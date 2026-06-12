@@ -73,6 +73,141 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
 
+    @action(detail=False, methods=["post"], url_path="import",
+            parser_classes=None)  # accepts MultiPartParser via DEFAULT_PARSER_CLASSES
+    def import_products(self, request):
+        """
+        POST /inventory/products/import/
+        Body: multipart/form-data with field 'file' (CSV or XLSX).
+        Query: ?dry_run=true to validate without saving.
+
+        CSV columns (one row = one variant):
+          name*, sale_price*, size_eu*, colour*,
+          brand, category, gender, purchase_price, alert_threshold, reference, barcode
+        (* required)
+        """
+        from decimal import Decimal, InvalidOperation
+        from apps.core.imports import parse_upload
+
+        self.require_manager()
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response({"detail": "Champ 'file' manquant."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dry_run = request.query_params.get("dry_run", "").lower() in ("1", "true", "yes")
+        tenant = request.tenant
+
+        rows, parse_error = parse_upload(file_obj)
+        if parse_error:
+            return Response({"detail": parse_error}, status=status.HTTP_400_BAD_REQUEST)
+        if not rows:
+            return Response({"detail": "Le fichier est vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        REQUIRED = {"name", "sale_price", "size_eu", "colour"}
+        VALID_CATEGORIES = {c[0] for c in Product._meta.get_field("category").choices}
+        VALID_GENDERS = {g[0] for g in Product._meta.get_field("gender").choices}
+
+        created_products = 0
+        created_variants = 0
+        skipped = 0
+        errors = []
+
+        with transaction.atomic():
+            for i, row in enumerate(rows, start=2):  # row 1 is header
+                missing = REQUIRED - set(row.keys())
+                if missing:
+                    errors.append({"row": i, "message": f"Colonnes manquantes : {', '.join(sorted(missing))}"})
+                    continue
+
+                name = row.get("name", "").strip()
+                brand = row.get("brand", "").strip()
+                if not name:
+                    errors.append({"row": i, "message": "Le nom ne peut pas être vide."})
+                    continue
+
+                # Parse numerics
+                try:
+                    sale_price = Decimal(row["sale_price"].replace(" ", "").replace(",", "."))
+                except (InvalidOperation, KeyError):
+                    errors.append({"row": i, "message": f"sale_price invalide : {row.get('sale_price')}"})
+                    continue
+
+                try:
+                    purchase_price = Decimal(row.get("purchase_price", "0").replace(" ", "").replace(",", ".") or "0")
+                except InvalidOperation:
+                    purchase_price = Decimal("0")
+
+                try:
+                    size_eu = int(row["size_eu"])
+                    if not (28 <= size_eu <= 47):
+                        raise ValueError
+                except (ValueError, KeyError):
+                    errors.append({"row": i, "message": f"size_eu invalide (28–47) : {row.get('size_eu')}"})
+                    continue
+
+                colour = row.get("colour", "").strip()
+                if not colour:
+                    errors.append({"row": i, "message": "La couleur ne peut pas être vide."})
+                    continue
+
+                try:
+                    alert_threshold = int(row.get("alert_threshold", "3") or "3")
+                except ValueError:
+                    alert_threshold = 3
+
+                category = row.get("category", "other").strip().lower() or "other"
+                if category not in VALID_CATEGORIES:
+                    category = "other"
+
+                gender = row.get("gender", "U").strip().upper() or "U"
+                if gender not in VALID_GENDERS:
+                    gender = "U"
+
+                if dry_run:
+                    created_variants += 1
+                    continue
+
+                product, product_created = Product.objects.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    brand=brand,
+                    defaults={
+                        "category": category,
+                        "gender": gender,
+                        "sale_price": sale_price,
+                        "purchase_price": purchase_price,
+                        "reference": row.get("reference", "").strip(),
+                    },
+                )
+                if product_created:
+                    created_products += 1
+
+                _, variant_created = Variant.objects.get_or_create(
+                    tenant=tenant,
+                    product=product,
+                    size_eu=size_eu,
+                    colour=colour,
+                    defaults={
+                        "alert_threshold": alert_threshold,
+                        "barcode": row.get("barcode", "").strip() or "",
+                    },
+                )
+                if variant_created:
+                    created_variants += 1
+                else:
+                    skipped += 1
+
+            if dry_run:
+                transaction.set_rollback(True)
+
+        return Response({
+            "dry_run": dry_run,
+            "created_products": created_products,
+            "created_variants": created_variants,
+            "skipped": skipped,
+            "errors": errors,
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"], url_path="generate-variants")
     def generate_variants(self, request, pk=None):
         """Bulk create variants for this product."""
