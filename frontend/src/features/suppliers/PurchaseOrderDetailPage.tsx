@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, AlertTriangle, X,
   Factory, Calendar, FileText, Truck, ChevronDown,
-  Search, Plus, SkipForward,
+  Search, Plus, SkipForward, Download, MessageCircle,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import ColourPicker from "@/components/ui/ColourPicker";
@@ -1036,6 +1036,76 @@ function StatusActions({ po }: { po: PurchaseOrder }) {
   );
 }
 
+// ── PDF + WhatsApp share ──────────────────────────────────────────────────────
+
+function PoShareActions({ po }: { po: PurchaseOrder }) {
+  const [loadingPdf, setLoadingPdf] = useState(false);
+
+  async function openPdf() {
+    setLoadingPdf(true);
+    try {
+      const res = await api.get(`/suppliers/purchase-orders/${po.id}/pdf/`, { responseType: "blob" });
+      const blob = new Blob([res.data as BlobPart], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const tab = window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!tab) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `commande-${po.reference || po.id}.pdf`;
+        a.click();
+      }
+    } finally {
+      setLoadingPdf(false);
+    }
+  }
+
+  function shareWhatsApp() {
+    const lines = po.lines
+      .map((l, i) => `  ${i + 1}. ${l.description} × ${l.quantity_ordered} — ${formatDZD(l.agreed_unit_price)} DZD`)
+      .join("\n");
+    const msg =
+      `*Bon de Commande — ${po.supplier_name}*\n` +
+      `BC #${po.id}${po.reference ? ` · Réf. ${po.reference}` : ""}\n` +
+      (po.expected_date ? `Livraison souhaitée : ${formatDate(po.expected_date)}\n` : "") +
+      `\nArticles :\n${lines}\n\n` +
+      `*Total : ${formatDZD(po.total_amount)} DZD*\n\n` +
+      (po.notes ? `Notes : ${po.notes}\n\n` : "") +
+      `Merci de confirmer la disponibilité.`;
+
+    const phone = po.supplier_phone?.replace(/\D/g, "") ?? "";
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={openPdf}
+        disabled={loadingPdf}
+        className="btn-secondary btn-sm flex items-center gap-1.5"
+        title="Télécharger PDF"
+      >
+        {loadingPdf
+          ? <Loader2 size={14} className="animate-spin" />
+          : <Download size={14} />
+        }
+        PDF
+      </button>
+      <button
+        onClick={shareWhatsApp}
+        className="btn-secondary btn-sm flex items-center gap-1.5 text-[#25D366]"
+        title="Partager sur WhatsApp"
+      >
+        <MessageCircle size={14} />
+        WhatsApp
+      </button>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PurchaseOrderDetailPage() {
@@ -1097,7 +1167,10 @@ export default function PurchaseOrderDetailPage() {
           </div>
         </div>
 
-        <StatusActions po={po} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <PoShareActions po={po} />
+          <StatusActions po={po} />
+        </div>
       </div>
 
       {/* Info row */}

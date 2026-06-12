@@ -53,12 +53,15 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     """Full detail — includes nested lines."""
     lines = POLineSerializer(many=True, read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    supplier_phone = serializers.CharField(source="supplier.phone", read_only=True)
+    supplier_email = serializers.EmailField(source="supplier.email", read_only=True)
 
     class Meta:
         model = PurchaseOrder
         fields = [
-            "id", "supplier", "supplier_name", "status", "expected_date",
-            "reference", "notes", "total_amount", "created_by", "lines", "created_at",
+            "id", "supplier", "supplier_name", "supplier_phone", "supplier_email",
+            "status", "expected_date", "reference", "notes", "total_amount",
+            "created_by", "lines", "created_at",
         ]
         read_only_fields = ["id", "created_at", "created_by"]
 

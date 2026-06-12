@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, FileText, Download, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, Download, Loader2, MessageCircle } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Invoice } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
@@ -200,6 +200,24 @@ export default function InvoiceListPage() {
                           ? <Loader2 size={14} className="animate-spin" />
                           : <Download size={14} />
                         }
+                      </button>
+                      <button
+                        onClick={() => {
+                          const balanceLine = parseFloat(invoice.balance_due) > 0
+                            ? `\nSolde dû : *${formatDZD(invoice.balance_due)} DZD*`
+                            : "\n✅ Facture réglée";
+                          const msg =
+                            `*Facture — ${invoice.client_name || "Client"}*\n` +
+                            `N° ${invoice.number || invoice.id}\n` +
+                            `Date : ${formatDate(invoice.date)} · Échéance : ${formatDate(invoice.due_date)}\n` +
+                            `Total TTC : *${formatDZD(invoice.total_ttc)} DZD*` +
+                            balanceLine;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                        }}
+                        className="btn-ghost btn-sm text-[#25D366] disabled:opacity-50"
+                        title="Partager sur WhatsApp"
+                      >
+                        <MessageCircle size={14} />
                       </button>
                     </div>
                   </td>

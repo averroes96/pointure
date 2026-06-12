@@ -75,6 +75,16 @@ def render_credit_note_pdf(credit_note, language: str = "fr") -> bytes:
     return render_to_pdf("pdf/credit_note.html", context, language)
 
 
+def render_purchase_order_pdf(purchase_order, language: str = "fr") -> bytes:
+    context = {
+        "po": purchase_order,
+        "tenant": purchase_order.tenant,
+        "supplier": purchase_order.supplier,
+        "lines": list(purchase_order.lines.select_related("variant__product")),
+    }
+    return render_to_pdf("pdf/purchase_order.html", context, language)
+
+
 def render_supplier_invoice_pdf(supplier_invoice, language: str = "fr") -> bytes:
     from decimal import Decimal
     from django.db.models import Sum

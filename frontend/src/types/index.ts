@@ -431,6 +431,8 @@ export interface PurchaseOrder {
   id: number;
   supplier: number;
   supplier_name: string;
+  supplier_phone: string;
+  supplier_email: string;
   status: POStatus;
   expected_date: string | null;
   reference: string;

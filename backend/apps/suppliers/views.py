@@ -416,6 +416,18 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         po.save(update_fields=["status"])
         return Response(PurchaseOrderSerializer(po).data)
 
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Download the purchase order as a PDF."""
+        po = self.get_object()
+        from apps.invoicing.pdf import render_purchase_order_pdf
+        lang = request.query_params.get("lang", "fr")
+        pdf_bytes = render_purchase_order_pdf(po, language=lang)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        ref = po.reference or str(po.pk)
+        response["Content-Disposition"] = f'inline; filename="commande-{ref}.pdf"'
+        return response
+
 
 class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = SupplierInvoice.objects.select_related("supplier", "purchase_order")
