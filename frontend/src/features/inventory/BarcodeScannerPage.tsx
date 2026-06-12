@@ -1,14 +1,17 @@
 /**
  * BarcodeScannerPage — /inventory/scanner
  *
- * Quick stock-lookup by barcode. Works with USB/Bluetooth HID scanners
- * (they emulate a keyboard and send Enter after the code) and manual input.
+ * Stock lookup by barcode. Works with:
+ *  - Phone camera (BarcodeDetector API — Chrome 83+, Android, Edge)
+ *  - USB/Bluetooth HID scanners (keyboard emulation)
+ *  - Manual keyboard input
  */
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ScanBarcode, Search, Loader2, AlertTriangle, X,
   Package, Layers, ShoppingBag, ArrowUpRight,
+  Camera, CameraOff,
 } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -39,16 +42,42 @@ interface ScanResult {
   }>;
 }
 
-export default function BarcodeScannerPage() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+// BarcodeDetector is available in Chrome 83+, Edge 83+, Samsung Internet.
+// Not available in Firefox or Safari. getUserMedia is needed for camera access.
+const CAMERA_SUPPORTED =
+  typeof window !== "undefined" &&
+  "BarcodeDetector" in window &&
+  "mediaDevices" in navigator &&
+  typeof navigator.mediaDevices?.getUserMedia === "function";
 
-  // Auto-focus so a HID scanner works immediately on page load
+export default function BarcodeScannerPage() {
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const videoRef   = useRef<HTMLVideoElement>(null);
+  const streamRef  = useRef<MediaStream | null>(null);
+  const scanningRef  = useRef(false);
+  const cooldownRef  = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const detectorRef  = useRef<any>(null);
+
+  const [query, setQuery]           = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [result, setResult]         = useState<ScanResult | null>(null);
+  const [error, setError]           = useState<string | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError]   = useState<string | null>(null);
+  const [lastCode, setLastCode]         = useState<string | null>(null);
+
+  // Auto-focus for HID scanners on desktop
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Stop camera on unmount
+  useEffect(() => {
+    return () => {
+      scanningRef.current = false;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
   }, []);
 
   async function lookup(barcode: string) {
@@ -80,7 +109,78 @@ export default function BarcodeScannerPage() {
     setQuery("");
     setResult(null);
     setError(null);
+    setLastCode(null);
     setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  // ── Camera scanning ──────────────────────────────────────────────────────────
+
+  async function startCamera() {
+    setCameraError(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      detectorRef.current = new (window as any).BarcodeDetector({
+        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"],
+      });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      scanningRef.current = true;
+      cooldownRef.current = false;
+      setCameraActive(true);
+      runScanLoop();
+    } catch (err) {
+      const msg = (err as Error)?.name ?? "";
+      if (msg === "NotAllowedError") {
+        setCameraError("Accès caméra refusé. Autorisez la caméra dans les paramètres du navigateur.");
+      } else if (msg === "NotFoundError") {
+        setCameraError("Aucune caméra détectée sur cet appareil.");
+      } else {
+        setCameraError("Impossible d'accéder à la caméra.");
+      }
+    }
+  }
+
+  function stopCamera() {
+    scanningRef.current = false;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraActive(false);
+  }
+
+  // Scan loop: ~6fps detection, 2.5s cooldown after each hit
+  async function runScanLoop() {
+    while (scanningRef.current) {
+      const video = videoRef.current;
+      if (!cooldownRef.current && video && video.readyState >= 2) {
+        try {
+          const barcodes: Array<{ rawValue: string }> = await detectorRef.current.detect(video);
+          if (barcodes.length && scanningRef.current) {
+            const code = barcodes[0].rawValue;
+            cooldownRef.current = true;
+            setLastCode(code);
+            setQuery(code);
+            navigator.vibrate?.(60);
+            lookup(code);
+            await new Promise<void>((r) => setTimeout(r, 2500));
+            cooldownRef.current = false;
+          }
+        } catch {
+          // detection errors are transient (blurry frame, etc.) — ignore
+        }
+      }
+      await new Promise<void>((r) => setTimeout(r, 150));
+    }
   }
 
   const v = result?.variant;
@@ -99,8 +199,8 @@ export default function BarcodeScannerPage() {
         </p>
       </div>
 
-      {/* Search bar */}
-      <div className="card p-4 space-y-2">
+      {/* Input + camera toggle */}
+      <div className="card p-4 space-y-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -113,6 +213,7 @@ export default function BarcodeScannerPage() {
               className="form-input ps-9 font-mono"
               placeholder="Code-barres (scan ou saisie manuelle)…"
               autoComplete="off"
+              inputMode="text"
             />
           </div>
           <button
@@ -122,8 +223,7 @@ export default function BarcodeScannerPage() {
           >
             {loading
               ? <Loader2 size={14} className="animate-spin" />
-              : <Search size={14} />
-            }
+              : <Search size={14} />}
             {loading ? "…" : "Chercher"}
           </button>
           {(result || error) && (
@@ -132,16 +232,89 @@ export default function BarcodeScannerPage() {
             </button>
           )}
         </div>
-        <p className="text-xs text-text-muted">
-          Appuyez sur{" "}
-          <kbd className="px-1 py-0.5 rounded border border-border font-mono text-xs bg-surface">
-            Entrée
-          </kbd>{" "}
-          ou utilisez un scanner USB/Bluetooth — la frappe est automatiquement capturée.
-        </p>
+
+        {/* Camera button */}
+        {CAMERA_SUPPORTED ? (
+          <button
+            onClick={cameraActive ? stopCamera : startCamera}
+            className={cn(
+              "btn-secondary w-full flex items-center justify-center gap-2",
+              cameraActive && "bg-primary-50 border-primary-200 text-primary-700",
+            )}
+          >
+            {cameraActive ? <CameraOff size={15} /> : <Camera size={15} />}
+            {cameraActive ? "Arrêter la caméra" : "Scanner avec la caméra"}
+          </button>
+        ) : (
+          <p className="text-xs text-text-muted">
+            Caméra non disponible dans ce navigateur.
+            Utilisez <strong>Chrome sur Android</strong> pour activer le scan caméra.
+          </p>
+        )}
+
+        {!cameraActive && (
+          <p className="text-xs text-text-muted">
+            Appuyez sur{" "}
+            <kbd className="px-1 py-0.5 rounded border border-border font-mono text-xs bg-surface">
+              Entrée
+            </kbd>{" "}
+            ou utilisez un scanner USB/Bluetooth — la frappe est automatiquement capturée.
+          </p>
+        )}
       </div>
 
-      {/* Error banner */}
+      {/* Camera feed (always in DOM when supported, hidden when inactive) */}
+      {CAMERA_SUPPORTED && (
+        <div className={cn("card overflow-hidden", !cameraActive && "hidden")}>
+          <div className="relative bg-black">
+            <video
+              ref={videoRef}
+              className="w-full aspect-video object-cover"
+              muted
+              playsInline
+            />
+
+            {/* Aim overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-56 h-36 border-2 border-white/50 rounded-lg relative">
+                <span className="absolute -top-px -left-px w-5 h-5 border-t-2 border-l-2 border-white rounded-tl-lg" />
+                <span className="absolute -top-px -right-px w-5 h-5 border-t-2 border-r-2 border-white rounded-tr-lg" />
+                <span className="absolute -bottom-px -left-px w-5 h-5 border-b-2 border-l-2 border-white rounded-bl-lg" />
+                <span className="absolute -bottom-px -right-px w-5 h-5 border-b-2 border-r-2 border-white rounded-br-lg" />
+                {/* Scan line animation */}
+                {cameraActive && (
+                  <span
+                    className="absolute left-0 right-0 h-0.5 bg-primary-400/80"
+                    style={{ animation: "scanLine 2s ease-in-out infinite" }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Last-scanned badge */}
+            {lastCode && (
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                <span className="bg-success/90 text-white text-xs px-3 py-1 rounded-full font-mono backdrop-blur-sm">
+                  ✓ {lastCode}
+                </span>
+              </div>
+            )}
+          </div>
+          <p className="px-4 py-2 text-xs text-text-muted text-center">
+            Pointez la caméra vers le code-barres — détection automatique
+          </p>
+        </div>
+      )}
+
+      {/* Camera error */}
+      {cameraError && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-danger-light border border-danger/30 rounded-lg text-sm text-danger">
+          <AlertTriangle size={14} className="flex-shrink-0" />
+          {cameraError}
+        </div>
+      )}
+
+      {/* Lookup error */}
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 bg-danger-light border border-danger/30 rounded-lg text-sm text-danger">
           <AlertTriangle size={14} className="flex-shrink-0" />
@@ -244,7 +417,7 @@ export default function BarcodeScannerPage() {
                           ? "text-danger"
                           : b.stock_qty <= v.alert_threshold
                             ? "text-warning"
-                            : "text-success"
+                            : "text-success",
                       )}>
                         {b.stock_qty}
                       </td>

@@ -203,3 +203,9 @@
     color: var(--color-text-muted);
   }
 }
+
+@keyframes scanLine {
+  0%   { top: 10%; }
+  50%  { top: 85%; }
+  100% { top: 10%; }
+}
