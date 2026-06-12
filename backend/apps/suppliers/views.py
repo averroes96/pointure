@@ -75,6 +75,108 @@ class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.tenant)
 
+    @action(detail=False, methods=["get"], url_path="payables-ageing")
+    def payables_ageing(self, request):
+        """
+        GET /suppliers/payables-ageing/
+        Per-supplier breakdown of outstanding payables into ageing buckets:
+        current (not yet due), 1-30j, 31-60j, 61-90j, 90j+ overdue.
+        """
+        from decimal import Decimal
+        from django.db.models import DecimalField, OuterRef, Subquery, Sum
+        from django.db.models.functions import Coalesce
+        from django.utils import timezone
+
+        self.require_manager()
+        tenant = request.tenant
+        today = timezone.now().date()
+
+        # Annotate every invoice with its total paid amount in one query
+        payments_subq = (
+            SupplierPayment.objects
+            .filter(supplier_invoice=OuterRef("pk"))
+            .values("supplier_invoice")
+            .annotate(paid=Sum("amount"))
+            .values("paid")
+        )
+        invoices = (
+            SupplierInvoice.objects
+            .filter(tenant=tenant)
+            .select_related("supplier")
+            .annotate(amount_paid=Coalesce(
+                Subquery(payments_subq, output_field=DecimalField(max_digits=12, decimal_places=2)),
+                Decimal("0"),
+            ))
+        )
+
+        supplier_rows: dict = {}
+        for inv in invoices:
+            remaining = inv.total_amount - inv.amount_paid
+            if remaining <= Decimal("0"):
+                continue
+
+            days = (today - inv.due_date).days
+            if days <= 0:
+                bucket = "current"
+            elif days <= 30:
+                bucket = "days_30"
+            elif days <= 60:
+                bucket = "days_60"
+            elif days <= 90:
+                bucket = "days_90"
+            else:
+                bucket = "days_90_plus"
+
+            sid = inv.supplier_id
+            if sid not in supplier_rows:
+                supplier_rows[sid] = {
+                    "supplier_id": sid,
+                    "supplier_name": inv.supplier.name,
+                    "phone": inv.supplier.phone or "",
+                    "email": inv.supplier.email or "",
+                    "current": Decimal("0"),
+                    "days_30": Decimal("0"),
+                    "days_60": Decimal("0"),
+                    "days_90": Decimal("0"),
+                    "days_90_plus": Decimal("0"),
+                    "total": Decimal("0"),
+                }
+            supplier_rows[sid][bucket] += remaining
+            supplier_rows[sid]["total"] += remaining
+
+        result = sorted(supplier_rows.values(), key=lambda r: r["supplier_name"])
+        return Response(result)
+
+    @action(detail=False, methods=["get"], url_path="payables-ageing-csv")
+    def payables_ageing_csv(self, request):
+        """GET /suppliers/payables-ageing-csv/ — CSV download of payables ageing."""
+        import csv
+        import io
+        from django.utils import timezone
+
+        self.require_manager()
+        # Reuse the ageing logic via self
+        resp = self.payables_ageing(request)
+        rows = resp.data
+
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow([
+            "Fournisseur", "Téléphone", "Courant (0j)",
+            "1-30j", "31-60j", "61-90j", "+90j", "Total",
+        ])
+        for row in rows:
+            writer.writerow([
+                row["supplier_name"], row["phone"],
+                row["current"], row["days_30"], row["days_60"],
+                row["days_90"], row["days_90_plus"], row["total"],
+            ])
+
+        today = timezone.now().date().isoformat()
+        response = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="payables-ageing-{today}.csv"'
+        return response
+
     @action(detail=True, methods=["post"], url_path="record-payment")
     def record_payment(self, request, pk=None):
         from decimal import Decimal

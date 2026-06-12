@@ -65,6 +65,7 @@ const SupplierFormPage = lazy(() => import("@/features/suppliers/SupplierFormPag
 const PurchaseOrderListPage = lazy(() => import("@/features/suppliers/PurchaseOrderListPage"));
 const PurchaseOrderFormPage = lazy(() => import("@/features/suppliers/PurchaseOrderFormPage"));
 const PurchaseOrderDetailPage = lazy(() => import("@/features/suppliers/PurchaseOrderDetailPage"));
+const SupplierPayablesPage = lazy(() => import("@/features/suppliers/SupplierPayablesPage"));
 
 // Reports
 const DailyReportPage = lazy(() => import("@/features/reports/DailyReportPage"));
@@ -170,6 +171,9 @@ function AppRoutes() {
             <Route path=":id" element={<SupplierDetailPage />} />
             <Route path=":id/edit" element={<SupplierFormPage />} />
           </Route>
+
+          {/* Supplier payables ageing */}
+          <Route path="suppliers/payables" element={<SupplierPayablesPage />} />
 
           {/* Purchase Orders */}
           <Route path="purchase-orders">

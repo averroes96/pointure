@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart,
-  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag,
+  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -87,6 +87,7 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/suppliers", labelKey: "nav.suppliers", icon: Factory, managerOnly: true },
         { to: "/purchase-orders", label: "Commandes d'achat", icon: ShoppingBag, managerOnly: true },
+        { to: "/suppliers/payables", label: "Dettes fournisseurs", icon: Receipt, managerOnly: true },
       ],
     },
     {

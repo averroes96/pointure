@@ -511,6 +511,19 @@ export interface DebtAgeingRow {
   total: string;
 }
 
+export interface PayableAgeingRow {
+  supplier_id: number;
+  supplier_name: string;
+  phone: string;
+  email: string;
+  current: string;
+  days_30: string;
+  days_60: string;
+  days_90: string;
+  days_90_plus: string;
+  total: string;
+}
+
 // ─────────────────────────────────────────────
 // Notifications
 // ─────────────────────────────────────────────
