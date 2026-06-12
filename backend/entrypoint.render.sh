@@ -18,11 +18,15 @@ print('yes' if Tenant.objects.filter(name='ShoeDZ Demo Store').exists() else 'no
 " 2>/dev/null)
 
 if [ "$SEEDED" = "no" ]; then
-    echo "==> Seeding demo data in background (gunicorn starts immediately)..."
+    echo "==> Seeding demo data in background (server starts immediately)..."
     python manage.py seed_demo &
 else
     echo "==> Demo data already present, skipping."
 fi
 
-echo "==> Starting gunicorn..."
-exec gunicorn config.wsgi:application --bind "0.0.0.0:${PORT:-8000}" --workers 2 --timeout 120
+echo "==> Starting gunicorn (uvicorn ASGI workers)..."
+exec gunicorn config.asgi:application \
+    -k uvicorn.workers.UvicornWorker \
+    --bind "0.0.0.0:${PORT:-8000}" \
+    --workers 2 \
+    --timeout 120

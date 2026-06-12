@@ -58,4 +58,5 @@ dj-database-url==2.2.0
 
 # Production server
 gunicorn==22.0.0
+uvicorn[standard]==0.30.6   # UvicornWorker enables async/ASGI views under gunicorn
 whitenoise[brotli]==6.7.0
