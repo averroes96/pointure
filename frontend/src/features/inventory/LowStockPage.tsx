@@ -1,19 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ShoppingCart, Package } from "lucide-react";
 import api, { type PaginatedResponse } from "@/lib/api";
 import type { Variant } from "@/types";
 import { cn } from "@/lib/utils";
 
-function handleOrder(variant: Variant) {
-  alert("Fonctionnalité commandes bientôt disponible");
-}
-
 interface VariantTableProps {
   variants: Variant[];
   isLoading: boolean;
+  onOrder: (variant: Variant) => void;
 }
 
-function VariantTable({ variants, isLoading }: VariantTableProps) {
+function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="data-table">
@@ -71,7 +69,7 @@ function VariantTable({ variants, isLoading }: VariantTableProps) {
               </td>
               <td>
                 <button
-                  onClick={() => handleOrder(variant)}
+                  onClick={() => onOrder(variant)}
                   className="btn-secondary btn-sm flex items-center gap-1"
                 >
                   <ShoppingCart size={13} />
@@ -87,6 +85,19 @@ function VariantTable({ variants, isLoading }: VariantTableProps) {
 }
 
 export default function LowStockPage() {
+  const navigate = useNavigate();
+
+  function handleOrder(variant: Variant) {
+    const needed = Math.max(1, (variant.alert_threshold ?? 0) - variant.stock_qty);
+    const parts = [variant.product_name, variant.size_eu, variant.colour].filter(Boolean);
+    const description = parts.join(" — ");
+    navigate("/purchase-orders/new", {
+      state: {
+        lines: [{ description, quantity_ordered: String(needed), agreed_unit_price: "" }],
+      },
+    });
+  }
+
   const { data, isLoading } = useQuery<PaginatedResponse<Variant>>({
     queryKey: ["variants", "low-stock"],
     queryFn: () =>
@@ -146,7 +157,7 @@ export default function LowStockPage() {
           </div>
           <span className="text-xs text-text-muted">Stock = 0</span>
         </div>
-        <VariantTable variants={outOfStock} isLoading={isLoading} />
+        <VariantTable variants={outOfStock} isLoading={isLoading} onOrder={handleOrder} />
       </div>
 
       {/* Low stock section */}
@@ -160,7 +171,7 @@ export default function LowStockPage() {
           </div>
           <span className="text-xs text-text-muted">Sous le seuil d'alerte</span>
         </div>
-        <VariantTable variants={lowStock} isLoading={isLoading} />
+        <VariantTable variants={lowStock} isLoading={isLoading} onOrder={handleOrder} />
       </div>
     </div>
   );

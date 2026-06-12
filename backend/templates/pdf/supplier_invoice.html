@@ -1,0 +1,115 @@
+{% extends "pdf/base.html" %}
+{% load i18n %}
+
+{% block title %}Facture Fournisseur {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="company-name">{{ tenant.name }}</div>
+    <div class="company-details">
+      {% if tenant.address %}{{ tenant.address }}<br>{% endif %}
+      {% if tenant.wilaya %}Wilaya {{ tenant.wilaya }}<br>{% endif %}
+      {% if tenant.nif %}NIF: {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC: {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI: {{ tenant.ai }}{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="doc-title">FACTURE FOURNISSEUR</div>
+    <div class="doc-meta">
+      <strong>N° {{ invoice.invoice_number }}</strong><br>
+      Date : {{ invoice.date|date:"d/m/Y" }}<br>
+      Échéance : {{ invoice.due_date|date:"d/m/Y" }}<br>
+      {% if purchase_order %}<span style="color:#1A4A8A;">BC #{{ purchase_order.pk }}</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Parties -->
+<div class="parties">
+  <div class="party-block">
+    <div class="party-label">Acheteur / المشتري</div>
+    <div class="party-name">{{ tenant.name }}</div>
+    {% if tenant.phone %}<div>{{ tenant.phone }}</div>{% endif %}
+    {% if tenant.nif %}<div>NIF : {{ tenant.nif }}</div>{% endif %}
+    {% if tenant.rc %}<div>RC : {{ tenant.rc }}</div>{% endif %}
+  </div>
+  <div class="party-block">
+    <div class="party-label">Fournisseur / المورد</div>
+    <div class="party-name">{{ supplier.name }}</div>
+    {% if supplier.contact_name %}<div>{{ supplier.contact_name }}</div>{% endif %}
+    {% if supplier.phone %}<div>{{ supplier.phone }}</div>{% endif %}
+    {% if supplier.address %}<div>{{ supplier.address }}</div>{% endif %}
+    {% if supplier.origin_country %}<div>{{ supplier.origin_country }}</div>{% endif %}
+  </div>
+</div>
+
+<!-- Line items from linked PO (if available) -->
+{% if po_lines %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Description</th>
+      <th class="num">Qté commandée</th>
+      <th class="num">Qté reçue</th>
+      <th class="num">Prix unitaire</th>
+      <th class="num">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in po_lines %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>
+        {{ line.description }}
+        {% if line.variant %}
+          <br><small style="color:#64748B;">{{ line.variant.product.brand }} — EU{{ line.variant.size_eu }} — {{ line.variant.colour }}</small>
+        {% endif %}
+      </td>
+      <td class="num">{{ line.quantity_ordered }}</td>
+      <td class="num">{{ line.quantity_received }}</td>
+      <td class="num">{{ line.agreed_unit_price|floatformat:2 }}</td>
+      <td class="num">{{ line.line_total|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Totals -->
+<div style="display:flex; justify-content:flex-end; margin-bottom:6mm;">
+  <div class="totals-block">
+    <div class="totals-row">
+      <span class="label">Montant total</span>
+      <span class="value">{{ invoice.total_amount|floatformat:2 }} DZD</span>
+    </div>
+    <div class="totals-row">
+      <span class="label">Montant payé</span>
+      <span class="value">{{ amount_paid|floatformat:2 }} DZD</span>
+    </div>
+    <div class="totals-row">
+      <span class="label">Solde dû</span>
+      <span class="value">{{ balance_due|floatformat:2 }} DZD</span>
+    </div>
+  </div>
+</div>
+
+{% if invoice.notes %}
+<div class="notes-section">
+  <strong>Notes :</strong> {{ invoice.notes }}
+</div>
+{% endif %}
+
+{% if balance_due > 0 %}
+<div style="margin-top:4mm; font-size:9pt; color:#CC0000;">
+  Solde restant à régler : <strong>{{ balance_due|floatformat:2 }} DZD</strong>
+</div>
+{% endif %}
+
+<div class="footer">
+  {{ tenant.name }} &mdash; {% if tenant.nif %}NIF {{ tenant.nif }} &mdash; {% endif %}Généré par ShoeDZ
+</div>
+{% endblock %}

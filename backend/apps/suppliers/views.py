@@ -1,5 +1,6 @@
 """Supplier management API views."""
 from django.db import transaction
+from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -425,6 +426,19 @@ class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.tenant)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Download the supplier invoice as a PDF."""
+        invoice = self.get_object()
+        from apps.invoicing.pdf import render_supplier_invoice_pdf
+        lang = request.query_params.get("lang", "fr")
+        pdf_bytes = render_supplier_invoice_pdf(invoice, language=lang)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="supplier-invoice-{invoice.invoice_number}.pdf"'
+        )
+        return response
 
 
 class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):

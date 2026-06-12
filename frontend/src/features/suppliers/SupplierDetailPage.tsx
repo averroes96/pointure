@@ -12,7 +12,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, ShoppingBag, Plus, AlertCircle, Loader2,
-  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil,
+  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil, FileDown,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
@@ -365,14 +365,15 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
               <th>Échéance</th>
               <th>Commande liée</th>
               <th className="text-end">Montant</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={5} className="text-center py-8 text-text-muted">Chargement...</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Chargement...</td></tr>
             )}
             {!isLoading && invoices.length === 0 && (
-              <tr><td colSpan={5} className="text-center py-8 text-text-muted">Aucune facture fournisseur.</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Aucune facture fournisseur.</td></tr>
             )}
             {invoices.map((inv) => (
               <tr key={inv.id}>
@@ -387,6 +388,17 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
                   ) : "—"}
                 </td>
                 <td className="text-end font-mono text-sm">{formatDZD(inv.total_amount)} DZD</td>
+                <td>
+                  <a
+                    href={`/api/v1/suppliers/invoices/${inv.id}/pdf/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost btn-sm flex items-center gap-1 text-text-muted hover:text-primary-500"
+                    title="Télécharger PDF"
+                  >
+                    <FileDown size={14} />
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>

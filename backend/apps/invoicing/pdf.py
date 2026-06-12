@@ -73,3 +73,30 @@ def render_credit_note_pdf(credit_note, language: str = "fr") -> bytes:
         "tenant": credit_note.tenant,
     }
     return render_to_pdf("pdf/credit_note.html", context, language)
+
+
+def render_supplier_invoice_pdf(supplier_invoice, language: str = "fr") -> bytes:
+    from decimal import Decimal
+    from django.db.models import Sum
+    from django.db.models.functions import Coalesce
+
+    amount_paid = supplier_invoice.payments.aggregate(
+        t=Coalesce(Sum("amount"), Decimal("0"))
+    )["t"]
+
+    po_lines = []
+    if supplier_invoice.purchase_order_id:
+        po_lines = list(
+            supplier_invoice.purchase_order.lines.select_related("variant__product")
+        )
+
+    context = {
+        "invoice": supplier_invoice,
+        "tenant": supplier_invoice.tenant,
+        "supplier": supplier_invoice.supplier,
+        "purchase_order": supplier_invoice.purchase_order,
+        "po_lines": po_lines,
+        "amount_paid": amount_paid,
+        "balance_due": supplier_invoice.total_amount - amount_paid,
+    }
+    return render_to_pdf("pdf/supplier_invoice.html", context, language)

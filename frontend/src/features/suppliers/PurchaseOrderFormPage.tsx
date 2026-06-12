@@ -8,7 +8,7 @@
  *         lines: description, quantity_ordered, agreed_unit_price
  */
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
@@ -130,14 +130,23 @@ function lineTotal(line: LineItem): number {
 export default function PurchaseOrderFormPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  // Lines pre-filled from Low Stock page via navigate(..., { state: { lines } })
+  const prefilledLines: Pick<LineItem, "description" | "quantity_ordered" | "agreed_unit_price">[] =
+    location.state?.lines ?? [];
 
   const today = new Date().toISOString().split("T")[0];
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [reference, setReference] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
+  const [lines, setLines] = useState<LineItem[]>(
+    prefilledLines.length > 0
+      ? prefilledLines.map((l) => ({ _id: localId(), ...l }))
+      : [emptyLine()]
+  );
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -229,6 +238,13 @@ export default function PurchaseOrderFormPage() {
         {saved && (
           <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
             <CheckCircle size={14} /> Commande créée. Redirection...
+          </div>
+        )}
+
+        {prefilledLines.length > 0 && !saved && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
+            <AlertTriangle size={14} className="flex-shrink-0" />
+            Ligne pré-remplie depuis la page stock bas — vérifiez la quantité et ajoutez le prix unitaire.
           </div>
         )}
 
