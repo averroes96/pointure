@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import ReportTemplate
-from .field_registry import FIELD_REGISTRY, MAX_COLUMNS, OPERATOR_LABELS
-from .query_engine import MAX_TEMPLATES
+from .field_registry import FIELD_REGISTRY
+from .query_engine import MAX_COLUMNS
 
 
 class ReportTemplateSerializer(serializers.ModelSerializer):
