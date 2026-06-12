@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart,
-  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck,
+  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -67,6 +67,7 @@ function useNavSections(): NavSection[] {
         { to: "/inventory/movements", labelKey: "nav.stock_movements", icon: BarChart2, managerOnly: true },
         { to: "/inventory/transfers", label: "Transferts", icon: ArrowLeftRight, managerOnly: true },
         { to: "/inventory/low-stock", labelKey: "nav.low_stock", icon: AlertTriangle },
+        { to: "/inventory/scanner", label: "Scanner code-barres", icon: ScanBarcode },
       ],
     },
     {
