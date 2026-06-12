@@ -104,19 +104,33 @@ class CreateSaleSerializer(serializers.Serializer):
         from apps.clients.models import Client
 
         # Validate all variants exist and have sufficient stock
+        from django.db.models import Sum as DjSum
+
         tenant = self.context["request"].tenant
+        branch_id = data.get("branch_id")
         item_errors = []
         for i, item_data in enumerate(data["items"]):
             try:
                 variant = Variant.objects.get(pk=item_data["variant_id"], tenant=tenant)
                 item_data["variant"] = variant
-                if variant.stock_qty < item_data["quantity"]:
+
+                if branch_id:
+                    # Check stock available at the specific branch
+                    available = variant.movements.filter(
+                        branch_id=branch_id,
+                    ).aggregate(total=DjSum("quantity_delta"))["total"] or 0
+                    location = f"agence #{branch_id}"
+                else:
+                    available = variant.stock_qty
+                    location = "stock global"
+
+                if available < item_data["quantity"]:
                     item_errors.append(
-                        f"Item {i+1}: Insufficient stock for {variant} "
-                        f"(available: {variant.stock_qty}, requested: {item_data['quantity']})"
+                        f"Item {i+1}: Stock insuffisant pour {variant} "
+                        f"({location} : {available} disponible(s), {item_data['quantity']} demandé(s))"
                     )
             except Variant.DoesNotExist:
-                item_errors.append(f"Item {i+1}: Variant {item_data['variant_id']} not found.")
+                item_errors.append(f"Item {i+1}: Variante {item_data['variant_id']} introuvable.")
 
         if item_errors:
             raise serializers.ValidationError({"items": item_errors})

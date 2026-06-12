@@ -8,12 +8,28 @@ from .models import Product, StockMovement, StockTransfer, Variant
 
 
 class VariantSerializer(serializers.ModelSerializer):
-    is_low_stock = serializers.BooleanField(read_only=True)
-    is_out_of_stock = serializers.BooleanField(read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sale_price = serializers.DecimalField(
         source="product.sale_price", max_digits=12, decimal_places=2, read_only=True
     )
+    stock_qty = serializers.SerializerMethodField()
+    is_low_stock = serializers.SerializerMethodField()
+    is_out_of_stock = serializers.SerializerMethodField()
+
+    def _effective_stock(self, obj):
+        """Return branch_stock_qty annotation when present, else the global cached field."""
+        bsq = getattr(obj, "branch_stock_qty", None)
+        return bsq if bsq is not None else obj.stock_qty
+
+    def get_stock_qty(self, obj):
+        return self._effective_stock(obj)
+
+    def get_is_low_stock(self, obj):
+        stock = self._effective_stock(obj)
+        return obj.alert_threshold > 0 and stock <= obj.alert_threshold
+
+    def get_is_out_of_stock(self, obj):
+        return self._effective_stock(obj) <= 0
 
     class Meta:
         model = Variant
@@ -22,7 +38,7 @@ class VariantSerializer(serializers.ModelSerializer):
             "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]
-        read_only_fields = ["id", "barcode", "stock_qty"]
+        read_only_fields = ["id", "barcode"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -56,9 +72,18 @@ class ProductListSerializer(serializers.ModelSerializer):
     grid immediately without a second fetch. The queryset already prefetches
     variants so this adds zero extra DB queries.
     """
-    total_stock = serializers.IntegerField(read_only=True)
+    total_stock = serializers.SerializerMethodField()
     has_low_stock = serializers.BooleanField(read_only=True)
     variants = VariantSerializer(many=True, read_only=True)
+
+    def get_total_stock(self, obj):
+        # Sum from the prefetch cache. When branch_id was passed the variants
+        # carry a branch_stock_qty annotation; fall back to global stock_qty otherwise.
+        return sum(
+            getattr(v, "branch_stock_qty", None) if getattr(v, "branch_stock_qty", None) is not None
+            else v.stock_qty
+            for v in obj.variants.all()
+        )
 
     class Meta:
         model = Product

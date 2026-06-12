@@ -37,6 +37,37 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return ProductListSerializer
         return ProductSerializer
 
+    def get_queryset(self):
+        from django.db.models import IntegerField, OuterRef, Prefetch, Subquery, Sum, Value
+        from django.db.models.functions import Coalesce
+
+        qs = super().get_queryset()
+        branch_id = self.request.query_params.get("branch_id")
+        if not branch_id:
+            return qs
+
+        branch_stock_subq = (
+            StockMovement.objects
+            .filter(variant_id=OuterRef("pk"), branch_id=branch_id)
+            .order_by()
+            .values("variant_id")
+            .annotate(total=Sum("quantity_delta"))
+            .values("total")
+        )
+        branch_variant_qs = (
+            Variant.objects
+            .filter(tenant=self._get_tenant())
+            .annotate(branch_stock_qty=Coalesce(
+                Subquery(branch_stock_subq, output_field=IntegerField()),
+                Value(0),
+            ))
+        )
+        # prefetch_related(None) clears the class-level prefetch so we can
+        # replace it with the branch-annotated queryset.
+        return qs.prefetch_related(None).prefetch_related(
+            Prefetch("variants", queryset=branch_variant_qs)
+        )
+
     def perform_create(self, serializer):
         from apps.core.plan_permissions import check_quota
         check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
@@ -344,11 +375,30 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     search_fields = ["barcode", "colour", "product__name", "product__brand"]
 
     def get_queryset(self):
+        from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
+        from django.db.models.functions import Coalesce
+
         qs = super().get_queryset()
-        # Allow lookup by barcode for POS
+
         barcode = self.request.query_params.get("barcode")
         if barcode:
-            return qs.filter(barcode=barcode)
+            qs = qs.filter(barcode=barcode)
+
+        branch_id = self.request.query_params.get("branch_id")
+        if branch_id:
+            branch_stock_subq = (
+                StockMovement.objects
+                .filter(variant_id=OuterRef("pk"), branch_id=branch_id)
+                .order_by()
+                .values("variant_id")
+                .annotate(total=Sum("quantity_delta"))
+                .values("total")
+            )
+            qs = qs.annotate(branch_stock_qty=Coalesce(
+                Subquery(branch_stock_subq, output_field=IntegerField()),
+                Value(0),
+            ))
+
         return qs
 
     @action(detail=True, methods=["get"], url_path="barcode-label")

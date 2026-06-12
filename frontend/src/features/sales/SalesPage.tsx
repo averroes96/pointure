@@ -280,6 +280,11 @@ export default function SalesPage() {
   const { user } = useAuth();
   const { currentBranch } = useBranch();
   const { canAccess } = usePlan();
+
+  // Keep a ref to currentBranch so the scanner keydown handler (stable closure) always
+  // reads the latest selection without being re-registered on every branch change.
+  const currentBranchRef = useRef(currentBranch);
+  useEffect(() => { currentBranchRef.current = currentBranch; }, [currentBranch]);
   const hasLoyalty = canAccess("pro_retail");
 
   // F2 / F10 keyboard shortcuts
@@ -292,19 +297,21 @@ export default function SalesPage() {
     return () => window.removeEventListener("keydown", handler);
   });
 
+  const branchQs = currentBranch ? `&branch_id=${currentBranch.id}` : "";
+
   // Product search
   const { data: productResults } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ["products", "pos-search", search],
+    queryKey: ["products", "pos-search", search, currentBranch?.id],
     queryFn: () =>
-      api.get(`/inventory/products/?search=${encodeURIComponent(search)}&page_size=10`).then((r) => r.data),
+      api.get(`/inventory/products/?search=${encodeURIComponent(search)}&page_size=10${branchQs}`).then((r) => r.data),
     enabled: search.length >= 2,
   });
 
   // Barcode lookup
   const { data: barcodeResult } = useQuery<PaginatedResponse<Variant>>({
-    queryKey: ["variant", "barcode", search],
+    queryKey: ["variant", "barcode", search, currentBranch?.id],
     queryFn: () =>
-      api.get(`/inventory/variants/?barcode=${encodeURIComponent(search)}`).then((r) => r.data),
+      api.get(`/inventory/variants/?barcode=${encodeURIComponent(search)}${branchQs}`).then((r) => r.data),
     enabled: search.length >= 8 && /^\d+$/.test(search),
   });
 
@@ -484,7 +491,8 @@ export default function SalesPage() {
         buffer = "";
         if (code.length >= MIN_LEN) {
           e.preventDefault();
-          api.get(`/inventory/variants/?barcode=${encodeURIComponent(code)}`).then((r) => {
+          const bqs = currentBranchRef.current ? `&branch_id=${currentBranchRef.current.id}` : "";
+          api.get(`/inventory/variants/?barcode=${encodeURIComponent(code)}${bqs}`).then((r) => {
             const variants: Variant[] = r.data.results ?? [];
             if (variants.length === 1) {
               api.get(`/inventory/products/${variants[0].product}/`).then((pr) => {
