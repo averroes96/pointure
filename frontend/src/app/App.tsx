@@ -71,6 +71,7 @@ const SupplierPayablesPage = lazy(() => import("@/features/suppliers/SupplierPay
 const DailyReportPage = lazy(() => import("@/features/reports/DailyReportPage"));
 const SalesReportPage = lazy(() => import("@/features/reports/SalesReportPage"));
 const StockReportPage = lazy(() => import("@/features/reports/StockReportPage"));
+const ReportBuilderPage = lazy(() => import("@/features/reports/ReportBuilderPage"));
 
 // Settings
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
@@ -187,6 +188,7 @@ function AppRoutes() {
             <Route path="daily" element={<DailyReportPage />} />
             <Route path="sales" element={<SalesReportPage />} />
             <Route path="stock" element={<StockReportPage />} />
+            <Route path="builder" element={<ReportBuilderPage />} />
           </Route>
 
           {/* Settings */}

@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.plan_permissions import PlanRequired
 
 
 class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
@@ -618,3 +619,132 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             f'attachment; filename="rapport-stock-{today_str}.pdf"'
         )
         return response
+
+    # ── Report Builder (enterprise only) ─────────────────────────────────────
+
+    @action(
+        detail=False, methods=["get"], url_path="builder/fields",
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+    )
+    def builder_fields(self, request):
+        """Return available fields per source for the report builder UI."""
+        from .field_registry import FIELD_REGISTRY, OPERATOR_LABELS
+        result = {}
+        for source, registry in FIELD_REGISTRY.items():
+            result[source] = [
+                {
+                    "id": fid,
+                    "label": fd["label"],
+                    "type": fd["type"],
+                    "operators": [
+                        {"value": op, "label": OPERATOR_LABELS.get(op, op)}
+                        for op in fd.get("operators", [])
+                    ],
+                    "choices": fd.get("choices", []),
+                    "sortable": fd.get("sortable", False),
+                }
+                for fid, fd in registry.items()
+            ]
+        return Response(result)
+
+    @action(
+        detail=False, methods=["post"], url_path="builder/preview",
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+    )
+    def builder_preview(self, request):
+        """Run a report config and return up to 200 rows."""
+        from .query_engine import run_report
+        config = dict(request.data)
+        config["source"] = config.get("source", "")
+        try:
+            rows, column_labels = run_report(request.tenant, config)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"rows": rows, "column_labels": column_labels, "count": len(rows)})
+
+    @action(
+        detail=False, methods=["get"], url_path="builder/export",
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+    )
+    def builder_export(self, request):
+        """Export a report as CSV (full dataset, no row limit)."""
+        import csv
+        import io
+        from django.http import HttpResponse
+        from .query_engine import run_report, MAX_PREVIEW_ROWS
+
+        config_param = request.GET.get("config", "{}")
+        try:
+            import json
+            config = json.loads(config_param)
+        except Exception:
+            return Response({"detail": "Config JSON invalide."}, status=400)
+
+        try:
+            rows, column_labels = run_report(request.tenant, config, row_limit=10_000)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+
+        buf = io.StringIO()
+        if rows:
+            writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+            # Write header using human-readable labels
+            writer.writerow({k: column_labels.get(k, k) for k in rows[0].keys()})
+            for row in rows:
+                writer.writerow({k: ("" if v is None else str(v)) for k, v in row.items()})
+
+        response = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="rapport.csv"'
+        return response
+
+    @action(
+        detail=False, methods=["get", "post"], url_path="templates",
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+    )
+    def templates_list(self, request):
+        """List or create saved report templates (max 15 per tenant)."""
+        from .serializers import ReportTemplateSerializer
+        from .models import ReportTemplate
+        from .query_engine import MAX_TEMPLATES
+
+        if request.method == "GET":
+            qs = ReportTemplate.objects.filter(tenant=request.tenant).select_related("created_by")
+            return Response(ReportTemplateSerializer(qs, many=True).data)
+
+        # POST — create
+        count = ReportTemplate.objects.filter(tenant=request.tenant).count()
+        if count >= MAX_TEMPLATES:
+            return Response(
+                {"detail": f"Maximum {MAX_TEMPLATES} modèles par tenant. Supprimez-en un avant d'en créer un nouveau."},
+                status=400,
+            )
+        ser = ReportTemplateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        ser.save(tenant=request.tenant, created_by=request.user)
+        return Response(ser.data, status=201)
+
+    @action(
+        detail=False, methods=["get", "patch", "delete"],
+        url_path=r"templates/(?P<tpl_id>\d+)",
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+    )
+    def template_detail(self, request, tpl_id=None):
+        """Retrieve, update, or delete a single saved template."""
+        from .serializers import ReportTemplateSerializer
+        from .models import ReportTemplate
+
+        try:
+            tpl = ReportTemplate.objects.get(pk=tpl_id, tenant=request.tenant)
+        except ReportTemplate.DoesNotExist:
+            return Response({"detail": "Introuvable."}, status=404)
+
+        if request.method == "GET":
+            return Response(ReportTemplateSerializer(tpl).data)
+        if request.method == "DELETE":
+            tpl.delete()
+            return Response(status=204)
+        # PATCH
+        ser = ReportTemplateSerializer(tpl, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)

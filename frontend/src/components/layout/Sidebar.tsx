@@ -97,6 +97,7 @@ function useNavSections(): NavSection[] {
         { to: "/reports/daily", labelKey: "nav.daily_report", icon: CalendarDays, managerOnly: true },
         { to: "/reports/sales", labelKey: "nav.sales_analytics", icon: BarChart, managerOnly: true, minPlan: "pro_retail" },
         { to: "/reports/stock", labelKey: "nav.stock_report", icon: PieChart, managerOnly: true },
+        { to: "/reports/builder", label: "Constructeur de rapports", icon: BarChart2, managerOnly: true, minPlan: "enterprise" },
       ],
     },
     {
