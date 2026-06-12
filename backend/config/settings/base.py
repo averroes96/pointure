@@ -62,6 +62,7 @@ LOCAL_APPS = [
     "apps.loyalty",
     "apps.promotions",
     "apps.events",
+    "apps.webhooks",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -292,6 +293,12 @@ CELERY_BEAT_SCHEDULE = {
     "database-backup": {
         "task": "apps.core.tasks.backup_database",
         "schedule": crontab(hour=2, minute=0),           # 02:00 daily
+        "options": {"queue": "default"},
+    },
+    # Webhook outbox — flush pending/retryable deliveries every 60 seconds.
+    "flush-webhook-outbox": {
+        "task": "apps.webhooks.tasks.flush_webhook_outbox",
+        "schedule": timedelta(seconds=60),
         "options": {"queue": "default"},
     },
 }

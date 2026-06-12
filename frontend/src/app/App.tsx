@@ -76,6 +76,7 @@ const ReportBuilderPage = lazy(() => import("@/features/reports/ReportBuilderPag
 // Settings
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const AuditLogPage = lazy(() => import("@/features/settings/AuditLogPage"));
+const WebhooksPage = lazy(() => import("@/features/webhooks/WebhooksPage"));
 
 // Loyalty
 const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
@@ -194,6 +195,7 @@ function AppRoutes() {
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/audit-log" element={<AuditLogPage />} />
+          <Route path="settings/webhooks" element={<WebhooksPage />} />
 
           {/* Loyalty */}
           <Route path="loyalty" element={<LoyaltyPage />} />

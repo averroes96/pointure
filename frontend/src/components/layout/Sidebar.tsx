@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart,
-  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt,
+  Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -106,6 +106,7 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/settings", labelKey: "nav.settings", icon: Settings, managerOnly: true },
         { to: "/settings/audit-log", label: "Journal d'activité", icon: Shield, managerOnly: true },
+        { to: "/settings/webhooks", label: "Webhooks", icon: Webhook, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
   ];

@@ -6,7 +6,7 @@ echo "==> Waiting for database..."
 sleep 1
 
 echo "==> Creating migrations..."
-python manage.py makemigrations core inventory sales clients invoicing notifications reports suppliers loyalty promotions --no-input
+python manage.py makemigrations core inventory sales clients invoicing notifications reports suppliers loyalty promotions webhooks --no-input
 
 echo "==> Applying migrations..."
 python manage.py migrate --no-input
