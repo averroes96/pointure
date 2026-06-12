@@ -78,6 +78,9 @@ const AuditLogPage = lazy(() => import("@/features/settings/AuditLogPage"));
 // Loyalty
 const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
 
+// Promotions
+const PromotionsPage = lazy(() => import("@/features/promotions/PromotionsPage"));
+
 // UI
 const UpgradePromptModal = lazy(() => import("@/components/ui/UpgradePromptModal"));
 
@@ -188,6 +191,9 @@ function AppRoutes() {
 
           {/* Loyalty */}
           <Route path="loyalty" element={<LoyaltyPage />} />
+
+          {/* Promotions */}
+          <Route path="promotions" element={<PromotionsPage />} />
 
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />

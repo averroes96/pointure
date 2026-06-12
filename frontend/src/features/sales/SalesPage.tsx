@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
@@ -23,6 +23,7 @@ interface CartItem {
   quantity: number;
   unit_price: number;
   discount: number;
+  promoName?: string;
 }
 
 const PAYMENT_METHOD_KEYS = ["cash", "ccp", "virement", "cheque"] as const;
@@ -272,6 +273,10 @@ export default function SalesPage() {
   const [isVersement, setIsVersement] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "found" | "not_found">("idle");
 
+  // Keep a ref so addToCart (useCallback) can read current cart without stale closure
+  const cartRef = useRef<CartItem[]>([]);
+  useEffect(() => { cartRef.current = cart; }, [cart]);
+
   const { user } = useAuth();
   const { currentBranch } = useBranch();
   const { canAccess } = usePlan();
@@ -337,26 +342,56 @@ export default function SalesPage() {
   const total = Math.max(0, itemsTotal - cartDiscount - redemptionDzd);
   const paymentTotal = payments.reduce((s, p) => s + p.amount, 0);
 
+  const applyPromo = useCallback(async (variantId: number, qty: number) => {
+    try {
+      const res = await api.get(`/promotions/applicable/?variant=${variantId}&qty=${qty}`);
+      if (res.status === 200 && res.data?.computed_discount != null) {
+        const totalDiscount = Number(res.data.computed_discount) * qty;
+        setCart((prev) =>
+          prev.map((i) =>
+            i.variant.id === variantId
+              ? { ...i, promoName: res.data.name as string, discount: totalDiscount }
+              : i
+          )
+        );
+      } else {
+        setCart((prev) =>
+          prev.map((i) =>
+            i.variant.id === variantId ? { ...i, promoName: undefined, discount: 0 } : i
+          )
+        );
+      }
+    } catch {
+      // 404 (variant not found) or network error — don't clear existing manual discount
+    }
+  }, []);
+
   const addToCart = useCallback((variant: Variant, product: Product) => {
+    const existing = cartRef.current.find((i) => i.variant.id === variant.id);
+    const newQty = existing ? existing.quantity + 1 : 1;
     setCart((prev) => {
-      const existing = prev.find((i) => i.variant.id === variant.id);
       if (existing) {
         return prev.map((i) =>
-          i.variant.id === variant.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.variant.id === variant.id ? { ...i, quantity: newQty } : i
         );
       }
       return [...prev, { variant, product, quantity: 1, unit_price: parseFloat(product.sale_price), discount: 0 }];
     });
     setSearch("");
     setSelectedProduct(null);
-  }, []);
+    applyPromo(variant.id, newQty);
+  }, [applyPromo]);
 
   const updateQuantity = (variantId: number, delta: number) => {
+    const existing = cart.find((i) => i.variant.id === variantId);
+    if (!existing) return;
+    const newQty = Math.max(1, existing.quantity + delta);
     setCart((prev) =>
       prev.map((i) =>
-        i.variant.id === variantId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i
+        i.variant.id === variantId ? { ...i, quantity: newQty } : i
       )
     );
+    applyPromo(variantId, newQty);
   };
 
   const removeItem = (variantId: number) => {
@@ -772,6 +807,12 @@ export default function SalesPage() {
                         step="100"
                       />
                       <span className="text-xs text-text-muted">DZD</span>
+                      {item.promoName && (
+                        <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
+                          <Tag size={9} />
+                          {item.promoName}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -797,7 +838,12 @@ export default function SalesPage() {
                   </div>
                 </div>
                 <div className="text-end text-sm font-mono font-medium mt-1">
-                  = {formatDZD(item.unit_price * item.quantity)} DZD
+                  {item.discount > 0 && (
+                    <span className="line-through text-text-muted text-xs me-1">
+                      {formatDZD(item.unit_price * item.quantity)}
+                    </span>
+                  )}
+                  = {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
                 </div>
               </div>
             ))}
