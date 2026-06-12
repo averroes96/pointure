@@ -416,7 +416,7 @@ export default function SalesPage() {
         : [{ method: "cash", amount: Math.max(0, total) }];
 
       return api.post("/sales/", {
-        branch: currentBranch?.id ?? null,
+        branch_id: currentBranch?.id ?? null,
         client_id: selectedClient?.id ?? null,
         redeem_points: redeemPoints,
         items: cart.map((i) => ({
