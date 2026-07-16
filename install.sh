@@ -46,11 +46,21 @@ echo -e "${CYAN}║          ShoeDZ / Pointure — Self-Hosted Setup       ║${
 echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
 
+
+# ── Download files if running directly via curl ──────────────────────────────
+if [[ ! -f "docker-compose.local.yml" || ! -f ".env.local.example" ]]; then
+    info "Downloading required setup files..."
+    BASE_URL="https://raw.githubusercontent.com/averroes96/pointure/main"
+    curl -sSLO "$BASE_URL/docker-compose.local.yml" || error "Failed to download docker-compose.local.yml"
+    curl -sSLO "$BASE_URL/.env.local.example" || error "Failed to download .env.local.example"
+    mkdir -p nginx && curl -sSL "$BASE_URL/nginx/nginx.local.conf" -o nginx/nginx.local.conf || error "Failed to download nginx.local.conf"
+    success "Setup files downloaded."
+fi
+
 # ── 1. Prerequisites ─────────────────────────────────────────────────────────
 info "Checking prerequisites…"
 
 command -v docker  >/dev/null 2>&1 || error "Docker is not installed. See https://docs.docker.com/get-docker/"
-command -v python3 >/dev/null 2>&1 || error "python3 is required to generate secrets."
 
 if ! docker compose version >/dev/null 2>&1; then
     error "Docker Compose v2 is required. See https://docs.docker.com/compose/install/"
@@ -66,9 +76,9 @@ if [[ -f "$ENV_FILE" ]]; then
 else
     info "Generating $ENV_FILE with random secrets…"
 
-    SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(50))")
-    DB_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
-    REDIS_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+    SECRET_KEY=$(openssl rand -hex 50 2>/dev/null || head -c 50 /dev/urandom | xxd -p)
+    DB_PASSWORD=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
+    REDIS_PASSWORD=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
 
     echo ""
     echo -e "${YELLOW}Enter your ShoeDZ license key (format: SHDZ-XXXX-XXXX-XXXX).${NC}"
@@ -82,6 +92,24 @@ else
     FRONTEND_URL="${FRONTEND_URL:-http://localhost}"
     echo ""
 
+    echo -e "${YELLOW}Allow access from other devices on your local network (LAN)? [y/N]${NC}"
+    read -r -p "LAN Access: " LAN_ACCESS
+    if [[ "$(echo "$LAN_ACCESS" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
+        BIND_IP="0.0.0.0"
+    else
+        BIND_IP="127.0.0.1"
+    fi
+    echo ""
+
+    echo -e "${YELLOW}Which port should the app run on? [80]${NC}"
+    read -r -p "Port: " HTTP_PORT
+    HTTP_PORT="${HTTP_PORT:-80}"
+    echo ""
+
+    if lsof -Pi :$HTTP_PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+        error "Port $HTTP_PORT is already in use. Please stop the conflicting service or choose another port."
+    fi
+
     sed \
         -e "s|change-me-generate-with-python-secrets-token-hex-50|${SECRET_KEY}|g" \
         -e "s|change-me-strong-password|${DB_PASSWORD}|g" \
@@ -93,8 +121,10 @@ else
     sedi "s|DATABASE_URL=postgres://shodz:.*@db|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db|g" "$ENV_FILE"
     sedi "s|REDIS_URL=redis://:.*@redis|REDIS_URL=redis://:${REDIS_PASSWORD}@redis|g" "$ENV_FILE"
 
-    # Append FRONTEND_URL (not in the example template)
+    # Append extra variables
     echo "FRONTEND_URL=${FRONTEND_URL}" >> "$ENV_FILE"
+    echo "BIND_IP=${BIND_IP}" >> "$ENV_FILE"
+    echo "HTTP_PORT=${HTTP_PORT}" >> "$ENV_FILE"
 
     success "$ENV_FILE created."
 fi

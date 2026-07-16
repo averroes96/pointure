@@ -136,14 +136,31 @@ services:
       - static_files:/static:ro
       - media_files:/media:ro
     ports:
-      # Bind to loopback only — prevents accidental LAN exposure.
-      # Change to "80:80" if you need LAN access within your office.
-      - "127.0.0.1:80:80"
+      # Dynamically set by install.sh or .env.local
+      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-80}:80"
     depends_on:
       - backend
       - frontend
     networks:
       - shodz_local
+
+  db-backup:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-shodz}
+      POSTGRES_USER: ${DB_USER:-shodz}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - shodz_local
+    # Runs pg_dump at 2:00 AM every day and deletes backups older than 7 days
+    command: >
+      sh -c 'echo "0 2 * * * pg_dump -h db -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/db_backup_\$$(date +\%Y\%m\%d_\%H\%M\%S).sql.gz && find /backups -type f -name \"db_backup_*.sql.gz\" -mtime +7 -delete" > /etc/crontabs/root && crond -f'
 
 volumes:
   postgres_data:
