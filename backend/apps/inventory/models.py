@@ -121,6 +121,19 @@ class Product(TenantScopedModel):
     def is_total_low_stock(self):
         return self.total_stock <= self.alert_threshold and self.alert_threshold > 0
 
+class ProductLocation(TenantScopedModel):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="product_locations")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="branch_locations")
+    location = models.CharField(_("Location / Shelving"), max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = _("Product Location")
+        verbose_name_plural = _("Product Locations")
+        unique_together = [["branch", "product"]]
+
+    def __str__(self):
+        return f"{self.product.name} @ {self.branch.name}: {self.location}"
+
 
 # ─────────────────────────────────────────────
 # Variant (SKU)

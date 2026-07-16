@@ -75,6 +75,20 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
 
+    def update(self, request, *args, **kwargs):
+        location = request.data.get("location")
+        response = super().update(request, *args, **kwargs)
+        if location is not None and getattr(request.tenant, "plan", "free") != "free":
+            product = self.get_object()
+            from apps.inventory.models import ProductLocation
+            ProductLocation.objects.update_or_create(
+                tenant=request.tenant,
+                branch=request.branch,
+                product=product,
+                defaults={"location": location}
+            )
+        return response
+
     def create(self, request, *args, **kwargs):
         """
         Override create to handle the optional nested `variants` field.
@@ -84,6 +98,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         create_serializer.is_valid(raise_exception=True)
 
         variants_data = create_serializer.validated_data.pop("variants", None)
+        location_data = create_serializer.validated_data.pop("location", None)
 
         # Check quota before creating
         from apps.core.plan_permissions import check_quota
@@ -95,6 +110,15 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if "image" in request.FILES:
                 product.image = request.FILES["image"]
             product.save()
+            
+            if location_data is not None and getattr(request.tenant, "plan", "free") != "free":
+                from apps.inventory.models import ProductLocation
+                ProductLocation.objects.create(
+                    tenant=request.tenant,
+                    branch=request.branch,
+                    product=product,
+                    location=location_data
+                )
 
             # Generate variants if sizes/colours were provided
             if variants_data:

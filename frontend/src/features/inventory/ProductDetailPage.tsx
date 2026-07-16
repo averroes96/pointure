@@ -29,6 +29,7 @@ import {
   Plus,
   Minus,
   Barcode,
+  MapPin,
   Printer,
   Copy,
   Check,
@@ -276,6 +277,15 @@ export default function ProductDetailPage() {
               {CATEGORY_LABELS[product.category] ?? product.category} &middot;{" "}
               {GENDER_LABELS[product.gender] ?? product.gender} &middot;{" "}
               {SEASON_LABELS[product.season] ?? product.season}
+              {product.location && (
+                <>
+                  {" "}&middot;{" "}
+                  <span className="inline-flex items-center gap-1 text-primary">
+                    <MapPin size={12} />
+                    {product.location}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>

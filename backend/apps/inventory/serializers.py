@@ -47,6 +47,7 @@ class ProductSerializer(serializers.ModelSerializer):
     has_low_stock = serializers.BooleanField(read_only=True)
     is_total_low_stock = serializers.BooleanField(read_only=True)
     margin_pct = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    location = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -54,8 +55,19 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "name", "brand", "reference", "category", "gender", "season",
             "purchase_price", "sale_price", "margin_pct", "image", "description",
             "is_active", "alert_threshold", "total_stock", "has_low_stock", "is_total_low_stock", "variants", "created_at",
+            "location",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def get_location(self, obj):
+        request = self.context.get("request")
+        if not request or not getattr(request, "branch", None):
+            return ""
+        
+        # We can check prefetched list if we prefetch it in the view, else DB query
+        # Using filter here may cause N+1 on list view, but ProductSerializer is mostly used for detail/updates.
+        loc = obj.branch_locations.filter(branch=request.branch).first()
+        return loc.location if loc else ""
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -77,6 +89,20 @@ class ProductListSerializer(serializers.ModelSerializer):
     has_low_stock = serializers.BooleanField(read_only=True)
     is_total_low_stock = serializers.BooleanField(read_only=True)
     variants = VariantSerializer(many=True, read_only=True)
+    location = serializers.SerializerMethodField()
+
+    def get_location(self, obj):
+        request = self.context.get("request")
+        if not request or not getattr(request, "branch", None):
+            return ""
+        
+        # Check prefetched locations if available
+        if hasattr(obj, "prefetched_locations"):
+            locs = [l for l in obj.prefetched_locations if l.branch_id == request.branch.id]
+            return locs[0].location if locs else ""
+        
+        loc = obj.branch_locations.filter(branch=request.branch).first()
+        return loc.location if loc else ""
 
     def get_total_stock(self, obj):
         # Sum from the prefetch cache. When branch_id was passed the variants
@@ -92,7 +118,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
             "sale_price", "purchase_price", "total_stock", "has_low_stock", "is_total_low_stock",
-            "alert_threshold", "image", "is_active", "variants",
+            "alert_threshold", "image", "is_active", "variants", "location",
         ]
 
     def to_representation(self, instance):
@@ -123,12 +149,13 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     is created atomically alongside the product.
     """
     variants = GenerateVariantsSerializer(required=False, write_only=True)
+    location = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
-            "purchase_price", "sale_price", "image", "description", "is_active", "alert_threshold", "variants",
+            "purchase_price", "sale_price", "image", "description", "is_active", "alert_threshold", "variants", "location",
         ]
         read_only_fields = ["id"]
 

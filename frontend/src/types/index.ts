@@ -93,6 +93,7 @@ export interface Product {
   has_low_stock: boolean;
   is_total_low_stock: boolean;
   variants: Variant[];
+  location?: string;
   created_at: string;
 }
 

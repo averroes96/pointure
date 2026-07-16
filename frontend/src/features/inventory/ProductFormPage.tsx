@@ -76,6 +76,7 @@ interface FormState {
   purchase_price: string;
   is_active: boolean;
   alert_threshold: number;
+  location: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -90,6 +91,7 @@ const EMPTY_FORM: FormState = {
   purchase_price: "",
   is_active: true,
   alert_threshold: 10,
+  location: "",
 };
 
 // ── Field wrapper component ────────────────────────────────────────────────────
@@ -123,7 +125,8 @@ export default function ProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
+  const canUseLocation = tenant?.plan !== "free";
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -172,6 +175,7 @@ export default function ProductFormPage() {
       name: existingProduct.name,
       brand: existingProduct.brand ?? "",
       reference: existingProduct.reference ?? "",
+      location: existingProduct.location ?? "",
       description: existingProduct.description ?? "",
       category: existingProduct.category,
       gender: existingProduct.gender,
@@ -428,6 +432,24 @@ export default function ProductFormPage() {
                 />
               </Field>
             </div>
+
+            <Field label="Rayonnage / Emplacement" hint={canUseLocation ? "Lieu de stockage pour l'agence actuelle" : "Disponible à partir du plan PRO"}>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
+                  placeholder="Ex: Rayon 3, Étagère B"
+                  disabled={!canUseLocation}
+                />
+                {!canUseLocation && (
+                   <span className="absolute right-3 top-1/2 -translate-y-1/2 badge badge-neutral text-[10px]">
+                     PRO
+                   </span>
+                )}
+              </div>
+            </Field>
 
             <Field label="Description">
               <textarea
