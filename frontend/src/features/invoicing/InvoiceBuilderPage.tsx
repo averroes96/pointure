@@ -412,7 +412,9 @@ export default function InvoiceBuilderPage() {
   const [date, setDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDue);
   const [seriesPrefix, setSeriesPrefix] = useState("FA");
-  const [applyTva, setApplyTva] = useState(false);
+  const [isFormal, setIsFormal] = useState(true);
+  const [applyTva, setApplyTva] = useState(true);
+  const [isPaidInCash, setIsPaidInCash] = useState(false);
   const [notes, setNotes] = useState("");
 
   // ── Lines ──
@@ -501,8 +503,15 @@ export default function InvoiceBuilderPage() {
   }
 
   const subtotalHT = lines.reduce((sum, l) => sum + lineTotal(l), 0);
-  const tvaAmount = applyTva ? subtotalHT * (TVA_RATE / 100) : 0;
-  const totalTTC = subtotalHT + tvaAmount;
+  const tvaAmount = (isFormal && applyTva) ? subtotalHT * (TVA_RATE / 100) : 0;
+  const baseTtc = subtotalHT + tvaAmount;
+  
+  let timbreFiscal = 0;
+  if (isFormal && isPaidInCash) {
+    timbreFiscal = Math.min(baseTtc * 0.01, 2500);
+  }
+  
+  const totalTTC = baseTtc + timbreFiscal;
   const paidAmount = addPayment ? parseFloat(payment.amount) || 0 : 0;
   const balanceDue = Math.max(0, totalTTC - paidAmount);
 
@@ -513,7 +522,9 @@ export default function InvoiceBuilderPage() {
       date,
       due_date: dueDate,
       series_prefix: seriesPrefix,
-      apply_tva: applyTva,
+      apply_tva: isFormal ? applyTva : false,
+      is_formal: isFormal,
+      is_paid_in_cash: isPaidInCash,
       notes,
       // confirm: true — assigns invoice number (FA-2026-00001) immediately
       // and sets status to "sent".  Without this the invoice stays as a
@@ -722,23 +733,59 @@ export default function InvoiceBuilderPage() {
                 />
               </div>
 
-              {/* TVA toggle */}
-              <div className="flex items-end pb-1">
+              {/* Toggles */}
+              <div className="flex flex-col gap-3 sm:col-span-2 pt-1 border-t border-border mt-2">
                 <label className="flex items-center gap-3 cursor-pointer select-none">
                   <div className="relative">
                     <input
                       type="checkbox"
-                      checked={applyTva}
-                      onChange={(e) => setApplyTva(e.target.checked)}
+                      checked={isFormal}
+                      onChange={(e) => setIsFormal(e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary-500 transition-colors" />
                     <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                   </div>
                   <span className="text-sm font-medium text-text-primary">
-                    Appliquer TVA ({TVA_RATE}%)
+                    Mode Réel (Facture Officielle)
                   </span>
                 </label>
+
+                {isFormal && (
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={applyTva}
+                        onChange={(e) => setApplyTva(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary-500 transition-colors" />
+                      <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
+                    </div>
+                    <span className="text-sm font-medium text-text-primary">
+                      Appliquer TVA ({TVA_RATE}%)
+                    </span>
+                  </label>
+                )}
+
+                {isFormal && (
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={isPaidInCash}
+                        onChange={(e) => setIsPaidInCash(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-amber-500 transition-colors" />
+                      <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
+                    </div>
+                    <span className="text-sm font-medium text-amber-700">
+                      Paiement en espèces (Timbre Fiscal 1%)
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* Notes */}
@@ -987,11 +1034,21 @@ export default function InvoiceBuilderPage() {
               </div>
 
               {/* TVA */}
-              {applyTva && (
+              {(isFormal && applyTva) && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-text-muted">TVA ({TVA_RATE}%)</span>
                   <span className="font-mono text-sm text-text-primary">
                     {formatDZD(tvaAmount)} DZD
+                  </span>
+                </div>
+              )}
+              
+              {/* Timbre Fiscal */}
+              {(isFormal && isPaidInCash) && (
+                <div className="flex items-center justify-between text-amber-700">
+                  <span className="text-sm">Timbre Fiscal (1% max 2500)</span>
+                  <span className="font-mono text-sm">
+                    {formatDZD(timbreFiscal)} DZD
                   </span>
                 </div>
               )}

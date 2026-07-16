@@ -271,6 +271,7 @@ export default function SalesPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
+  const [isFormal, setIsFormal] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "found" | "not_found">("idle");
 
   // Keep a ref so addToCart (useCallback) can read current cart without stale closure
@@ -346,7 +347,14 @@ export default function SalesPage() {
     : 0;
 
   const itemsTotal = cart.reduce((s, i) => s + i.unit_price * i.quantity - i.discount, 0);
-  const total = Math.max(0, itemsTotal - cartDiscount - redemptionDzd);
+  const totalAfterCartDisc = Math.max(0, itemsTotal - cartDiscount - redemptionDzd);
+  
+  const isCash = payments.some(p => p.method === "cash");
+  const timbreFiscal = isFormal && isCash 
+    ? Math.min(totalAfterCartDisc * 0.01, 2500) 
+    : 0;
+    
+  const total = totalAfterCartDisc + timbreFiscal;
   const paymentTotal = payments.reduce((s, p) => s + p.amount, 0);
 
   const applyPromo = useCallback(async (variantId: number, qty: number) => {
@@ -437,6 +445,7 @@ export default function SalesPage() {
           amount: Number(p.amount).toFixed(2),
         })),
         cart_discount: cartDiscount.toFixed(2),
+        is_formal: isFormal,
         is_versement: isVersement,
       }).then((r) => r.data);
     },
@@ -882,11 +891,39 @@ export default function SalesPage() {
             )}
 
             {/* Total */}
-            <div className="flex items-center justify-between py-2 border-t border-border">
-              <span className="font-semibold">{t("sales.total")}</span>
-              <span className="text-xl font-bold font-mono text-primary-500">
-                {formatDZD(total)} DZD
-              </span>
+            <div className="flex flex-col py-2 border-t border-border gap-1">
+              {timbreFiscal > 0 && (
+                <div className="flex justify-between items-center text-sm font-medium text-amber-700">
+                  <span>Timbre Fiscal (+1%)</span>
+                  <span className="font-mono">
+                    {formatDZD(timbreFiscal)} DZD
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{t("sales.total")}</span>
+                <span className="text-xl font-bold font-mono text-primary-500">
+                  {formatDZD(total)} DZD
+                </span>
+              </div>
+            </div>
+
+            {/* Mode Réel toggle */}
+            <div className="flex items-center justify-between py-1.5 border rounded-lg px-3 bg-surface">
+              <div>
+                <p className="text-sm font-medium text-text-primary">Mode Réel</p>
+                <p className="text-xs text-text-muted">Facture simplifiée avec Timbre (+1% espèces)</p>
+              </div>
+              <label className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isFormal}
+                  onChange={(e) => setIsFormal(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={cn("block h-5 w-10 rounded-full transition-colors", isFormal ? "bg-primary-500" : "bg-border")}></div>
+                <div className={cn("absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform", isFormal ? "translate-x-5" : "translate-x-0")}></div>
+              </label>
             </div>
 
             {/* Versement toggle */}
