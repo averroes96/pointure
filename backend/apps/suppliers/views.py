@@ -224,6 +224,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
     movements_created = 0
     discrepancies = []
     created_variants = []
+    product_reception_totals = {}
 
     with transaction.atomic():
         for ld in lines_data:
@@ -294,6 +295,13 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                             user=user,
                         )
                         movements_created += 1
+                        
+                        pid = cs_variant.product_id
+                        if pid not in product_reception_totals:
+                            from decimal import Decimal
+                            product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
+                        product_reception_totals[pid]["qty"] += cs_qty
+                        product_reception_totals[pid]["value"] += (cs_qty * line.agreed_unit_price)
 
                 # Accumulate (not replace) so second partial receives are tracked correctly
                 line.quantity_received += total_received
@@ -356,6 +364,13 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         user=user,
                     )
                     movements_created += 1
+                    
+                    pid = line.variant.product_id
+                    if pid not in product_reception_totals:
+                        from decimal import Decimal
+                        product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
+                    product_reception_totals[pid]["qty"] += delta
+                    product_reception_totals[pid]["value"] += (delta * line.agreed_unit_price)
 
         # Re-compute PO status from all lines
         all_lines = list(POLine.objects.filter(order=po))

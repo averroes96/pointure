@@ -82,6 +82,9 @@ class Product(TenantScopedModel):
     purchase_price = models.DecimalField(
         _("Purchase Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    pamp = models.DecimalField(
+        _("PAMP (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
     sale_price = models.DecimalField(
         _("Sale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
@@ -102,8 +105,9 @@ class Product(TenantScopedModel):
 
     @property
     def margin_pct(self):
-        if self.purchase_price > 0:
-            return round((self.sale_price - self.purchase_price) / self.purchase_price * 100, 2)
+        cost_basis = self.pamp if self.pamp > 0 else self.purchase_price
+        if cost_basis > 0:
+            return round((self.sale_price - cost_basis) / cost_basis * 100, 2)
         return None
 
     @property

@@ -80,6 +80,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # Hide purchase price and margin from cashiers
         if request and not request.user.can_see_costs:
             data.pop("purchase_price", None)
+            data.pop("pamp", None)
             data.pop("margin_pct", None)
         return data
 
@@ -122,7 +123,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
-            "sale_price", "purchase_price", "total_stock", "has_low_stock", "is_total_low_stock",
+            "sale_price", "purchase_price", "pamp", "total_stock", "has_low_stock", "is_total_low_stock",
             "alert_threshold", "image", "is_active", "variants", "location",
         ]
 
@@ -131,6 +132,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and not request.user.can_see_costs:
             data.pop("purchase_price", None)
+            data.pop("pamp", None)
         return data
 
 
