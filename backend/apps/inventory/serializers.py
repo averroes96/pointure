@@ -45,6 +45,7 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = VariantSerializer(many=True, read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
     has_low_stock = serializers.BooleanField(read_only=True)
+    is_total_low_stock = serializers.BooleanField(read_only=True)
     margin_pct = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
 
     class Meta:
@@ -52,7 +53,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
             "purchase_price", "sale_price", "margin_pct", "image", "description",
-            "is_active", "total_stock", "has_low_stock", "variants", "created_at",
+            "is_active", "alert_threshold", "total_stock", "has_low_stock", "is_total_low_stock", "variants", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 
@@ -74,6 +75,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     """
     total_stock = serializers.SerializerMethodField()
     has_low_stock = serializers.BooleanField(read_only=True)
+    is_total_low_stock = serializers.BooleanField(read_only=True)
     variants = VariantSerializer(many=True, read_only=True)
 
     def get_total_stock(self, obj):
@@ -89,8 +91,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
-            "sale_price", "purchase_price", "total_stock", "has_low_stock",
-            "image", "is_active", "variants",
+            "sale_price", "purchase_price", "total_stock", "has_low_stock", "is_total_low_stock",
+            "alert_threshold", "image", "is_active", "variants",
         ]
 
     def to_representation(self, instance):
@@ -126,7 +128,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
-            "purchase_price", "sale_price", "image", "description", "is_active", "variants",
+            "purchase_price", "sale_price", "image", "description", "is_active", "alert_threshold", "variants",
         ]
         read_only_fields = ["id"]
 

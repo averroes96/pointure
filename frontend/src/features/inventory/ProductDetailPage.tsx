@@ -383,7 +383,7 @@ export default function ProductDetailPage() {
               "card p-5",
               outOfStock
                 ? "border-danger/30 bg-danger-light"
-                : product.has_low_stock
+                : product.is_total_low_stock || product.has_low_stock
                 ? "border-warning/30 bg-warning-light"
                 : ""
             )}
@@ -396,7 +396,7 @@ export default function ProductDetailPage() {
                 <p
                   className={cn(
                     "text-3xl font-mono font-bold",
-                    outOfStock ? "text-danger" : product.has_low_stock ? "text-warning" : "text-success"
+                    outOfStock ? "text-danger" : product.is_total_low_stock ? "text-warning" : "text-success"
                   )}
                 >
                   {product.total_stock}
@@ -404,17 +404,22 @@ export default function ProductDetailPage() {
               </div>
               <div className="text-right">
                 {outOfStock ? (
-                  <div className="flex items-center gap-1 text-danger text-xs font-semibold">
+                  <div className="flex items-center justify-end gap-1 text-danger text-xs font-semibold">
                     <XCircle size={14} />
                     Rupture de stock
                   </div>
-                ) : product.has_low_stock ? (
-                  <div className="flex items-center gap-1 text-warning text-xs font-semibold">
+                ) : product.is_total_low_stock ? (
+                  <div className="flex items-center justify-end gap-1 text-warning text-xs font-semibold">
                     <AlertTriangle size={14} />
-                    Stock bas
+                    Stock global bas
+                  </div>
+                ) : product.has_low_stock ? (
+                  <div className="flex items-center justify-end gap-1 text-warning text-xs font-semibold">
+                    <AlertTriangle size={14} />
+                    Variantes basses
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 text-success text-xs font-semibold">
+                  <div className="flex items-center justify-end gap-1 text-success text-xs font-semibold">
                     <CheckCircle size={14} />
                     Disponible
                   </div>

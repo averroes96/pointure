@@ -35,5 +35,6 @@ class TenantMiddleware:
             response = self.get_response(request)
         finally:
             clear_current_tenant()
+            set_current_user(None)
 
         return response

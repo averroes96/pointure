@@ -75,6 +75,7 @@ interface FormState {
   sale_price: string;
   purchase_price: string;
   is_active: boolean;
+  alert_threshold: number;
 }
 
 const EMPTY_FORM: FormState = {
@@ -88,6 +89,7 @@ const EMPTY_FORM: FormState = {
   sale_price: "",
   purchase_price: "",
   is_active: true,
+  alert_threshold: 10,
 };
 
 // ── Field wrapper component ────────────────────────────────────────────────────
@@ -177,6 +179,7 @@ export default function ProductFormPage() {
       sale_price: existingProduct.sale_price ?? "",
       purchase_price: existingProduct.purchase_price ?? "",
       is_active: existingProduct.is_active,
+      alert_threshold: existingProduct.alert_threshold ?? 10,
     });
     if (existingProduct.image) setImagePreview(existingProduct.image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -465,10 +468,10 @@ export default function ProductFormPage() {
           {/* ── Right column: Classification + Pricing + Image ───────────────── */}
           <div className="lg:col-span-2 flex flex-col gap-4">
 
-            {/* Classification */}
+            {/* Classification & Alertes */}
             <div className="card p-5 space-y-4">
               <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
-                Classification
+                Classification & Alertes
               </h2>
 
               <Field label="Catégorie" required>
@@ -512,6 +515,18 @@ export default function ProductFormPage() {
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
+                </Field>
+              </div>
+
+              <div className="pt-2">
+                <Field label="Seuil d'alerte global" hint="Alerte de stock bas sur l'ensemble du produit.">
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.alert_threshold}
+                    onChange={(e) => setForm((f) => ({ ...f, alert_threshold: parseInt(e.target.value) || 0 }))}
+                    className="form-input"
+                  />
                 </Field>
               </div>
             </div>

@@ -64,12 +64,37 @@ def flag_overdue_invoices():
 
 @shared_task(queue="notifications")
 def check_low_stock():
-    """Run every 6 hours. Create notifications for variants below alert threshold."""
+    """Run every 6 hours. Create notifications for products and variants below alert threshold."""
     from django.db.models import F
-    from apps.inventory.models import Variant
+    from apps.inventory.models import Variant, Product
     from apps.notifications.models import Notification
     from apps.core.models import User, RoleChoices
+    from django.utils import timezone
 
+    # 1. Product level alerts
+    for product in Product.objects.filter(is_active=True, alert_threshold__gt=0):
+        if product.is_total_low_stock:
+            owners = User.objects.filter(tenant=product.tenant, role=RoleChoices.OWNER, is_active=True)
+            for owner in owners:
+                cutoff = timezone.now() - timezone.timedelta(hours=24)
+                if not Notification.objects.filter(
+                    user=owner,
+                    type="low_stock",
+                    related_object_type="Product",
+                    related_object_id=str(product.pk),
+                    created_at__gte=cutoff,
+                ).exists():
+                    Notification.objects.create(
+                        tenant=product.tenant,
+                        user=owner,
+                        type="low_stock",
+                        title=f"Global Low stock: {product.name}",
+                        body=f"{product.name} has only {product.total_stock} unit(s) left globally (threshold: {product.alert_threshold}).",
+                        related_object_type="Product",
+                        related_object_id=str(product.pk),
+                    )
+
+    # 2. Variant level alerts
     low_variants = Variant.objects.filter(
         is_active=True,
         alert_threshold__gt=0,
@@ -80,12 +105,11 @@ def check_low_stock():
         tenant = variant.product.tenant
         owners = User.objects.filter(tenant=tenant, role=RoleChoices.OWNER, is_active=True)
         for owner in owners:
-            # Don't spam — check if we notified in the last 24h
-            from django.utils import timezone
             cutoff = timezone.now() - timezone.timedelta(hours=24)
             if not Notification.objects.filter(
                 user=owner,
                 type="low_stock",
+                related_object_type="Variant",
                 related_object_id=str(variant.pk),
                 created_at__gte=cutoff,
             ).exists():
@@ -93,7 +117,7 @@ def check_low_stock():
                     tenant=tenant,
                     user=owner,
                     type="low_stock",
-                    title=f"Low stock: {variant.product.name}",
+                    title=f"Low stock: {variant.product.name} ({variant.colour} EU{variant.size_eu})",
                     body=f"{variant} has only {variant.stock_qty} unit(s) left (threshold: {variant.alert_threshold}).",
                     related_object_type="Variant",
                     related_object_id=str(variant.pk),

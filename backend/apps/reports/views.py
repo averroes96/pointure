@@ -41,13 +41,16 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             tenant=tenant, cached_balance__gt=0
         ).aggregate(total=Sum("cached_balance"))["total"] or Decimal("0")
 
-        # Low stock SKU count
-        from apps.inventory.models import Variant
+        # Low stock Product count
+        from apps.inventory.models import Product
         from django.db.models import F
-        low_stock_count = Variant.objects.filter(
-            tenant=tenant, is_active=True,
-            alert_threshold__gt=0,
-            stock_qty__lte=F("alert_threshold"),
+        from django.db.models.functions import Coalesce
+        low_stock_count = Product.objects.filter(
+            tenant=tenant, is_active=True, alert_threshold__gt=0
+        ).annotate(
+            computed_total_stock=Coalesce(Sum('variants__stock_qty'), 0)
+        ).filter(
+            computed_total_stock__lte=F("alert_threshold")
         ).count()
 
         # Cheques due this week
@@ -429,8 +432,12 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         total_sku = variants.count()
         total_units = variants.aggregate(t=Sum("stock_qty"))["t"] or 0
-        low_stock_count = variants.filter(
-            alert_threshold__gt=0, stock_qty__lte=F("alert_threshold"), stock_qty__gt=0
+        low_stock_count = Product.objects.filter(
+            tenant=tenant, is_active=True, alert_threshold__gt=0
+        ).annotate(
+            computed_total_stock=Coalesce(Sum("variants__stock_qty"), 0)
+        ).filter(
+            computed_total_stock__lte=F("alert_threshold"), computed_total_stock__gt=0
         ).count()
         out_of_stock_count = variants.filter(stock_qty=0).count()
 
@@ -489,8 +496,12 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         variants = Variant.objects.filter(tenant=tenant, is_active=True)
         total_sku = variants.count()
         total_units = variants.aggregate(t=Sum("stock_qty"))["t"] or 0
-        low_stock_count = variants.filter(
-            alert_threshold__gt=0, stock_qty__lte=F("alert_threshold"), stock_qty__gt=0
+        low_stock_count = Product.objects.filter(
+            tenant=tenant, is_active=True, alert_threshold__gt=0
+        ).annotate(
+            computed_total_stock=Coalesce(Sum("variants__stock_qty"), 0)
+        ).filter(
+            computed_total_stock__lte=F("alert_threshold"), computed_total_stock__gt=0
         ).count()
         out_of_stock_count = variants.filter(stock_qty=0).count()
 

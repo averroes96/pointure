@@ -87,6 +87,7 @@ class Product(TenantScopedModel):
     )
     image = models.ImageField(_("Photo"), upload_to="products/", blank=True, null=True)
     description = models.TextField(_("Description"), blank=True)
+    alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)
     is_active = models.BooleanField(_("Active"), default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -115,6 +116,10 @@ class Product(TenantScopedModel):
         return self.variants.filter(
             stock_qty__lte=models.F("alert_threshold"), alert_threshold__gt=0
         ).exists()
+
+    @property
+    def is_total_low_stock(self):
+        return self.total_stock <= self.alert_threshold and self.alert_threshold > 0
 
 
 # ─────────────────────────────────────────────

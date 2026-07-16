@@ -185,14 +185,19 @@ class MobileDashboardView(APIView):
             payload["today_revenue"] = today_revenue
             payload["sale_count_today"] = sale_count_today
 
-        # Low stock SKU count
-        from apps.inventory.models import Variant
+        # Low stock Product count
+        from apps.inventory.models import Product
+        from django.db.models import Sum
+        from django.db.models.functions import Coalesce
 
-        low_stock_count = Variant.objects.filter(
+        low_stock_count = Product.objects.filter(
             tenant=tenant,
             is_active=True,
             alert_threshold__gt=0,
-            stock_qty__lte=F("alert_threshold"),
+        ).annotate(
+            computed_total_stock=Coalesce(Sum('variants__stock_qty'), 0)
+        ).filter(
+            computed_total_stock__lte=F("alert_threshold")
         ).count()
 
         # Cheques due within 3 days

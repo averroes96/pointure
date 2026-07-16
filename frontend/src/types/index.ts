@@ -88,8 +88,10 @@ export interface Product {
   image: string | null;
   description: string;
   is_active: boolean;
+  alert_threshold: number;
   total_stock: number;
   has_low_stock: boolean;
+  is_total_low_stock: boolean;
   variants: Variant[];
   created_at: string;
 }

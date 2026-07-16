@@ -35,7 +35,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering = ["name"]
 
     def get_serializer_class(self):
-        if self.action == "list":
+        if self.action in ["list", "low_stock"]:
             return ProductListSerializer
         return ProductSerializer
 
@@ -250,6 +250,29 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             "skipped": skipped,
             "errors": errors,
         }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="low-stock")
+    def low_stock(self, request):
+        """Products currently at or below their global alert threshold."""
+        from django.db.models import F, Sum
+        from django.db.models.functions import Coalesce
+
+        qs = self.get_queryset().filter(
+            is_active=True,
+            alert_threshold__gt=0,
+        ).annotate(
+            computed_total_stock=Coalesce(Sum("variants__stock_qty"), 0)
+        ).filter(
+            computed_total_stock__lte=F("alert_threshold")
+        )
+
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="generate-variants")
     def generate_variants(self, request, pk=None):
