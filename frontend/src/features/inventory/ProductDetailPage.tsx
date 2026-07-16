@@ -50,14 +50,13 @@ interface BranchStockRow {
   variants: { variant_id: number; size_eu: number; colour: string; stock: number }[];
 }
 
-interface AdjustForm {
-  variant_id: string;
-  quantity_delta: string;
+interface BulkAdjustForm {
   reason: "adjustment" | "reception" | "damaged" | "return" | "initial";
   notes: string;
+  deltas: Record<string, string>; // variant_id -> quantity_delta
 }
 
-const ADJUST_REASONS: { value: AdjustForm["reason"]; label: string }[] = [
+const ADJUST_REASONS: { value: BulkAdjustForm["reason"]; label: string }[] = [
   { value: "adjustment", label: "Ajustement manuel" },
   { value: "reception", label: "Réception marchandise" },
   { value: "return", label: "Retour client" },
@@ -118,11 +117,10 @@ export default function ProductDetailPage() {
   const [printLoading, setPrintLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustForm, setAdjustForm] = useState<AdjustForm>({
-    variant_id: "",
-    quantity_delta: "",
+  const [adjustForm, setAdjustForm] = useState<BulkAdjustForm>({
     reason: "adjustment",
     notes: "",
+    deltas: {},
   });
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
@@ -144,30 +142,34 @@ export default function ProductDetailPage() {
   // ── Adjust mutation ──────────────────────────────────────────────────────────
 
   const adjustMutation = useMutation({
-    mutationFn: () =>
-      api.post("/inventory/movements/adjust/", {
-        variant: parseInt(adjustForm.variant_id),
-        quantity_delta: parseInt(adjustForm.quantity_delta),
+    mutationFn: () => {
+      const adjustments = Object.entries(adjustForm.deltas)
+        .map(([id, delta]) => ({ variant: parseInt(id), quantity_delta: parseInt(delta) }))
+        .filter((adj) => !isNaN(adj.quantity_delta) && adj.quantity_delta !== 0);
+
+      return api.post("/inventory/movements/bulk-adjust/", {
+        adjustments,
         reason: adjustForm.reason,
         notes: adjustForm.notes,
         branch: currentBranch?.id ?? null,
-      }),
+      });
+    },
     onSuccess: () => {
       // Capture before clearing so auto-print can use them
-      const variantId = adjustForm.variant_id;
-      const delta = parseInt(adjustForm.quantity_delta);
+      const positiveAdjustments = Object.entries(adjustForm.deltas)
+        .map(([id, delta]) => ({ variantId: parseInt(id), delta: parseInt(delta) }))
+        .filter((adj) => !isNaN(adj.delta) && adj.delta > 0);
 
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["product-branch-stock", id] });
       setAdjustOpen(false);
-      setAdjustForm({ variant_id: "", quantity_delta: "", reason: "adjustment", notes: "" });
+      setAdjustForm({ reason: "adjustment", notes: "", deltas: {} });
       setAdjustError(null);
 
       // Auto-print barcode labels when stock is added (positive delta only).
-      // copies = number of units added so one sticker can be affixed to each item.
-      if (delta > 0 && variantId) {
+      positiveAdjustments.forEach(({ variantId, delta }) => {
         printLabels(variantId, delta);
-      }
+      });
     },
     onError: (err) => setAdjustError(getApiError(err)),
   });
@@ -199,10 +201,11 @@ export default function ProductDetailPage() {
   }
 
   function submitAdjust() {
-    if (!adjustForm.variant_id || !adjustForm.quantity_delta) return;
-    const delta = parseInt(adjustForm.quantity_delta);
-    if (isNaN(delta) || delta === 0) {
-      setAdjustError("La quantité ne peut pas être zéro.");
+    const hasValidDeltas = Object.values(adjustForm.deltas).some(
+      (d) => d && !isNaN(parseInt(d)) && parseInt(d) !== 0
+    );
+    if (!hasValidDeltas) {
+      setAdjustError("Aucune quantité n'a été modifiée.");
       return;
     }
     setAdjustError(null);
@@ -618,14 +621,15 @@ export default function ProductDetailPage() {
       {/* ── Stock Adjustment Modal ────────────────────────────────────────────── */}
       {adjustOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="card w-full max-w-md shadow-2xl">
+          <div className="card w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
             {/* Modal header */}
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Ajustement de stock</h2>
+            <div className="card-header flex-shrink-0">
+              <h2 className="font-semibold text-text-primary">Ajustement de stock multiple</h2>
               <button
                 onClick={() => {
                   setAdjustOpen(false);
                   setAdjustError(null);
+                  setAdjustForm({ reason: "adjustment", notes: "", deltas: {} });
                 }}
                 className="text-text-muted hover:text-text-primary"
               >
@@ -634,135 +638,142 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Modal body */}
-            <div className="card-body space-y-4">
+            <div className="card-body space-y-5 overflow-y-auto min-h-0">
               {adjustError && (
-                <div className="flex items-center gap-2 text-xs text-danger bg-danger-light px-3 py-2 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-danger bg-danger-light px-3 py-2 rounded-lg flex-shrink-0">
                   <AlertTriangle size={13} />
                   {adjustError}
                 </div>
               )}
 
-              {/* Variant select */}
-              <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">
-                  Variante *
-                </label>
-                <select
-                  value={adjustForm.variant_id}
-                  onChange={(e) =>
-                    setAdjustForm((f) => ({ ...f, variant_id: e.target.value }))
-                  }
-                  className="form-input"
-                >
-                  <option value="">— Choisir une variante —</option>
-                  {product.variants
-                    .filter((v) => v.is_active)
-                    .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
-                    .map((v) => (
-                      <option key={v.id} value={v.id}>
-                        EU{v.size_eu} · {v.colour} — stock: {v.stock_qty}
+              <div className="grid grid-cols-2 gap-4 flex-shrink-0">
+                {/* Reason */}
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-1">Motif *</label>
+                  <select
+                    value={adjustForm.reason}
+                    onChange={(e) =>
+                      setAdjustForm((f) => ({
+                        ...f,
+                        reason: e.target.value as BulkAdjustForm["reason"],
+                      }))
+                    }
+                    className="form-input"
+                  >
+                    {ADJUST_REASONS.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
                       </option>
                     ))}
-                </select>
-              </div>
-
-              {/* Quantity delta */}
-              <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">
-                  Quantité (positif = entrée, négatif = sortie) *
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAdjustForm((f) => ({
-                        ...f,
-                        quantity_delta: String((parseInt(f.quantity_delta) || 0) - 1),
-                      }))
-                    }
-                    className="btn-secondary btn-sm w-9 h-9 flex-shrink-0"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <input
-                    type="number"
-                    value={adjustForm.quantity_delta}
-                    onChange={(e) =>
-                      setAdjustForm((f) => ({ ...f, quantity_delta: e.target.value }))
-                    }
-                    className="form-input text-center font-mono"
-                    placeholder="0"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAdjustForm((f) => ({
-                        ...f,
-                        quantity_delta: String((parseInt(f.quantity_delta) || 0) + 1),
-                      }))
-                    }
-                    className="btn-secondary btn-sm w-9 h-9 flex-shrink-0"
-                  >
-                    <Plus size={14} />
-                  </button>
+                  </select>
                 </div>
-                {adjustForm.quantity_delta !== "" && parseInt(adjustForm.quantity_delta) !== 0 && (
-                  <p className="text-xs mt-1">
-                    {parseInt(adjustForm.quantity_delta) > 0 ? (
-                      <span className="text-success">
-                        +{adjustForm.quantity_delta} unités ajoutées au stock
-                      </span>
-                    ) : (
-                      <span className="text-danger">
-                        {adjustForm.quantity_delta} unités retirées du stock
-                      </span>
-                    )}
-                  </p>
-                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-1">Notes</label>
+                  <input
+                    type="text"
+                    value={adjustForm.notes}
+                    onChange={(e) =>
+                      setAdjustForm((f) => ({ ...f, notes: e.target.value }))
+                    }
+                    className="form-input"
+                    placeholder="Commentaire optionnel..."
+                  />
+                </div>
               </div>
 
-              {/* Reason */}
-              <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Motif *</label>
-                <select
-                  value={adjustForm.reason}
-                  onChange={(e) =>
-                    setAdjustForm((f) => ({
-                      ...f,
-                      reason: e.target.value as AdjustForm["reason"],
-                    }))
-                  }
-                  className="form-input"
-                >
-                  {ADJUST_REASONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Variants table */}
+              <div className="border border-border rounded-lg overflow-hidden flex-shrink-0">
+                <table className="data-table text-sm w-full">
+                  <thead className="bg-surface sticky top-0 z-10">
+                    <tr>
+                      <th className="w-1/3">Variante</th>
+                      <th className="w-1/4 text-center">Stock actuel</th>
+                      <th className="w-5/12 text-center">Ajustement (±)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.variants
+                      .filter((v) => v.is_active)
+                      .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
+                      .map((v) => {
+                        const deltaStr = adjustForm.deltas[v.id] ?? "";
+                        const deltaVal = parseInt(deltaStr) || 0;
+                        const newStock = v.stock_qty + deltaVal;
 
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Notes</label>
-                <textarea
-                  value={adjustForm.notes}
-                  onChange={(e) =>
-                    setAdjustForm((f) => ({ ...f, notes: e.target.value }))
-                  }
-                  className="form-input resize-none"
-                  rows={2}
-                  placeholder="Commentaire optionnel..."
-                />
+                        return (
+                          <tr key={v.id}>
+                            <td className="font-medium text-text-primary">
+                              EU{v.size_eu} · {v.colour}
+                            </td>
+                            <td className="text-center font-mono text-text-muted">
+                              {v.stock_qty}
+                            </td>
+                            <td>
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAdjustForm((f) => ({
+                                      ...f,
+                                      deltas: { ...f.deltas, [v.id]: String(deltaVal - 1) },
+                                    }))
+                                  }
+                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <input
+                                  type="number"
+                                  value={deltaStr}
+                                  onChange={(e) =>
+                                    setAdjustForm((f) => ({
+                                      ...f,
+                                      deltas: { ...f.deltas, [v.id]: e.target.value },
+                                    }))
+                                  }
+                                  className={cn(
+                                    "form-input text-center font-mono w-20 py-1.5",
+                                    deltaVal > 0 ? "text-success bg-success/5 border-success/30" :
+                                    deltaVal < 0 ? "text-danger bg-danger-light border-danger/30" : ""
+                                  )}
+                                  placeholder="0"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAdjustForm((f) => ({
+                                      ...f,
+                                      deltas: { ...f.deltas, [v.id]: String(deltaVal + 1) },
+                                    }))
+                                  }
+                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                                <span className="text-xs font-mono w-8 text-end">
+                                  {deltaVal !== 0 ? (
+                                    <span className="text-text-muted">→ {newStock}</span>
+                                  ) : null}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Modal footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-surface/40 rounded-b-lg">
+            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-surface/40 rounded-b-lg flex-shrink-0">
               <button
                 onClick={() => {
                   setAdjustOpen(false);
                   setAdjustError(null);
+                  setAdjustForm({ reason: "adjustment", notes: "", deltas: {} });
                 }}
                 className="btn-secondary"
               >
@@ -772,16 +783,16 @@ export default function ProductDetailPage() {
                 onClick={submitAdjust}
                 disabled={
                   adjustMutation.isPending ||
-                  !adjustForm.variant_id ||
-                  !adjustForm.quantity_delta ||
-                  parseInt(adjustForm.quantity_delta) === 0
+                  !Object.values(adjustForm.deltas).some(
+                    (d) => d && !isNaN(parseInt(d)) && parseInt(d) !== 0
+                  )
                 }
                 className="btn-primary"
               >
                 {adjustMutation.isPending ? (
                   <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
                 ) : (
-                  "Confirmer l'ajustement"
+                  "Confirmer les ajustements"
                 )}
               </button>
             </div>

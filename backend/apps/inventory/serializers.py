@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.core.models import RoleChoices
+from apps.core.models import Branch, RoleChoices
 from .models import Product, StockMovement, StockTransfer, Variant
 
 
@@ -114,6 +114,23 @@ class GenerateVariantsSerializer(serializers.Serializer):
     alert_threshold = serializers.IntegerField(default=3, min_value=0)
 
 
+class ProductCreateSerializer(serializers.ModelSerializer):
+    """
+    Handles product creation with optional inline variant generation.
+    When `variants` is provided, the cartesian product of sizes × colours
+    is created atomically alongside the product.
+    """
+    variants = GenerateVariantsSerializer(required=False, write_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "brand", "reference", "category", "gender", "season",
+            "purchase_price", "sale_price", "image", "description", "is_active", "variants",
+        ]
+        read_only_fields = ["id"]
+
+
 class StockMovementSerializer(serializers.ModelSerializer):
     variant_str = serializers.CharField(source="variant.__str__", read_only=True)
     user_email = serializers.CharField(source="user.email", read_only=True)
@@ -133,7 +150,7 @@ class StockAdjustmentSerializer(serializers.Serializer):
     """Input for manual stock adjustment."""
     variant = serializers.PrimaryKeyRelatedField(queryset=Variant.objects.all())
     branch = serializers.PrimaryKeyRelatedField(
-        queryset=__import__("apps.core.models", fromlist=["Branch"]).Branch.objects.all(),
+        queryset=Branch.objects.all(),
         required=False,
         allow_null=True,
     )
@@ -142,6 +159,26 @@ class StockAdjustmentSerializer(serializers.Serializer):
         choices=["adjustment", "damaged", "return", "initial", "reception"]
     )
     notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class _BulkAdjustmentItemSerializer(serializers.Serializer):
+    """One entry in a bulk stock adjustment."""
+    variant = serializers.PrimaryKeyRelatedField(queryset=Variant.objects.all())
+    quantity_delta = serializers.IntegerField()
+
+
+class BulkStockAdjustmentSerializer(serializers.Serializer):
+    """Input for bulk stock adjustment — multiple variants in one request."""
+    adjustments = _BulkAdjustmentItemSerializer(many=True, min_length=1, max_length=200)
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    reason = serializers.ChoiceField(
+        choices=["adjustment", "damaged", "return", "initial", "reception"]
+    )
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class StockTransferSerializer(serializers.ModelSerializer):

@@ -3,8 +3,11 @@
  *
  * Handles both creation (POST) and editing (PATCH).
  * Image upload uses multipart/form-data; all other saves use JSON.
+ *
+ * During **creation**, an inline variant generator lets users pick sizes × colours
+ * so the product and all its variants are created atomically in one save.
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,11 +19,14 @@ import {
   AlertTriangle,
   X,
   CheckCircle,
+  Grid3X3,
+  Plus,
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import type { Product, Category, Gender, Season } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import { cn } from "@/lib/utils";
+import { COLOURS, type Colour } from "@/lib/colours";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -48,6 +54,13 @@ const SEASONS: { value: Season; label: string }[] = [
   { value: "winter", label: "Hiver" },
   { value: "spring_fall", label: "Mi-saison" },
 ];
+
+const ALL_SIZES = Array.from({ length: 20 }, (_, i) => 28 + i); // EU 28–47
+
+// Frequently used colours shown as quick-pick buttons
+const QUICK_COLOURS = COLOURS.filter((c) =>
+  ["black", "white", "brown", "beige", "grey", "blue", "navy", "red", "camel", "dark_brown"].includes(c.value)
+);
 
 // ── Form state type ────────────────────────────────────────────────────────────
 
@@ -119,6 +132,28 @@ export default function ProductFormPage() {
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Variant generator state (creation only) ──────────────────────────────
+  const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
+  const [selectedColours, setSelectedColours] = useState<string[]>([]);
+  const [customColour, setCustomColour] = useState("");
+  const [alertThreshold, setAlertThreshold] = useState(3);
+  const [showColourDropdown, setShowColourDropdown] = useState(false);
+  const [colourSearch, setColourSearch] = useState("");
+
+  const variantCount = useMemo(
+    () => selectedSizes.length * selectedColours.length,
+    [selectedSizes, selectedColours]
+  );
+
+  // Filtered colours for the dropdown
+  const filteredColours = useMemo(() => {
+    if (!colourSearch) return COLOURS;
+    const q = colourSearch.toLowerCase();
+    return COLOURS.filter(
+      (c) => c.label.toLowerCase().includes(q) || c.value.toLowerCase().includes(q)
+    );
+  }, [colourSearch]);
+
   // ── Load existing product when editing ──────────────────────────────────────
 
   const { data: existingProduct, isLoading: loadingProduct } = useQuery<Product>({
@@ -166,6 +201,45 @@ export default function ProductFormPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  // ── Size toggle helpers ──────────────────────────────────────────────────────
+
+  function toggleSize(size: number) {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size].sort((a, b) => a - b)
+    );
+  }
+
+  function selectSizeRange(from: number, to: number) {
+    const range = ALL_SIZES.filter((s) => s >= from && s <= to);
+    setSelectedSizes((prev) => {
+      const asSet = new Set([...prev, ...range]);
+      return Array.from(asSet).sort((a, b) => a - b);
+    });
+  }
+
+  // ── Colour toggle helpers ────────────────────────────────────────────────────
+
+  function toggleColour(label: string) {
+    setSelectedColours((prev) =>
+      prev.includes(label) ? prev.filter((c) => c !== label) : [...prev, label]
+    );
+  }
+
+  function addCustomColour() {
+    const trimmed = customColour.trim();
+    if (!trimmed || selectedColours.includes(trimmed)) return;
+    setSelectedColours((prev) => [...prev, trimmed]);
+    setCustomColour("");
+  }
+
+  function addColourFromDropdown(colour: Colour) {
+    if (!selectedColours.includes(colour.label)) {
+      setSelectedColours((prev) => [...prev, colour.label]);
+    }
+    setShowColourDropdown(false);
+    setColourSearch("");
+  }
+
   // ── Validate ─────────────────────────────────────────────────────────────────
 
   function validate(): string | null {
@@ -184,26 +258,57 @@ export default function ProductFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Use FormData only when there's an image to upload
+      if (isEditing) {
+        // ── Edit mode: same as before ──
+        if (imageFile) {
+          const fd = new FormData();
+          Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+          fd.append("image", imageFile);
+          return api.patch(`/inventory/products/${id}/`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        const payload: Record<string, unknown> = { ...form };
+        if (clearImage) payload.image = null;
+        return api.patch(`/inventory/products/${id}/`, payload);
+      }
+
+      // ── Creation mode: include variants ──
+      const hasVariants = selectedSizes.length > 0 && selectedColours.length > 0;
+
       if (imageFile) {
         const fd = new FormData();
         Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
         fd.append("image", imageFile);
-        if (isEditing) {
-          return api.patch(`/inventory/products/${id}/`, fd, {
+        if (hasVariants) {
+          // FormData can't natively handle nested JSON, so we serialize variants as a JSON string
+          // and the backend will parse it from request.data (DRF's JSONParser handles this via
+          // the ProductCreateSerializer, but for multipart we need to structure it differently).
+          // Instead, we'll do a two-step: create product with image via multipart, then generate variants.
+          const res = await api.post("/inventory/products/", fd, {
             headers: { "Content-Type": "multipart/form-data" },
           });
+          // Now generate variants
+          await api.post(`/inventory/products/${res.data.id}/generate-variants/`, {
+            sizes: selectedSizes,
+            colours: selectedColours,
+            alert_threshold: alertThreshold,
+          });
+          return res;
         }
         return api.post("/inventory/products/", fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
 
-      // JSON payload (no new image)
+      // JSON payload with inline variants
       const payload: Record<string, unknown> = { ...form };
-      if (clearImage) payload.image = null;
-      if (isEditing) {
-        return api.patch(`/inventory/products/${id}/`, payload);
+      if (hasVariants) {
+        payload.variants = {
+          sizes: selectedSizes,
+          colours: selectedColours,
+          alert_threshold: alertThreshold,
+        };
       }
       return api.post("/inventory/products/", payload);
     },
@@ -254,7 +359,7 @@ export default function ProductFormPage() {
           <p className="text-sm text-text-muted">
             {isEditing
               ? "Modifiez les informations du produit."
-              : "Remplissez les champs ci-dessous pour créer un article."}
+              : "Remplissez les champs ci-dessous pour créer un article et ses variantes."}
           </p>
         </div>
       </div>
@@ -529,6 +634,277 @@ export default function ProductFormPage() {
           </div>
         </div>
 
+        {/* ── Variant Generator (creation only) ──────────────────────────────── */}
+        {!isEditing && (
+          <div className="card p-5 space-y-5">
+            <div className="flex items-center gap-2 border-b border-border pb-2">
+              <Grid3X3 size={16} className="text-primary-500" />
+              <h2 className="text-sm font-semibold text-text-primary">
+                Variantes (Taille × Couleur)
+              </h2>
+              {variantCount > 0 && (
+                <span className="badge badge-info ms-auto font-mono">
+                  {variantCount} variante{variantCount > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            {/* Size picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-text-muted">
+                  Pointures EU
+                </label>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectSizeRange(35, 42)}
+                    className="text-2xs text-primary-500 hover:underline"
+                  >
+                    35–42
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectSizeRange(39, 46)}
+                    className="text-2xs text-primary-500 hover:underline"
+                  >
+                    39–46
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectSizeRange(28, 35)}
+                    className="text-2xs text-primary-500 hover:underline"
+                  >
+                    28–35 (enfant)
+                  </button>
+                  {selectedSizes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSizes([])}
+                      className="text-2xs text-danger hover:underline"
+                    >
+                      Tout effacer
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_SIZES.map((size) => {
+                  const selected = selectedSizes.includes(size);
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => toggleSize(size)}
+                      className={cn(
+                        "w-10 h-9 rounded-md text-xs font-mono font-semibold border transition-all",
+                        selected
+                          ? "bg-primary-500 text-white border-primary-500 shadow-sm"
+                          : "bg-surface text-text-muted border-border hover:border-primary-300 hover:text-text-primary"
+                      )}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Colour picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-text-muted">
+                  Couleurs
+                </label>
+                {selectedColours.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColours([])}
+                    className="text-2xs text-danger hover:underline"
+                  >
+                    Tout effacer
+                  </button>
+                )}
+              </div>
+
+              {/* Quick-pick colour buttons */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {QUICK_COLOURS.map((colour) => {
+                  const selected = selectedColours.includes(colour.label);
+                  return (
+                    <button
+                      key={colour.value}
+                      type="button"
+                      onClick={() => toggleColour(colour.label)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all",
+                        selected
+                          ? "bg-primary-50 text-primary-700 border-primary-300 shadow-sm"
+                          : "bg-surface text-text-muted border-border hover:border-primary-300"
+                      )}
+                    >
+                      {colour.hex && (
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-border/40 flex-shrink-0"
+                          style={{ backgroundColor: colour.hex }}
+                        />
+                      )}
+                      {colour.label}
+                    </button>
+                  );
+                })}
+
+                {/* More colours dropdown trigger */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowColourDropdown(!showColourDropdown)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border border-dashed border-border text-text-muted hover:border-primary-300 hover:text-primary-500 transition-all"
+                  >
+                    <Plus size={12} />
+                    Plus de couleurs…
+                  </button>
+
+                  {showColourDropdown && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => { setShowColourDropdown(false); setColourSearch(""); }}
+                      />
+                      <div className="absolute z-50 top-full mt-1 start-0 w-64 bg-white border border-border rounded-lg shadow-xl max-h-64 overflow-hidden">
+                        <div className="p-2 border-b border-border">
+                          <input
+                            type="text"
+                            value={colourSearch}
+                            onChange={(e) => setColourSearch(e.target.value)}
+                            className="form-input text-xs py-1.5"
+                            placeholder="Rechercher une couleur…"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-48">
+                          {filteredColours.map((colour) => {
+                            const alreadySelected = selectedColours.includes(colour.label);
+                            return (
+                              <button
+                                key={colour.value}
+                                type="button"
+                                onClick={() => addColourFromDropdown(colour)}
+                                disabled={alreadySelected}
+                                className={cn(
+                                  "w-full flex items-center gap-2 px-3 py-1.5 text-xs text-start hover:bg-surface transition-colors",
+                                  alreadySelected && "opacity-40 cursor-not-allowed"
+                                )}
+                              >
+                                {colour.hex ? (
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-border/40 flex-shrink-0"
+                                    style={{ backgroundColor: colour.hex }}
+                                  />
+                                ) : (
+                                  <span className="w-3.5 h-3.5 rounded-full border border-dashed border-border flex-shrink-0" />
+                                )}
+                                <span className="font-medium text-text-primary">{colour.label}</span>
+                                <span className="text-text-muted ms-auto">{colour.value}</span>
+                                {alreadySelected && (
+                                  <CheckCircle size={12} className="text-success ms-1" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Custom colour input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customColour}
+                  onChange={(e) => setCustomColour(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomColour(); } }}
+                  className="form-input text-xs flex-1"
+                  placeholder="Couleur personnalisée…"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomColour}
+                  disabled={!customColour.trim()}
+                  className="btn-secondary btn-sm"
+                >
+                  <Plus size={12} />
+                  Ajouter
+                </button>
+              </div>
+
+              {/* Selected colours tags */}
+              {selectedColours.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedColours.map((label) => {
+                    const colourObj = COLOURS.find((c) => c.label === label);
+                    return (
+                      <span
+                        key={label}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200"
+                      >
+                        {colourObj?.hex && (
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-primary-300/40"
+                            style={{ backgroundColor: colourObj.hex }}
+                          />
+                        )}
+                        {label}
+                        <button
+                          type="button"
+                          onClick={() => toggleColour(label)}
+                          className="hover:text-danger transition-colors ms-0.5"
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Alert threshold */}
+            <div className="flex items-center gap-3">
+              <Field label="Seuil d'alerte stock" hint="Appliqué à toutes les variantes générées.">
+                <input
+                  type="number"
+                  value={alertThreshold}
+                  onChange={(e) => setAlertThreshold(parseInt(e.target.value) || 0)}
+                  className="form-input w-24 text-center font-mono"
+                  min="0"
+                />
+              </Field>
+            </div>
+
+            {/* Preview summary */}
+            {variantCount > 0 && (
+              <div className="bg-surface rounded-lg px-4 py-3 flex items-center gap-3">
+                <Grid3X3 size={16} className="text-primary-500 flex-shrink-0" />
+                <div className="text-sm text-text-primary">
+                  <span className="font-semibold">{selectedSizes.length}</span> pointure{selectedSizes.length > 1 ? "s" : ""}{" "}
+                  × <span className="font-semibold">{selectedColours.length}</span> couleur{selectedColours.length > 1 ? "s" : ""}{" "}
+                  = <span className="font-bold text-primary-600">{variantCount}</span> variante{variantCount > 1 ? "s" : ""} à créer
+                </div>
+              </div>
+            )}
+
+            {variantCount === 0 && (
+              <p className="text-xs text-text-muted">
+                Sélectionnez au moins une pointure et une couleur pour générer les variantes.
+                Vous pouvez aussi les ajouter plus tard depuis la fiche produit.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* ── Submit ──────────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
@@ -545,7 +921,15 @@ export default function ProductFormPage() {
             {saveMutation.isPending ? (
               <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
             ) : (
-              <><Save size={14} /> {isEditing ? "Enregistrer les modifications" : "Créer le produit"}</>
+              <>
+                <Save size={14} />
+                {isEditing
+                  ? "Enregistrer les modifications"
+                  : variantCount > 0
+                    ? `Créer le produit (${variantCount} variantes)`
+                    : "Créer le produit"
+                }
+              </>
             )}
           </button>
         </div>

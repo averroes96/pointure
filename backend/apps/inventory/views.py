@@ -15,7 +15,9 @@ from apps.inventory.models import (
     Variant,
 )
 from apps.inventory.serializers import (
+    BulkStockAdjustmentSerializer,
     GenerateVariantsSerializer,
+    ProductCreateSerializer,
     ProductListSerializer,
     ProductSerializer,
     StockAdjustmentSerializer,
@@ -72,6 +74,47 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from apps.core.plan_permissions import check_quota
         check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to handle the optional nested `variants` field.
+        When provided, product + all size×colour variants are created atomically.
+        """
+        create_serializer = ProductCreateSerializer(data=request.data)
+        create_serializer.is_valid(raise_exception=True)
+
+        variants_data = create_serializer.validated_data.pop("variants", None)
+
+        # Check quota before creating
+        from apps.core.plan_permissions import check_quota
+        check_quota(request, "products", Product.objects.filter(tenant=request.tenant).count())
+
+        with transaction.atomic():
+            product = Product(**create_serializer.validated_data, tenant=request.tenant)
+            # Handle image upload (multipart)
+            if "image" in request.FILES:
+                product.image = request.FILES["image"]
+            product.save()
+
+            # Generate variants if sizes/colours were provided
+            if variants_data:
+                sizes = variants_data["sizes"]
+                colours = variants_data["colours"]
+                threshold = variants_data.get("alert_threshold", 3)
+                for size in sizes:
+                    for colour in colours:
+                        Variant.objects.get_or_create(
+                            tenant=request.tenant,
+                            product=product,
+                            size_eu=size,
+                            colour=colour,
+                            defaults={"alert_threshold": threshold},
+                        )
+
+        # Refresh and return using the detail serializer
+        product.refresh_from_db()
+        out_serializer = ProductSerializer(product, context={"request": request})
+        return Response(out_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="import",
             parser_classes=None)  # accepts MultiPartParser via DEFAULT_PARSER_CLASSES
@@ -617,6 +660,62 @@ class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewS
         )
 
         return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="bulk-adjust")
+    def bulk_adjust(self, request):
+        """
+        Bulk stock adjustment — adjust multiple variants in one request.
+        POST /inventory/movements/bulk-adjust/
+        Body: {
+            "adjustments": [{"variant": <id>, "quantity_delta": <int>}, ...],
+            "reason": "reception",
+            "branch": <branch_id|null>,
+            "notes": "optional note"
+        }
+        """
+        self.require_manager()
+
+        serializer = BulkStockAdjustmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        reason = data["reason"]
+        branch = data.get("branch")
+        notes = data.get("notes", "")
+        adjustments = data["adjustments"]
+
+        created = []
+        with transaction.atomic():
+            for adj in adjustments:
+                variant = adj["variant"]
+                delta = adj["quantity_delta"]
+
+                if delta == 0:
+                    continue
+
+                # Ensure variant belongs to this tenant
+                if variant.tenant != request.tenant:
+                    continue
+
+                movement = StockMovement.objects.create(
+                    tenant=request.tenant,
+                    variant=variant,
+                    branch=branch,
+                    quantity_delta=delta,
+                    reason=reason,
+                    notes=notes,
+                    user=request.user,
+                )
+                created.append({
+                    "variant_id": variant.pk,
+                    "quantity_delta": delta,
+                    "movement_id": movement.pk,
+                })
+
+        return Response(
+            {"created_count": len(created), "movements": created},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class StockTransferViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
