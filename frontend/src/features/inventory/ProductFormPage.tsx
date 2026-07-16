@@ -74,6 +74,7 @@ interface FormState {
   gender: Gender;
   season: Season;
   sale_price: string;
+  wholesale_price: string;
   purchase_price: string;
   is_active: boolean;
   alert_threshold: number;
@@ -184,6 +185,7 @@ export default function ProductFormPage() {
       gender: existingProduct.gender,
       season: existingProduct.season,
       sale_price: existingProduct.sale_price ?? "",
+      wholesale_price: existingProduct.wholesale_price ?? "",
       purchase_price: existingProduct.purchase_price ?? "",
       is_active: existingProduct.is_active,
       alert_threshold: existingProduct.alert_threshold ?? 10,

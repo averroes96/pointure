@@ -180,6 +180,8 @@ export interface Sale {
   balance_due: string;
   receipt_number: string;
   notes: string;
+  is_formal: boolean;
+  timbre_fiscal: string;
   due_date: string | null;
   items: SaleItem[];
   payments: Payment[];

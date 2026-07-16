@@ -43,7 +43,7 @@ export default function DeliveryNotesPage() {
     // We assume they selected BLs belonging to the SAME client.
     // In a real app, we'd enforce this via UI.
     const selectedNotes = notes.filter(n => selectedIds.includes(n.id));
-    const clientId = selectedNotes[0]?.client; 
+    const clientId = (selectedNotes[0] as any)?.client; 
     // note: DeliveryNoteSerializer returns `client` as the ID.
 
     const today = new Date().toISOString().slice(0, 10);

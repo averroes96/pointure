@@ -101,6 +101,11 @@ class Invoice(TenantScopedModel):
         _("Total TTC (incl. TVA)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     apply_tva = models.BooleanField(_("Apply TVA"), default=True)
+    is_formal = models.BooleanField(_("Formal Invoice"), default=True)
+    is_paid_in_cash = models.BooleanField(_("Paid in Cash"), default=False)
+    timbre_fiscal = models.DecimalField(
+        _("Fiscal Stamp"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
 
     notes = models.TextField(_("Notes"), blank=True)
     pdf_file = models.FileField(_("PDF File"), upload_to="invoices/pdf/", blank=True, null=True)
@@ -132,14 +137,23 @@ class Invoice(TenantScopedModel):
         self._sync_client_ledger()
 
     def compute_totals(self):
-        """Recompute total_ht, tva_amount, total_ttc from line items."""
+        """Recompute total_ht, tva_amount, total_ttc, and timbre_fiscal from line items."""
         total_ht = sum(line.line_total for line in self.lines.all())
         self.total_ht = total_ht
         if self.apply_tva:
             self.tva_amount = (total_ht * self.tva_rate / 100).quantize(Decimal("0.01"))
         else:
             self.tva_amount = Decimal("0.00")
-        self.total_ttc = self.total_ht + self.tva_amount
+        
+        base_ttc = self.total_ht + self.tva_amount
+        
+        if self.is_formal and self.is_paid_in_cash:
+            timbre = base_ttc * Decimal("0.01")
+            self.timbre_fiscal = min(timbre, Decimal("2500.00")).quantize(Decimal("0.01"))
+        else:
+            self.timbre_fiscal = Decimal("0.00")
+            
+        self.total_ttc = base_ttc + self.timbre_fiscal
 
     def confirm(self):
         """Assign invoice number and set status to sent."""

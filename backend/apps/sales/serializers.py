@@ -61,7 +61,7 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = [
             "id", "branch", "cashier", "cashier_name", "client", "client_name",
             "loyalty_tier", "loyalty_points", "status",
-            "total_amount", "discount_amount", "amount_paid", "balance_due",
+            "total_amount", "discount_amount", "amount_paid", "balance_due", "is_formal", "timbre_fiscal",
             "receipt_number", "notes", "due_date", "items", "payments",
             "exchange_count", "created_at",
         ]
@@ -83,6 +83,7 @@ class CreatePaymentInput(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
     notes = serializers.CharField(required=False, allow_blank=True)
+    is_formal = serializers.BooleanField(default=False)
 
 
 class CreateSaleSerializer(serializers.Serializer):
@@ -98,6 +99,7 @@ class CreateSaleSerializer(serializers.Serializer):
     )
     redeem_points = serializers.IntegerField(min_value=0, default=0, required=False)
     notes = serializers.CharField(required=False, allow_blank=True)
+    is_formal = serializers.BooleanField(default=False)
     is_versement = serializers.BooleanField(default=False)
 
     def validate(self, data):
@@ -180,6 +182,13 @@ class CreateSaleSerializer(serializers.Serializer):
             items_total = items_total - redemption_dzd
 
         payment_total = sum(p["amount"] for p in data["payments"])
+        
+        is_formal = data.get("is_formal", False)
+        if is_formal and any(p["method"] == "cash" for p in data["payments"]):
+            timbre = items_total * Decimal("0.01")
+            timbre_fiscal = min(timbre, Decimal("2500.00")).quantize(Decimal("0.01"))
+            items_total += timbre_fiscal
+
 
         # Versement validation
         is_versement = data.get("is_versement", False)
@@ -417,6 +426,7 @@ class AddPaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
     notes = serializers.CharField(required=False, allow_blank=True)
+    is_formal = serializers.BooleanField(default=False)
 
 
 class ReturnItemInput(serializers.Serializer):

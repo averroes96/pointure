@@ -47,6 +47,10 @@ class Sale(TenantScopedModel):
     discount_amount = models.DecimalField(
         _("Cart Discount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    is_formal = models.BooleanField(_("Formal Invoice"), default=False)
+    timbre_fiscal = models.DecimalField(
+        _("Fiscal Stamp"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
     notes = models.TextField(_("Notes"), blank=True)
     receipt_number = models.CharField(_("Receipt Number"), max_length=30, blank=True, db_index=True)
     due_date = models.DateField(_("Payment Due Date"), null=True, blank=True)

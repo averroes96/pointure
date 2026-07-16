@@ -59,6 +59,20 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
     )
     .join("");
 
+  let timbreRow = "";
+  if (sale.timbre_fiscal && Number(sale.timbre_fiscal) > 0) {
+    timbreRow = `
+         <div class="divider"></div>
+         <table>
+           <tr>
+             <td style="font-size:11px;">Timbre Fiscal&nbsp;:</td>
+             <td style="text-align:right;font-size:11px;color:#b45309;">
+               + ${Number(sale.timbre_fiscal).toLocaleString("fr-DZ")} DZD
+             </td>
+           </tr>
+         </table>`;
+  }
+
   const discountRow =
     Number(sale.discount_amount) > 0
       ? `<div class="divider"></div>
@@ -151,10 +165,16 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
 </head>
 <body>
   <h1>${storeName}</h1>
+  ${sale.is_formal ? `
+  <p class="center" style="font-size:10px;">RC: 1234567A00 - NIF: 0987654321</p>
+  ` : ""}
   <div class="divider"></div>
 
+  <p class="center" style="font-size:10px;font-weight:bold;margin-bottom:4px;">
+    ${sale.is_formal ? "FACTURE SIMPLIFIÉE" : "TICKET DE CAISSE"}
+  </p>
   <p class="center" style="font-size:10px;">
-    Reçu N° <strong>${sale.receipt_number || `#${sale.id}`}</strong>
+    N° <strong>${sale.receipt_number || `#${sale.id}`}</strong>
   </p>
   <p class="center" style="font-size:10px;">${formatDate(sale.created_at)}</p>
   <p class="center" style="font-size:10px;">Caissier&nbsp;: ${sale.cashier_name || "—"}</p>
@@ -173,6 +193,7 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
     <tbody>${itemsHtml}</tbody>
   </table>
 
+  ${timbreRow}
   ${discountRow}
 
   <div class="divider"></div>
