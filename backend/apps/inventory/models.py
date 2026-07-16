@@ -88,6 +88,9 @@ class Product(TenantScopedModel):
     sale_price = models.DecimalField(
         _("Sale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    wholesale_price = models.DecimalField(
+        _("Wholesale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
     image = models.ImageField(_("Photo"), upload_to="products/", blank=True, null=True)
     description = models.TextField(_("Description"), blank=True)
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)

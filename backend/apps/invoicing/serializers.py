@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment
+from .models import CreditNote, DeliveryNote, DeliveryNoteLine, Invoice, InvoiceLine, InvoicePayment
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
@@ -83,26 +83,47 @@ class CreateInvoiceSerializer(serializers.Serializer):
     payment = InitialPaymentInput(required=False, allow_null=True)
 
 
+
+class DeliveryNoteLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryNoteLine
+        fields = ["id", "variant", "description", "quantity", "unit_price", "discount_pct", "order"]
+        read_only_fields = ["id"]
+
 class DeliveryNoteSerializer(serializers.ModelSerializer):
-    # Read-only denormalized fields for list/detail views
     invoice_number = serializers.CharField(source="invoice.number", read_only=True)
-    client_name = serializers.CharField(source="invoice.client.name", read_only=True, default="")
-    invoice_total_ht = serializers.DecimalField(
-        source="invoice.total_ht", max_digits=12, decimal_places=2, read_only=True
-    )
-    invoice_total_ttc = serializers.DecimalField(
-        source="invoice.total_ttc", max_digits=12, decimal_places=2, read_only=True
-    )
-    invoice_date = serializers.DateField(source="invoice.date", read_only=True)
+    client_name = serializers.CharField(source="client.name", read_only=True, default="")
+    lines = DeliveryNoteLineSerializer(many=True, read_only=True)
 
     class Meta:
         model = DeliveryNote
         fields = [
-            "id", "invoice", "invoice_number", "invoice_date",
-            "client_name", "invoice_total_ht", "invoice_total_ttc",
-            "number", "date", "delivered_by", "notes", "created_at",
+            "id", "client", "client_name", "invoice", "invoice_number",
+            "number", "date", "delivered_by", "notes", "lines", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+class CreateDeliveryNoteSerializer(serializers.Serializer):
+    client_id = serializers.IntegerField(required=True)
+    date = serializers.DateField()
+    number = serializers.CharField(max_length=30)
+    delivered_by = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    lines = DeliveryNoteLineSerializer(many=True, min_length=1)
+
+class RegrouperBLsSerializer(serializers.Serializer):
+    client_id = serializers.IntegerField(required=True)
+    delivery_note_ids = serializers.ListField(
+        child=serializers.IntegerField(), min_length=1
+    )
+    date = serializers.DateField()
+    due_date = serializers.DateField()
+    series_prefix = serializers.CharField(default="FA", max_length=20)
+    apply_tva = serializers.BooleanField(default=True)
+    tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
+    notes = serializers.CharField(required=False, allow_blank=True)
+    confirm = serializers.BooleanField(default=False)
+
 
 
 class CreditNoteSerializer(serializers.ModelSerializer):

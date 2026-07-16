@@ -84,6 +84,7 @@ export interface Product {
   season: Season;
   purchase_price?: string; // Hidden from cashiers
   sale_price: string;
+  wholesale_price?: string;
   margin_pct?: string;
   image: string | null;
   description: string;

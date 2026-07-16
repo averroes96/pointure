@@ -264,9 +264,10 @@ class InvoicePayment(models.Model):
         )
 
 
-class DeliveryNote(models.Model):
+class DeliveryNote(TenantScopedModel):
     """Bon de livraison — lists delivered quantities."""
-    invoice = models.OneToOneField(Invoice, on_delete=models.CASCADE, related_name="delivery_note")
+    client = models.ForeignKey("clients.Client", on_delete=models.PROTECT, related_name="delivery_notes", null=True, blank=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="delivery_notes")
     number = models.CharField(_("BL Number"), max_length=30)
     date = models.DateField()
     delivered_by = models.CharField(_("Delivered By"), max_length=150, blank=True)
@@ -276,7 +277,26 @@ class DeliveryNote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"BL {self.number} — {self.invoice}"
+        return f"BL {self.number}"
+
+class DeliveryNoteLine(models.Model):
+    """One line item on a delivery note."""
+    delivery_note = models.ForeignKey(DeliveryNote, on_delete=models.CASCADE, related_name="lines")
+    variant = models.ForeignKey(
+        "inventory.Variant", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="delivery_note_lines"
+    )
+    description = models.CharField(_("Description"), max_length=300)
+    quantity = models.DecimalField(_("Quantity"), max_digits=10, decimal_places=2)
+    unit_price = models.DecimalField(_("Unit Price HT"), max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    discount_pct = models.DecimalField(_("Discount %"), max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    order = models.PositiveSmallIntegerField(_("Order"), default=0)
+
+    class Meta:
+        ordering = ["order", "pk"]
+
+    def __str__(self):
+        return f"{self.description} × {self.quantity}"
 
 
 class CreditNote(TenantScopedModel):

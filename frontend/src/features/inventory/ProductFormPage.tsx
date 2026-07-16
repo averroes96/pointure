@@ -89,6 +89,7 @@ const EMPTY_FORM: FormState = {
   gender: "U",
   season: "all",
   sale_price: "",
+  wholesale_price: "",
   purchase_price: "",
   is_active: true,
   alert_threshold: 10,
@@ -570,6 +571,18 @@ export default function ProductFormPage() {
                   type="number"
                   value={form.sale_price}
                   onChange={(e) => setForm((f) => ({ ...f, sale_price: e.target.value }))}
+                  className="form-input"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </Field>
+
+              <Field label="Prix de gros (DZD)">
+                <input
+                  type="number"
+                  value={form.wholesale_price}
+                  onChange={(e) => setForm((f) => ({ ...f, wholesale_price: e.target.value }))}
                   className="form-input"
                   placeholder="0.00"
                   min="0"

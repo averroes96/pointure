@@ -358,6 +358,14 @@ export default function ProductDetailPage() {
                 {formatDZD(product.sale_price)} <span className="text-xs text-text-muted">DZD</span>
               </span>
             </div>
+            {parseFloat(product.wholesale_price || "0") > 0 && (
+              <div className="flex items-end justify-between">
+                <span className="text-xs text-text-muted">Prix de gros</span>
+                <span className="font-mono font-bold text-md text-accent">
+                  {formatDZD(product.wholesale_price)} <span className="text-xs text-text-muted">DZD</span>
+                </span>
+              </div>
+            )}
             {user?.can_see_costs && product.purchase_price && (
               <>
                 <div className="flex items-end justify-between">

@@ -5,7 +5,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, Truck, Download, Loader2 } from "lucide-react";
+import { Plus, Search, Truck, Download, Loader2, Layers } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { DeliveryNote } from "@/types";
@@ -17,6 +18,8 @@ export default function DeliveryNotesPage() {
   const [page, setPage] = useState(1);
   const [loadingPdfId, setLoadingPdfId] = useState<number | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery<PaginatedResponse<DeliveryNote>>({
     queryKey: ["delivery-notes", { search, page }],
@@ -27,6 +30,38 @@ export default function DeliveryNotesPage() {
   });
 
   const notes = data?.results ?? [];
+
+  function toggleSelection(id: number) {
+    setSelectedIds((prev) => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }
+
+  async function handleRegrouper() {
+    if (selectedIds.length === 0) return;
+    
+    // We assume they selected BLs belonging to the SAME client.
+    // In a real app, we'd enforce this via UI.
+    const selectedNotes = notes.filter(n => selectedIds.includes(n.id));
+    const clientId = selectedNotes[0]?.client; 
+    // note: DeliveryNoteSerializer returns `client` as the ID.
+
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      const res = await api.post("/invoicing/invoices/regrouper/", {
+        client_id: clientId,
+        delivery_note_ids: selectedIds,
+        date: today,
+        due_date: today,
+      });
+      alert("Facture générée : " + res.data.number);
+      setSelectedIds([]);
+      setPage(1);
+    } catch (err) {
+      alert("Erreur: " + getApiError(err));
+    }
+  }
+
 
   async function openPdf(noteId: number, number: string) {
     setLoadingPdfId(noteId);
@@ -60,10 +95,18 @@ export default function DeliveryNotesPage() {
           <h1 className="text-xl font-bold text-text-primary">Bons de Livraison</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} bon(s) de livraison</p>
         </div>
-        <Link to="/delivery-notes/new" className="btn-primary">
-          <Plus size={16} />
-          Nouveau BL
-        </Link>
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <button onClick={handleRegrouper} className="btn-secondary text-primary-600 border-primary-600 hover:bg-primary-50">
+              <Layers size={16} />
+              Regrouper ({selectedIds.length})
+            </button>
+          )}
+          <Link to="/delivery-notes/new" className="btn-primary">
+            <Plus size={16} />
+            Nouveau BL
+          </Link>
+        </div>
       </div>
 
       {/* PDF error */}
@@ -92,6 +135,7 @@ export default function DeliveryNotesPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th className="w-8"></th>
                 <th>N°BL</th>
                 <th>Client</th>
                 <th>Date livraison</th>
@@ -117,7 +161,16 @@ export default function DeliveryNotesPage() {
                 </tr>
               )}
               {notes.map((note) => (
-                <tr key={note.id}>
+                <tr key={note.id} className={selectedIds.includes(note.id) ? "bg-primary-50/50" : ""}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      className="form-checkbox text-primary-600 rounded"
+                      disabled={!!note.invoice}
+                      checked={selectedIds.includes(note.id)}
+                      onChange={() => toggleSelection(note.id)}
+                    />
+                  </td>
                   <td>
                     <div className="flex items-center gap-2">
                       <Truck size={14} className="text-text-muted flex-shrink-0" />

@@ -79,8 +79,8 @@ function ClientSelector({
   value,
   onChange,
 }: {
-  value: { id: number; name: string } | null;
-  onChange: (c: { id: number; name: string } | null) => void;
+  value: Client | null;
+  onChange: (c: Client | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -163,7 +163,7 @@ function ClientSelector({
                 key={c.id}
                 type="button"
                 onClick={() => {
-                  onChange({ id: c.id, name: c.name });
+                  onChange(c);
                   setOpen(false);
                   setQuery("");
                 }}
@@ -193,12 +193,14 @@ function ProductSearchCell({
   onProductSelect,
   lineRef,
   onKeyDown,
+  useWholesale,
 }: {
   description: string;
   onDescriptionChange: (v: string) => void;
   onProductSelect: (description: string, unitPrice: string) => void;
   lineRef?: (el: HTMLInputElement | null) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  useWholesale?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -406,7 +408,7 @@ export default function InvoiceBuilderPage() {
   const defaultDue = toISODate(addDays(new Date(), 30));
 
   // ── Form state ──
-  const [client, setClient] = useState<{ id: number; name: string } | null>(null);
+  const [client, setClient] = useState<Client | null>(null);
   const [date, setDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDue);
   const [seriesPrefix, setSeriesPrefix] = useState("FA");
