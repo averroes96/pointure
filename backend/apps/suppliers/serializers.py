@@ -68,21 +68,6 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 
 # ── Input serializers (create / receive) ───────────────────────────────────────
 
-class POLineInputSerializer(serializers.Serializer):
-    variant = serializers.IntegerField(required=False, allow_null=True, default=None)
-    description = serializers.CharField(max_length=300)
-    quantity_ordered = serializers.IntegerField(min_value=1)
-    agreed_unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
-
-
-class CreatePurchaseOrderSerializer(serializers.Serializer):
-    supplier = serializers.IntegerField()
-    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
-    expected_date = serializers.DateField(required=False, allow_null=True, default=None)
-    notes = serializers.CharField(required=False, allow_blank=True, default="")
-    lines = POLineInputSerializer(many=True)
-
-
 class NewVariantInputSerializer(serializers.Serializer):
     """
     Inline variant creation during PO receiving.
@@ -110,6 +95,32 @@ class CartonSizeInputSerializer(serializers.Serializer):
     # Variant resolution — same logic as top-level receive
     variant_id  = serializers.IntegerField(required=False, allow_null=True, default=None)
     new_variant = NewVariantInputSerializer(required=False, allow_null=True, default=None)
+
+
+class POLineInputSerializer(serializers.Serializer):
+    variant = serializers.IntegerField(required=False, allow_null=True, default=None)
+    description = serializers.CharField(max_length=300)
+    quantity_ordered = serializers.IntegerField(min_value=1, required=False)
+    agreed_unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+    carton_sizes = CartonSizeInputSerializer(many=True, required=False, allow_null=True, default=None)
+
+    def validate(self, data):
+        if not data.get("carton_sizes") and not data.get("quantity_ordered"):
+            raise serializers.ValidationError("quantity_ordered est requis si carton_sizes n'est pas fourni.")
+        return data
+
+
+class CreatePurchaseOrderSerializer(serializers.Serializer):
+    supplier = serializers.IntegerField()
+    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    expected_date = serializers.DateField(required=False, allow_null=True, default=None)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    lines = POLineInputSerializer(many=True)
+    
+    # Direct Reception options
+    receive_immediately = serializers.BooleanField(required=False, default=False)
+    branch = serializers.IntegerField(required=False, allow_null=True, default=None)
+    bl_reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
 
 
 class ReceiveLineInputSerializer(serializers.Serializer):

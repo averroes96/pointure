@@ -200,6 +200,191 @@ class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return Response(SupplierPaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
+
+def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user):
+    from apps.inventory.models import StockMovement, MovementReasonChoices, Variant, Product
+    from apps.core.models import Branch
+
+    # Resolve branch: explicit > HQ > first active
+    target_branch = None
+    if branch_id:
+        target_branch = Branch.objects.filter(tenant=tenant, id=branch_id).first()
+    if not target_branch:
+        target_branch = (
+            Branch.objects.filter(tenant=tenant, is_headquarters=True, is_active=True).first()
+            or Branch.objects.filter(tenant=tenant, is_active=True).first()
+        )
+
+    line_ids = [ld["id"] for ld in lines_data]
+    lines_map = {
+        ln.id: ln
+        for ln in POLine.objects.filter(order=po, id__in=line_ids).select_related("variant__product")
+    }
+
+    movements_created = 0
+    discrepancies = []
+    created_variants = []
+
+    with transaction.atomic():
+        for ld in lines_data:
+            line = lines_map.get(ld["id"])
+            if not line:
+                continue
+
+            po_ref = bl_reference or po.reference or f"PO-{po.id}"
+            notes_base = (
+                f"Réception {po_ref} | {po.supplier.name}"
+                + (f" | BL: {bl_reference}" if bl_reference else "")
+            )
+
+            carton_sizes = ld.get("carton_sizes") or []
+
+            if carton_sizes:
+                # ── Carton mode: one StockMovement per size ──────────────
+                total_received = 0
+                for cs in carton_sizes:
+                    cs_qty = cs.get("quantity", 0)
+                    if cs_qty <= 0:
+                        continue
+                    total_received += cs_qty
+
+                # Guard: cumulative received must not exceed ordered
+                if line.quantity_received + total_received > line.quantity_ordered:
+                    raise ValueError(
+                        f"Ligne {line.id}: la quantité reçue cumulée "
+                        f"({line.quantity_received + total_received}) dépasse "
+                        f"la quantité commandée ({line.quantity_ordered})."
+                    )
+
+                for cs in carton_sizes:
+                    cs_qty = cs.get("quantity", 0)
+                    if cs_qty <= 0:
+                        continue
+
+                    cs_variant = None
+                    if cs.get("variant_id"):
+                        cs_variant = Variant.objects.filter(
+                            tenant=tenant, id=cs["variant_id"]
+                        ).first()
+                    elif cs.get("new_variant"):
+                        nv = cs["new_variant"]
+                        product = _resolve_product(tenant, nv)
+                        if product:
+                            cs_variant = _resolve_variant(
+                                tenant, product, cs["size_eu"], nv.get("colour", "")
+                            )
+                            created_variants.append({
+                                "line_id": line.id,
+                                "size_eu": cs["size_eu"],
+                                "variant_id": cs_variant.id,
+                                "label": str(cs_variant),
+                            })
+
+                    if cs_variant:
+                        StockMovement.objects.create(
+                            tenant=tenant,
+                            variant=cs_variant,
+                            branch=target_branch,
+                            quantity_delta=cs_qty,
+                            reason=MovementReasonChoices.RECEPTION,
+                            reference_id=str(po.id),
+                            reference_type="PurchaseOrder",
+                            bl_reference=bl_reference,
+                            notes=f"{notes_base} | EU{cs['size_eu']}",
+                            user=user,
+                        )
+                        movements_created += 1
+
+                # Accumulate (not replace) so second partial receives are tracked correctly
+                line.quantity_received += total_received
+                line.save(update_fields=["quantity_received"])
+
+            else:
+                # ── Standard mode: single variant per line ───────────────
+                variant_id_from_request = ld.get("variant_id")
+                new_variant_data = ld.get("new_variant")
+
+                if not line.variant_id and variant_id_from_request:
+                    linked = Variant.objects.filter(
+                        tenant=tenant, id=variant_id_from_request
+                    ).first()
+                    if linked:
+                        line.variant = linked
+                        line.save(update_fields=["variant"])
+
+                elif not line.variant_id and new_variant_data:
+                    product = _resolve_product(tenant, new_variant_data)
+                    if product:
+                        variant = _resolve_variant(
+                            tenant,
+                            product,
+                            new_variant_data["size_eu"],
+                            new_variant_data.get("colour", ""),
+                        )
+                        line.variant = variant
+                        line.save(update_fields=["variant"])
+                        created_variants.append({
+                            "line_id": line.id,
+                            "variant_id": variant.id,
+                            "label": str(variant),
+                        })
+
+                line.refresh_from_db(fields=["variant"])
+
+                new_qty = ld["quantity_received"]
+                if new_qty > line.quantity_ordered:
+                    raise ValueError(
+                        f"Ligne {line.id}: la quantité reçue ({new_qty}) "
+                        f"dépasse la quantité commandée ({line.quantity_ordered})."
+                    )
+
+                delta = new_qty - line.quantity_received
+                line.quantity_received = new_qty
+                line.save(update_fields=["quantity_received"])
+
+                if delta > 0 and line.variant_id:
+                    StockMovement.objects.create(
+                        tenant=tenant,
+                        variant_id=line.variant_id,
+                        branch=target_branch,
+                        quantity_delta=delta,
+                        reason=MovementReasonChoices.RECEPTION,
+                        reference_id=str(po.id),
+                        reference_type="PurchaseOrder",
+                        bl_reference=bl_reference,
+                        notes=notes_base,
+                        user=user,
+                    )
+                    movements_created += 1
+
+        # Re-compute PO status from all lines
+        all_lines = list(POLine.objects.filter(order=po))
+        if all_lines:
+            if all(ln.quantity_received >= ln.quantity_ordered for ln in all_lines):
+                po.status = POStatusChoices.RECEIVED
+            elif any(ln.quantity_received > 0 for ln in all_lines):
+                po.status = POStatusChoices.PARTIAL
+        po.save()
+
+        # Discrepancies
+        for ln in all_lines:
+            if ln.quantity_received < ln.quantity_ordered:
+                discrepancies.append({
+                    "line_id": ln.id,
+                    "description": ln.description,
+                    "ordered": ln.quantity_ordered,
+                    "received": ln.quantity_received,
+                    "shortage": ln.quantity_ordered - ln.quantity_received,
+                })
+
+    po.refresh_from_db()
+    return {
+        "movements_created": movements_created,
+        "created_variants": created_variants,
+        "discrepancies": discrepancies,
+    }
+
+
 class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.select_related("supplier").prefetch_related("lines__variant__product")
     serializer_class = PurchaseOrderSerializer
@@ -234,8 +419,16 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=POStatusChoices.DRAFT,
             )
             total = Decimal("0")
+            lines_data_for_receive = []
+
             for line_data in data["lines"]:
                 variant_id = line_data.get("variant")
+                carton_sizes = line_data.get("carton_sizes") or []
+                
+                qty_ordered = line_data.get("quantity_ordered")
+                if carton_sizes:
+                    qty_ordered = sum(cs.get("quantity", 0) for cs in carton_sizes)
+
                 variant = None
                 if variant_id:
                     from apps.inventory.models import Variant
@@ -245,14 +438,38 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     order=po,
                     variant=variant,
                     description=line_data["description"],
-                    quantity_ordered=line_data["quantity_ordered"],
+                    quantity_ordered=qty_ordered,
                     agreed_unit_price=line_data["agreed_unit_price"],
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
+                
+                lines_data_for_receive.append({
+                    "id": line.id,
+                    "quantity_received": qty_ordered,
+                    "variant_id": variant_id,
+                    "new_variant": None,
+                    "carton_sizes": carton_sizes
+                })
 
             po.total_amount = total
             po.save(update_fields=["total_amount"])
 
+            if data.get("receive_immediately"):
+                for ld in lines_data_for_receive:
+                    if not ld["variant_id"] and not ld["carton_sizes"]:
+                        from rest_framework.exceptions import ValidationError
+                        raise ValidationError("En réception directe, chaque ligne doit être liée à une variante ou utiliser le mode carton.")
+
+                _process_receive_lines(
+                    po=po,
+                    lines_data=lines_data_for_receive,
+                    bl_reference=data.get("bl_reference", ""),
+                    branch_id=data.get("branch"),
+                    tenant=request.tenant,
+                    user=request.user
+                )
+
+        po.refresh_from_db()
         out_ser = PurchaseOrderSerializer(po)
         return Response(out_ser.data, status=status.HTTP_201_CREATED)
 
@@ -305,194 +522,14 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         bl_reference = input_ser.validated_data.get("bl_reference", "")
         branch_id = input_ser.validated_data.get("branch")
 
-        # Resolve branch: explicit > HQ > first active
-        target_branch = None
-        if branch_id:
-            target_branch = Branch.objects.filter(tenant=request.tenant, id=branch_id).first()
-        if not target_branch:
-            target_branch = (
-                Branch.objects.filter(tenant=request.tenant, is_headquarters=True, is_active=True).first()
-                or Branch.objects.filter(tenant=request.tenant, is_active=True).first()
-            )
+        try:
+            res_data = _process_receive_lines(po, lines_data, bl_reference, branch_id, request.tenant, request.user)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        line_ids = [ld["id"] for ld in lines_data]
-        lines_map = {
-            ln.id: ln
-            for ln in POLine.objects.filter(order=po, id__in=line_ids).select_related("variant__product")
-        }
-
-        movements_created = 0
-        discrepancies = []
-        created_variants = []
-
-        with transaction.atomic():
-            for ld in lines_data:
-                line = lines_map.get(ld["id"])
-                if not line:
-                    continue
-
-                po_ref = bl_reference or po.reference or f"PO-{po.id}"
-                notes_base = (
-                    f"Réception {po_ref} | {po.supplier.name}"
-                    + (f" | BL: {bl_reference}" if bl_reference else "")
-                )
-
-                carton_sizes = ld.get("carton_sizes") or []
-
-                if carton_sizes:
-                    # ── Carton mode: one StockMovement per size ──────────────
-                    total_received = 0
-                    for cs in carton_sizes:
-                        cs_qty = cs.get("quantity", 0)
-                        if cs_qty <= 0:
-                            continue
-                        total_received += cs_qty
-
-                    # Guard: cumulative received must not exceed ordered
-                    if line.quantity_received + total_received > line.quantity_ordered:
-                        return Response(
-                            {
-                                "detail": (
-                                    f"Ligne {line.id}: la quantité reçue cumulée "
-                                    f"({line.quantity_received + total_received}) dépasse "
-                                    f"la quantité commandée ({line.quantity_ordered})."
-                                )
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                    for cs in carton_sizes:
-                        cs_qty = cs.get("quantity", 0)
-                        if cs_qty <= 0:
-                            continue
-
-                        cs_variant = None
-                        if cs.get("variant_id"):
-                            cs_variant = Variant.objects.filter(
-                                tenant=request.tenant, id=cs["variant_id"]
-                            ).first()
-                        elif cs.get("new_variant"):
-                            nv = cs["new_variant"]
-                            product = _resolve_product(request.tenant, nv)
-                            if product:
-                                cs_variant = _resolve_variant(
-                                    request.tenant, product, cs["size_eu"], nv.get("colour", "")
-                                )
-                                created_variants.append({
-                                    "line_id": line.id,
-                                    "size_eu": cs["size_eu"],
-                                    "variant_id": cs_variant.id,
-                                    "label": str(cs_variant),
-                                })
-
-                        if cs_variant:
-                            StockMovement.objects.create(
-                                tenant=request.tenant,
-                                variant=cs_variant,
-                                branch=target_branch,
-                                quantity_delta=cs_qty,
-                                reason=MovementReasonChoices.RECEPTION,
-                                reference_id=str(po.id),
-                                reference_type="PurchaseOrder",
-                                bl_reference=bl_reference,
-                                notes=f"{notes_base} | EU{cs['size_eu']}",
-                                user=request.user,
-                            )
-                            movements_created += 1
-
-                    # Accumulate (not replace) so second partial receives are tracked correctly
-                    line.quantity_received += total_received
-                    line.save(update_fields=["quantity_received"])
-
-                else:
-                    # ── Standard mode: single variant per line ───────────────
-                    variant_id_from_request = ld.get("variant_id")
-                    new_variant_data = ld.get("new_variant")
-
-                    if not line.variant_id and variant_id_from_request:
-                        linked = Variant.objects.filter(
-                            tenant=request.tenant, id=variant_id_from_request
-                        ).first()
-                        if linked:
-                            line.variant = linked
-                            line.save(update_fields=["variant"])
-
-                    elif not line.variant_id and new_variant_data:
-                        product = _resolve_product(request.tenant, new_variant_data)
-                        if product:
-                            variant = _resolve_variant(
-                                request.tenant,
-                                product,
-                                new_variant_data["size_eu"],
-                                new_variant_data.get("colour", ""),
-                            )
-                            line.variant = variant
-                            line.save(update_fields=["variant"])
-                            created_variants.append({
-                                "line_id": line.id,
-                                "variant_id": variant.id,
-                                "label": str(variant),
-                            })
-
-                    line.refresh_from_db(fields=["variant"])
-
-                    new_qty = ld["quantity_received"]
-                    if new_qty > line.quantity_ordered:
-                        return Response(
-                            {
-                                "detail": (
-                                    f"Ligne {line.id}: la quantité reçue ({new_qty}) "
-                                    f"dépasse la quantité commandée ({line.quantity_ordered})."
-                                )
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                    delta = new_qty - line.quantity_received
-                    line.quantity_received = new_qty
-                    line.save(update_fields=["quantity_received"])
-
-                    if delta > 0 and line.variant_id:
-                        StockMovement.objects.create(
-                            tenant=request.tenant,
-                            variant_id=line.variant_id,
-                            branch=target_branch,
-                            quantity_delta=delta,
-                            reason=MovementReasonChoices.RECEPTION,
-                            reference_id=str(po.id),
-                            reference_type="PurchaseOrder",
-                            bl_reference=bl_reference,
-                            notes=notes_base,
-                            user=request.user,
-                        )
-                        movements_created += 1
-
-            # Re-compute PO status from all lines
-            all_lines = list(POLine.objects.filter(order=po))
-            if all_lines:
-                if all(ln.quantity_received >= ln.quantity_ordered for ln in all_lines):
-                    po.status = POStatusChoices.RECEIVED
-                elif any(ln.quantity_received > 0 for ln in all_lines):
-                    po.status = POStatusChoices.PARTIAL
-            po.save()
-
-            # Discrepancies
-            for ln in all_lines:
-                if ln.quantity_received < ln.quantity_ordered:
-                    discrepancies.append({
-                        "line_id": ln.id,
-                        "description": ln.description,
-                        "ordered": ln.quantity_ordered,
-                        "received": ln.quantity_received,
-                        "shortage": ln.quantity_ordered - ln.quantity_received,
-                    })
-
-        po.refresh_from_db()
         return Response({
             **PurchaseOrderSerializer(po).data,
-            "movements_created": movements_created,
-            "created_variants": created_variants,
-            "discrepancies": discrepancies,
+            **res_data
         })
 
     @action(detail=True, methods=["patch"], url_path="update-status")
