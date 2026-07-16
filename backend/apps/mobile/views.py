@@ -83,13 +83,17 @@ class BarcodeScanView(APIView):
             tenant=request.tenant, is_active=True
         ).select_related("product")
 
-        variant = (
-            base_qs.filter(barcode=barcode).first()
-            or base_qs.filter(barcode__startswith=barcode).first()
-            or base_qs.filter(barcode__startswith=barcode[:13]).first()
-            if len(barcode) >= 13 else
-            base_qs.filter(barcode=barcode).first()
-        )
+        variant = base_qs.filter(barcode=barcode).first()
+        if not variant:
+            variant = base_qs.filter(barcode__startswith=barcode).first()
+        if not variant and len(barcode) >= 13:
+            variant = base_qs.filter(barcode__startswith=barcode[:13]).first()
+        if not variant:
+            variant = base_qs.filter(product__reference__iexact=barcode).first()
+        if not variant:
+            variant = base_qs.filter(product__reference__icontains=barcode).first()
+        if not variant:
+            variant = base_qs.filter(product__name__icontains=barcode).first()
 
         if not variant:
             return Response(

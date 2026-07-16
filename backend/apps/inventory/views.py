@@ -30,7 +30,7 @@ from apps.inventory.serializers import (
 class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Product.objects.prefetch_related("variants")
     filterset_fields = ["category", "gender", "season", "is_active", "brand"]
-    search_fields = ["name", "brand", "reference"]
+    search_fields = ["name", "brand", "reference", "branch_locations__location"]
     ordering_fields = ["name", "sale_price", "purchase_price", "created_at"]
     ordering = ["name"]
 
@@ -78,12 +78,13 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         location = request.data.get("location")
         response = super().update(request, *args, **kwargs)
-        if location is not None and getattr(request.tenant, "plan", "free") != "free":
+        branch_id = request.data.get('branch_id')
+        if location is not None and getattr(request.tenant, "plan", "free") != "free" and branch_id and branch_id != "null":
             product = self.get_object()
             from apps.inventory.models import ProductLocation
             ProductLocation.objects.update_or_create(
                 tenant=request.tenant,
-                branch=request.branch,
+                branch_id=branch_id,
                 product=product,
                 defaults={"location": location}
             )
@@ -111,11 +112,12 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 product.image = request.FILES["image"]
             product.save()
             
-            if location_data is not None and getattr(request.tenant, "plan", "free") != "free":
+            branch_id = request.data.get('branch_id')
+            if location_data is not None and getattr(request.tenant, "plan", "free") != "free" and branch_id and branch_id != "null":
                 from apps.inventory.models import ProductLocation
                 ProductLocation.objects.create(
                     tenant=request.tenant,
-                    branch=request.branch,
+                    branch_id=branch_id,
                     product=product,
                     location=location_data
                 )

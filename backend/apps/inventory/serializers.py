@@ -61,12 +61,17 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_location(self, obj):
         request = self.context.get("request")
-        if not request or not getattr(request, "branch", None):
+        if not request:
             return ""
         
-        # We can check prefetched list if we prefetch it in the view, else DB query
-        # Using filter here may cause N+1 on list view, but ProductSerializer is mostly used for detail/updates.
-        loc = obj.branch_locations.filter(branch=request.branch).first()
+        branch_id = request.query_params.get("branch_id")
+        if not branch_id and hasattr(request, "data"):
+            branch_id = request.data.get("branch_id")
+            
+        if not branch_id or branch_id == "null":
+            return ""
+        
+        loc = obj.branch_locations.filter(branch_id=branch_id).first()
         return loc.location if loc else ""
 
     def to_representation(self, instance):

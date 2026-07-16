@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
 
   const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: ["product", id],
-    queryFn: () => api.get(`/inventory/products/${id}/`).then((r) => r.data),
+    queryFn: () => api.get(`/inventory/products/${id}/`, { params: { branch_id: currentBranch?.id } }).then((r) => r.data),
     enabled: !!id,
   });
 

@@ -25,6 +25,7 @@ import {
 import api, { getApiError } from "@/lib/api";
 import type { Product, Category, Gender, Season } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import { cn } from "@/lib/utils";
 import { COLOURS, type Colour } from "@/lib/colours";
 
@@ -126,6 +127,7 @@ export default function ProductFormPage() {
   const isEditing = !!id;
   const navigate = useNavigate();
   const { user, tenant } = useAuth();
+  const { currentBranch } = useBranch();
   const canUseLocation = tenant?.plan !== "free";
   const queryClient = useQueryClient();
 
@@ -163,7 +165,7 @@ export default function ProductFormPage() {
 
   const { data: existingProduct, isLoading: loadingProduct } = useQuery<Product>({
     queryKey: ["product", id],
-    queryFn: () => api.get(`/inventory/products/${id}/`).then((r) => r.data),
+    queryFn: () => api.get(`/inventory/products/${id}/`, { params: { branch_id: currentBranch?.id } }).then((r) => r.data),
     enabled: isEditing,
     staleTime: 0,
   });
@@ -270,12 +272,14 @@ export default function ProductFormPage() {
         if (imageFile) {
           const fd = new FormData();
           Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+          if (currentBranch) fd.append("branch_id", String(currentBranch.id));
           fd.append("image", imageFile);
           return api.patch(`/inventory/products/${id}/`, fd, {
             headers: { "Content-Type": "multipart/form-data" },
           });
         }
         const payload: Record<string, unknown> = { ...form };
+        if (currentBranch) payload.branch_id = currentBranch.id;
         if (clearImage) payload.image = null;
         return api.patch(`/inventory/products/${id}/`, payload);
       }
@@ -286,6 +290,7 @@ export default function ProductFormPage() {
       if (imageFile) {
         const fd = new FormData();
         Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+        if (currentBranch) fd.append("branch_id", String(currentBranch.id));
         fd.append("image", imageFile);
         if (hasVariants) {
           // FormData can't natively handle nested JSON, so we serialize variants as a JSON string
@@ -310,6 +315,7 @@ export default function ProductFormPage() {
 
       // JSON payload with inline variants
       const payload: Record<string, unknown> = { ...form };
+      if (currentBranch) payload.branch_id = currentBranch.id;
       if (hasVariants) {
         payload.variants = {
           sizes: selectedSizes,

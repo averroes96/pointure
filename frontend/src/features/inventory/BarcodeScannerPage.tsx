@@ -211,7 +211,7 @@ export default function BarcodeScannerPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               className="form-input ps-9 font-mono"
-              placeholder="Code-barres (scan ou saisie manuelle)…"
+              placeholder="Scanner ou chercher (nom, réf, code)…"
               autoComplete="off"
               inputMode="text"
             />
