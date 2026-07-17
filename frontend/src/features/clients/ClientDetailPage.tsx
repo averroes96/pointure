@@ -41,6 +41,8 @@ import { cn, whatsappLink, getStatusBadgeClass } from "@/lib/utils";
 import { wilayaLabel } from "@/lib/wilayas";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

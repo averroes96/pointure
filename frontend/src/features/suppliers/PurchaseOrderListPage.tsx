@@ -10,6 +10,8 @@ import { useTranslation } from "react-i18next";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import type { PurchaseOrder, POStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 const STATUS_TABS: { value: POStatus | ""; label: string }[] = [
   { value: "", label: "Tous" },

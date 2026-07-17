@@ -22,6 +22,8 @@ import api, { formatDate, getApiError, type PaginatedResponse } from "@/lib/api"
 import type { Branch, Variant, StockTransfer, TransferStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePrintLabels } from "@/hooks/usePrintLabels";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 // ── Status config ─────────────────────────────────────────────────────────────
 

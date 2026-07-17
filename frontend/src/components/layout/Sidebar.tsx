@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan, PLAN_LABELS } from "@/hooks/usePlan";
 import type { Plan } from "@/types";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 interface NavSection {
   key: string;

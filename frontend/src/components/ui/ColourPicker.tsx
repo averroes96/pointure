@@ -41,6 +41,7 @@ export default function ColourPicker({
   placeholder = "Couleur",
   className = "",
 }: ColourPickerProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);

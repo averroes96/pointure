@@ -5,6 +5,8 @@ import { Search, Download, ArrowUpDown } from "lucide-react";
 import api, { formatDate, type PaginatedResponse } from "@/lib/api";
 import type { StockMovement, MovementReason, Branch } from "@/types";
 import { cn } from "@/lib/utils";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 // REASON_LABELS generated inline using t("movement_reason." + reason)
 
@@ -19,9 +21,11 @@ const REASON_BADGE_CLASS: Record<MovementReason, string> = {
   initial: "badge-neutral",
 };
 
+const REASONS = ["sale", "reception", "adjustment", "return", "transfer_out", "transfer_in", "damaged", "initial"];
+
 const REASON_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: t("inventory.all_reasons") },
-  ...Object.entries(REASON_LABELS).map(([value, label]) => ({ value, label })),
+  ...REASONS.map((value) => ({ value, label: t(`movement_reason.${value}`) })),
 ];
 
 function formatTimestamp(ts: string): string {

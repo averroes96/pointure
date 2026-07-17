@@ -166,6 +166,7 @@ function ProductTable({ products, isLoading, onOrder }: ProductTableProps) {
 }
 
 export default function LowStockPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"products" | "variants">("products");
 

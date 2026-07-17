@@ -143,6 +143,7 @@ function BarcodeCell({ barcode }: { barcode: string | null | undefined }) {
 // ─────────────────────────────────────────────
 
 export default function SkuMatrix({ productId, variants, onSave, readOnly = false }: SkuMatrixProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // Build unique sorted sizes and colours from existing variants

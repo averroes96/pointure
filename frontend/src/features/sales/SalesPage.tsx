@@ -545,9 +545,9 @@ export default function SalesPage() {
             <Check size={32} className="text-warning" />
           </div>
           <h2 className="text-xl font-bold text-text-primary mb-2">{t("sales.versement_recorded")}</h2>
-          <p className="text-text-muted text-sm mb-1">{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
+          <p className="text-text-muted text-sm mb-1">{t('sales.receipt')}: <strong>{receipt.receipt_number}</strong></p>
           {receipt.client_name && (
-            <p className="text-text-muted text-sm mb-1">{t('sales.client')}: "}<strong>{receipt.client_name}</strong></p>
+            <p className="text-text-muted text-sm mb-1">{t('sales.client')}: <strong>{receipt.client_name}</strong></p>
           )}
           <div className="mb-4 mt-3 rounded-xl bg-warning-light border border-warning/30 p-3 text-sm space-y-1">
             <p className="text-text-primary">
@@ -582,7 +582,7 @@ export default function SalesPage() {
           <Check size={32} className="text-success" />
         </div>
         <h2 className="text-xl font-bold text-text-primary mb-2">{t("sales.sale_confirmed")}</h2>
-        <p className="text-text-muted text-sm mb-3">{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
+        <p className="text-text-muted text-sm mb-3">{t('sales.receipt')}: <strong>{receipt.receipt_number}</strong></p>
 
         {(ptsEarned > 0 || ptsRedeemed > 0) && (
           <div className="mb-4 rounded-xl bg-primary-50 border border-primary-100 p-3 text-sm">

@@ -20,6 +20,8 @@ import { getColourHex, getColourLabel } from "@/lib/colours";
 import type { PurchaseOrder, POLine, POStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, ProductResult } from "./components/CartonPanel";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 

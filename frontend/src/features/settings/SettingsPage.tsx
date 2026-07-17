@@ -8,6 +8,8 @@ import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 // ─── Shared Toast ──────────────────────────────────────────────────────────
 

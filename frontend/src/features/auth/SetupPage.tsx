@@ -49,6 +49,7 @@ function Spinner() {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function SetupPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);

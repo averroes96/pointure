@@ -5,6 +5,8 @@ import { Plus, Search, FileText, Download, Loader2, MessageCircle } from "lucide
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Invoice } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
+import i18n from "@/lib/i18n";
+const t = i18n.t.bind(i18n);
 
 const STATUS_OPTIONS = [
   { value: "", label: t("invoice.status_all") },

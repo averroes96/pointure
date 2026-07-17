@@ -195,7 +195,6 @@ function ProductSearchCell({
   onProductSelect,
   lineRef,
   onKeyDown,
-  const { t } = useTranslation();
   useWholesale,
 }: {
   description: string;

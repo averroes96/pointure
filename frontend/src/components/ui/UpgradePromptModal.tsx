@@ -22,6 +22,7 @@ interface UpgradeDetail {
 }
 
 export default function UpgradePromptModal() {
+  const { t } = useTranslation();
   const [detail, setDetail] = useState<UpgradeDetail | null>(null);
   const navigate = useNavigate();
 

@@ -38,6 +38,7 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [modelFilter, setModelFilter] = useState("");
   const [actionFilter, setActionFilter] = useState("");

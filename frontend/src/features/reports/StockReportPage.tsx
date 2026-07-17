@@ -69,7 +69,7 @@ export default function StockReportPage() {
     const rows = data.by_category.map((row) => ({
       "Catégorie": t(`category.${row.category}`, { defaultValue: row.category }),
       "Références": row.count,
-      t("report.units"): row.units,
+      [t("report.units")]: row.units,
     }));
     downloadCSV(rows, `rapport-stock-${new Date().toISOString().split("T")[0]}.csv`);
   }

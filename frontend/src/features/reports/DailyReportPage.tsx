@@ -187,12 +187,12 @@ export default function DailyReportPage() {
   function handleExportCSV() {
     if (!data) return;
     const rows = data.payment_breakdown.map((row) => ({
-      t("payment.method"): t(`payment_method.${row.method}`, { defaultValue: row.method }),
+      [t("payment.method")]: t(`payment_method.${row.method}`, { defaultValue: row.method }),
       "Nb transactions": row.count,
       "Montant (DZD)": row.amount,
     }));
     rows.push({
-      t("payment.method"): "TOTAL",
+      [t("payment.method")]: "TOTAL",
       "Nb transactions": data.sale_count,
       "Montant (DZD)": data.total_revenue,
     });
