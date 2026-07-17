@@ -51,7 +51,7 @@ function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
                 </div>
               </td>
               <td className="font-mono text-text-muted">{variant.size_eu}</td>
-              <td className="text-text-muted">{variant.colour || "—"}</td>
+              <td className="text-text-muted">{variant.colour === "N/A" ? t("common.na") : variant.colour}</td>
               <td className="text-end">
                 <span
                   className={cn(

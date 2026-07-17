@@ -712,7 +712,7 @@ export default function SalesPage() {
                           )}
                         >
                           EU{variant.size_eu}<br />
-                          <span className="text-2xs">{variant.colour}</span><br />
+                          <span className="text-2xs">{variant.colour === "N/A" ? t("common.na") : variant.colour}</span><br />
                           <span className="text-2xs opacity-70">×{variant.stock_qty}</span>
                         </button>
                       ))}
@@ -807,7 +807,7 @@ export default function SalesPage() {
                       {item.product.brand} {item.product.name}
                     </div>
                     <div className="text-xs text-text-muted">
-                      EU{item.variant.size_eu} · {item.variant.colour}
+                      EU{item.variant.size_eu} · {item.variant.colour === "N/A" ? t("common.na") : item.variant.colour}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <input

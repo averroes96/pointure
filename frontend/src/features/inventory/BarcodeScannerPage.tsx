@@ -358,7 +358,7 @@ export default function BarcodeScannerPage() {
               <div className="rounded-lg bg-surface border border-border p-3">
                 <div className="text-xs text-text-muted mb-1">Pointure / Couleur</div>
                 <div className="text-sm text-text-primary font-medium">
-                  EU {v.size_eu}{v.colour ? ` · ${v.colour}` : ""}
+                  EU {v.size_eu}{v.colour ? ` · ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}
                 </div>
               </div>
               <div className="rounded-lg bg-surface border border-border p-3">
@@ -436,7 +436,7 @@ export default function BarcodeScannerPage() {
               to="/purchase-orders/new"
               state={{
                 lines: [{
-                  description: `${p.name} — EU${v.size_eu}${v.colour ? ` / ${v.colour}` : ""}`,
+                  description: `${p.name} — EU${v.size_eu}${v.colour ? ` / ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`,
                   quantity_ordered: String(Math.max(1, v.alert_threshold - v.stock_qty)),
                   agreed_unit_price: "",
                 }],

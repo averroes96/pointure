@@ -40,7 +40,7 @@ const t = i18n.t.bind(i18n);
 
 // SEASONS dynamically translated inline
 
-const ALL_SIZES = Array.from({ length: 20 }, (_, i) => 28 + i); // EU 28–47
+const ALL_SIZES = Array.from({ length: 31 }, (_, i) => 15 + i); // EU 15–45
 
 // Frequently used colours shown as quick-pick buttons
 const QUICK_COLOURS = COLOURS.filter((c) =>
@@ -135,7 +135,7 @@ export default function ProductFormPage() {
   const [colourSearch, setColourSearch] = useState("");
 
   const variantCount = useMemo(
-    () => selectedSizes.length * selectedColours.length,
+    () => selectedSizes.length * Math.max(1, selectedColours.length),
     [selectedSizes, selectedColours]
   );
 
@@ -273,7 +273,7 @@ export default function ProductFormPage() {
       }
 
       // ── Creation mode: include variants ──
-      const hasVariants = selectedSizes.length > 0 && selectedColours.length > 0;
+      const hasVariants = selectedSizes.length > 0;
 
       if (imageFile) {
         const fd = new FormData();
@@ -933,7 +933,9 @@ export default function ProductFormPage() {
                 <Grid3X3 size={16} className="text-primary-500 flex-shrink-0" />
                 <div className="text-sm text-text-primary">
                   <span className="font-semibold">{selectedSizes.length}</span> pointure{selectedSizes.length > 1 ? "s" : ""}{" "}
-                  × <span className="font-semibold">{selectedColours.length}</span> couleur{selectedColours.length > 1 ? "s" : ""}{" "}
+                  {selectedColours.length > 0 && (
+                    <>× <span className="font-semibold">{selectedColours.length}</span> couleur{selectedColours.length > 1 ? "s" : ""}{" "}</>
+                  )}
                   = <span className="font-bold text-primary-600">{variantCount}</span> variante{variantCount > 1 ? "s" : ""} à créer
                 </div>
               </div>
@@ -941,7 +943,7 @@ export default function ProductFormPage() {
 
             {variantCount === 0 && (
               <p className="text-xs text-text-muted">
-                Sélectionnez au moins une pointure et une couleur pour générer les variantes.
+                Sélectionnez au moins une pointure pour générer les variantes.
                 Vous pouvez aussi les ajouter plus tard depuis la fiche produit.
               </p>
             )}

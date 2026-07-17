@@ -136,14 +136,16 @@ export function CartonPanel({
   config: CartonConfig;
   onChange: (c: CartonConfig) => void;
 }) {
+  const [distributeTotal, setDistributeTotal] = useState(18);
   const sizes = getSizeRange(config.size_from, config.size_to);
   const { colours, quantities, cartons_received } = config;
+  const effectiveColours = colours.length > 0 ? colours : [""];
 
-  const grandTotal = colours.reduce(
+  const grandTotal = effectiveColours.reduce(
     (sum, c) => sum + sizes.reduce((s, sz) => s + (quantities[c]?.[sz] ?? 0), 0),
     0
   );
-  const expectedTotal = colours.length * sizes.length * cartons_received;
+  const expectedTotal = effectiveColours.length * sizes.length * cartons_received;
 
   function updateField(field: keyof CartonConfig, value: unknown) {
     onChange({ ...config, [field]: value });
@@ -176,17 +178,18 @@ export function CartonPanel({
   }
 
   function applyEven() {
+    const perCell = Math.floor(distributeTotal / (effectiveColours.length * sizes.length));
     const newQty: Record<string, Record<number, number>> = {};
-    colours.forEach((c) => {
+    effectiveColours.forEach((c) => {
       newQty[c] = {};
-      sizes.forEach((s) => { newQty[c][s] = cartons_received; });
+      sizes.forEach((s) => { newQty[c][s] = perCell; });
     });
     onChange({ ...config, quantities: newQty });
   }
 
   function handleCartonCountChange(n: number) {
     const newQty: Record<string, Record<number, number>> = {};
-    colours.forEach((c) => {
+    effectiveColours.forEach((c) => {
       newQty[c] = {};
       sizes.forEach((s) => { newQty[c][s] = n; });
     });
@@ -198,7 +201,7 @@ export function CartonPanel({
     const newTo   = field === "size_to"   ? val : config.size_to;
     const newSizes = getSizeRange(newFrom, newTo);
     const newQty: Record<string, Record<number, number>> = {};
-    colours.forEach((c) => {
+    effectiveColours.forEach((c) => {
       newQty[c] = {};
       newSizes.forEach((s) => { newQty[c][s] = quantities[c]?.[s] ?? cartons_received; });
     });
@@ -247,22 +250,23 @@ export function CartonPanel({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-text-muted text-xs">EU</span>
-          <input type="number" min={24} max={50} value={config.size_from}
+          <input type="number" min={15} max={60} value={config.size_from}
             onChange={(e) => handleRangeChange("size_from", parseInt(e.target.value) || 36)}
             className="form-input py-1 w-12 text-center text-sm font-mono"
           />
           <span className="text-text-muted">→</span>
-          <input type="number" min={24} max={50} value={config.size_to}
+          <input type="number" min={15} max={60} value={config.size_to}
             onChange={(e) => handleRangeChange("size_to", parseInt(e.target.value) || 41)}
             className="form-input py-1 w-12 text-center text-sm font-mono"
           />
         </div>
-        <button type="button" onClick={applyEven}
-          disabled={!colours.length || !sizes.length}
-          className="btn-secondary btn-sm"
-        >
-          Répartir (×{cartons_received})
-        </button>
+        <div className="flex items-center gap-1.5 ml-2 border-l border-primary-200 pl-4">
+          <input type="number" value={distributeTotal} onChange={(e) => setDistributeTotal(parseInt(e.target.value) || 0)} className="form-input py-1 w-14 text-center text-sm font-mono" />
+          <span className="text-xs text-text-muted">paires au total</span>
+          <button type="button" onClick={applyEven} disabled={!sizes.length} className="btn-secondary btn-sm ml-1">
+            Répartir
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -287,7 +291,7 @@ export function CartonPanel({
         </div>
       </div>
 
-      {colours.length > 0 && sizes.length > 0 && (
+      {sizes.length > 0 && (
         <div className="overflow-x-auto">
           <table className="text-xs border-collapse w-full">
             <thead>
@@ -300,7 +304,7 @@ export function CartonPanel({
               </tr>
             </thead>
             <tbody>
-              {colours.map((colour) => {
+              {effectiveColours.map((colour) => {
                 const rowTotal = sizes.reduce((sum, s) => sum + (quantities[colour]?.[s] ?? 0), 0);
                 return (
                   <tr key={colour}>
@@ -309,7 +313,7 @@ export function CartonPanel({
                         {getColourHex(colour) && (
                           <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getColourHex(colour)!, border: colour === "white" ? "1px solid #e5e7eb" : "none" }} />
                         )}
-                        <span className="font-medium text-text-primary truncate">{getColourLabel(colour)}</span>
+                        <span className="font-medium text-text-primary truncate">{colour ? getColourLabel(colour) : "Sans couleur"}</span>
                       </div>
                     </td>
                     {sizes.map((s) => (

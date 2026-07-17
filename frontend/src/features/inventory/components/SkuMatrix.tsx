@@ -172,7 +172,6 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
   });
   const [newColourInput, setNewColourInput] = useState("");
 
-  // Map for quick lookup: `${size}_${colour}` -> Variant
   const variantMap = useMemo(() => {
     const m = new Map<string, Variant>();
     variants.forEach((v) => m.set(`${v.size_eu}_${v.colour}`, v));
@@ -205,7 +204,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
       api.post("/inventory/variants/", {
         product: productId,
         size_eu: parseFloat(newForm.size_eu),
-        colour: newForm.colour || newColourInput,
+        colour: newForm.colour || newColourInput || "N/A",
         alert_threshold: parseInt(newForm.alert_threshold) || 3,
       }).then((r) => r.data),
     onSuccess: () => {
@@ -339,7 +338,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
                   key={colour}
                   className="px-3 py-2 text-center font-semibold text-text-primary border-e border-border last:border-e-0 whitespace-nowrap min-w-[140px]"
                 >
-                  {colour}
+                  {colour === "N/A" ? t("common.na") : colour}
                 </th>
               ))}
             </tr>

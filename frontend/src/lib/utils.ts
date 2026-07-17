@@ -56,3 +56,12 @@ export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - 3) + "…";
 }
+
+/**
+ * Renders the translated "N/A" if colour is "N/A", otherwise the colour itself.
+ */
+export function formatColour(colour: string | null | undefined, t: any): string {
+  if (!colour) return "";
+  if (colour === "N/A") return t("common.na");
+  return colour;
+}

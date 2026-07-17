@@ -124,8 +124,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Generate variants if sizes/colours were provided
             if variants_data:
-                sizes = variants_data["sizes"]
-                colours = variants_data["colours"]
+                sizes = variants_data.get("sizes", [])
+                colours = variants_data.get("colours") or ["N/A"]
                 threshold = variants_data.get("alert_threshold", 3)
                 for size in sizes:
                     for colour in colours:
@@ -309,8 +309,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer = GenerateVariantsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        sizes = serializer.validated_data["sizes"]
-        colours = serializer.validated_data["colours"]
+        sizes = serializer.validated_data.get("sizes", [])
+        colours = serializer.validated_data.get("colours") or ["N/A"]
         threshold = serializer.validated_data["alert_threshold"]
 
         created = 0

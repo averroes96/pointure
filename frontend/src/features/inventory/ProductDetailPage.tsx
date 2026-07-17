@@ -496,7 +496,7 @@ export default function ProductDetailPage() {
                       <th>Succursale</th>
                       {/* Collect unique sizes across all branches */}
                       {Array.from(
-                        new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour}`)))
+                        new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour === "N/A" ? t("common.na") : v.colour}`)))
                       )
                         .slice(0, 12)
                         .map((key) => {
@@ -514,7 +514,7 @@ export default function ProductDetailPage() {
                   <tbody>
                     {branchStock.map((branch) => {
                       const variantKeys = Array.from(
-                        new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour}`)))
+                        new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour === "N/A" ? t("common.na") : v.colour}`)))
                       ).slice(0, 12);
                       const branchTotal = branch.variants.reduce((s, v) => s + v.stock, 0);
                       return (
@@ -601,7 +601,7 @@ export default function ProductDetailPage() {
                     .map((v) => (
                       <tr key={v.id}>
                         <td className="font-mono font-semibold">EU {v.size_eu}</td>
-                        <td>{v.colour}</td>
+                        <td>{v.colour === "N/A" ? t("common.na") : v.colour}</td>
                         <td>
                           {v.barcode ? (
                             <span className="font-mono text-text-primary">{v.barcode}</span>
@@ -730,7 +730,7 @@ export default function ProductDetailPage() {
                         return (
                           <tr key={v.id}>
                             <td className="font-medium text-text-primary">
-                              EU{v.size_eu} · {v.colour}
+                              EU{v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}
                             </td>
                             <td className="text-center font-mono text-text-muted">
                               {v.stock_qty}

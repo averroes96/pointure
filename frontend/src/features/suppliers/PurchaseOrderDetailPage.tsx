@@ -145,7 +145,7 @@ function VariantSearch({
             <div className="p-3 text-xs text-text-muted">Aucun résultat pour « {query} »</div>
           )}
           {results.map((v) => {
-            const label = `${v.product_name} · EU${v.size_eu}${v.colour ? ` · ${v.colour}` : ""}`;
+            const label = `${v.product_name} · EU${v.size_eu}${v.colour ? ` · ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`;
             return (
               <button
                 key={v.id}

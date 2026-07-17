@@ -170,9 +170,9 @@ class Variant(TenantScopedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     size_eu = models.IntegerField(
         _("EU Size"),
-        validators=[MinValueValidator(28), MaxValueValidator(47)],
+        validators=[MinValueValidator(15), MaxValueValidator(60)],
     )
-    colour = models.CharField(_("Colour"), max_length=50)
+    colour = models.CharField(_("Colour"), max_length=50, blank=True, default="N/A")
     barcode = models.CharField(_("Barcode"), max_length=14, blank=True, db_index=True)
     stock_qty = models.IntegerField(_("Stock Qty"), default=0)
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=3)
@@ -185,7 +185,9 @@ class Variant(TenantScopedModel):
         ordering = ["product", "size_eu", "colour"]
 
     def __str__(self):
-        return f"{self.product} | EU{self.size_eu} | {self.colour}"
+        if self.colour and self.colour != "N/A":
+            return f"{self.product} | EU{self.size_eu} | {self.colour}"
+        return f"{self.product} | EU{self.size_eu}"
 
     def save(self, *args, **kwargs):
         # Auto-generate barcode if not set (can only be done after pk is assigned)

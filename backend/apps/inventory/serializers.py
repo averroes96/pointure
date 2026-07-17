@@ -144,7 +144,7 @@ class GenerateVariantsSerializer(serializers.Serializer):
     )
     colours = serializers.ListField(
         child=serializers.CharField(max_length=50),
-        min_length=1, max_length=20,
+        required=False, allow_empty=True, max_length=20,
     )
     alert_threshold = serializers.IntegerField(default=3, min_value=0)
 

@@ -75,7 +75,7 @@ function VariantSearchInput({
   }
 
   function pick(v: Variant) {
-    setQuery(`${v.product_name} — T${v.size_eu} ${v.colour}`);
+    setQuery(`${v.product_name} — T${v.size_eu} ${v.colour === "N/A" ? t("common.na") : v.colour}`);
     setResults([]);
     setOpen(false);
     onSelect(v);
@@ -110,7 +110,7 @@ function VariantSearchInput({
               <div className="min-w-0">
                 <div className="font-medium text-sm text-text-primary truncate">{v.product_name}</div>
                 <div className="text-xs text-text-muted">
-                  Pointure {v.size_eu} · {v.colour}
+                  Pointure {v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}
                 </div>
               </div>
               <span className={cn(

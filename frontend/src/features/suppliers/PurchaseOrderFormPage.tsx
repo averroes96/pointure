@@ -20,6 +20,7 @@ import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Supplier } from "@/types";
 import { cn } from "@/lib/utils";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange } from "./components/CartonPanel";
+import { useBranch } from "@/features/auth/BranchContext";
 
 // ── Supplier search dropdown ───────────────────────────────────────────────────
 
@@ -176,7 +177,7 @@ function VariantSearchInput({
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-text-primary">{v.product_name || `Variant #${v.id}`}</div>
                 <div className="text-xs text-text-muted">
-                  EU{v.size_eu} {v.colour ? `· ${v.colour}` : ""} · En stock: {v.stock_qty}
+                  EU{v.size_eu} {v.colour ? `· ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""} · En stock: {v.stock_qty}
                 </div>
               </div>
             </button>
@@ -203,7 +204,7 @@ let _lineCounter = 0;
 function localId() { return ++_lineCounter; }
 
 function emptyLine(): LineItem {
-  return { _id: localId(), variant_id: null, description: "", quantity_ordered: "1", agreed_unit_price: "", is_carton: false, carton_config: { ...DEFAULT_CARTON } };
+  return { _id: localId(), variant_id: null, description: "", quantity_ordered: "1", agreed_unit_price: "", is_carton: true, carton_config: { ...DEFAULT_CARTON } };
 }
 
 function lineTotal(line: LineItem): number {
@@ -220,6 +221,7 @@ export default function PurchaseOrderFormPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { currentBranch } = useBranch();
 
   // Lines pre-filled from Low Stock page via navigate(..., { state: { lines } })
   const prefilledLines: Pick<LineItem, "description" | "quantity_ordered" | "agreed_unit_price">[] =
@@ -231,7 +233,7 @@ export default function PurchaseOrderFormPage() {
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
   
-  const [receiveImmediately, setReceiveImmediately] = useState(false);
+  const [receiveImmediately, setReceiveImmediately] = useState(true);
   const [blReference, setBlReference] = useState("");
   const [lines, setLines] = useState<LineItem[]>(
     prefilledLines.length > 0
@@ -272,13 +274,15 @@ export default function PurchaseOrderFormPage() {
         expected_date: expectedDate || null,
         notes,
         receive_immediately: receiveImmediately,
+        branch: currentBranch?.id || null,
         bl_reference: receiveImmediately ? blReference : "",
         lines: lines.map((l) => {
           let carton_sizes: any[] = [];
           if (receiveImmediately && l.is_carton) {
             const cfg = l.carton_config;
             const sizes = getSizeRange(cfg.size_from, cfg.size_to);
-            carton_sizes = cfg.colours.flatMap((colour) =>
+            const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
+            carton_sizes = effectColours.flatMap((colour) =>
               sizes
                 .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
                 .map((s) => ({
@@ -290,7 +294,7 @@ export default function PurchaseOrderFormPage() {
                     brand: cfg.brand,
                     category: cfg.category,
                     size_eu: s,
-                    colour,
+                    colour: colour || "N/A",
                     purchase_price: parseFloat(cfg.purchase_price) || 0,
                     sale_price: parseFloat(cfg.sale_price) || 0,
                   },
@@ -498,7 +502,7 @@ export default function PurchaseOrderFormPage() {
                               ) : (
                                 <VariantSearchInput onSelect={(v) => {
                                   updateLine(line._id, "variant_id", String(v.id));
-                                  updateLine(line._id, "description", `${v.product_name} - EU${v.size_eu}${v.colour ? ` ${v.colour}` : ""}`);
+                                  updateLine(line._id, "description", `${v.product_name} - EU${v.size_eu}${v.colour ? ` ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`);
                                   if (!line.agreed_unit_price && v.purchase_price) updateLine(line._id, "agreed_unit_price", v.purchase_price);
                                 }} />
                               )
@@ -564,7 +568,8 @@ export default function PurchaseOrderFormPage() {
                                updateLine(line._id, "carton_config", cfg);
                                // Automatically update quantity and price if possible
                                const sizes = getSizeRange(cfg.size_from, cfg.size_to);
-                               const grandTotal = cfg.colours.reduce((sum, c) => sum + sizes.reduce((s, sz) => s + (cfg.quantities[c]?.[sz] ?? 0), 0), 0);
+                               const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
+                               const grandTotal = effectColours.reduce((sum, c) => sum + sizes.reduce((s, sz) => s + (cfg.quantities[c]?.[sz] ?? 0), 0), 0);
                                updateLine(line._id, "quantity_ordered", String(grandTotal));
                                if (cfg.purchase_price) updateLine(line._id, "agreed_unit_price", cfg.purchase_price);
                             }}

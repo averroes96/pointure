@@ -377,7 +377,7 @@ function VariantSearchCell({
                 onClick={() => {
                   onSelect({
                     id: v.id,
-                    label: `${v.product_name} EU${v.size_eu} ${v.colour}`,
+                    label: `${v.product_name} EU${v.size_eu} ${v.colour === "N/A" ? t("common.na") : v.colour}`,
                     unitPrice: v.product_sale_price,
                   });
                   setOpen(false);
@@ -388,7 +388,7 @@ function VariantSearchCell({
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <span className="font-medium">{v.product_name}</span>
-                    <span className="text-text-muted ml-1">EU{v.size_eu} · {v.colour}</span>
+                    <span className="text-text-muted ml-1">EU{v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}</span>
                   </div>
                   <span className="font-mono text-primary-600 flex-shrink-0 text-2xs">
                     {formatDZD(v.product_sale_price)} DZD

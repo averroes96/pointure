@@ -31,7 +31,9 @@ class POLineSerializer(serializers.ModelSerializer):
         if not obj.variant_id:
             return None
         v = obj.variant
-        return f"{v.product.name} · EU{v.size_eu}" + (f" · {v.colour}" if v.colour else "")
+        if v.colour and v.colour != "N/A":
+            return f"{v.product.name} · EU{v.size_eu} · {v.colour}"
+        return f"{v.product.name} · EU{v.size_eu}"
 
 
 # ── Purchase Order (list / detail) ─────────────────────────────────────────────
@@ -90,7 +92,7 @@ class NewVariantInputSerializer(serializers.Serializer):
 
 class CartonSizeInputSerializer(serializers.Serializer):
     """One entry per EU size in a carton-mode receive. quantity is the total pairs for this size."""
-    size_eu   = serializers.IntegerField(min_value=24, max_value=50)
+    size_eu   = serializers.IntegerField(min_value=15, max_value=60)
     quantity  = serializers.IntegerField(min_value=0)
     # Variant resolution — same logic as top-level receive
     variant_id  = serializers.IntegerField(required=False, allow_null=True, default=None)
