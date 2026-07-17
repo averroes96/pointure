@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
-  X, Search, Plus, Trash2, ShoppingBag, Factory,
+  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Supplier } from "@/types";
@@ -242,6 +242,71 @@ export default function PurchaseOrderFormPage() {
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setFormError(null);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await api.post("/suppliers/purchase-orders/parse-pdf/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const parsedLines = res.data.lines;
+      
+      if (parsedLines && parsedLines.length > 0) {
+        const newLines = parsedLines.map((pl: any) => ({
+          _id: localId(),
+          variant_id: null,
+          description: `Auto-import ${pl.reference}`,
+          quantity_ordered: String(pl.total_pairs || (pl.cartons * pl.pairs_per_carton) || 1),
+          agreed_unit_price: String(pl.price || ""),
+          is_carton: true,
+          carton_config: {
+            ...DEFAULT_CARTON,
+            product_name: pl.reference,
+            size_from: pl.size_from || 36,
+            size_to: pl.size_to || 41,
+            cartons_received: pl.cartons || 1,
+            purchase_price: String(pl.price || ""),
+            // Automatically distribute the total pairs across sizes
+            quantities: {
+              "": Object.fromEntries((() => {
+                const range = getSizeRange(pl.size_from || 36, pl.size_to || 41);
+                const totalPairs = (pl.cartons || 1) * (pl.pairs_per_carton || 1);
+                const basePerSize = Math.floor(totalPairs / (range.length || 1));
+                let remainder = totalPairs % (range.length || 1);
+                
+                return range.map((s, idx) => {
+                  // Distribute the remainder starting from the middle sizes (typical shoe distribution)
+                  // Or simply from the beginning for simplicity
+                  let qty = basePerSize;
+                  if (remainder > 0) {
+                    qty += 1;
+                    remainder -= 1;
+                  }
+                  return [s, qty];
+                });
+              })())
+            }
+          }
+        }));
+        setLines(newLines);
+        setReceiveImmediately(true);
+      }
+    } catch (err: any) {
+      setFormError("Échec de l'importation du PDF: " + getApiError(err));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Pre-select supplier from ?supplier=<id>
   useEffect(() => {
@@ -348,6 +413,24 @@ export default function PurchaseOrderFormPage() {
         <div>
           <h1 className="text-xl font-bold text-text-primary">Nouvelle commande d'achat</h1>
           <p className="text-sm text-text-muted">Créez un bon de commande fournisseur.</p>
+        </div>
+        <div className="ms-auto">
+          <input
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handlePdfUpload}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            Importer un PDF
+          </button>
         </div>
       </div>
 

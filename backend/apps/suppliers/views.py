@@ -413,6 +413,20 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return PurchaseOrderListSerializer
         return PurchaseOrderSerializer
 
+    @action(detail=False, methods=["post"], url_path="parse-pdf")
+    def parse_pdf(self, request):
+        if "file" not in request.FILES:
+            return Response({"error": "No file provided"}, status=400)
+        
+        pdf_file = request.FILES["file"]
+        
+        from .pdf_parser import parse_supplier_invoice
+        try:
+            result = parse_supplier_invoice(pdf_file)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
     def create(self, request, *args, **kwargs):
         input_ser = CreatePurchaseOrderSerializer(data=request.data)
         input_ser.is_valid(raise_exception=True)

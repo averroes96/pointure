@@ -70,7 +70,7 @@ const EMPTY_FORM: FormState = {
   brand: "",
   reference: "",
   description: "",
-  category: "sneakers",
+  category: "other",
   gender: "U",
   season: "all",
   sale_price: "",

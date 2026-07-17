@@ -103,7 +103,7 @@ export interface CartonConfig {
 }
 
 export const DEFAULT_CARTON: CartonConfig = {
-  product_id: null, product_name: "", brand: "", category: "sneakers",
+  product_id: null, product_name: "", brand: "", category: "other",
   purchase_price: "", sale_price: "",
   colours: [],
   size_from: 36, size_to: 41,
@@ -136,16 +136,20 @@ export function CartonPanel({
   config: CartonConfig;
   onChange: (c: CartonConfig) => void;
 }) {
-  const [distributeTotal, setDistributeTotal] = useState(18);
   const sizes = getSizeRange(config.size_from, config.size_to);
   const { colours, quantities, cartons_received } = config;
   const effectiveColours = colours.length > 0 ? colours : [""];
 
-  const grandTotal = effectiveColours.reduce(
+  // Calculate the actual sum of pairs currently configured (Total pairs)
+  const currentTotalPairs = effectiveColours.reduce(
     (sum, c) => sum + sizes.reduce((s, sz) => s + (quantities[c]?.[sz] ?? 0), 0),
     0
   );
-  const expectedTotal = effectiveColours.length * sizes.length * cartons_received;
+
+  const [distributeTotal, setDistributeTotal] = useState(currentTotalPairs || 150);
+
+  const grandTotal = currentTotalPairs;
+  const isOk = grandTotal > 0;
 
   function updateField(field: keyof CartonConfig, value: unknown) {
     onChange({ ...config, [field]: value });
@@ -164,7 +168,7 @@ export function CartonPanel({
   function addColour(colour: string) {
     if (!colour || colours.includes(colour)) return;
     const row: Record<number, number> = {};
-    sizes.forEach((s) => { row[s] = cartons_received; });
+    sizes.forEach((s) => { row[s] = 1; }); // Default 1
     onChange({
       ...config,
       colours: [...colours, colour],
@@ -178,22 +182,27 @@ export function CartonPanel({
   }
 
   function applyEven() {
+    if (!sizes.length) return;
     const perCell = Math.floor(distributeTotal / (effectiveColours.length * sizes.length));
+    let remainder = distributeTotal % (effectiveColours.length * sizes.length);
+
     const newQty: Record<string, Record<number, number>> = {};
     effectiveColours.forEach((c) => {
       newQty[c] = {};
-      sizes.forEach((s) => { newQty[c][s] = perCell; });
+      sizes.forEach((s) => { 
+        let qty = perCell;
+        if (remainder > 0) {
+          qty += 1;
+          remainder -= 1;
+        }
+        newQty[c][s] = qty; 
+      });
     });
     onChange({ ...config, quantities: newQty });
   }
 
   function handleCartonCountChange(n: number) {
-    const newQty: Record<string, Record<number, number>> = {};
-    effectiveColours.forEach((c) => {
-      newQty[c] = {};
-      sizes.forEach((s) => { newQty[c][s] = n; });
-    });
-    onChange({ ...config, cartons_received: n, quantities: newQty });
+    onChange({ ...config, cartons_received: n });
   }
 
   function handleRangeChange(field: "size_from" | "size_to", val: number) {
@@ -203,12 +212,11 @@ export function CartonPanel({
     const newQty: Record<string, Record<number, number>> = {};
     effectiveColours.forEach((c) => {
       newQty[c] = {};
-      newSizes.forEach((s) => { newQty[c][s] = quantities[c]?.[s] ?? cartons_received; });
+      newSizes.forEach((s) => { newQty[c][s] = quantities[c]?.[s] ?? 0; });
     });
     onChange({ ...config, [field]: val, quantities: newQty });
   }
 
-  const isOk = grandTotal === expectedTotal && expectedTotal > 0;
 
   return (
     <div className="border border-primary-200 rounded-lg p-3 space-y-3 bg-primary-50/30">
@@ -350,12 +358,7 @@ export function CartonPanel({
 
       <div className={`flex items-center gap-2 text-sm font-medium ${isOk ? "text-success" : "text-warning"}`}>
         {isOk ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-        {grandTotal} paire{grandTotal !== 1 ? "s" : ""} · {colours.length} couleur{colours.length !== 1 ? "s" : ""} · {sizes.length} pointure{sizes.length !== 1 ? "s" : ""}
-        {!isOk && colours.length > 0 && sizes.length > 0 && (
-          <span className="text-xs font-normal text-text-muted">
-            — attendu {expectedTotal} ({cartons_received} carton{cartons_received > 1 ? "s" : ""} × {colours.length * sizes.length} variantes)
-          </span>
-        )}
+        {grandTotal} paire{grandTotal !== 1 ? "s" : ""} au total · {colours.length} couleur{colours.length !== 1 ? "s" : ""} · {sizes.length} pointure{sizes.length !== 1 ? "s" : ""}
       </div>
     </div>
   );
