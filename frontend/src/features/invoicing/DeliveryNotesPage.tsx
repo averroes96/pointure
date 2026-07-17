@@ -123,7 +123,7 @@ export default function DeliveryNotesPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder=t("invoice.search_bl_client")
+          placeholder={t("invoice.search_bl_client")}
         />
       </div>
 
@@ -198,7 +198,7 @@ export default function DeliveryNotesPage() {
                       onClick={() => openPdf(note.id, note.number)}
                       disabled={loadingPdfId === note.id}
                       className="btn-ghost btn-sm text-primary-500 disabled:opacity-50"
-                      title=t("invoice.download_pdf")
+                      title={t("invoice.download_pdf")}
                     >
                       {loadingPdfId === note.id
                         ? <Loader2 size={14} className="animate-spin" />

@@ -41,6 +41,7 @@ function AmountCell({
   colorClass: string;
   bold?: boolean;
 }) {
+  const { t } = useTranslation();
   const num = parseFloat(value);
   if (!num || num === 0) {
     return <td className="text-end font-mono text-text-muted text-sm">—</td>;

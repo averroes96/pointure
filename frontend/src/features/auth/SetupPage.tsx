@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";

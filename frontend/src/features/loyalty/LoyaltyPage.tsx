@@ -4,6 +4,7 @@
  * Tab 1 "Programme" — config form + stats + leaderboard
  * Tab 2 "Comptes"   — searchable/filterable accounts table with adjust modal
  */
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -64,6 +65,7 @@ interface ProgramFormData {
 }
 
 function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
@@ -323,6 +325,7 @@ function AdjustModal({
   account: LoyaltyAccountSummary;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [points, setPoints] = useState("");
   const [description, setDescription] = useState("");
@@ -433,6 +436,7 @@ function AdjustModal({
 type TierFilter = "all" | "bronze" | "silver" | "gold";
 
 function AccountsPanel() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isManager = user?.role === "owner" || user?.role === "manager";
 

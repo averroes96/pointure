@@ -8,6 +8,7 @@
  * Each cell shows: stock qty (read-only), alert threshold (editable), barcode.
  * New size/colour combinations can be added; existing ones can be toggled active/inactive.
  */
+import { useTranslation } from "react-i18next";
 import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Save, X, AlertTriangle, Package, Copy, Check, Barcode } from "lucide-react";
@@ -53,6 +54,7 @@ function stockClass(qty: number, isLowStock: boolean): string {
 // ─────────────────────────────────────────────
 
 function BarcodeCell({ barcode }: { barcode: string | null | undefined }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -485,6 +487,7 @@ function AddVariantForm({
   onCancel,
   isPending,
 }: AddVariantFormProps) {
+  const { t } = useTranslation();
   return (
     <div className="card p-4 border-primary-200 bg-primary-50/30">
       <h3 className="text-sm font-semibold text-text-primary mb-3">Nouvelle variante</h3>

@@ -95,8 +95,8 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">{"{t('sales.process_return')}"}</h2>
-            <p className="text-xs text-text-muted">{"{t('sales.receipt')} {sale.receipt_number || `#${sale.id}`}</p>
+            <h2 className="font-semibold text-text-primary">{t("sales.process_return")}</h2>
+            <p className="text-xs text-text-muted">{t('sales.receipt')} {sale.receipt_number || `#${sale.id}`}</p>
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm text-text-muted">
             <X size={16} />
@@ -136,7 +136,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                   {s.selected && (
                     <div className="mt-2 ms-7 flex items-center gap-4 flex-wrap">
                       <label className="flex items-center gap-1.5 text-xs">
-                        <span className="text-text-muted">{"{t('sales.qty_returned')}"}</span>
+                        <span className="text-text-muted">{t("sales.qty_returned")}</span>
                         <input
                           type="number"
                           min={1}
@@ -161,7 +161,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                           onChange={(e) => updateItem(i, { restock: e.target.checked })}
                           className="accent-primary-600"
                         />
-                        <span className="text-text-muted">{"{t('sales.restock')}"}</span>
+                        <span className="text-text-muted">{t("sales.restock")}</span>
                       </label>
                     </div>
                   )}
@@ -172,7 +172,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 
           {/* Reason */}
           <div>
-            <label className="form-label">{"{t('sales.return_reason')}"}</label>
+            <label className="form-label">{t("sales.return_reason")}</label>
             <input
               type="text"
               value={reason}
@@ -185,7 +185,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           {/* Refund */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">{"{t('sales.refund_amount')}"}</label>
+              <label className="form-label">{t("sales.refund_amount")}</label>
               <input
                 type="number"
                 min={0}
@@ -196,7 +196,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
               />
             </div>
             <div>
-              <label className="form-label">{"{t('sales.refund_method')}"}</label>
+              <label className="form-label">{t("sales.refund_method")}</label>
               <select
                 value={refundMethod}
                 onChange={(e) => setRefundMethod(e.target.value as PaymentMethod)}
@@ -267,8 +267,8 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">{"{t('sales.add_payment')}"}</h2>
-            <p className="text-xs text-text-muted">{"{t('sales.versement')} {sale.receipt_number || `#${sale.id}`}</p>
+            <h2 className="font-semibold text-text-primary">{t("sales.add_payment")}</h2>
+            <p className="text-xs text-text-muted">{t('sales.versement')} {sale.receipt_number || `#${sale.id}`}</p>
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm text-text-muted"><X size={16} /></button>
         </div>
@@ -277,20 +277,20 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           {/* Sale summary */}
           <div className="rounded-lg bg-surface p-3 space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-text-muted">{"{t('sales.sale_total')}"}</span>
+              <span className="text-text-muted">{t("sales.sale_total")}</span>
               <span className="font-mono font-semibold">{formatDZD(sale.total_amount)} DZD</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted">{"{t('sales.already_paid')}"}</span>
+              <span className="text-text-muted">{t("sales.already_paid")}</span>
               <span className="font-mono text-success">{formatDZD(sale.amount_paid)} DZD</span>
             </div>
             <div className="flex justify-between border-t border-border pt-1">
-              <span className="text-text-muted font-medium">{"{t('sales.remaining_balance')}"}</span>
+              <span className="text-text-muted font-medium">{t("sales.remaining_balance")}</span>
               <span className="font-mono font-bold text-danger">{formatDZD(sale.balance_due)} DZD</span>
             </div>
             {sale.due_date && (
               <div className="flex justify-between text-xs">
-                <span className="text-text-muted">{"{t('sales.due_date')}"}</span>
+                <span className="text-text-muted">{t("sales.due_date")}</span>
                 <span>{sale.due_date}</span>
               </div>
             )}
@@ -301,7 +301,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           )}
 
           <div>
-            <label className="form-label">{"{t('sales.amount_dzd')}"}</label>
+            <label className="form-label">{t("sales.amount_dzd")}</label>
             <input
               type="number"
               min={0.01}
@@ -314,7 +314,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           </div>
 
           <div>
-            <label className="form-label">{"{t('sales.payment_method')}"}</label>
+            <label className="form-label">{t("sales.payment_method")}</label>
             <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="form-input">
               {PAYMENT_METHOD_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
@@ -323,7 +323,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           </div>
 
           <div>
-            <label className="form-label">{"{t('sales.notes')}"}</label>
+            <label className="form-label">{t("sales.notes")}</label>
             <input
               type="text"
               value={notes}
@@ -429,18 +429,18 @@ export default function SalesHistoryPage() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-success/10 rounded-lg border border-success/20">
             <TrendingUp size={16} className="text-success" />
-            <span className="text-sm text-text-muted">{"{t('sales.page_revenue')}"}</span>
+            <span className="text-sm text-text-muted">{t("sales.page_revenue")}</span>
             <span className="font-mono font-semibold text-success">{formatDZD(pageTotalRevenue)} DZD</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-lg border border-primary-200">
             <ShoppingBag size={16} className="text-primary-500" />
-            <span className="text-sm text-text-muted">{"{t('sales.page_sales')}"}</span>
+            <span className="text-sm text-text-muted">{t("sales.page_sales")}</span>
             <span className="font-mono font-semibold text-primary-600">{sales.filter((s) => s.status === "completed").length}</span>
           </div>
           {partiallyPaidCount > 0 && (
             <div className="flex items-center gap-2 px-4 py-2 bg-warning-light rounded-lg border border-warning/30">
               <Receipt size={16} className="text-warning" />
-              <span className="text-sm text-text-muted">{"{t('sales.in_installment')}"}</span>
+              <span className="text-sm text-text-muted">{t("sales.in_installment")}</span>
               <span className="font-mono font-semibold text-warning">{partiallyPaidCount}</span>
             </div>
           )}
@@ -471,14 +471,14 @@ export default function SalesHistoryPage() {
         </select>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-text-muted whitespace-nowrap">{"{t('common.from')}"}</label>
+          <label className="text-xs text-text-muted whitespace-nowrap">{t("common.from")}</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
             className="form-input text-sm py-1.5"
           />
-          <label className="text-xs text-text-muted">{"{t('common.to')}"}</label>
+          <label className="text-xs text-text-muted">{t("common.to")}</label>
           <input
             type="date"
             value={dateTo}
@@ -503,14 +503,14 @@ export default function SalesHistoryPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>{"{t('sales.receipt_no')}"}</th>
-                <th>{"{t('common.date')}"}</th>
-                <th>{"{t('sales.cashier')}"}</th>
-                <th>{"{t('sales.client')}"}</th>
-                <th>{"{t('sales.payment_methods')}"}</th>
+                <th>{t("sales.receipt_no")}</th>
+                <th>{t("common.date")}</th>
+                <th>{t("sales.cashier")}</th>
+                <th>{t("sales.client")}</th>
+                <th>{t("sales.payment_methods")}</th>
                 <th>{t("common.status")}</th>
-                <th className="text-end">{"{t('common.total')}"}</th>
-                <th className="text-end">{"{t('sales.balance_due')}"}</th>
+                <th className="text-end">{t("common.total")}</th>
+                <th className="text-end">{t("sales.balance_due")}</th>
                 <th>{t("common.actions")}</th>
               </tr>
             </thead>
@@ -551,7 +551,7 @@ export default function SalesHistoryPage() {
                     <td className="text-sm">{sale.cashier_name || "—"}</td>
                     <td className="text-sm">
                       <div className="flex flex-col gap-0.5">
-                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">{"{t('sales.walk_in')}"}</span>)}</span>
+                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">{t("sales.walk_in")}</span>)}</span>
                         {sale.loyalty_tier && (() => {
                           const { label, className, Icon } = TIER_CONFIG[sale.loyalty_tier];
                           return (
@@ -683,11 +683,11 @@ export default function SalesHistoryPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-xs text-text-muted">
-                              <th className="text-start pb-1 font-medium">{"{t('sales.item')}"}</th>
-                              <th className="text-end pb-1 font-medium">{"{t('sales.qty')}"}</th>
-                              <th className="text-end pb-1 font-medium">{"{t('sales.unit_price')}"}</th>
-                              <th className="text-end pb-1 font-medium">{"{t('sales.discount')}"}</th>
-                              <th className="text-end pb-1 font-medium">{"{t('sales.subtotal')}"}</th>
+                              <th className="text-start pb-1 font-medium">{t("sales.item")}</th>
+                              <th className="text-end pb-1 font-medium">{t("sales.qty")}</th>
+                              <th className="text-end pb-1 font-medium">{t("sales.unit_price")}</th>
+                              <th className="text-end pb-1 font-medium">{t("sales.discount")}</th>
+                              <th className="text-end pb-1 font-medium">{t("sales.subtotal")}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">

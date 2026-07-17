@@ -71,6 +71,7 @@ function PaymentModal({
   supplierId: number;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState({
@@ -219,6 +220,7 @@ function PaymentModal({
 // ── Tab: Info ─────────────────────────────────────────────────────────────────
 
 function InfoTab({ supplier }: { supplier: Supplier }) {
+  const { t } = useTranslation();
   const balance = parseFloat(supplier.outstanding_balance);
 
   return (
@@ -226,10 +228,10 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
       <div className="card">
         <div className="card-header"><h3 className="font-semibold text-text-primary">Informations</h3></div>
         <div className="card-body divide-y divide-border">
-          <InfoRow icon={Phone} label=t("supplier.phone") value={supplier.phone} />
-          <InfoRow icon={Mail} label=t("supplier.email") value={supplier.email} />
+          <InfoRow icon={Phone} label={t("supplier.phone")} value={supplier.phone} />
+          <InfoRow icon={Mail} label={t("supplier.email")} value={supplier.email} />
           <InfoRow icon={MapPin} label="Adresse" value={supplier.address} />
-          <InfoRow icon={Globe} label=t("supplier.origin_country") value={supplier.origin_country} />
+          <InfoRow icon={Globe} label={t("supplier.origin_country")} value={supplier.origin_country} />
           <InfoRow icon={FileText} label="Conditions de paiement" value={supplier.payment_terms} />
         </div>
       </div>
@@ -275,6 +277,7 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
 // ── Tab: Purchase Orders ──────────────────────────────────────────────────────
 
 function OrdersTab({ supplierId }: { supplierId: number }) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery<PaginatedResponse<PurchaseOrder>>({
@@ -346,6 +349,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
 // ── Tab: Supplier Invoices ────────────────────────────────────────────────────
 
 function InvoicesTab({ supplierId }: { supplierId: number }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<PaginatedResponse<SupplierInvoice>>({
     queryKey: ["supplier-invoices", supplierId],
     queryFn: () =>
@@ -393,7 +397,7 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-ghost btn-sm flex items-center gap-1 text-text-muted hover:text-primary-500"
-                    title=t("invoice.download_pdf")
+                    title={t("invoice.download_pdf")}
                   >
                     <FileDown size={14} />
                   </a>
@@ -416,6 +420,7 @@ function PaymentsTab({
   supplierId: number;
   onNewPayment: () => void;
 }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<PaginatedResponse<SupplierPayment>>({
     queryKey: ["supplier-payments", supplierId],
     queryFn: () =>

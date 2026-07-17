@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 // ── Amount cell ───────────────────────────────────────────────────────────────
 
 function AmountCell({ value, colorClass }: { value: string; colorClass: string }) {
+  const { t } = useTranslation();
   const num = parseFloat(value as string);
   if (!num || num === 0)
     return <td className="text-end font-mono text-text-muted text-sm">—</td>;

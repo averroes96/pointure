@@ -45,6 +45,7 @@ function VariantSearchInput({
   value: Variant | null;
   onSelect: (v: Variant) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(value ? `${value.product_name} — T${value.size_eu} ${value.colour}` : "");
   const [results, setResults] = useState<Variant[]>([]);
   const [open, setOpen] = useState(false);
@@ -133,6 +134,7 @@ function CreateTransferModal({
   branches: Branch[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [form, setForm] = useState({

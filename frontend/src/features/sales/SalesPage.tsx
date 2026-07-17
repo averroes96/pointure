@@ -52,6 +52,7 @@ function CreateClientModal({
   onCreated: (c: Client) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [name, setName] = useState(prefillName);
   const [phone, setPhone] = useState("");
@@ -88,7 +89,7 @@ function CreateClientModal({
           <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
             <UserPlus size={16} className="text-primary-500" />
           </div>
-          <h3 className="font-semibold text-text-primary">{"{t('sales.new_client')}"}</h3>
+          <h3 className="font-semibold text-text-primary">{t("sales.new_client")}</h3>
           <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary">
             <X size={18} />
           </button>
@@ -99,7 +100,7 @@ function CreateClientModal({
             <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2">{error}</div>
           )}
           <div>
-            <label className="form-label">{"{t('sales.client_name')} "<span className="text-danger">*</span></label>
+            <label className="form-label">{t('sales.client_name')} <span className="text-danger">*</span></label>
             <input
               type="text"
               value={name}
@@ -110,7 +111,7 @@ function CreateClientModal({
             />
           </div>
           <div>
-            <label className="form-label">{"{t('sales.client_phone')}"}</label>
+            <label className="form-label">{t("sales.client_phone")}</label>
             <input
               type="tel"
               value={phone}
@@ -144,6 +145,7 @@ function ClientSelector({
   onSelect: (c: Client) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -542,10 +544,10 @@ export default function SalesPage() {
           <div className="w-16 h-16 bg-warning-light rounded-full flex items-center justify-center mx-auto mb-4">
             <Check size={32} className="text-warning" />
           </div>
-          <h2 className="text-xl font-bold text-text-primary mb-2">{"{t('sales.versement_recorded')}"}</h2>
-          <p className="text-text-muted text-sm mb-1">{"{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
+          <h2 className="text-xl font-bold text-text-primary mb-2">{t("sales.versement_recorded")}</h2>
+          <p className="text-text-muted text-sm mb-1">{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
           {receipt.client_name && (
-            <p className="text-text-muted text-sm mb-1">{"{t('sales.client')}: "}<strong>{receipt.client_name}</strong></p>
+            <p className="text-text-muted text-sm mb-1">{t('sales.client')}: "}<strong>{receipt.client_name}</strong></p>
           )}
           <div className="mb-4 mt-3 rounded-xl bg-warning-light border border-warning/30 p-3 text-sm space-y-1">
             <p className="text-text-primary">
@@ -579,8 +581,8 @@ export default function SalesPage() {
         <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
           <Check size={32} className="text-success" />
         </div>
-        <h2 className="text-xl font-bold text-text-primary mb-2">{"{t('sales.sale_confirmed')}"}</h2>
-        <p className="text-text-muted text-sm mb-3">{"{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
+        <h2 className="text-xl font-bold text-text-primary mb-2">{t("sales.sale_confirmed")}</h2>
+        <p className="text-text-muted text-sm mb-3">{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
 
         {(ptsEarned > 0 || ptsRedeemed > 0) && (
           <div className="mb-4 rounded-xl bg-primary-50 border border-primary-100 p-3 text-sm">
@@ -636,7 +638,7 @@ export default function SalesPage() {
       <div className="w-full lg:w-1/2 xl:w-3/5 flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.new_sale")}</h1>
-          <p className="text-xs text-text-muted">{"{t('sales.pos_shortcuts')}"}</p>
+          <p className="text-xs text-text-muted">{t("sales.pos_shortcuts")}</p>
         </div>
 
         <div className="relative">
@@ -659,9 +661,9 @@ export default function SalesPage() {
               )}
             >
               {scanStatus === "found" ? (
-                <><Check size={11} /> {"{t('sales.pos_added')}"}</>
+                <><Check size={11} /> {t("sales.pos_added")}</>
               ) : (
-                <><X size={11} /> {"{t('sales.pos_not_found')}"}</>
+                <><X size={11} /> {t("sales.pos_not_found")}</>
               )}
             </div>
           )}
@@ -684,16 +686,16 @@ export default function SalesPage() {
                         {product.brand} {product.name}
                       </div>
                       <div className="text-sm text-text-muted">
-                        {product.total_stock} {"{t('sales.in_stock')}"} · {formatDZD(product.sale_price)} DZD
+                        {product.total_stock} {t("sales.in_stock")} · {formatDZD(product.sale_price)} DZD
                       </div>
                     </div>
-                    <span className="text-xs text-primary-500">{"{t('sales.view_sizes')}"}</span>
+                    <span className="text-xs text-primary-500">{t("sales.view_sizes")}</span>
                   </div>
                 </div>
 
                 {selectedProduct?.id === product.id && (
                   <div className="px-4 pb-3 bg-primary-50">
-                    <div className="text-xs text-text-muted mb-2">{"{t('sales.choose_size_color')}"}</div>
+                    <div className="text-xs text-text-muted mb-2">{t("sales.choose_size_color")}</div>
                     <div className="grid grid-cols-4 gap-1.5">
                       {product.variants.map((variant) => (
                         <button
@@ -870,7 +872,7 @@ export default function SalesPage() {
           <div className="border-t border-border p-4 space-y-3">
             {/* Cart discount */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-text-muted flex-1">{"{t('sales.cart_discount')}"}</span>
+              <span className="text-sm text-text-muted flex-1">{t("sales.cart_discount")}</span>
               <input
                 type="number"
                 value={cartDiscount}
@@ -911,8 +913,8 @@ export default function SalesPage() {
             {/* Mode Réel toggle */}
             <div className="flex items-center justify-between py-1.5 border rounded-lg px-3 bg-surface">
               <div>
-                <p className="text-sm font-medium text-text-primary">{"{t('sales.formal_mode')}"}</p>
-                <p className="text-xs text-text-muted">{"{t('sales.formal_mode_desc')}"}</p>
+                <p className="text-sm font-medium text-text-primary">{t("sales.formal_mode")}</p>
+                <p className="text-xs text-text-muted">{t("sales.formal_mode_desc")}</p>
               </div>
               <label className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
                 <input
@@ -932,7 +934,7 @@ export default function SalesPage() {
               storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
             )}>
               <div>
-                <p className="text-sm font-medium text-text-primary">{"{t('sales.versement_acompte')}"}</p>
+                <p className="text-sm font-medium text-text-primary">{t("sales.versement_acompte")}</p>
                 <p className="text-xs text-text-muted">
                   {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
                 </p>

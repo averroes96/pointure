@@ -7,6 +7,7 @@
  * Usage:
  *   const { branches, currentBranch, setCurrentBranch } = useBranch();
  */
+import { useTranslation } from "react-i18next";
 import React, {
   createContext,
   useCallback,
@@ -29,6 +30,7 @@ interface BranchContextValue {
 const BranchContext = createContext<BranchContextValue | null>(null);
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [currentBranch, setCurrentBranchState] = useState<Branch | null>(null);
   const [isLoading, setIsLoading] = useState(true);

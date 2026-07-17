@@ -18,6 +18,7 @@ function Toast({
   message: string;
   type: "success" | "error";
 }) {
+  const { t } = useTranslation();
   if (!message) return null;
   return (
     <div
@@ -191,7 +192,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-lg border border-border bg-surface flex items-center justify-center overflow-hidden flex-shrink-0">
             {logoPreview ? (
-              <img src={logoPreview} alt=t("settings.logo") className="w-full h-full object-contain" />
+              <img src={logoPreview} alt={t("settings.logo")} className="w-full h-full object-contain" />
             ) : (
               <Building2 size={24} className="text-text-muted" />
             )}
@@ -589,6 +590,7 @@ interface BranchFormData {
 }
 
 function AgencesTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -737,6 +739,7 @@ interface VersementsFormData {
 }
 
 function VersementsTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 

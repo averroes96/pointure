@@ -7,6 +7,7 @@
  *
  * Requires pro_retail plan or above.
  */
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -82,6 +83,7 @@ interface EndpointFormProps {
 }
 
 function EndpointFormModal({ initial, eventTypes, onClose, onSaved }: EndpointFormProps) {
+  const { t } = useTranslation();
   const isEdit = !!initial?.id;
   const [name, setName] = useState(initial?.name ?? "");
   const [url, setUrl] = useState(initial?.url ?? "");
@@ -221,6 +223,7 @@ function EndpointFormModal({ initial, eventTypes, onClose, onSaved }: EndpointFo
 // ── Delivery Log Panel ────────────────────────────────────────────────────────
 
 function DeliveryLog({ endpoint }: { endpoint: WebhookEndpoint }) {
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState("");
   const [expanded, setExpanded] = useState<number | null>(null);
   const qc = useQueryClient();

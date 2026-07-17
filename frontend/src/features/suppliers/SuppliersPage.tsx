@@ -30,6 +30,7 @@ function SupplierFormModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<SupplierFormData>(EMPTY_FORM);
   const [error, setError] = useState("");
 
@@ -77,7 +78,7 @@ function SupplierFormModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
-              placeholder=t("supplier.name")
+              placeholder={t("supplier.name")}
               required
             />
           </div>
@@ -89,7 +90,7 @@ function SupplierFormModal({
               value={form.contact_name}
               onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
               className="form-input"
-              placeholder=t("supplier.contact_name")
+              placeholder={t("supplier.contact_name")}
             />
           </div>
 
@@ -236,11 +237,11 @@ function EditRow({ supplier, onDone }: EditRowProps) {
               onClick={handleSave}
               disabled={mutation.isPending}
               className="btn-primary btn-sm p-1.5"
-              title=t("common.save")
+              title={t("common.save")}
             >
               <Check size={13} />
             </button>
-            <button onClick={onDone} className="btn-secondary btn-sm p-1.5" title=t("common.cancel")>
+            <button onClick={onDone} className="btn-secondary btn-sm p-1.5" title={t("common.cancel")}>
               <X size={13} />
             </button>
           </div>

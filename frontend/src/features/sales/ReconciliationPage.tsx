@@ -70,7 +70,7 @@ function buildPrintHtml(rec: CashReconciliation): string {
   </style>
 </head>
 <body>
-  <h1>{"{t('sales.reconciliation_title')}"}</h1>
+  <h1>{t("sales.reconciliation_title")}</h1>
   <div class="meta">
     Date : ${rec.date}${rec.branch_name ? ` · Caisse : ${rec.branch_name}` : ""}
     · Soumis par : ${rec.submitted_by_name ?? "—"}
@@ -93,7 +93,7 @@ function buildPrintHtml(rec: CashReconciliation): string {
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td>{"{t('common.total')}"}</td>
+        <td>{t("common.total")}</td>
         <td style="text-align:right;">${parseFloat(rec.total_system).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;">${parseFloat(rec.total_actual).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;${gapColor}">
@@ -146,6 +146,7 @@ function HistoryRow({
   canApprove: boolean;
   onApprove: (id: number) => void;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const totalGap = parseFloat(rec.total_gap);
 
@@ -341,14 +342,14 @@ export default function ReconciliationPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{"{t('sales.reconciliation_title')}"}</h1>
-          <p className="text-sm text-text-muted">{"{t('sales.reconciliation_desc')}"}</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("sales.reconciliation_title")}</h1>
+          <p className="text-sm text-text-muted">{t("sales.reconciliation_desc")}</p>
         </div>
       </div>
 
       {/* Date selector */}
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-text-primary whitespace-nowrap">{"{t('sales.date_colon')}"}</label>
+        <label className="text-sm font-medium text-text-primary whitespace-nowrap">{t("sales.date_colon")}</label>
         <input
           type="date"
           value={date}
@@ -434,7 +435,7 @@ export default function ReconciliationPage() {
             </div>
           ) : summary?.sale_count === 0 ? (
             <div className="card-body py-8 text-center space-y-1">
-              <p className="text-text-primary font-medium text-sm">{"{t('sales.no_sales_for_date', { date })}"</p>
+              <p className="text-text-primary font-medium text-sm">{t('sales.no_sales_for_date', { date })}</p>
               <p className="text-text-muted text-xs">
                 {t("sales.no_sales_hint")}
               </p>
@@ -492,7 +493,7 @@ export default function ReconciliationPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-border bg-surface">
-                    <td className="px-4 py-3 font-semibold">{"{t('common.total')}"}</td>
+                    <td className="px-4 py-3 font-semibold">{t("common.total")}</td>
                     <td className="px-4 py-3 text-end font-mono font-semibold">
                       {formatDZD(totalSystem)} DZD
                     </td>
@@ -572,21 +573,21 @@ export default function ReconciliationPage() {
       {history && history.length > 0 && (
         <div className="card overflow-hidden">
           <div className="card-header">
-            <h2 className="font-semibold text-text-primary">{"{t('sales.reconciliation_history')}"}</h2>
+            <h2 className="font-semibold text-text-primary">{t("sales.reconciliation_history")}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface">
                   <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Date</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('sales.register')}"}</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('common.status')}"}</th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("sales.register")}</th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("common.status")}</th>
                   <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Système</th>
                   <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Compté</th>
                   <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
                       {t("sales.gap")}
                     </th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('sales.submitted_by')}"}</th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("sales.submitted_by")}</th>
                   <th className="px-3 py-2.5" />
                 </tr>
               </thead>

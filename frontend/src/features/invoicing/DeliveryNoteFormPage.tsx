@@ -34,6 +34,7 @@ function InvoiceSearchInput({
   value: Invoice | null;
   onSelect: (inv: Invoice) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(value?.number ?? "");
   const [results, setResults] = useState<Invoice[]>([]);
   const [open, setOpen] = useState(false);
@@ -87,7 +88,7 @@ function InvoiceSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder=t("invoice.search_placeholder")
+          placeholder={t("invoice.search_placeholder")}
         />
       </div>
 

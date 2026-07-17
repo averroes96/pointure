@@ -110,6 +110,7 @@ function VariantSearch({
 }: {
   onSelect: (v: VariantOption) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -128,7 +129,7 @@ function VariantSearch({
         <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           className="form-input pl-8 text-sm w-full"
-          placeholder=t("supplier.search_item")
+          placeholder={t("supplier.search_item")}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
@@ -171,6 +172,7 @@ function LineResolutionRow({
   resolution: LineResolution | undefined;
   onChange: (r: LineResolution) => void;
 }) {
+  const { t } = useTranslation();
   const mode = resolution?.mode ?? "skip";
 
   return (
@@ -223,7 +225,7 @@ function LineResolutionRow({
           <ColourPicker
             value={resolution?.newVariant?.colour ?? ""}
             onChange={(v) => onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, colour: v } })}
-            placeholder=t("supplier.colour")
+            placeholder={t("supplier.colour")}
             className="col-span-1"
           />
           <select
@@ -255,6 +257,7 @@ function LineResolutionRow({
 // ── Main receive form ─────────────────────────────────────────────────────────
 
 function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [quantities, setQuantities] = useState<Record<number, number>>(
     Object.fromEntries(po.lines.map((l) => [l.id, l.quantity_received]))
@@ -628,6 +631,7 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
 // ── Status action menu ────────────────────────────────────────────────────────
 
 function StatusActions({ po }: { po: PurchaseOrder }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -730,7 +734,7 @@ function PoShareActions({ po }: { po: PurchaseOrder }) {
         onClick={openPdf}
         disabled={loadingPdf}
         className="btn-secondary btn-sm flex items-center gap-1.5"
-        title=t("invoice.download_pdf")
+        title={t("invoice.download_pdf")}
       >
         {loadingPdf
           ? <Loader2 size={14} className="animate-spin" />

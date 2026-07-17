@@ -196,9 +196,9 @@ export default function ExchangeModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">{"{t('sales.process_exchange_title')}"}</h2>
+            <h2 className="font-semibold text-text-primary">{t("sales.process_exchange_title")}</h2>
             <p className="text-xs text-text-muted">
-              {"{t('sales.receipt')} {"sale.receipt_number || `#${sale.id}`}
+              {t('sales.receipt')} {sale.receipt_number || `#${sale.id}`}
             </p>
           </div>
           <button
@@ -246,7 +246,7 @@ export default function ExchangeModal({
                     </div>
                     {s.selected && (
                       <div className="mt-2 ms-7 flex items-center gap-2 text-xs">
-                        <span className="text-text-muted">{"{t('sales.qty_colon')}"}</span>
+                        <span className="text-text-muted">{t("sales.qty_colon")}</span>
                         <input
                           type="number"
                           min={1}
@@ -323,7 +323,7 @@ export default function ExchangeModal({
                                 : "text-success"
                             )}
                           >
-                            {"{t('sales.stock_label')}{"v.stock_qty}
+                            {t('sales.stock_label')} {v.stock_qty}
                           </span>
                           <span className="font-mono text-primary-600">
                             {formatDZD(v.product_sale_price)} DZD
@@ -361,7 +361,7 @@ export default function ExchangeModal({
                       </div>
                       <div className="mt-2 flex items-center gap-3 text-xs">
                         <label className="flex items-center gap-1.5">
-                          <span className="text-text-muted">{"{t('sales.qty_colon')}"}</span>
+                          <span className="text-text-muted">{t("sales.qty_colon")}</span>
                           <input
                             type="number"
                             min={1}
@@ -378,7 +378,7 @@ export default function ExchangeModal({
                           />
                         </label>
                         <label className="flex items-center gap-1.5 flex-1">
-                          <span className="text-text-muted">{"{t('sales.unit_price_colon')}"}</span>
+                          <span className="text-text-muted">{t("sales.unit_price_colon")}</span>
                           <input
                             type="number"
                             min={0}
@@ -403,15 +403,15 @@ export default function ExchangeModal({
           {(selectedReturned.length > 0 || newItems.length > 0) && (
             <div className="rounded-lg bg-surface p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-muted">{"{t('sales.returned_value')}"}</span>
+                <span className="text-text-muted">{t("sales.returned_value")}</span>
                 <span className="font-mono">{formatDZD(returnedValue)} DZD</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">{"{t('sales.new_items_value')}"}</span>
+                <span className="text-text-muted">{t("sales.new_items_value")}</span>
                 <span className="font-mono">{formatDZD(newValue)} DZD</span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 font-semibold">
-                <span>{"{t('sales.difference')}"}</span>
+                <span>{t("sales.difference")}</span>
                 <span
                   className={cn(
                     "font-mono",
@@ -461,7 +461,7 @@ export default function ExchangeModal({
 
           {/* ── Reason ────────────────────────────────────────────────────── */}
           <div>
-            <label className="form-label">{"{t('sales.exchange_reason')}"}</label>
+            <label className="form-label">{t("sales.exchange_reason")}</label>
             <input
               type="text"
               value={reason}

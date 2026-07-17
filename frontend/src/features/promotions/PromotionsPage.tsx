@@ -5,6 +5,7 @@
  * A promotion defines: conditions (category, product, min qty, min amount)
  * and an effect (discount % or fixed DZD per unit).
  */
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -94,6 +95,7 @@ function PromotionModal({
   initial: FormState;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(initial);
   const [error, setError] = useState<string | null>(null);

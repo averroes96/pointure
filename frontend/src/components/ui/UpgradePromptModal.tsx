@@ -3,6 +3,7 @@
  * Listens to the custom "plan-upgrade-required" browser event dispatched by the
  * API interceptor in src/lib/api.ts.
  */
+import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowUpCircle } from "lucide-react";

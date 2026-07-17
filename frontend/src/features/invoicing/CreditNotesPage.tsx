@@ -54,7 +54,7 @@ export default function CreditNotesPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder=t("invoice.search_credit_client")
+          placeholder={t("invoice.search_credit_client")}
         />
       </div>
 

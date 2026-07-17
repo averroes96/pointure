@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { User } from "@/types";
 import { clearAuth, getStoredUser, storeUser, setTokens } from "./authStore";
@@ -15,6 +16,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(getStoredUser);
   const [isLoading, setIsLoading] = useState(true);
 

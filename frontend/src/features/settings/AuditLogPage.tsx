@@ -3,6 +3,7 @@
  * Owner-only view of the full audit trail.
  * Calls GET /api/v1/core/audit-logs/?page=N&model_name=X&action=Y
  */
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shield, ChevronLeft, ChevronRight } from "lucide-react";

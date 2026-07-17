@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
@@ -8,6 +9,7 @@ import api from "@/lib/api";
 // ── Setup redirect: checks once per session whether setup is needed ──────────
 const _setupChecked = { done: false };
 function SetupRedirect() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   useEffect(() => {
     if (_setupChecked.done) return;

@@ -30,6 +30,7 @@ function SupplierSearchInput({
   value: Supplier | null;
   onSelect: (s: Supplier) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(value?.name ?? "");
   const [results, setResults] = useState<Supplier[]>([]);
   const [open, setOpen] = useState(false);
@@ -77,7 +78,7 @@ function SupplierSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder=t("supplier.search_supplier")
+          placeholder={t("supplier.search_supplier")}
         />
       </div>
 
@@ -114,6 +115,7 @@ function VariantSearchInput({
 }: {
   onSelect: (v: any) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -157,7 +159,7 @@ function VariantSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9 py-1.5 text-sm"
-          placeholder=t("supplier.search_variant")
+          placeholder={t("supplier.search_variant")}
         />
       </div>
 

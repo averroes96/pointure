@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { COLOURS, getColourLabel, getColourHex, type Colour } from "@/lib/colours";

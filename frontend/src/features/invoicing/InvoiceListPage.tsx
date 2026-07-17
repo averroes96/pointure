@@ -99,7 +99,7 @@ export default function InvoiceListPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="form-input ps-9"
-            placeholder=t("invoice.search_placeholder")
+            placeholder={t("invoice.search_placeholder")}
           />
         </div>
         <select
@@ -194,7 +194,7 @@ export default function InvoiceListPage() {
                         onClick={() => openPdf(invoice.id)}
                         disabled={loadingPdfId === invoice.id}
                         className="btn-ghost btn-sm text-primary-500 disabled:opacity-50"
-                        title=t("invoice.open_pdf")
+                        title={t("invoice.open_pdf")}
                       >
                         {loadingPdfId === invoice.id
                           ? <Loader2 size={14} className="animate-spin" />
@@ -215,7 +215,7 @@ export default function InvoiceListPage() {
                           window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
                         }}
                         className="btn-ghost btn-sm text-[#25D366] disabled:opacity-50"
-                        title=t("invoice.share_whatsapp")
+                        title={t("invoice.share_whatsapp")}
                       >
                         <MessageCircle size={14} />
                       </button>

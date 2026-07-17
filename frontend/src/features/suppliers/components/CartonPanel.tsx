@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CheckCircle, AlertTriangle, X } from "lucide-react";
 import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
@@ -26,6 +27,7 @@ export function ProductSearch({
   onSelect: (p: ProductResult) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 

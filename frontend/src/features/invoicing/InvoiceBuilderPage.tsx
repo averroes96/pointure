@@ -83,6 +83,7 @@ function ClientSelector({
   value: Client | null;
   onChange: (c: Client | null) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -148,7 +149,7 @@ function ClientSelector({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="form-input ps-8 py-1.5 text-sm"
-                placeholder=t("common.search")
+                placeholder={t("common.search")}
               />
             </div>
           </div>
@@ -194,6 +195,7 @@ function ProductSearchCell({
   onProductSelect,
   lineRef,
   onKeyDown,
+  const { t } = useTranslation();
   useWholesale,
 }: {
   description: string;
@@ -203,6 +205,7 @@ function ProductSearchCell({
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   useWholesale?: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -243,7 +246,7 @@ function ProductSearchCell({
           onKeyDown(e);
         }}
         className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white transition-colors"
-        placeholder=t("invoice.search_product")
+        placeholder={t("invoice.search_product")}
       />
 
       {open && (
@@ -297,6 +300,7 @@ function VariantSearchCell({
   onSelect: (v: { id: number; label: string; unitPrice: string }) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);

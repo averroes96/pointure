@@ -92,7 +92,7 @@ export default function PurchaseOrderListPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder=t("supplier.search_po")
+          placeholder={t("supplier.search_po")}
         />
       </div>
 

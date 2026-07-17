@@ -112,6 +112,7 @@ function PaymentModal({
   clientName: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split("T")[0];
 
@@ -271,6 +272,7 @@ function ClientInfoTab({
   client: Client;
   onPayment: () => void;
 }) {
+  const { t } = useTranslation();
   const balance = parseFloat(client.cached_balance);
   const creditLimit = parseFloat(client.credit_limit);
   const isOverLimit = client.is_over_credit_limit;
@@ -404,6 +406,7 @@ function ClientInfoTab({
 // ── Tab: Relevé de compte ──────────────────────────────────────────────────
 
 function LedgerTab({ clientId }: { clientId: number }) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery<PaginatedResponse<ClientLedgerEntry>>({
@@ -516,6 +519,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
 // ── Tab: Chèques ───────────────────────────────────────────────────────────
 
 function ChequesTab({ clientId }: { clientId: number }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<PaginatedResponse<Cheque>>({
@@ -632,6 +636,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
 // ── Tab: Factures ──────────────────────────────────────────────────────────
 
 function InvoicesTab({ clientId }: { clientId: number }) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Invoice>>({
@@ -775,6 +780,7 @@ const TX_CONFIG: Record<string, { label: string; colour: string }> = {
 };
 
 function LoyaltyTab({ clientId }: { clientId: number }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { user } = useAuth();
   const isManager = user?.role === "owner" || user?.role === "manager";
