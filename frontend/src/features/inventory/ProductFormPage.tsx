@@ -9,6 +9,7 @@
  */
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -31,30 +32,11 @@ import { COLOURS, type Colour } from "@/lib/colours";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: "sneakers", label: "Sneakers" },
-  { value: "boots", label: "Bottes" },
-  { value: "sandals", label: "Sandales" },
-  { value: "formal", label: "Chaussures formelles" },
-  { value: "sport", label: "Sport" },
-  { value: "kids", label: "Enfants" },
-  { value: "slippers", label: "Pantoufles" },
-  { value: "other", label: "Autre" },
-];
+// CATEGORIES dynamically translated inline
 
-const GENDERS: { value: Gender; label: string }[] = [
-  { value: "M", label: "Homme" },
-  { value: "F", label: "Femme" },
-  { value: "K", label: "Enfant" },
-  { value: "U", label: "Unisexe" },
-];
+// GENDERS dynamically translated inline
 
-const SEASONS: { value: Season; label: string }[] = [
-  { value: "all", label: "Toutes saisons" },
-  { value: "summer", label: "Été" },
-  { value: "winter", label: "Hiver" },
-  { value: "spring_fall", label: "Mi-saison" },
-];
+// SEASONS dynamically translated inline
 
 const ALL_SIZES = Array.from({ length: 20 }, (_, i) => 28 + i); // EU 28–47
 
@@ -125,6 +107,7 @@ function Field({
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ProductFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
@@ -422,7 +405,7 @@ export default function ProductFormPage() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Marque">
+              <Field label={t("inventory.brand")}>
                 <input
                   type="text"
                   value={form.brand}
@@ -460,7 +443,7 @@ export default function ProductFormPage() {
               </div>
             </Field>
 
-            <Field label="Description">
+            <Field label={t("inventory.description")}>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -505,7 +488,7 @@ export default function ProductFormPage() {
                 Classification & Alertes
               </h2>
 
-              <Field label="Catégorie" required>
+              <Field label={t("inventory.category")} required>
                 <select
                   value={form.category}
                   onChange={(e) =>
@@ -513,14 +496,14 @@ export default function ProductFormPage() {
                   }
                   className="form-input"
                 >
-                  {CATEGORIES.map((c) => (
+                  {[{ value: "sneakers", label: "Sneakers" }, { value: "boots", label: "Bottes" }, { value: "sandals", label: "Sandales" }, { value: "formal", label: "Chaussures formelles" }, { value: "sport", label: "Sport" }, { value: "kids", label: "Enfants" }, { value: "slippers", label: "Pantoufles" }, { value: "other", label: "Autre" }].map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Genre">
+                <Field label={t("inventory.gender")}>
                   <select
                     value={form.gender}
                     onChange={(e) =>
@@ -528,13 +511,13 @@ export default function ProductFormPage() {
                     }
                     className="form-input"
                   >
-                    {GENDERS.map((g) => (
+                    {[{ value: "M", label: t("gender.m") }, { value: "F", label: t("gender.f") }, { value: "K", label: t("gender.k") }, { value: "U", label: t("gender.u") }].map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
                   </select>
                 </Field>
 
-                <Field label="Saison">
+                <Field label={t("inventory.season")}>
                   <select
                     value={form.season}
                     onChange={(e) =>
@@ -542,7 +525,7 @@ export default function ProductFormPage() {
                     }
                     className="form-input"
                   >
-                    {SEASONS.map((s) => (
+                    {[{ value: "all", label: t("season.all") }, { value: "summer", label: t("season.summer") }, { value: "winter", label: t("season.winter") }, { value: "spring_fall", label: t("season.spring_fall") }].map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
@@ -568,7 +551,7 @@ export default function ProductFormPage() {
                 Prix
               </h2>
 
-              <Field label="Prix de vente (DZD)" required>
+              <Field label={`${t("inventory.sale_price")} (DZD)`} required>
                 <input
                   type="number"
                   value={form.sale_price}
@@ -580,7 +563,7 @@ export default function ProductFormPage() {
                 />
               </Field>
 
-              <Field label="Prix de gros (DZD)">
+              <Field label={`${t("inventory.wholesale_price")} (DZD)`}>
                 <input
                   type="number"
                   value={form.wholesale_price}
@@ -594,7 +577,7 @@ export default function ProductFormPage() {
 
               {user?.can_see_costs && (
                 <Field
-                  label="Prix d'achat (DZD)"
+                  label={`${t("inventory.purchase_price")} (DZD)`}
                   hint="Visible uniquement par les managers."
                 >
                   <input

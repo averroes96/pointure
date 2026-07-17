@@ -53,20 +53,9 @@ interface PaymentFormState {
   date: string;
 }
 
-const PAYMENT_METHODS: { key: PaymentFormState["method"]; label: string }[] = [
-  { key: "cash", label: "Espèces" },
-  { key: "ccp", label: "CCP" },
-  { key: "virement", label: "Virement" },
-  { key: "cheque", label: "Chèque" },
-];
+// PAYMENT_METHODS populated dynamically
 
-const TABS: { key: ActiveTab; label: string }[] = [
-  { key: "info", label: "Fiche client" },
-  { key: "ledger", label: "Relevé de compte" },
-  { key: "cheques", label: "Chèques" },
-  { key: "invoices", label: "Factures" },
-  { key: "loyalty", label: "Fidélité" },
-];
+// TABS populated dynamically
 
 // ── Info Field helper ──────────────────────────────────────────────────────
 
@@ -158,7 +147,7 @@ function PaymentModal({
     e.preventDefault();
     setErrorMsg(null);
     if (!form.amount || parseFloat(form.amount) <= 0) {
-      setErrorMsg("Le montant doit être supérieur à 0.");
+      setErrorMsg(t("client.amount_greater_than_0"));
       return;
     }
     mutation.mutate(form);
@@ -170,7 +159,7 @@ function PaymentModal({
         {/* Header */}
         <div className="card-header flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-text-primary">Enregistrer un paiement</h2>
+            <h2 className="font-semibold text-text-primary">{t("payment.record")}</h2>
             <p className="text-xs text-text-muted mt-0.5">{clientName}</p>
           </div>
           <button
@@ -186,7 +175,7 @@ function PaymentModal({
         <form onSubmit={handleSubmit} className="card-body space-y-4">
           {/* Amount */}
           <div>
-            <label className="form-label">Montant (DZD) *</label>
+            <label className="form-label">{t("payment.amount")}</label>
             <input
               type="number"
               step="0.01"
@@ -202,9 +191,9 @@ function PaymentModal({
 
           {/* Method */}
           <div>
-            <label className="form-label">Mode de paiement *</label>
+            <label className="form-label">{t("payment.method")}</label>
             <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_METHODS.map((m) => (
+              {[{ key: "cash", label: t("payment.cash") }, { key: "ccp", label: t("payment.ccp") }, { key: "virement", label: t("payment.transfer") }, { key: "cheque", label: t("payment.cheque") }].map((m) => (
                 <button
                   key={m.key}
                   type="button"
@@ -224,7 +213,7 @@ function PaymentModal({
 
           {/* Date */}
           <div>
-            <label className="form-label">Date *</label>
+            <label className="form-label">{t("common.date")}</label>
             <input
               type="date"
               value={form.date}
@@ -242,7 +231,7 @@ function PaymentModal({
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               className="form-input resize-none"
               rows={2}
-              placeholder="Référence, commentaire..."
+              placeholder={t("client.reference_comment")}
             />
           </div>
 
@@ -293,13 +282,13 @@ function ClientInfoTab({
       {/* Left: Details */}
       <div className="card">
         <div className="card-header">
-          <h3 className="font-semibold text-text-primary">Informations générales</h3>
+          <h3 className="font-semibold text-text-primary">{t("client.general_info")}</h3>
         </div>
         <div className="card-body divide-y divide-border">
           <InfoField icon={User} label="Nom complet" value={client.name} />
           <InfoField
             icon={Phone}
-            label="Téléphone"
+            label={t("client.phone_label")}
             value={
               client.phone ? (
                 <a
@@ -314,8 +303,8 @@ function ClientInfoTab({
               ) : null
             }
           />
-          <InfoField icon={Mail} label="Email" value={client.email} />
-          <InfoField icon={MapPin} label="Adresse" value={client.address} />
+          <InfoField icon={Mail} label={t("client.email")} value={client.email} />
+          <InfoField icon={MapPin} label={t("client.address")} value={client.address} />
           <InfoField icon={MapPin} label="Wilaya" value={wilayaLabel(client.wilaya)} />
           <InfoField icon={Building2} label="NIF" value={client.nif} mono />
           <InfoField icon={Building2} label="RC" value={client.rc} mono />
@@ -353,7 +342,7 @@ function ClientInfoTab({
             {creditLimit > 0 && (
               <div>
                 <div className="flex justify-between text-xs text-text-muted mb-1">
-                  <span>Limite de crédit</span>
+                  <span>{t("client.credit_limit")}</span>
                   <span className="font-mono">
                     {formatDZD(client.credit_limit)} DZD
                   </span>
@@ -397,7 +386,7 @@ function ClientInfoTab({
                   ? "bg-purple-50 text-purple-700 border-purple-200"
                   : "bg-blue-50 text-blue-700 border-blue-200"
               )}>
-                {client.client_type === "wholesale" ? "Grossiste" : "Particulier / Détail"}
+                {client.client_type === "wholesale" ? t("client.wholesale_full") : t("client.retail_full")}
               </span>
             </div>
             {client.notes && (
@@ -433,9 +422,9 @@ function LedgerTab({ clientId }: { clientId: number }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Date</th>
+              <th>{t("common.date")}</th>
               <th>Description</th>
-              <th>Référence</th>
+              <th>{t("client.reference")}</th>
               <th className="text-end">Débit</th>
               <th className="text-end">Crédit</th>
               <th className="text-end">Solde</th>
@@ -500,8 +489,8 @@ function LedgerTab({ clientId }: { clientId: number }) {
       {data && data.total_pages > 1 && (
         <div className="px-4 py-3 border-t border-border flex items-center justify-between">
           <span className="text-xs text-text-muted">
-            Page {data.current_page} / {data.total_pages} · {data.count} entrées
-          </span>
+              {t("client.page_info_entries", { current: data.current_page, total: data.total_pages, count: data.count })}
+            </span>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => p - 1)}
@@ -564,7 +553,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
               <th>Échéance</th>
               <th>Délai</th>
               <th className="text-end">Montant</th>
-              <th>Statut</th>
+              <th>{t("common.status")}</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -615,7 +604,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
                       <button
                         onClick={() => depositMutation.mutate(cheque.id)}
                         className="btn-ghost btn-sm text-success"
-                        title="Marquer encaissé"
+                        title={t("client.mark_deposited_title")}
                         disabled={depositMutation.isPending}
                       >
                         <CheckCircle size={14} />
@@ -623,7 +612,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
                       <button
                         onClick={() => bounceMutation.mutate(cheque.id)}
                         className="btn-ghost btn-sm text-danger"
-                        title="Marquer impayé"
+                        title={t("client.mark_bounced_title")}
                         disabled={bounceMutation.isPending}
                       >
                         <XCircle size={14} />
@@ -662,9 +651,9 @@ function InvoicesTab({ clientId }: { clientId: number }) {
           <thead>
             <tr>
               <th>Numéro</th>
-              <th>Date</th>
+              <th>{t("common.date")}</th>
               <th>Échéance</th>
-              <th>Statut</th>
+              <th>{t("common.status")}</th>
               <th className="text-end">Total TTC</th>
               <th className="text-end">Reste dû</th>
               <th>Actions</th>
@@ -732,7 +721,7 @@ function InvoicesTab({ clientId }: { clientId: number }) {
                     target="_blank"
                     rel="noreferrer"
                     className="btn-ghost btn-sm text-primary-500"
-                    title="Télécharger PDF"
+                    title={t("client.download_pdf")}
                   >
                     PDF
                   </a>
@@ -811,7 +800,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
         description: adjustNote || "Ajustement manuel",
       }).then((r) => r.data),
     onSuccess: () => {
-      setAdjustToast({ msg: "Ajustement enregistré.", type: "success" });
+      setAdjustToast({ msg: t("client.adjustment_recorded"), type: "success" });
       setAdjustPoints("");
       setAdjustNote("");
       qc.invalidateQueries({ queryKey: ["loyalty-account", clientId] });
@@ -832,7 +821,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
     return (
       <div className="card p-8 text-center">
         <Gift size={36} className="mx-auto text-text-muted mb-3 opacity-40" />
-        <p className="text-sm font-medium text-text-primary">Ce client n'a pas encore de compte fidélité.</p>
+        <p className="text-sm font-medium text-text-primary">{t("client.no_loyalty_account")}</p>
         <p className="text-xs text-text-muted mt-1">
           Un compte est créé automatiquement lors de sa première vente avec un programme de fidélité actif.
         </p>
@@ -869,7 +858,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
             <p className="text-2xl font-bold text-text-primary">
               {account.points_balance.toLocaleString()} pts
             </p>
-            <p className="text-xs text-text-muted">{account.total_earned.toLocaleString()} pts cumulés au total</p>
+            <p className="text-xs text-text-muted">{t("client.total_pts_earned", { pts: account.total_earned.toLocaleString() })}</p>
           </div>
           {account.next_tier && nextTierPts && (
             <div className="text-right text-xs text-text-muted">
@@ -977,6 +966,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function ClientDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const clientId = Number(id);
@@ -1006,7 +996,7 @@ export default function ClientDetailPage() {
         </div>
         {/* Tab skeleton */}
         <div className="flex gap-2">
-          {TABS.map((t) => (
+          {[{ key: "info", label: t("client.info_tab") }, { key: "ledger", label: t("client.ledger_tab") }, { key: "cheques", label: t("client.cheques") }, { key: "invoices", label: t("client.invoices_tab") }, { key: "loyalty", label: t("client.loyalty_tab") }].map((t) => (
             <div key={t.key} className="h-9 w-32 bg-border rounded-lg animate-pulse" />
           ))}
         </div>

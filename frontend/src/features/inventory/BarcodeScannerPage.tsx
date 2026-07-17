@@ -8,6 +8,7 @@
  */
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ScanBarcode, Search, Loader2, AlertTriangle, X,
   Package, Layers, ShoppingBag, ArrowUpRight,
@@ -51,6 +52,7 @@ const CAMERA_SUPPORTED =
   typeof navigator.mediaDevices?.getUserMedia === "function";
 
 export default function BarcodeScannerPage() {
+  const { t } = useTranslation();
   const inputRef   = useRef<HTMLInputElement>(null);
   const videoRef   = useRef<HTMLVideoElement>(null);
   const streamRef  = useRef<MediaStream | null>(null);
@@ -404,7 +406,7 @@ export default function BarcodeScannerPage() {
                 <thead>
                   <tr>
                     <th>Agence</th>
-                    <th className="text-end">Quantité</th>
+                    <th className="text-end">{t("sales.qty")}</th>
                   </tr>
                 </thead>
                 <tbody>

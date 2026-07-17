@@ -53,7 +53,7 @@ export default function ChequePage() {
                 <th>Client / Fournisseur</th>
                 <th>{t("cheque.bank")}</th>
                 <th>{t("cheque.due_date")}</th>
-                <th>Échéance</th>
+                <th>{t("cheque.due_date")}</th>
                 <th className="text-end">{t("cheque.amount")}</th>
                 <th>{t("cheque.status")}</th>
                 <th>{t("common.actions")}</th>

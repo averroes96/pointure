@@ -12,6 +12,7 @@
  */
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -104,6 +105,7 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ProductDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -585,9 +587,9 @@ export default function ProductDetailPage() {
               <table className="data-table text-sm">
                 <thead>
                   <tr>
-                    <th>Pointure</th>
-                    <th>Couleur</th>
-                    <th>Code-barres</th>
+                    <th>{t("inventory.size")}</th>
+                    <th>{t("inventory.colour")}</th>
+                    <th>{t("inventory.barcode")}</th>
                     <th className="text-center">Aperçu</th>
                     <th></th>
                   </tr>

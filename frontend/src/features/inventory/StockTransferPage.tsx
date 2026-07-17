@@ -11,6 +11,7 @@
  *   POST /inventory/transfers/{id}/cancel   — pending|in_transit → cancelled
  */
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, ArrowRight, Loader2, AlertTriangle,
@@ -24,12 +25,7 @@ import { usePrintLabels } from "@/hooks/usePrintLabels";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<TransferStatus, string> = {
-  pending:    "En attente",
-  in_transit: "En transit",
-  received:   "Reçu",
-  cancelled:  "Annulé",
-};
+// STATUS_LABEL translated inline
 
 const STATUS_BADGE: Record<TransferStatus, string> = {
   pending:    "badge-warning",
@@ -38,13 +34,7 @@ const STATUS_BADGE: Record<TransferStatus, string> = {
   cancelled:  "badge-neutral",
 };
 
-const STATUS_TABS: { value: TransferStatus | ""; label: string }[] = [
-  { value: "",           label: "Tous" },
-  { value: "pending",    label: "En attente" },
-  { value: "in_transit", label: "En transit" },
-  { value: "received",   label: "Reçu" },
-  { value: "cancelled",  label: "Annulé" },
-];
+// STATUS_TABS translated inline
 
 // ── Variant search input ──────────────────────────────────────────────────────
 
@@ -187,8 +177,8 @@ function CreateTransferModal({
       <div className="card w-full max-w-lg shadow-2xl">
         <div className="card-header flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-text-primary">Nouveau transfert de stock</h2>
-            <p className="text-xs text-text-muted mt-0.5">Inter-branches — statut initial : En attente</p>
+            <h2 className="font-semibold text-text-primary">{t("inventory.create_transfer_title")}</h2>
+            <p className="text-xs text-text-muted mt-0.5">{t("inventory.create_transfer_desc")}</p>
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm"><X size={16} /></button>
         </div>
@@ -205,7 +195,7 @@ function CreateTransferModal({
           {/* Branches */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Branche source *</label>
+              <label className="form-label">{t("inventory.source_branch")}</label>
               <select
                 value={form.from_branch}
                 onChange={(e) => setForm((f) => ({ ...f, from_branch: e.target.value }))}
@@ -219,7 +209,7 @@ function CreateTransferModal({
               </select>
             </div>
             <div>
-              <label className="form-label">Branche destination *</label>
+              <label className="form-label">{t("inventory.dest_branch")}</label>
               <select
                 value={form.to_branch}
                 onChange={(e) => setForm((f) => ({ ...f, to_branch: e.target.value }))}
@@ -238,7 +228,7 @@ function CreateTransferModal({
 
           {/* Variant */}
           <div>
-            <label className="form-label">Variante *</label>
+            <label className="form-label">{t("inventory.variant_req")}</label>
             <VariantSearchInput value={selectedVariant} onSelect={setSelectedVariant} />
             {selectedVariant && (
               <p className="text-xs text-text-muted mt-1">
@@ -249,7 +239,7 @@ function CreateTransferModal({
 
           {/* Quantity */}
           <div>
-            <label className="form-label">Quantité *</label>
+            <label className="form-label">{t("inventory.quantity_req")}</label>
             <input
               type="number"
               value={form.quantity}
@@ -279,7 +269,7 @@ function CreateTransferModal({
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t("common.cancel")}</button>
             <button type="submit" disabled={mutation.isPending} className="btn-primary">
               {mutation.isPending
                 ? <><Loader2 size={14} className="animate-spin" /> Création…</>
@@ -297,35 +287,17 @@ function CreateTransferModal({
 
 type ActionType = "dispatch" | "receive" | "cancel";
 
-const ACTION_CONFIG: Record<ActionType, {
-  label: string;
-  confirmLabel: string;
-  endpoint: string;
-  icon: LucideIcon;
-  variant: string;
-}> = {
-  dispatch: {
-    label: "Expédier",
-    confirmLabel: "Confirmer l'expédition",
-    endpoint: "dispatch",
-    icon: Truck,
-    variant: "btn-primary",
-  },
-  receive: {
-    label: "Réceptionner",
-    confirmLabel: "Confirmer la réception",
-    endpoint: "receive",
-    icon: PackageCheck,
-    variant: "btn-primary",
-  },
-  cancel: {
-    label: "Annuler",
-    confirmLabel: "Confirmer l'annulation",
-    endpoint: "cancel",
-    icon: Ban,
-    variant: "btn-secondary text-danger",
-  },
-};
+// ACTION_CONFIG translated inline
+
+
+function getActionConfig(type: ActionType, t: any) {
+  const configs: Record<ActionType, any> = {
+    dispatch: { label: t("inventory.dispatch"), confirmLabel: t("inventory.confirm_dispatch"), endpoint: "dispatch", icon: Truck, variant: "btn-primary" },
+    receive: { label: t("inventory.receive"), confirmLabel: t("inventory.confirm_receive"), endpoint: "receive", icon: PackageCheck, variant: "btn-primary" },
+    cancel: { label: t("common.cancel"), confirmLabel: t("inventory.confirm_cancel"), endpoint: "cancel", icon: Ban, variant: "btn-secondary text-danger" }
+  };
+  return configs[type];
+}
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -336,6 +308,7 @@ interface PendingAction {
 }
 
 export default function StockTransferPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { printLabels } = usePrintLabels();
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "">("");
@@ -392,7 +365,7 @@ export default function StockTransferPage() {
 
   function confirmAction() {
     if (!pendingAction) return;
-    const { endpoint } = ACTION_CONFIG[pendingAction.type];
+    const { endpoint } = getActionConfig(pendingAction.type, t);
     actionMutation.mutate({ transferId: pendingAction.transferId, endpoint });
   }
 
@@ -410,8 +383,8 @@ export default function StockTransferPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-text-primary">Transferts de stock</h1>
-            <p className="text-sm text-text-muted">{data?.count ?? 0} transfert(s)</p>
+            <h1 className="text-xl font-bold text-text-primary">{t("inventory.stock_transfers")}</h1>
+            <p className="text-sm text-text-muted">{t("inventory.transfer_count", { count: data?.count ?? 0 })}</p>
           </div>
           <button onClick={() => setShowCreate(true)} className="btn-primary">
             <Plus size={16} />
@@ -424,7 +397,7 @@ export default function StockTransferPage() {
           <div className="flex items-center gap-3 px-4 py-3 bg-warning/10 border border-warning/30 rounded-lg">
             <AlertTriangle size={15} className="text-warning flex-shrink-0" />
             <span className="text-sm flex-1">
-              <strong>{ACTION_CONFIG[pendingAction.type].confirmLabel}</strong> pour :{" "}
+              <strong>{getActionConfig(pendingAction.type, t).confirmLabel}</strong> pour :{" "}
               <span className="font-mono">{pendingAction.transferLabel}</span>
             </span>
             {actionError && (
@@ -433,7 +406,7 @@ export default function StockTransferPage() {
             <button
               onClick={confirmAction}
               disabled={actionMutation.isPending}
-              className={cn("btn-sm", ACTION_CONFIG[pendingAction.type].variant)}
+              className={cn("btn-sm", getActionConfig(pendingAction.type, t).variant)}
             >
               {actionMutation.isPending
                 ? <Loader2 size={13} className="animate-spin" />
@@ -452,7 +425,7 @@ export default function StockTransferPage() {
 
         {/* Status tabs */}
         <div className="flex gap-1 border-b border-border overflow-x-auto">
-          {STATUS_TABS.map((tab) => (
+          {[{ value: "", label: t("status.all") }, { value: "pending", label: t("status.pending") }, { value: "in_transit", label: t("status.in_transit") }, { value: "received", label: t("status.received") }, { value: "cancelled", label: t("status.cancelled") }].map((tab) => (
             <button
               key={tab.value}
               onClick={() => { setStatusFilter(tab.value); setPage(1); }}
@@ -486,14 +459,14 @@ export default function StockTransferPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>N°</th>
-                  <th>Variante</th>
-                  <th>Trajet</th>
-                  <th className="text-center">Qté</th>
-                  <th>Statut</th>
-                  <th>Date</th>
-                  <th>Créé par</th>
-                  <th>Actions</th>
+                  <th>{t("inventory.transfer_no")}</th>
+                  <th>{t("inventory.variant")}</th>
+                  <th>{t("inventory.route")}</th>
+                  <th className="text-center">{t("sales.qty")}</th>
+                  <th>{t("common.status")}</th>
+                  <th>{t("common.date")}</th>
+                  <th>{t("inventory.created_by")}</th>
+                  <th>{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -550,7 +523,7 @@ export default function StockTransferPage() {
                       {/* Statut */}
                       <td>
                         <span className={cn("badge", STATUS_BADGE[transfer.status])}>
-                          {STATUS_LABEL[transfer.status]}
+                          {t(`status.${transfer.status}`)}
                         </span>
                       </td>
 
@@ -574,7 +547,7 @@ export default function StockTransferPage() {
                         {actions.length > 0 ? (
                           <div className="flex items-center gap-1 flex-wrap">
                             {actions.map((actionType) => {
-                              const cfg = ACTION_CONFIG[actionType];
+                              const cfg = getActionConfig(actionType, t);
                               const Icon = cfg.icon;
                               return (
                                 <button
@@ -617,7 +590,7 @@ export default function StockTransferPage() {
           {data && data.total_pages > 1 && (
             <div className="px-4 py-3 border-t border-border flex items-center justify-between">
               <span className="text-xs text-text-muted">
-                Page {data.current_page} / {data.total_pages} · {data.count} transfert(s)
+                {t("inventory.page_info_transfers", { current: data.current_page, total: data.total_pages, count: data.count })}
               </span>
               <div className="flex gap-2">
                 <button

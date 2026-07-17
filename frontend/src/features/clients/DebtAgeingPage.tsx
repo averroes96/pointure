@@ -122,7 +122,7 @@ export default function DebtAgeingPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast.show("Impossible d'exporter — réessayez.");
+      toast.show(t("client.error_debt_ageing"));
     }
   }
 
@@ -215,7 +215,7 @@ export default function DebtAgeingPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Client</th>
+                  <th>{t("invoice.client")}</th>
                   <th>Wilaya</th>
                   <th className="text-end">
                     <span className="text-primary-600">Courant</span>

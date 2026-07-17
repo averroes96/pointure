@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, ShoppingCart, Package } from "lucide-react";
 import api, { type PaginatedResponse } from "@/lib/api";
 import type { Variant, Product } from "@/types";
@@ -13,29 +14,30 @@ interface VariantTableProps {
 }
 
 function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
           <tr>
-            <th>Article</th>
-            <th>Pointure</th>
-            <th>Couleur</th>
-            <th className="text-end">Stock actuel</th>
-            <th className="text-end">Seuil d'alerte</th>
-            <th>Statut</th>
-            <th>Actions</th>
+            <th>{t("inventory.product")}</th>
+            <th>{t("inventory.size")}</th>
+            <th>{t("inventory.colour")}</th>
+            <th className="text-end">{t("inventory.current_stock")}</th>
+            <th className="text-end">{t("inventory.alert_threshold")}</th>
+            <th>{t("common.status")}</th>
+            <th>{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {isLoading && (
             <tr>
-              <td colSpan={7} className="text-center py-8 text-text-muted">Chargement...</td>
+              <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
             </tr>
           )}
           {!isLoading && variants.length === 0 && (
             <tr>
-              <td colSpan={7} className="text-center py-8 text-text-muted">Aucun article dans cette catégorie.</td>
+              <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
             </tr>
           )}
           {variants.map((variant) => (
@@ -63,9 +65,9 @@ function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
               <td className="text-end font-mono text-text-muted">{variant.alert_threshold}</td>
               <td>
                 {variant.stock_qty === 0 ? (
-                  <span className="badge badge-danger">Rupture</span>
+                  <span className="badge badge-danger">{t("inventory.out_of_stock_title")}</span>
                 ) : (
-                  <span className="badge badge-warning">Stock bas</span>
+                  <span className="badge badge-warning">{t("inventory.low_stock_status")}</span>
                 )}
               </td>
               <td>
@@ -92,28 +94,29 @@ interface ProductTableProps {
 }
 
 function ProductTable({ products, isLoading, onOrder }: ProductTableProps) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
           <tr>
-            <th>Produit</th>
-            <th>Référence</th>
-            <th className="text-end">Stock total</th>
-            <th className="text-end">Seuil global</th>
-            <th>Statut</th>
-            <th>Actions</th>
+            <th>{t("inventory.product")}</th>
+            <th>{t("inventory.reference")}</th>
+            <th className="text-end">{t("inventory.total_stock")}</th>
+            <th className="text-end">{t("inventory.global_threshold")}</th>
+            <th>{t("common.status")}</th>
+            <th>{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {isLoading && (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-text-muted">Chargement...</td>
+              <td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
             </tr>
           )}
           {!isLoading && products.length === 0 && (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-text-muted">Aucun produit dans cette catégorie.</td>
+              <td colSpan={6} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
             </tr>
           )}
           {products.map((product) => (
@@ -140,9 +143,9 @@ function ProductTable({ products, isLoading, onOrder }: ProductTableProps) {
               <td className="text-end font-mono text-text-muted">{product.alert_threshold}</td>
               <td>
                 {product.total_stock === 0 ? (
-                  <span className="badge badge-danger">Rupture</span>
+                  <span className="badge badge-danger">{t("inventory.out_of_stock_title")}</span>
                 ) : (
-                  <span className="badge badge-warning">Stock bas</span>
+                  <span className="badge badge-warning">{t("inventory.low_stock_status")}</span>
                 )}
               </td>
               <td>
@@ -215,8 +218,8 @@ export default function LowStockPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Articles en rupture / alerte</h1>
-          <p className="text-sm text-text-muted">Suivi des niveaux de stock critiques</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("inventory.low_stock_title")}</h1>
+          <p className="text-sm text-text-muted">{t("inventory.low_stock_desc")}</p>
         </div>
         <div className="flex items-center p-1 bg-surface rounded-lg border border-border">
           <button
@@ -245,9 +248,9 @@ export default function LowStockPage() {
         <div className="kpi-card">
           <div className="flex items-start justify-between">
             <div>
-              <div className="kpi-card__label">En rupture ({activeTab === "products" ? "Produits" : "Variantes"})</div>
+              <div className="kpi-card__label">{t("inventory.out_of_stock_title")} ({activeTab === "products" ? t("inventory.products_tab") : t("inventory.variants_tab")})</div>
               <div className="kpi-card__value text-danger">{currentLoading ? "..." : currentOutOfStockLength}</div>
-              <div className="text-xs text-text-muted mt-1">Stock = 0</div>
+              <div className="text-xs text-text-muted mt-1">{t("inventory.stock_zero")}</div>
             </div>
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-danger">
               <AlertTriangle size={20} className="text-white" />
@@ -278,7 +281,7 @@ export default function LowStockPage() {
             </span>
             <h2 className="font-semibold text-text-primary">En rupture</h2>
           </div>
-          <span className="text-xs text-text-muted">Stock = 0</span>
+          <span className="text-xs text-text-muted">{t("inventory.stock_zero")}</span>
         </div>
         {activeTab === "products" ? (
           <ProductTable products={outOfStockProducts} isLoading={productsLoading} onOrder={handleOrderProduct} />
@@ -294,7 +297,7 @@ export default function LowStockPage() {
             <span className="badge badge-warning">
               {currentLowStockLength}
             </span>
-            <h2 className="font-semibold text-text-primary">Stock bas</h2>
+            <h2 className="font-semibold text-text-primary">{t("inventory.low_stock_status")}</h2>
           </div>
           <span className="text-xs text-text-muted">Sous le seuil d'alerte</span>
         </div>

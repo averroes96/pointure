@@ -73,7 +73,7 @@ export default function ClientsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="form-input ps-9"
-            placeholder="Nom, téléphone, NIF..."
+            placeholder={t("client.search_placeholder")}
           />
         </div>
         <select
@@ -82,8 +82,8 @@ export default function ClientsPage() {
           className="form-input max-w-[160px]"
         >
           <option value="">Tous les types</option>
-          <option value="retail">Détail</option>
-          <option value="wholesale">Gros</option>
+          <option value="retail">{t("client.retail")}</option>
+          <option value="wholesale">{t("client.wholesale")}</option>
         </select>
       </div>
 
@@ -128,7 +128,7 @@ export default function ClientsPage() {
                           ? "bg-purple-50 text-purple-700 border-purple-200"
                           : "bg-blue-50 text-blue-700 border-blue-200"
                       )}>
-                        {client.client_type === "wholesale" ? "Gros" : "Détail"}
+                        {client.client_type === "wholesale" ? t("client.wholesale") : t("client.retail")}
                       </span>
                     </div>
                     {client.nif && <div className="text-xs text-text-muted">NIF: {client.nif}</div>}
@@ -191,7 +191,9 @@ export default function ClientsPage() {
 
         {data && data.total_pages > 1 && (
           <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-text-muted">Page {data.current_page} / {data.total_pages}</span>
+            <span className="text-xs text-text-muted">
+              {t("common.page_info_movements", { current: data.current_page, total: data.total_pages, count: data.count }).split("·")[0].trim()}
+            </span>
             <div className="flex gap-2">
               <button onClick={() => setPage(page - 1)} disabled={!data.previous} className="btn-secondary btn-sm">
                 {t("common.previous")}

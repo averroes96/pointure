@@ -1,20 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Download, ArrowUpDown } from "lucide-react";
 import api, { formatDate, type PaginatedResponse } from "@/lib/api";
 import type { StockMovement, MovementReason, Branch } from "@/types";
 import { cn } from "@/lib/utils";
 
-const REASON_LABELS: Record<MovementReason, string> = {
-  sale: "Vente",
-  reception: "Réception",
-  adjustment: "Ajustement",
-  return: "Retour",
-  transfer_out: "Transfert sortant",
-  transfer_in: "Transfert entrant",
-  damaged: "Endommagé",
-  initial: "Stock initial",
-};
+// REASON_LABELS generated inline using t("movement_reason." + reason)
 
 const REASON_BADGE_CLASS: Record<MovementReason, string> = {
   sale: "badge-danger",
@@ -28,7 +20,7 @@ const REASON_BADGE_CLASS: Record<MovementReason, string> = {
 };
 
 const REASON_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Tous les motifs" },
+  { value: "", label: t("inventory.all_reasons") },
   ...Object.entries(REASON_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
@@ -46,6 +38,7 @@ function formatTimestamp(ts: string): string {
 }
 
 export default function StockMovementsPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [reason, setReason] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -90,7 +83,7 @@ export default function StockMovementsPage() {
       formatTimestamp(m.timestamp),
       m.variant_str,
       m.branch_name,
-      REASON_LABELS[m.reason] ?? m.reason,
+      (t(`movement_reason.${m.reason}`) !== `movement_reason.${m.reason}` ? t(`movement_reason.${m.reason}`) : m.reason),
       m.quantity_delta > 0 ? `+${m.quantity_delta}` : String(m.quantity_delta),
       m.reference_id,
       m.user_email,
@@ -110,8 +103,8 @@ export default function StockMovementsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Mouvements de stock</h1>
-          <p className="text-sm text-text-muted">{data?.count ?? 0} mouvement(s)</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("inventory.stock_movements")}</h1>
+          <p className="text-sm text-text-muted">{t("inventory.movement_count", { count: data?.count ?? 0 })}</p>
         </div>
         <button onClick={handleExportCSV} className="btn-secondary">
           <Download size={16} />
@@ -130,7 +123,7 @@ export default function StockMovementsPage() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="form-input ps-9"
-              placeholder="Rechercher un article..."
+              placeholder={t("inventory.search_article")}
             />
           </div>
 
@@ -140,7 +133,7 @@ export default function StockMovementsPage() {
             onChange={(e) => { setReason(e.target.value); setPage(1); }}
             className="form-input"
           >
-            {REASON_OPTIONS.map((opt) => (
+            {[{ value: "", label: t("inventory.all_reasons") }, "sale", "reception", "adjustment", "return", "transfer_out", "transfer_in", "damaged", "initial"].map(opt => typeof opt === "string" ? { value: opt, label: t(`movement_reason.${opt}`) } : opt).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
@@ -151,7 +144,7 @@ export default function StockMovementsPage() {
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
             className="form-input"
-            placeholder="Du"
+            placeholder={t("common.from")}
           />
 
           {/* Date to */}
@@ -160,7 +153,7 @@ export default function StockMovementsPage() {
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
             className="form-input"
-            placeholder="Au"
+            placeholder={t("common.to")}
           />
 
           {/* Branch */}
@@ -169,7 +162,7 @@ export default function StockMovementsPage() {
             onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
             className="form-input"
           >
-            <option value="">Toutes les agences</option>
+            <option value="">{t("inventory.all_branches")}</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
@@ -191,24 +184,24 @@ export default function StockMovementsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Date / Heure</th>
-                <th>Article</th>
-                <th>Dépôt</th>
-                <th>Motif</th>
-                <th className="text-end">Δ Quantité</th>
-                <th>Référence</th>
-                <th>Opérateur</th>
+                <th>{t("inventory.datetime")}</th>
+                <th>{t("inventory.product")}</th>
+                <th>{t("inventory.warehouse")}</th>
+                <th>{t("inventory.reason")}</th>
+                <th className="text-end">{t("inventory.delta_qty")}</th>
+                <th>{t("inventory.reference")}</th>
+                <th>{t("inventory.operator")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">Chargement...</td>
+                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
                 </tr>
               )}
               {!isLoading && movements.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">Aucun mouvement trouvé.</td>
+                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("inventory.no_movement_found")}</td>
                 </tr>
               )}
               {movements.map((movement) => (
@@ -225,7 +218,7 @@ export default function StockMovementsPage() {
                   <td className="text-text-muted">{movement.branch_name || "—"}</td>
                   <td>
                     <span className={cn("badge", REASON_BADGE_CLASS[movement.reason] ?? "badge-neutral")}>
-                      {REASON_LABELS[movement.reason] ?? movement.reason}
+                      {(t(`movement_reason.${movement.reason}`) !== `movement_reason.${movement.reason}` ? t(`movement_reason.${movement.reason}`) : movement.reason)}
                     </span>
                   </td>
                   <td className="text-end">
@@ -254,7 +247,7 @@ export default function StockMovementsPage() {
         {data && data.total_pages > 1 && (
           <div className="px-4 py-3 border-t border-border flex items-center justify-between">
             <span className="text-xs text-text-muted">
-              Page {data.current_page} / {data.total_pages} · {data.count} mouvements
+              {t("inventory.page_info_movements", { current: data.current_page, total: data.total_pages, count: data.count })}
             </span>
             <div className="flex gap-2">
               <button

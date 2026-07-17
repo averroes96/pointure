@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -85,6 +86,7 @@ function Field({
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function ClientFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
@@ -149,7 +151,7 @@ export default function ClientFormPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) { setFormError("Le nom du client est obligatoire."); return; }
+    if (!form.name.trim()) { setFormError(t("client.name_required")); return; }
     setFormError(null);
     saveMutation.mutate();
   }
@@ -163,7 +165,7 @@ export default function ClientFormPage() {
     return (
       <div className="flex items-center justify-center h-48 gap-2 text-text-muted">
         <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">Chargement du client...</span>
+        <span className="text-sm">{t("common.loading")}</span>
       </div>
     );
   }
@@ -222,7 +224,7 @@ export default function ClientFormPage() {
                 Identité
               </h2>
 
-              <Field label="Nom / Raison sociale" required icon={User}>
+              <Field label={t("client.name_social")} required icon={User}>
                 <input
                   type="text"
                   value={form.name}
@@ -234,7 +236,7 @@ export default function ClientFormPage() {
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="NIF" icon={FileText}>
+                <Field label={t("client.nif")} icon={FileText}>
                   <input
                     type="text"
                     value={form.nif}
@@ -243,7 +245,7 @@ export default function ClientFormPage() {
                     placeholder="00012345678901234"
                   />
                 </Field>
-                <Field label="Registre de Commerce" icon={Building2}>
+                <Field label={t("client.rc")} icon={Building2}>
                   <input
                     type="text"
                     value={form.rc}
@@ -262,7 +264,7 @@ export default function ClientFormPage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Téléphone" icon={Phone}>
+                <Field label={t("client.phone_label")} icon={Phone}>
                   <input
                     type="tel"
                     value={form.phone}
@@ -271,7 +273,7 @@ export default function ClientFormPage() {
                     placeholder="0550 000 000"
                   />
                 </Field>
-                <Field label="Email" icon={Mail}>
+                <Field label={t("client.email")} icon={Mail}>
                   <input
                     type="email"
                     value={form.email}
@@ -282,7 +284,7 @@ export default function ClientFormPage() {
                 </Field>
               </div>
 
-              <Field label="Adresse" icon={MapPin}>
+              <Field label={t("client.address")} icon={MapPin}>
                 <input
                   type="text"
                   value={form.address}
@@ -292,7 +294,7 @@ export default function ClientFormPage() {
                 />
               </Field>
 
-              <Field label="Wilaya" icon={MapPin}>
+              <Field label={t("client.wilaya")} icon={MapPin}>
                 <input
                   type="text"
                   list="wilaya-list"

@@ -49,7 +49,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.products")}</h1>
-          <p className="text-sm text-text-muted">{data?.count ?? 0} {t("inventory.product")}(s)</p>
+          <p className="text-sm text-text-muted">{data?.count ?? 0} {t("inventory.product")}</p>
         </div>
         {user?.role !== "cashier" && (
           <div className="flex gap-2">
