@@ -10,6 +10,7 @@ import React from "react";
  */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
@@ -76,7 +77,7 @@ function SupplierSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder="Rechercher un fournisseur..."
+          placeholder=t("supplier.search_supplier")
         />
       </div>
 
@@ -156,7 +157,7 @@ function VariantSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9 py-1.5 text-sm"
-          placeholder="Chercher variante existante..."
+          placeholder=t("supplier.search_variant")
         />
       </div>
 
@@ -212,6 +213,7 @@ function lineTotal(line: LineItem): number {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function PurchaseOrderFormPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -243,7 +245,7 @@ export default function PurchaseOrderFormPage() {
     if (!supplierId) return;
     api.get(`/suppliers/${supplierId}/`).then((r) => {
       setSelectedSupplier(r.data as Supplier);
-    }).catch(() => setFormError("Impossible de charger le fournisseur sélectionné."));
+    }).catch(() => setFormError(t("supplier.error_load_supplier")));
   }, []);
 
   const grandTotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
@@ -314,7 +316,7 @@ export default function PurchaseOrderFormPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedSupplier) { setFormError("Veuillez sélectionner un fournisseur."); return; }
+    if (!selectedSupplier) { setFormError(t("supplier.error_select_supplier")); return; }
     if (lines.length === 0) { setFormError("Ajoutez au moins une ligne."); return; }
     for (const l of lines) {
       if (receiveImmediately && !l.variant_id && !l.is_carton) { setFormError("En mode Réception Directe, chaque ligne doit avoir une variante sélectionnée ou être en Mode Carton."); return; }
@@ -385,13 +387,10 @@ export default function PurchaseOrderFormPage() {
         {/* Supplier + Header fields */}
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <Factory size={14} className="text-primary-500" />
-            Fournisseur
-          </h2>
+            <Factory size={14} className="text-primary-500" />{t("supplier.supplier")}</h2>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Fournisseur <span className="text-danger">*</span>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("supplier.supplier")}<span className="text-danger">*</span>
             </label>
             <SupplierSearchInput value={selectedSupplier} onSelect={setSelectedSupplier} />
           </div>
@@ -408,7 +407,7 @@ export default function PurchaseOrderFormPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Référence</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("supplier.reference")}</label>
               <input
                 type="text"
                 value={reference}
@@ -444,7 +443,7 @@ export default function PurchaseOrderFormPage() {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Notes</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("common.notes")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -458,9 +457,7 @@ export default function PurchaseOrderFormPage() {
         {/* Line items */}
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <ShoppingBag size={14} className="text-primary-500" />
-            Lignes de commande
-          </h2>
+            <ShoppingBag size={14} className="text-primary-500" />{t("supplier.order_lines")}</h2>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -469,13 +466,12 @@ export default function PurchaseOrderFormPage() {
                   <th className="text-start pb-2 text-xs text-text-muted font-medium pr-3">
                     Description <span className="text-danger">*</span>
                   </th>
-                  <th className="text-start pb-2 text-xs text-text-muted font-medium w-24 pr-3">
-                    Qté <span className="text-danger">*</span>
+                  <th className="text-start pb-2 text-xs text-text-muted font-medium w-24 pr-3">{t("supplier.qty")}<span className="text-danger">*</span>
                   </th>
                   <th className="text-start pb-2 text-xs text-text-muted font-medium w-36 pr-3">
                     Prix unitaire <span className="text-danger">*</span>
                   </th>
-                  <th className="text-end pb-2 text-xs text-text-muted font-medium w-32">Total</th>
+                  <th className="text-end pb-2 text-xs text-text-muted font-medium w-32">{t("common.total")}</th>
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -585,9 +581,7 @@ export default function PurchaseOrderFormPage() {
             onClick={addLine}
             className="btn-secondary btn-sm w-full"
           >
-            <Plus size={14} />
-            Ajouter une ligne
-          </button>
+            <Plus size={14} />{t("supplier.add_line")}</button>
 
           {/* Grand total */}
           {grandTotal > 0 && (

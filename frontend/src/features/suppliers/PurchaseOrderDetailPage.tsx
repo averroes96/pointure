@@ -7,6 +7,7 @@
  */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, AlertTriangle, X,
@@ -31,25 +32,25 @@ const STATUS_BADGE: Record<POStatus, string> = {
 };
 
 const STATUS_LABEL: Record<POStatus, string> = {
-  draft: "Brouillon",
-  sent: "Envoyé",
-  partial: "Partiellement reçu",
-  received: "Reçu",
-  cancelled: "Annulé",
+  draft: t("supplier.draft"),
+  sent: t("supplier.sent"),
+  partial: t("supplier.partial"),
+  received: t("supplier.received"),
+  cancelled: t("supplier.cancelled"),
 };
 
 // Status transitions the user can manually trigger
 const STATUS_TRANSITIONS: Partial<Record<POStatus, { to: POStatus; label: string; variant: string }[]>> = {
   draft: [
-    { to: "sent", label: "Marquer comme envoyé", variant: "btn-primary" },
-    { to: "cancelled", label: "Annuler la commande", variant: "btn-secondary text-danger" },
+    { to: "sent", label: t("supplier.mark_as_sent"), variant: "btn-primary" },
+    { to: "cancelled", label: t("supplier.cancel_order"), variant: "btn-secondary text-danger" },
   ],
   sent: [
-    { to: "draft", label: "Repasser en brouillon", variant: "btn-secondary" },
-    { to: "cancelled", label: "Annuler la commande", variant: "btn-secondary text-danger" },
+    { to: "draft", label: t("supplier.revert_draft"), variant: "btn-secondary" },
+    { to: "cancelled", label: t("supplier.cancel_order"), variant: "btn-secondary text-danger" },
   ],
   partial: [
-    { to: "cancelled", label: "Annuler la commande", variant: "btn-secondary text-danger" },
+    { to: "cancelled", label: t("supplier.cancel_order"), variant: "btn-secondary text-danger" },
   ],
 };
 
@@ -127,7 +128,7 @@ function VariantSearch({
         <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           className="form-input pl-8 text-sm w-full"
-          placeholder="Rechercher un article…"
+          placeholder=t("supplier.search_item")
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
@@ -177,7 +178,7 @@ function LineResolutionRow({
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-text-primary truncate">{line.description}</span>
         <div className="flex gap-1 flex-shrink-0">
-          {([["link", Search, "Lier"], ["create", Plus, "Créer"], ["skip", SkipForward, "Ignorer"]] as const).map(
+          {([["link", Search, t("supplier.link_variant")], ["create", Plus, t("supplier.create_variant")], ["skip", SkipForward, t("supplier.skip_variant")]] as const).map(
             ([m, Icon, label]) => (
               <button
                 key={m}
@@ -210,7 +211,7 @@ function LineResolutionRow({
               key={field}
               type={field === "size_eu" || field.includes("price") ? "number" : "text"}
               placeholder={
-                { product_name: "Nom du produit *", brand: "Marque", size_eu: "Pointure EU *", purchase_price: "Prix achat *", sale_price: "Prix vente *" }[field]
+                { product_name: t("supplier.product_name_req"), brand: t("supplier.brand"), size_eu: t("supplier.size_eu_req"), purchase_price: t("supplier.purchase_price_req"), sale_price: t("supplier.sale_price_req") }[field]
               }
               className="form-input text-xs py-1.5"
               value={(resolution?.newVariant as any)?.[field] ?? ""}
@@ -222,7 +223,7 @@ function LineResolutionRow({
           <ColourPicker
             value={resolution?.newVariant?.colour ?? ""}
             onChange={(v) => onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, colour: v } })}
-            placeholder="Couleur"
+            placeholder=t("supplier.colour")
             className="col-span-1"
           />
           <select
@@ -243,9 +244,7 @@ function LineResolutionRow({
       )}
 
       {mode === "skip" && (
-        <p className="text-xs text-text-muted">
-          Cette ligne ne mettra pas à jour le stock (ex: frais de transport).
-        </p>
+        <p className="text-xs text-text-muted">{t("supplier.line_skip_desc")}</p>
       )}
     </div>
   );
@@ -370,7 +369,7 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
       <div className="card-header flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Truck size={15} className="text-primary-500" />
-          <h3 className="font-semibold text-text-primary">Lignes de commande</h3>
+          <h3 className="font-semibold text-text-primary">{t("supplier.order_lines")}</h3>
         </div>
         {canReceive && (
           <span className="text-xs text-text-muted">Saisissez les quantités reçues puis confirmez</span>
@@ -402,8 +401,8 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
               <thead className="bg-warning/5">
                 <tr>
                   <th className="text-left px-3 py-2 font-semibold text-text-muted">Article</th>
-                  <th className="text-center px-3 py-2 font-semibold text-text-muted">Commandé</th>
-                  <th className="text-center px-3 py-2 font-semibold text-text-muted">Reçu</th>
+                  <th className="text-center px-3 py-2 font-semibold text-text-muted">{t("supplier.ordered")}</th>
+                  <th className="text-center px-3 py-2 font-semibold text-text-muted">{t("supplier.received")}</th>
                   <th className="text-center px-3 py-2 font-semibold text-warning">Manquant</th>
                 </tr>
               </thead>
@@ -432,12 +431,12 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
         <table className="data-table">
           <thead>
             <tr>
-              <th>Description</th>
-              <th className="text-center">Commandé</th>
-              <th className="text-center">Reçu</th>
+              <th>{t("supplier.description")}</th>
+              <th className="text-center">{t("supplier.ordered")}</th>
+              <th className="text-center">{t("supplier.received")}</th>
               <th className="text-end">Prix unit.</th>
               <th className="text-end">Total ligne</th>
-              <th className="text-center">Statut</th>
+              <th className="text-center">{t("supplier.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -478,7 +477,7 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                   </td>
                   <td className="text-center">
                     {isDone ? (
-                      <span className="badge badge-success text-xs">Reçu</span>
+                      <span className="badge badge-success text-xs">{t("supplier.received")}</span>
                     ) : qtyReceived > 0 ? (
                       <span className="badge badge-warning text-xs">Partiel</span>
                     ) : (
@@ -585,8 +584,8 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                 <thead className="bg-surface">
                   <tr>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-text-muted">Article</th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-text-muted">Commandé</th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-warning">Reçu</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-text-muted">{t("supplier.ordered")}</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-warning">{t("supplier.received")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -731,7 +730,7 @@ function PoShareActions({ po }: { po: PurchaseOrder }) {
         onClick={openPdf}
         disabled={loadingPdf}
         className="btn-secondary btn-sm flex items-center gap-1.5"
-        title="Télécharger PDF"
+        title=t("invoice.download_pdf")
       >
         {loadingPdf
           ? <Loader2 size={14} className="animate-spin" />
@@ -754,6 +753,7 @@ function PoShareActions({ po }: { po: PurchaseOrder }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PurchaseOrderDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -769,7 +769,7 @@ export default function PurchaseOrderDetailPage() {
     return (
       <div className="flex items-center justify-center h-48 gap-2 text-text-muted">
         <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">Chargement...</span>
+        <span className="text-sm">{t("common.loading")}</span>
       </div>
     );
   }
@@ -836,7 +836,7 @@ export default function PurchaseOrderDetailPage() {
         <div className="card p-4 flex items-center gap-3">
           <FileText size={16} className="text-primary-500 flex-shrink-0" />
           <div>
-            <div className="text-xs text-text-muted">Référence</div>
+            <div className="text-xs text-text-muted">{t("supplier.reference")}</div>
             <div className="text-sm font-medium font-mono">{po.reference || "—"}</div>
           </div>
         </div>
@@ -855,7 +855,7 @@ export default function PurchaseOrderDetailPage() {
       {/* Notes */}
       {po.notes && (
         <div className="card p-4">
-          <p className="text-xs text-text-muted mb-1">Notes</p>
+          <p className="text-xs text-text-muted mb-1">{t("common.notes")}</p>
           <p className="text-sm text-text-secondary whitespace-pre-wrap">{po.notes}</p>
         </div>
       )}

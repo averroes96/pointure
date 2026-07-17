@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
@@ -97,6 +98,7 @@ function todayISO(): string {
 }
 
 export default function SalesReportPage() {
+  const { t } = useTranslation();
   const [preset, setPreset] = useState<PeriodPreset>("30");
   const [customFrom, setCustomFrom] = useState(subtractDays(30));
   const [customTo, setCustomTo] = useState(todayISO());
@@ -153,16 +155,16 @@ export default function SalesReportPage() {
   }, 0);
 
   const PRESET_LABELS: Record<PeriodPreset, string> = {
-    "7": "7 derniers jours",
-    "30": "30 derniers jours",
+    "7": t("report.last_7_days"),
+    "30": t("report.last_30_days"),
     "90": "90 derniers jours",
     custom: "Période personnalisée",
   };
 
   const handleExportCSV = () => {
     const headers = showMargin && isManagerOrOwner
-      ? ["Date", "CA", "Nb ventes", "Panier moyen", "Coût ventes", "Marge brute", "Marge %"]
-      : ["Date", "CA", "Nb ventes", "Panier moyen"];
+      ? ["Date", t("report.revenue"), t("report.sale_count"), "Panier moyen", "Coût ventes", "Marge brute", "Marge %"]
+      : ["Date", t("report.revenue"), t("report.sale_count"), "Panier moyen"];
 
     const csvRows = rows.map((row) => {
       const pl = plMap.get(row.period);
@@ -212,9 +214,7 @@ export default function SalesReportPage() {
               </button>
             </PlanGate>
           )}
-          <button onClick={handleExportCSV} className="btn-secondary btn-sm">
-            Exporter CSV
-          </button>
+          <button onClick={handleExportCSV} className="btn-secondary btn-sm">{t("common.export_csv")}</button>
         </div>
       </div>
 
@@ -223,7 +223,7 @@ export default function SalesReportPage() {
         <div className="flex flex-wrap items-end gap-3">
           {/* Period presets */}
           <div>
-            <label className="form-label">Période</label>
+            <label className="form-label">{t("report.period")}</label>
             <div className="flex gap-1">
               {(["7", "30", "90", "custom"] as PeriodPreset[]).map((p) => (
                 <button
@@ -322,7 +322,7 @@ export default function SalesReportPage() {
             </div>
           </div>
           <div className="kpi-card">
-            <div className="kpi-card__label">Nb ventes</div>
+            <div className="kpi-card__label">{t("report.sale_count")}</div>
             <div className="kpi-card__value">{data.total_sales}</div>
           </div>
           <div className="kpi-card">
@@ -335,9 +335,7 @@ export default function SalesReportPage() {
       )}
 
       {activeLoading && (
-        <div className="card card-body text-center text-text-muted py-12">
-          Chargement...
-        </div>
+        <div className="card card-body text-center text-text-muted py-12">{t("common.loading")}</div>
       )}
 
       {!activeLoading && data && (
@@ -393,8 +391,8 @@ export default function SalesReportPage() {
                 <thead>
                   <tr>
                     <th>Date / Semaine</th>
-                    <th className="text-end">CA</th>
-                    <th className="text-end">Nb ventes</th>
+                    <th className="text-end">{t("report.revenue")}</th>
+                    <th className="text-end">{t("report.sale_count")}</th>
                     <th className="text-end">Panier moyen</th>
                     {showMargin && isManagerOrOwner && (
                       <>
@@ -446,17 +444,17 @@ export default function SalesReportPage() {
           {/* Top products */}
           <div className="card overflow-hidden">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Meilleures ventes</h2>
+              <h2 className="font-semibold text-text-primary">{t("report.top_sales")}</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Article</th>
-                    <th>Marque</th>
+                    <th>{t("report.item")}</th>
+                    <th>{t("report.brand")}</th>
                     <th className="text-end">Unités vendues</th>
-                    <th className="text-end">CA</th>
+                    <th className="text-end">{t("report.revenue")}</th>
                   </tr>
                 </thead>
                 <tbody>

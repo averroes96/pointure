@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Lock,
@@ -280,6 +281,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReportBuilderPage() {
+  const { t } = useTranslation();
   const { canAccess } = usePlan();
   const qc = useQueryClient();
 
@@ -601,9 +603,7 @@ export default function ReportBuilderPage() {
                 <button
                   className="btn-secondary btn-sm w-full text-xs"
                   onClick={() => setSaveFormOpen(true)}
-                >
-                  Sauvegarder
-                </button>
+                >{t("common.save")}</button>
               )}
             </div>
           </div>
@@ -730,9 +730,7 @@ export default function ReportBuilderPage() {
               {/* Filters section */}
               <div className="card">
                 <div className="card-header">
-                  <span className="font-semibold text-text-primary">
-                    Filtres
-                  </span>
+                  <span className="font-semibold text-text-primary">{t("report.filters")}</span>
                   <button
                     className="btn-ghost btn-sm ml-auto flex items-center gap-1 text-sm"
                     onClick={addFilter}
@@ -911,9 +909,7 @@ export default function ReportBuilderPage() {
                     </>
                   ) : (
                     <>
-                      <FileDown size={15} />
-                      Exporter CSV
-                    </>
+                      <FileDown size={15} />{t("common.export_csv")}</>
                   )}
                 </button>
                 {previewError && (

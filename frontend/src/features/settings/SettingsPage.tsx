@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User, Building2, Shield, Users, MapPin, Upload, Banknote, type LucideIcon } from "lucide-react";
@@ -42,6 +43,7 @@ interface ProfileFormData {
 }
 
 function ProfileTab({ user }: { user: UserType }) {
+  const { t } = useTranslation();
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const { register, handleSubmit, formState: { errors, isDirty } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -55,7 +57,7 @@ function ProfileTab({ user }: { user: UserType }) {
   const mutation = useMutation({
     mutationFn: (data: ProfileFormData) =>
       api.patch("/core/me/update_profile/", data).then((r) => r.data),
-    onSuccess: () => setToast({ msg: "Profil mis à jour avec succès.", type: "success" }),
+    onSuccess: () => setToast({ msg: t("settings.profile_updated"), type: "success" }),
     onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
   });
 
@@ -70,7 +72,7 @@ function ProfileTab({ user }: { user: UserType }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="form-label">Prénom</label>
+          <label className="form-label">{t("user.first_name")}</label>
           <input
             type="text"
             {...register("first_name", { required: "Obligatoire" })}
@@ -81,7 +83,7 @@ function ProfileTab({ user }: { user: UserType }) {
           )}
         </div>
         <div>
-          <label className="form-label">Nom</label>
+          <label className="form-label">{t("user.last_name")}</label>
           <input
             type="text"
             {...register("last_name", { required: "Obligatoire" })}
@@ -94,16 +96,16 @@ function ProfileTab({ user }: { user: UserType }) {
       </div>
 
       <div>
-        <label className="form-label">Téléphone</label>
+        <label className="form-label">{t("user.phone")}</label>
         <input type="tel" {...register("phone")} className="form-input" placeholder="0550 000 000" />
       </div>
 
       <div>
-        <label className="form-label">Langue</label>
+        <label className="form-label">{t("user.language")}</label>
         <select {...register("language_preference")} className="form-input">
-          <option value="fr">Français</option>
-          <option value="ar">العربية</option>
-          <option value="en">English</option>
+          <option value="fr">{t("user.lang_fr")}</option>
+          <option value="ar">{t("user.lang_ar")}</option>
+          <option value="en">{t("user.lang_en")}</option>
         </select>
       </div>
 
@@ -113,7 +115,7 @@ function ProfileTab({ user }: { user: UserType }) {
           disabled={mutation.isPending || !isDirty}
           className="btn-primary"
         >
-          {mutation.isPending ? "Enregistrement..." : "Sauvegarder"}
+          {mutation.isPending ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </form>
@@ -132,6 +134,7 @@ interface TenantFormData {
 }
 
 function BoutiqueTab({ tenant }: { tenant: Tenant }) {
+  const { t } = useTranslation();
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(tenant.logo);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +163,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
       }
       return api.patch("/core/tenant/update_settings/", data).then((r) => r.data);
     },
-    onSuccess: () => setToast({ msg: "Informations boutique mises à jour.", type: "success" }),
+    onSuccess: () => setToast({ msg: t("settings.store_updated"), type: "success" }),
     onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
   });
 
@@ -184,11 +187,11 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
 
       {/* Logo */}
       <div>
-        <label className="form-label">Logo</label>
+        <label className="form-label">{t("settings.logo")}</label>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-lg border border-border bg-surface flex items-center justify-center overflow-hidden flex-shrink-0">
             {logoPreview ? (
-              <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+              <img src={logoPreview} alt=t("settings.logo") className="w-full h-full object-contain" />
             ) : (
               <Building2 size={24} className="text-text-muted" />
             )}
@@ -199,9 +202,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
               onClick={() => fileInputRef.current?.click()}
               className="btn-secondary btn-sm"
             >
-              <Upload size={14} />
-              Changer le logo
-            </button>
+              <Upload size={14} />{t("settings.change_logo")}</button>
             <input
               ref={fileInputRef}
               type="file"
@@ -215,7 +216,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
       </div>
 
       <div>
-        <label className="form-label">Nom de la boutique *</label>
+        <label className="form-label">{t("settings.store_name_req")}</label>
         <input
           type="text"
           {...register("name", { required: "Obligatoire" })}
@@ -225,26 +226,26 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
       </div>
 
       <div>
-        <label className="form-label">Téléphone</label>
+        <label className="form-label">{t("user.phone")}</label>
         <input type="tel" {...register("phone")} className="form-input" />
       </div>
 
       <div>
-        <label className="form-label">Adresse</label>
+        <label className="form-label">{t("settings.address")}</label>
         <textarea {...register("address")} rows={2} className="form-input resize-none" />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="form-label">NIF</label>
+          <label className="form-label">{t("settings.nif")}</label>
           <input type="text" {...register("nif")} className="form-input" />
         </div>
         <div>
-          <label className="form-label">RC</label>
+          <label className="form-label">{t("settings.rc")}</label>
           <input type="text" {...register("rc")} className="form-input" />
         </div>
         <div>
-          <label className="form-label">AI</label>
+          <label className="form-label">{t("settings.ai")}</label>
           <input type="text" {...register("ai")} className="form-input" />
         </div>
       </div>
@@ -255,7 +256,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
           disabled={mutation.isPending || !isDirty}
           className="btn-primary"
         >
-          {mutation.isPending ? "Enregistrement..." : "Sauvegarder"}
+          {mutation.isPending ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </form>
@@ -271,6 +272,7 @@ interface PasswordFormData {
 }
 
 function SecurityTab() {
+  const { t } = useTranslation();
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<PasswordFormData>();
 
@@ -299,7 +301,7 @@ function SecurityTab() {
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
       <div>
-        <label className="form-label">Mot de passe actuel</label>
+        <label className="form-label">{t("settings.current_password")}</label>
         <input
           type="password"
           {...register("old_password", { required: "Obligatoire" })}
@@ -310,7 +312,7 @@ function SecurityTab() {
       </div>
 
       <div>
-        <label className="form-label">Nouveau mot de passe</label>
+        <label className="form-label">{t("settings.new_password")}</label>
         <input
           type="password"
           {...register("new_password", {
@@ -329,7 +331,7 @@ function SecurityTab() {
           type="password"
           {...register("confirm", {
             required: "Obligatoire",
-            validate: (val) => val === newPassword || "Les mots de passe ne correspondent pas.",
+            validate: (val) => val === newPassword || t("settings.password_mismatch"),
           })}
           className="form-input"
           autoComplete="new-password"
@@ -339,7 +341,7 @@ function SecurityTab() {
 
       <div className="flex items-center justify-end pt-2">
         <button type="submit" disabled={mutation.isPending} className="btn-primary">
-          {mutation.isPending ? "Modification..." : "Changer le mot de passe"}
+          {mutation.isPending ? "Modification..." : t("settings.change_password")}
         </button>
       </div>
     </form>
@@ -358,6 +360,7 @@ interface InviteFormData {
 }
 
 function UsersTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -427,7 +430,7 @@ function UsersTab() {
           <form onSubmit={handleSubmit(onInvite)} className="space-y-4 max-w-md">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="form-label">Prénom</label>
+                <label className="form-label">{t("user.first_name")}</label>
                 <input
                   type="text"
                   {...register("first_name", { required: "Obligatoire" })}
@@ -436,7 +439,7 @@ function UsersTab() {
                 {errors.first_name && <p className="form-error">{errors.first_name.message}</p>}
               </div>
               <div>
-                <label className="form-label">Nom</label>
+                <label className="form-label">{t("user.last_name")}</label>
                 <input
                   type="text"
                   {...register("last_name", { required: "Obligatoire" })}
@@ -486,7 +489,7 @@ function UsersTab() {
               </div>
             </div>
             <div>
-              <label className="form-label">Rôle</label>
+              <label className="form-label">{t("settings.role")}</label>
               <select {...register("role")} className="form-input">
                 <option value="cashier">Caissier</option>
                 <option value="manager">Gérant</option>
@@ -514,9 +517,9 @@ function UsersTab() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nom</th>
+                <th>{t("user.last_name")}</th>
                 <th>Email</th>
-                <th>Rôle</th>
+                <th>{t("settings.role")}</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
@@ -524,7 +527,7 @@ function UsersTab() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-text-muted">Chargement...</td>
+                  <td colSpan={5} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
                 </tr>
               )}
               {!isLoading && users.length === 0 && (
@@ -548,7 +551,7 @@ function UsersTab() {
                   </td>
                   <td>
                     <span className={cn("badge", u.is_active ? "badge-success" : "badge-neutral")}>
-                      {u.is_active ? "Actif" : "Inactif"}
+                      {u.is_active ? t("settings.active") : t("settings.inactive")}
                     </span>
                   </td>
                   <td>
@@ -664,12 +667,12 @@ function AgencesTab() {
                 </datalist>
               </div>
               <div>
-                <label className="form-label">Téléphone</label>
+                <label className="form-label">{t("user.phone")}</label>
                 <input type="tel" {...register("phone")} className="form-input" />
               </div>
             </div>
             <div>
-              <label className="form-label">Adresse</label>
+              <label className="form-label">{t("settings.address")}</label>
               <input type="text" {...register("address")} className="form-input" />
             </div>
             <div className="flex gap-2">
@@ -691,7 +694,7 @@ function AgencesTab() {
       {/* Branches list */}
       <div className="space-y-3">
         {isLoading && (
-          <div className="text-center py-8 text-text-muted">Chargement...</div>
+          <div className="text-center py-8 text-text-muted">{t("common.loading")}</div>
         )}
         {!isLoading && branches.length === 0 && (
           <div className="text-center py-8 text-text-muted">Aucune agence enregistrée.</div>
@@ -771,7 +774,7 @@ function VersementsTab() {
     });
   }
 
-  if (isLoading) return <div className="text-text-muted py-4">Chargement...</div>;
+  if (isLoading) return <div className="text-text-muted py-4">{t("common.loading")}</div>;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
@@ -822,7 +825,7 @@ function VersementsTab() {
           disabled={mutation.isPending || !isDirty}
           className="btn-primary"
         >
-          {mutation.isPending ? "Enregistrement..." : "Sauvegarder"}
+          {mutation.isPending ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </form>
@@ -841,15 +844,16 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { key: "profil", label: "Profil", icon: User },
-  { key: "boutique", label: "Boutique", icon: Building2, roles: ["owner", "manager"] },
+  { key: "profil", label: t("settings.profile"), icon: User },
+  { key: "boutique", label: t("settings.store"), icon: Building2, roles: ["owner", "manager"] },
   { key: "securite", label: "Securite", icon: Shield },
-  { key: "utilisateurs", label: "Utilisateurs", icon: Users, roles: ["owner", "manager"] },
+  { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
   { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
   { key: "versements", label: "Versements", icon: Banknote, roles: ["owner"] },
 ];
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("profil");
 
@@ -872,7 +876,7 @@ export default function SettingsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-text-primary">Paramètres</h1>
+        <h1 className="text-xl font-bold text-text-primary">{t("nav.settings")}</h1>
         <p className="text-sm text-text-muted">Gérez votre profil et la configuration du système</p>
       </div>
 

@@ -10,6 +10,7 @@
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
@@ -118,7 +119,7 @@ function ClientSelector({
           !value && "text-text-muted"
         )}
       >
-        <span className="truncate">{value ? value.name : "Sélectionner un client..."}</span>
+        <span className="truncate">{value ? value.name : t("invoice.select_client")}</span>
         <div className="flex items-center gap-1 flex-shrink-0">
           {value && (
             <span
@@ -147,7 +148,7 @@ function ClientSelector({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="form-input ps-8 py-1.5 text-sm"
-                placeholder="Rechercher..."
+                placeholder=t("common.search")
               />
             </div>
           </div>
@@ -156,7 +157,7 @@ function ClientSelector({
               <div className="px-3 py-2 text-xs text-text-muted">Chargement...</div>
             )}
             {!isFetching && clients.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">Aucun client trouvé</div>
+              <div className="px-3 py-2 text-xs text-text-muted">{t("invoice.no_client_found")}</div>
             )}
             {clients.map((c) => (
               <button
@@ -242,7 +243,7 @@ function ProductSearchCell({
           onKeyDown(e);
         }}
         className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white transition-colors"
-        placeholder="Description ou nom du produit…"
+        placeholder=t("invoice.search_product")
       />
 
       {open && (
@@ -252,7 +253,7 @@ function ProductSearchCell({
               <div className="px-3 py-2 text-xs text-text-muted">Chargement…</div>
             )}
             {description.length >= 2 && !isFetching && products.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">Aucun produit trouvé</div>
+              <div className="px-3 py-2 text-xs text-text-muted">{t("inventory.no_product_found")}</div>
             )}
             {products.map((p) => (
               <button
@@ -329,7 +330,7 @@ function VariantSearchCell({
         className="w-full text-start text-xs px-2 py-1 border border-border rounded bg-white hover:border-primary-300 transition-colors flex items-center justify-between gap-1"
       >
         <span className={cn("truncate", !value && "text-text-muted")}>
-          {value ? value.label : "Pointure/Couleur…"}
+          {value ? value.label : t("invoice.size_color")}
         </span>
         {value ? (
           <span
@@ -358,13 +359,13 @@ function VariantSearchCell({
           </div>
           <div className="max-h-40 overflow-y-auto">
             {query.length < 2 && (
-              <div className="px-3 py-2 text-xs text-text-muted">Tapez au moins 2 caractères…</div>
+              <div className="px-3 py-2 text-xs text-text-muted">{t("common.type_2_chars")}</div>
             )}
             {query.length >= 2 && isFetching && (
               <div className="px-3 py-2 text-xs text-text-muted">Chargement…</div>
             )}
             {query.length >= 2 && !isFetching && variants.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">Aucune variante trouvée</div>
+              <div className="px-3 py-2 text-xs text-text-muted">{t("inventory.no_variant_found")}</div>
             )}
             {variants.map((v) => (
               <button
@@ -402,6 +403,7 @@ function VariantSearchCell({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function InvoiceBuilderPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const today = toISODate(new Date());
@@ -590,7 +592,7 @@ export default function InvoiceBuilderPage() {
       (l) => l.description.trim() || l.variant_id
     );
     if (validLines.length === 0) {
-      setFormError("Ajoutez au moins une ligne à la facture.");
+      setFormError(t("invoice.add_one_line_error"));
       return;
     }
 
@@ -611,7 +613,7 @@ export default function InvoiceBuilderPage() {
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-text-primary">Nouvelle Facture</h1>
+            <h1 className="text-xl font-bold text-text-primary">{t("invoice.new")}</h1>
             <p className="text-sm text-text-muted">Remplissez les informations ci-dessous</p>
           </div>
         </div>
@@ -711,7 +713,7 @@ export default function InvoiceBuilderPage() {
 
               {/* Due date */}
               <div>
-                <label className="form-label">Date d'échéance</label>
+                <label className="form-label">{t("invoice.due_date")}</label>
                 <input
                   type="date"
                   value={dueDate}
@@ -817,7 +819,7 @@ export default function InvoiceBuilderPage() {
                     <th className="w-20 text-center">Qté</th>
                     <th className="w-28 text-end">P.U. HT</th>
                     <th className="w-20 text-center">Remise %</th>
-                    <th className="w-28 text-end">Total HT</th>
+                    <th className="w-28 text-end">{t("invoice.total_ht")}</th>
                     <th className="w-10" />
                   </tr>
                 </thead>
@@ -941,9 +943,7 @@ export default function InvoiceBuilderPage() {
                 onClick={addLine}
                 className="btn-ghost btn-sm text-primary-500"
               >
-                <Plus size={14} />
-                Ajouter une ligne
-              </button>
+                <Plus size={14} />{t("invoice.add_line")}</button>
             </div>
           </div>
 
@@ -1073,7 +1073,7 @@ export default function InvoiceBuilderPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="font-semibold text-text-primary">Reste à payer</span>
+                    <span className="font-semibold text-text-primary">{t("invoice.balance_due")}</span>
                     <span
                       className={cn(
                         "font-mono font-bold text-base",
@@ -1101,7 +1101,7 @@ export default function InvoiceBuilderPage() {
                 className="btn-primary w-full justify-center"
               >
                 <Save size={15} />
-                {mutation.isPending ? "Enregistrement..." : "Enregistrer la facture"}
+                {mutation.isPending ? "Enregistrement..." : t("invoice.save_invoice")}
               </button>
               <button
                 type="button"

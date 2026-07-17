@@ -10,7 +10,7 @@
     "sale_history": "History",
     "invoicing": "Invoicing",
     "new_invoice": "New Invoice",
-    "invoice_list": "Invoices",
+    "invoice_list": "B2B Invoices",
     "delivery_notes": "Delivery Notes",
     "credit_notes": "Credit Notes",
     "inventory": "Inventory",
@@ -37,7 +37,8 @@
     "report_builder": "Report Builder",
     "audit_log": "Audit Log",
     "webhooks": "Webhooks",
-    "plan_locked": "Available from plan"
+    "plan_locked": "Available from plan",
+    "sales_report": "Sales Report"
   },
   "auth": {
     "login": "Login",
@@ -62,7 +63,7 @@
   },
   "invoice": {
     "new": "New Invoice",
-    "number": "Invoice #",
+    "number": "Invoice No.",
     "client": "Client",
     "date": "Date",
     "due_date": "Due Date",
@@ -433,7 +434,7 @@
   "supplier": {
     "new": "New Supplier",
     "edit": "Edit Supplier",
-    "name": "Company Name",
+    "name": "Supplier",
     "contact_name": "Contact Person",
     "phone": "Phone",
     "email": "Email",
@@ -441,7 +442,8 @@
     "payment_terms": "Payment Terms",
     "address": "Address",
     "notes": "Notes",
-    "is_active": "Active"
+    "is_active": "Active",
+    "balance": "Balance"
   },
   "transfer_status": {
     "pending": "Pending",
@@ -466,7 +468,7 @@
     "export": "Export",
     "print": "Print",
     "loading": "Loading...",
-    "no_data": "No data",
+    "no_data": "No data found",
     "confirm_delete": "Confirm Delete",
     "yes": "Yes",
     "no": "No",

@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -86,7 +87,7 @@ function InvoiceSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder="Rechercher par N° ou client..."
+          placeholder=t("invoice.search_placeholder")
         />
       </div>
 
@@ -108,7 +109,7 @@ function InvoiceSearchInput({
                   <span className="badge badge-info text-xs">{inv.status}</span>
                 </div>
                 <div className="text-xs text-text-muted truncate">
-                  {inv.client_name || "Sans client"} · {formatDate(inv.date)} · {formatDZD(inv.total_ttc)} DZD
+                  {inv.client_name || t("invoice.no_client")} · {formatDate(inv.date)} · {formatDZD(inv.total_ttc)} DZD
                 </div>
               </div>
             </button>
@@ -130,6 +131,7 @@ interface FormState {
 }
 
 export default function DeliveryNoteFormPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -158,7 +160,7 @@ export default function DeliveryNoteFormPage() {
         invoice_id: inv.id,
         number: `BL-${inv.number || inv.id}`,
       }));
-    }).catch(() => setFormError("Impossible de charger la facture sélectionnée."));
+    }).catch(() => setFormError(t("invoice.error_load_invoice")));
   }, []);
 
   function handleInvoiceSelect(inv: Invoice) {
@@ -189,9 +191,9 @@ export default function DeliveryNoteFormPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.invoice_id) { setFormError("Veuillez sélectionner une facture."); return; }
-    if (!form.number.trim()) { setFormError("Le numéro du BL est obligatoire."); return; }
-    if (!form.date) { setFormError("La date est obligatoire."); return; }
+    if (!form.invoice_id) { setFormError(t("invoice.error_select_invoice")); return; }
+    if (!form.number.trim()) { setFormError(t("invoice.error_bl_number")); return; }
+    if (!form.date) { setFormError(t("invoice.error_date")); return; }
     setFormError(null);
     saveMutation.mutate();
   }
@@ -204,8 +206,8 @@ export default function DeliveryNoteFormPage() {
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Nouveau Bon de Livraison</h1>
-          <p className="text-sm text-text-muted">Associez un BL à une facture confirmée.</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("invoice.new_delivery_note_title")}</h1>
+          <p className="text-sm text-text-muted">{t("invoice.link_bl_desc")}</p>
         </div>
       </div>
 
@@ -222,20 +224,16 @@ export default function DeliveryNoteFormPage() {
 
         {saved && (
           <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
-            <CheckCircle size={14} /> BL créé avec succès. Redirection...
-          </div>
+            <CheckCircle size={14} />{t("invoice.bl_created_success")}</div>
         )}
 
         {/* Facture liée */}
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <FileText size={14} className="text-primary-500" />
-            Facture associée
-          </h2>
+            <FileText size={14} className="text-primary-500" />{t("invoice.linked_invoice")}</h2>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Facture <span className="text-danger">*</span>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.invoice")}<span className="text-danger">*</span>
             </label>
             <InvoiceSearchInput value={selectedInvoice} onSelect={handleInvoiceSelect} />
           </div>
@@ -281,8 +279,7 @@ export default function DeliveryNoteFormPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">
-                Date de livraison <span className="text-danger">*</span>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.delivery_date")}<span className="text-danger">*</span>
               </label>
               <input
                 type="date"
@@ -294,9 +291,7 @@ export default function DeliveryNoteFormPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Livré par
-            </label>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.delivered_by")}</label>
             <input
               type="text"
               value={form.delivered_by}
@@ -307,7 +302,7 @@ export default function DeliveryNoteFormPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Notes</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.notes")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}

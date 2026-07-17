@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -87,7 +88,7 @@ function InvoiceSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder="Rechercher par N° ou client..."
+          placeholder=t("invoice.search_placeholder")
         />
       </div>
 
@@ -109,7 +110,7 @@ function InvoiceSearchInput({
                   <span className="badge badge-info text-xs">{inv.status}</span>
                 </div>
                 <div className="text-xs text-text-muted truncate">
-                  {inv.client_name || "Sans client"} · {formatDate(inv.date)} · {formatDZD(inv.total_ttc)} DZD
+                  {inv.client_name || t("invoice.no_client")} · {formatDate(inv.date)} · {formatDZD(inv.total_ttc)} DZD
                 </div>
               </div>
             </button>
@@ -130,6 +131,7 @@ interface FormState {
 }
 
 export default function CreditNoteFormPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -199,9 +201,9 @@ export default function CreditNoteFormPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.invoice_id) { setFormError("Veuillez sélectionner une facture d'origine."); return; }
+    if (!form.invoice_id) { setFormError(t("invoice.error_select_original")); return; }
     if (!form.reason.trim()) { setFormError("Le motif de l'avoir est obligatoire."); return; }
-    if (!form.total_ht || totalHtNum <= 0) { setFormError("Le montant HT doit être supérieur à zéro."); return; }
+    if (!form.total_ht || totalHtNum <= 0) { setFormError(t("invoice.error_ht_positive")); return; }
     if (totalHtNum > maxHt) { setFormError(`Le montant HT ne peut pas dépasser celui de la facture (${formatDZD(maxHt)} DZD).`); return; }
     setFormError(null);
     saveMutation.mutate();
@@ -216,9 +218,7 @@ export default function CreditNoteFormPage() {
         </Link>
         <div>
           <h1 className="text-xl font-bold text-text-primary">Nouvel Avoir</h1>
-          <p className="text-sm text-text-muted">
-            Émettez un avoir sur une facture existante (retour, litige, remise).
-          </p>
+          <p className="text-sm text-text-muted">{t("invoice.credit_note_desc")}</p>
         </div>
       </div>
 
@@ -235,16 +235,13 @@ export default function CreditNoteFormPage() {
 
         {saved && (
           <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
-            <CheckCircle size={14} /> Avoir créé avec succès. Redirection...
-          </div>
+            <CheckCircle size={14} />{t("invoice.credit_created_success")}</div>
         )}
 
         {/* Facture d'origine */}
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <FileText size={14} className="text-primary-500" />
-            Facture d'origine
-          </h2>
+            <FileText size={14} className="text-primary-500" />{t("invoice.original_invoice")}</h2>
 
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1">
@@ -260,7 +257,7 @@ export default function CreditNoteFormPage() {
                   {selectedInvoice.number || `#${selectedInvoice.id}`}
                 </span>
                 <span className="text-xs text-text-muted">
-                  TVA {selectedInvoice.apply_tva ? `${selectedInvoice.tva_rate}%` : "exonéré"}
+                  TVA {selectedInvoice.apply_tva ? `${selectedInvoice.tva_rate}%` : t("invoice.exempt")}
                 </span>
               </div>
               <div className="text-sm text-text-muted">
@@ -277,13 +274,10 @@ export default function CreditNoteFormPage() {
         {/* Avoir details */}
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <FileX size={14} className="text-primary-500" />
-            Détails de l'avoir
-          </h2>
+            <FileX size={14} className="text-primary-500" />{t("invoice.credit_details")}</h2>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Date <span className="text-danger">*</span>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.date")}<span className="text-danger">*</span>
             </label>
             <input
               type="date"
@@ -294,15 +288,14 @@ export default function CreditNoteFormPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Motif <span className="text-danger">*</span>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.reason")}<span className="text-danger">*</span>
             </label>
             <textarea
               value={form.reason}
               onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
               className="form-input resize-none"
               rows={3}
-              placeholder="Ex: Retour marchandise défectueuse, litige quantité, remise commerciale..."
+              placeholder=t("invoice.credit_reason_placeholder")
             />
           </div>
 
@@ -337,7 +330,7 @@ export default function CreditNoteFormPage() {
             {totalHtNum > 0 && (
               <div className="rounded-lg bg-surface border border-border divide-y divide-border overflow-hidden">
                 <div className="flex justify-between items-center px-4 py-2 text-sm">
-                  <span className="text-text-muted">Montant HT</span>
+                  <span className="text-text-muted">{t("invoice.total_ht")}</span>
                   <span className="font-mono">{formatDZD(totalHtNum)} DZD</span>
                 </div>
                 {tvaRate > 0 && (
@@ -366,9 +359,9 @@ export default function CreditNoteFormPage() {
             className="btn-primary"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={14} className="animate-spin" /> Création…</>
+              <><Loader2 size={14} className="animate-spin" />{t("common.creating")}</>
             ) : (
-              <><Save size={14} /> Émettre l'avoir</>
+              <><Save size={14} />{t("invoice.issue_credit")}</>
             )}
           </button>
         </div>

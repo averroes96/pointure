@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
@@ -35,6 +36,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function SupplierFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
@@ -91,7 +93,7 @@ export default function SupplierFormPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) {
-      setFormError("Le nom du fournisseur est obligatoire.");
+      setFormError(t("supplier.error_name_required"));
       return;
     }
     setFormError(null);
@@ -107,7 +109,7 @@ export default function SupplierFormPage() {
     return (
       <div className="flex items-center justify-center h-48 gap-2 text-text-muted">
         <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">Chargement du fournisseur...</span>
+        <span className="text-sm">{t("supplier.loading_supplier")}</span>
       </div>
     );
   }
@@ -125,12 +127,12 @@ export default function SupplierFormPage() {
         </button>
         <div>
           <h1 className="text-xl font-bold text-text-primary">
-            {isEditing ? "Modifier fournisseur" : "Nouveau fournisseur"}
+            {isEditing ? t("supplier.edit_supplier") : t("supplier.new_supplier")}
           </h1>
           <p className="text-sm text-text-muted">
             {isEditing
-              ? "Modifiez les informations du fournisseur."
-              : "Remplissez les informations pour créer un nouveau fournisseur."}
+              ? t("supplier.edit_supplier_desc")
+              : t("supplier.new_supplier_desc")}
           </p>
         </div>
       </div>
@@ -151,8 +153,7 @@ export default function SupplierFormPage() {
         <div className="card p-5 space-y-4">
           {/* Nom du fournisseur */}
           <div>
-            <label className="form-label">
-              Nom du fournisseur <span className="text-danger">*</span>
+            <label className="form-label">{t("supplier.name")}<span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -167,7 +168,7 @@ export default function SupplierFormPage() {
 
           {/* Contact */}
           <div>
-            <label className="form-label">Contact</label>
+            <label className="form-label">{t("supplier.contact")}</label>
             <input
               type="text"
               value={form.contact_name}
@@ -180,7 +181,7 @@ export default function SupplierFormPage() {
           {/* Téléphone & Email */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Téléphone</label>
+              <label className="form-label">{t("supplier.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -190,7 +191,7 @@ export default function SupplierFormPage() {
               />
             </div>
             <div>
-              <label className="form-label">Email</label>
+              <label className="form-label">{t("supplier.email")}</label>
               <input
                 type="email"
                 value={form.email}
@@ -203,7 +204,7 @@ export default function SupplierFormPage() {
 
           {/* Pays d'origine */}
           <div>
-            <label className="form-label">Pays d'origine</label>
+            <label className="form-label">{t("supplier.origin_country")}</label>
             <input
               type="text"
               value={form.origin_country}
@@ -215,7 +216,7 @@ export default function SupplierFormPage() {
 
           {/* Conditions de paiement */}
           <div>
-            <label className="form-label">Conditions de paiement</label>
+            <label className="form-label">{t("supplier.payment_terms")}</label>
             <input
               type="text"
               value={form.payment_terms}
@@ -227,7 +228,7 @@ export default function SupplierFormPage() {
 
           {/* Adresse */}
           <div>
-            <label className="form-label">Adresse</label>
+            <label className="form-label">{t("supplier.address")}</label>
             <textarea
               value={form.address}
               onChange={set("address")}
@@ -239,7 +240,7 @@ export default function SupplierFormPage() {
 
           {/* Notes */}
           <div>
-            <label className="form-label">Notes</label>
+            <label className="form-label">{t("common.notes")}</label>
             <textarea
               value={form.notes}
               onChange={set("notes")}
@@ -259,9 +260,7 @@ export default function SupplierFormPage() {
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
                 className="w-4 h-4 rounded border-border text-primary-500"
               />
-              <label htmlFor="is_active" className="text-sm font-medium text-text-primary cursor-pointer">
-                Actif
-              </label>
+              <label htmlFor="is_active" className="text-sm font-medium text-text-primary cursor-pointer">{t("supplier.active")}</label>
             </div>
           )}
         </div>

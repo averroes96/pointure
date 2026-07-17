@@ -40,6 +40,7 @@ function KPICard({
   color: string;
   sub?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="kpi-card">
       <div className="flex items-start justify-between">
@@ -68,7 +69,7 @@ export default function StockReportPage() {
     const rows = data.by_category.map((row) => ({
       "Catégorie": t(`category.${row.category}`, { defaultValue: row.category }),
       "Références": row.count,
-      "Unités": row.units,
+      t("report.units"): row.units,
     }));
     downloadCSV(rows, `rapport-stock-${new Date().toISOString().split("T")[0]}.csv`);
   }
@@ -108,15 +109,11 @@ export default function StockReportPage() {
           Générer rapport PDF
         </button>
         <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
-          <Download size={16} />
-          Exporter CSV
-        </button>
+          <Download size={16} />{t("common.export_csv")}</button>
       </div>
 
       {isLoading && (
-        <div className="card card-body text-center text-text-muted py-12">
-          Chargement du rapport...
-        </div>
+        <div className="card card-body text-center text-text-muted py-12">{t("report.loading_report")}</div>
       )}
 
       {isError && (
@@ -179,7 +176,7 @@ export default function StockReportPage() {
                     <tr>
                       <th>Catégorie</th>
                       <th className="text-end">Références</th>
-                      <th className="text-end">Unités</th>
+                      <th className="text-end">{t("report.units")}</th>
                       <th className="text-end">Valeur</th>
                     </tr>
                   </thead>
@@ -208,7 +205,7 @@ export default function StockReportPage() {
                   {byCategory.length > 0 && (
                     <tfoot>
                       <tr className="border-t-2 border-border">
-                        <td className="px-3 py-2.5 font-semibold">Total</td>
+                        <td className="px-3 py-2.5 font-semibold">{t("common.total")}</td>
                         <td className="px-3 py-2.5 text-end font-mono">
                           {byCategory.reduce((s, r) => s + r.count, 0)}
                         </td>
@@ -239,9 +236,9 @@ export default function StockReportPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Marque</th>
+                      <th>{t("report.brand")}</th>
                       <th className="text-end">Références</th>
-                      <th className="text-end">Unités</th>
+                      <th className="text-end">{t("report.units")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -263,7 +260,7 @@ export default function StockReportPage() {
                   {byBrand.length > 0 && (
                     <tfoot>
                       <tr className="border-t-2 border-border">
-                        <td className="px-3 py-2.5 font-semibold">Total</td>
+                        <td className="px-3 py-2.5 font-semibold">{t("common.total")}</td>
                         <td className="px-3 py-2.5 text-end font-mono">
                           {byBrand.reduce((s, r) => s + r.count, 0)}
                         </td>

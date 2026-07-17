@@ -92,7 +92,7 @@ export default function DeliveryNotesPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Bons de Livraison</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("nav.delivery_notes")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} bon(s) de livraison</p>
         </div>
         <div className="flex items-center gap-2">
@@ -103,9 +103,7 @@ export default function DeliveryNotesPage() {
             </button>
           )}
           <Link to="/delivery-notes/new" className="btn-primary">
-            <Plus size={16} />
-            Nouveau BL
-          </Link>
+            <Plus size={16} />{t("invoice.new_delivery_note")}</Link>
         </div>
       </div>
 
@@ -125,7 +123,7 @@ export default function DeliveryNotesPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder="N°BL ou client..."
+          placeholder=t("invoice.search_bl_client")
         />
       </div>
 
@@ -136,12 +134,12 @@ export default function DeliveryNotesPage() {
             <thead>
               <tr>
                 <th className="w-8"></th>
-                <th>N°BL</th>
-                <th>Client</th>
-                <th>Date livraison</th>
-                <th>Facture</th>
-                <th className="text-end">Total HT</th>
-                <th>Livré par</th>
+                <th>{t("invoice.bl_number")}</th>
+                <th>{t("invoice.client")}</th>
+                <th>{t("invoice.delivery_date")}</th>
+                <th>{t("invoice.invoice")}</th>
+                <th className="text-end">{t("invoice.total_ht")}</th>
+                <th>{t("invoice.delivered_by")}</th>
                 <th>{t("common.actions")}</th>
               </tr>
             </thead>
@@ -200,7 +198,7 @@ export default function DeliveryNotesPage() {
                       onClick={() => openPdf(note.id, note.number)}
                       disabled={loadingPdfId === note.id}
                       className="btn-ghost btn-sm text-primary-500 disabled:opacity-50"
-                      title="Télécharger PDF"
+                      title=t("invoice.download_pdf")
                     >
                       {loadingPdfId === note.id
                         ? <Loader2 size={14} className="animate-spin" />

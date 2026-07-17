@@ -7,12 +7,12 @@ import type { Invoice } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Tous" },
-  { value: "draft", label: "Brouillon" },
-  { value: "sent", label: "Envoyée" },
-  { value: "partial", label: "Partielle" },
-  { value: "paid", label: "Payée" },
-  { value: "overdue", label: "En retard" },
+  { value: "", label: t("invoice.status_all") },
+  { value: "draft", label: t("invoice.status_draft") },
+  { value: "sent", label: t("invoice.status_sent") },
+  { value: "partial", label: t("invoice.status_partial") },
+  { value: "paid", label: t("invoice.status_paid") },
+  { value: "overdue", label: t("invoice.status_overdue") },
 ];
 
 export default function InvoiceListPage() {
@@ -99,7 +99,7 @@ export default function InvoiceListPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="form-input ps-9"
-            placeholder="N° ou client..."
+            placeholder=t("invoice.search_placeholder")
           />
         </div>
         <select
@@ -134,7 +134,7 @@ export default function InvoiceListPage() {
                 <th>{t("invoice.date")}</th>
                 <th>{t("invoice.due_date")}</th>
                 <th>{t("invoice.status")}</th>
-                <th className="text-end">Total TTC</th>
+                <th className="text-end">{t("invoice.total_ttc")}</th>
                 <th className="text-end">{t("invoice.balance_due")}</th>
                 <th>{t("common.actions")}</th>
               </tr>
@@ -194,7 +194,7 @@ export default function InvoiceListPage() {
                         onClick={() => openPdf(invoice.id)}
                         disabled={loadingPdfId === invoice.id}
                         className="btn-ghost btn-sm text-primary-500 disabled:opacity-50"
-                        title="Ouvrir PDF"
+                        title=t("invoice.open_pdf")
                       >
                         {loadingPdfId === invoice.id
                           ? <Loader2 size={14} className="animate-spin" />
@@ -215,7 +215,7 @@ export default function InvoiceListPage() {
                           window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
                         }}
                         className="btn-ghost btn-sm text-[#25D366] disabled:opacity-50"
-                        title="Partager sur WhatsApp"
+                        title=t("invoice.share_whatsapp")
                       >
                         <MessageCircle size={14} />
                       </button>

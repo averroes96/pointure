@@ -9,6 +9,7 @@
  */
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, ShoppingBag, Plus, AlertCircle, Loader2,
@@ -22,11 +23,11 @@ import { cn } from "@/lib/utils";
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 const PO_STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
-  sent: "Envoyé",
+  draft: t("supplier.draft"),
+  sent: t("supplier.sent"),
   partial: "Partiel",
-  received: "Reçu",
-  cancelled: "Annulé",
+  received: t("supplier.received"),
+  cancelled: t("supplier.cancelled"),
 };
 
 const PO_STATUS_BADGE: Record<string, string> = {
@@ -193,7 +194,7 @@ function PaymentModal({
           </div>
 
           <div>
-            <label className="form-label">Notes</label>
+            <label className="form-label">{t("common.notes")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -225,10 +226,10 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
       <div className="card">
         <div className="card-header"><h3 className="font-semibold text-text-primary">Informations</h3></div>
         <div className="card-body divide-y divide-border">
-          <InfoRow icon={Phone} label="Téléphone" value={supplier.phone} />
-          <InfoRow icon={Mail} label="Email" value={supplier.email} />
+          <InfoRow icon={Phone} label=t("supplier.phone") value={supplier.phone} />
+          <InfoRow icon={Mail} label=t("supplier.email") value={supplier.email} />
           <InfoRow icon={MapPin} label="Adresse" value={supplier.address} />
-          <InfoRow icon={Globe} label="Pays d'origine" value={supplier.origin_country} />
+          <InfoRow icon={Globe} label=t("supplier.origin_country") value={supplier.origin_country} />
           <InfoRow icon={FileText} label="Conditions de paiement" value={supplier.payment_terms} />
         </div>
       </div>
@@ -246,7 +247,7 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
 
         {supplier.notes && (
           <div className="card">
-            <div className="card-header"><h3 className="text-sm font-semibold text-text-primary">Notes</h3></div>
+            <div className="card-header"><h3 className="text-sm font-semibold text-text-primary">{t("common.notes")}</h3></div>
             <div className="card-body">
               <p className="text-sm text-text-muted whitespace-pre-wrap">{supplier.notes}</p>
             </div>
@@ -288,9 +289,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
     <div className="space-y-3">
       <div className="flex justify-end">
         <Link to={`/purchase-orders/new?supplier=${supplierId}`} className="btn-primary btn-sm">
-          <Plus size={14} />
-          Nouvelle commande
-        </Link>
+          <Plus size={14} />{t("supplier.new_order")}</Link>
       </div>
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -298,16 +297,16 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Référence</th>
+                <th>{t("supplier.reference")}</th>
                 <th>Date attendue</th>
-                <th>Statut</th>
-                <th className="text-end">Total</th>
+                <th>{t("supplier.status")}</th>
+                <th className="text-end">{t("common.total")}</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="text-center py-8 text-text-muted">Chargement...</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
               )}
               {!isLoading && orders.length === 0 && (
                 <tr><td colSpan={6} className="text-center py-8 text-text-muted">Aucune commande.</td></tr>
@@ -361,7 +360,7 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
           <thead>
             <tr>
               <th>N° Facture</th>
-              <th>Date</th>
+              <th>{t("common.date")}</th>
               <th>Échéance</th>
               <th>Commande liée</th>
               <th className="text-end">Montant</th>
@@ -370,7 +369,7 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Chargement...</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
             )}
             {!isLoading && invoices.length === 0 && (
               <tr><td colSpan={6} className="text-center py-8 text-text-muted">Aucune facture fournisseur.</td></tr>
@@ -394,7 +393,7 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-ghost btn-sm flex items-center gap-1 text-text-muted hover:text-primary-500"
-                    title="Télécharger PDF"
+                    title=t("invoice.download_pdf")
                   >
                     <FileDown size={14} />
                   </a>
@@ -443,15 +442,15 @@ function PaymentsTab({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Date</th>
+                <th>{t("common.date")}</th>
                 <th>Mode</th>
-                <th>Référence</th>
+                <th>{t("supplier.reference")}</th>
                 <th className="text-end">Montant</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={4} className="text-center py-8 text-text-muted">Chargement...</td></tr>
+                <tr><td colSpan={4} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
               )}
               {!isLoading && payments.length === 0 && (
                 <tr><td colSpan={4} className="text-center py-8 text-text-muted">Aucun paiement enregistré.</td></tr>
@@ -490,6 +489,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function SupplierDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const supplierId = Number(id);
@@ -506,7 +506,7 @@ export default function SupplierDetailPage() {
     return (
       <div className="flex items-center justify-center h-48 gap-2 text-text-muted">
         <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">Chargement...</span>
+        <span className="text-sm">{t("common.loading")}</span>
       </div>
     );
   }
@@ -556,16 +556,12 @@ export default function SupplierDetailPage() {
               to={`/suppliers/${supplierId}/edit`}
               className="btn-secondary"
             >
-              <Pencil size={15} />
-              Modifier
-            </Link>
+              <Pencil size={15} />{t("common.edit")}</Link>
             <Link
               to={`/purchase-orders/new?supplier=${supplierId}`}
               className="btn-secondary"
             >
-              <ShoppingBag size={15} />
-              Nouvelle commande
-            </Link>
+              <ShoppingBag size={15} />{t("supplier.new_order")}</Link>
             <button onClick={() => setShowPayment(true)} className="btn-primary">
               <CreditCard size={15} />
               Enregistrer paiement

@@ -10,7 +10,7 @@
     "sale_history": "Historique",
     "invoicing": "Facturation",
     "new_invoice": "Nouvelle facture",
-    "invoice_list": "Factures",
+    "invoice_list": "Factures B2B",
     "delivery_notes": "Bons de livraison",
     "credit_notes": "Avoirs",
     "inventory": "Inventaire",
@@ -23,21 +23,22 @@
     "cheque_tracker": "Chèques",
     "suppliers": "Fournisseurs",
     "reports": "Rapports",
-    "daily_report": "Rapport journalier",
+    "daily_report": "Rapport Quotidien",
     "sales_analytics": "Analytique ventes",
-    "stock_report": "Rapport stock",
+    "stock_report": "Rapport de Stock",
     "settings": "Paramètres",
     "reconciliation": "Fermeture de caisse",
     "promotions": "Promotions",
     "transfers": "Transferts",
     "barcode_scanner": "Scanner code-barres",
     "loyalty": "Fidélité",
-    "purchase_orders": "Commandes d'achat",
-    "supplier_payables": "Dettes fournisseurs",
+    "purchase_orders": "Bons de commande",
+    "supplier_payables": "Dettes Fournisseurs",
     "report_builder": "Constructeur de rapports",
-    "audit_log": "Journal d'activité",
+    "audit_log": "Journal d'audit",
     "webhooks": "Webhooks",
-    "plan_locked": "Disponible à partir du plan"
+    "plan_locked": "Disponible à partir du plan",
+    "sales_report": "Rapport des Ventes"
   },
   "auth": {
     "login": "Connexion",
@@ -90,7 +91,7 @@
     "live": "LIVE"
   },
   "invoice": {
-    "new": "Nouvelle facture",
+    "new": "Nouvelle Facture",
     "number": "N° Facture",
     "client": "Client",
     "date": "Date",
@@ -460,9 +461,9 @@
     "type_general": "Général"
   },
   "supplier": {
-    "new": "Nouveau fournisseur",
+    "new": "Nouveau Fournisseur",
     "edit": "Modifier fournisseur",
-    "name": "Raison sociale",
+    "name": "Fournisseur",
     "contact_name": "Contact",
     "phone": "Téléphone",
     "email": "Email",
@@ -470,7 +471,8 @@
     "payment_terms": "Conditions de paiement",
     "address": "Adresse",
     "notes": "Notes",
-    "is_active": "Actif"
+    "is_active": "Actif",
+    "balance": "Solde"
   },
   "transfer_status": {
     "pending": "En attente",
@@ -495,7 +497,7 @@
     "export": "Exporter",
     "print": "Imprimer",
     "loading": "Chargement...",
-    "no_data": "Aucune donnée",
+    "no_data": "Aucune donnée trouvée",
     "confirm_delete": "Confirmer la suppression",
     "yes": "Oui",
     "no": "Non",

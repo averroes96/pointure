@@ -36,13 +36,11 @@ export default function CreditNotesPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Avoirs</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("nav.credit_notes")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} avoir(s)</p>
         </div>
         <Link to="/credit-notes/new" className="btn-primary">
-          <Plus size={16} />
-          Nouvel avoir
-        </Link>
+          <Plus size={16} />{t("invoice.new_credit_note")}</Link>
       </div>
 
       {/* ── Search ── */}
@@ -56,7 +54,7 @@ export default function CreditNotesPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder="N°Avoir ou client..."
+          placeholder=t("invoice.search_credit_client")
         />
       </div>
 
@@ -66,13 +64,13 @@ export default function CreditNotesPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>N°Avoir</th>
-                <th>Client</th>
-                <th>Facture origine</th>
-                <th>Date</th>
-                <th>Motif</th>
-                <th className="text-end">Montant HT</th>
-                <th className="text-end">Total TTC</th>
+                <th>{t("invoice.credit_number")}</th>
+                <th>{t("invoice.client")}</th>
+                <th>{t("invoice.original_invoice")}</th>
+                <th>{t("invoice.date")}</th>
+                <th>{t("invoice.reason")}</th>
+                <th className="text-end">{t("invoice.total_ht")}</th>
+                <th className="text-end">{t("invoice.total_ttc")}</th>
               </tr>
             </thead>
             <tbody>

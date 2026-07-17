@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, X, Check, Pencil, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier } from "@/types";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ function SupplierFormModal({
     e.preventDefault();
     setError("");
     if (!form.name.trim()) {
-      setError("Le nom du fournisseur est obligatoire.");
+      setError(t("supplier.error_name_required"));
       return;
     }
     mutation.mutate(form);
@@ -56,7 +57,7 @@ function SupplierFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card rounded-lg shadow-xl w-full max-w-md mx-4">
         <div className="card-header">
-          <h2 className="font-semibold text-text-primary">Nouveau fournisseur</h2>
+          <h2 className="font-semibold text-text-primary">{t("supplier.new")}</h2>
           <button onClick={onClose} className="btn-ghost btn-sm p-1">
             <X size={16} />
           </button>
@@ -70,31 +71,31 @@ function SupplierFormModal({
           )}
 
           <div>
-            <label className="form-label">Nom *</label>
+            <label className="form-label">{t("supplier.name_required")}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
-              placeholder="Nom du fournisseur"
+              placeholder=t("supplier.name")
               required
             />
           </div>
 
           <div>
-            <label className="form-label">Contact</label>
+            <label className="form-label">{t("supplier.contact")}</label>
             <input
               type="text"
               value={form.contact_name}
               onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
               className="form-input"
-              placeholder="Nom du contact"
+              placeholder=t("supplier.contact_name")
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Téléphone</label>
+              <label className="form-label">{t("supplier.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -104,7 +105,7 @@ function SupplierFormModal({
               />
             </div>
             <div>
-              <label className="form-label">Email</label>
+              <label className="form-label">{t("supplier.email")}</label>
               <input
                 type="email"
                 value={form.email}
@@ -116,7 +117,7 @@ function SupplierFormModal({
           </div>
 
           <div>
-            <label className="form-label">Pays d'origine</label>
+            <label className="form-label">{t("supplier.origin_country")}</label>
             <input
               type="text"
               value={form.origin_country}
@@ -127,15 +128,13 @@ function SupplierFormModal({
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              Annuler
-            </button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t("common.cancel")}</button>
             <button
               type="submit"
               className="btn-primary"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? "Enregistrement..." : "Enregistrer"}
+              {mutation.isPending ? t("common.saving") : t("common.save")}
             </button>
           </div>
         </form>
@@ -150,6 +149,7 @@ interface EditRowProps {
 }
 
 function EditRow({ supplier, onDone }: EditRowProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SupplierFormData>({
     name: supplier.name,
@@ -173,7 +173,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
   function handleSave() {
     setError("");
     if (!form.name.trim()) {
-      setError("Le nom est obligatoire.");
+      setError(t("supplier.error_name_required"));
       return;
     }
     mutation.mutate(form);
@@ -227,7 +227,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
         </td>
         <td>
           <span className={cn("badge", supplier.is_active ? "badge-success" : "badge-neutral")}>
-            {supplier.is_active ? "Actif" : "Inactif"}
+            {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
           </span>
         </td>
         <td>
@@ -236,11 +236,11 @@ function EditRow({ supplier, onDone }: EditRowProps) {
               onClick={handleSave}
               disabled={mutation.isPending}
               className="btn-primary btn-sm p-1.5"
-              title="Sauvegarder"
+              title=t("common.save")
             >
               <Check size={13} />
             </button>
-            <button onClick={onDone} className="btn-secondary btn-sm p-1.5" title="Annuler">
+            <button onClick={onDone} className="btn-secondary btn-sm p-1.5" title=t("common.cancel")>
               <X size={13} />
             </button>
           </div>
@@ -256,6 +256,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
 }
 
 export default function SuppliersPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -278,13 +279,11 @@ export default function SuppliersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Fournisseurs</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("supplier.suppliers")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} fournisseur(s)</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary">
-          <Plus size={16} />
-          Nouveau fournisseur
-        </button>
+          <Plus size={16} />{t("supplier.new")}</button>
       </div>
 
       {/* Search */}
@@ -305,20 +304,20 @@ export default function SuppliersPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nom</th>
-                <th>Contact</th>
-                <th>Téléphone</th>
-                <th>Email</th>
-                <th>Pays d'origine</th>
-                <th className="text-end">Solde dû</th>
-                <th>Actif</th>
-                <th>Actions</th>
+                <th>{t("supplier.name")}</th>
+                <th>{t("supplier.contact")}</th>
+                <th>{t("supplier.phone")}</th>
+                <th>{t("supplier.email")}</th>
+                <th>{t("supplier.origin_country")}</th>
+                <th className="text-end">{t("supplier.balance_due")}</th>
+                <th>{t("supplier.active")}</th>
+                <th>{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-text-muted">Chargement...</td>
+                  <td colSpan={8} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
                 </tr>
               )}
               {!isLoading && suppliers.length === 0 && (
@@ -361,7 +360,7 @@ export default function SuppliersPage() {
                           supplier.is_active ? "badge-success" : "badge-neutral"
                         )}
                       >
-                        {supplier.is_active ? "Actif" : "Inactif"}
+                        {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
                       </span>
                     </td>
                     <td>

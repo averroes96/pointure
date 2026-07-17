@@ -56,6 +56,7 @@ function KPICard({
   color: string;
   sub?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="kpi-card">
       <div className="flex items-start justify-between">
@@ -120,37 +121,37 @@ function buildDailyReportHtml(data: DailyReport, date: string): string {
   </style>
 </head>
 <body>
-  <h1>Rapport journalier</h1>
+  <h1>{t("nav.daily_report")}</h1>
   <p style="font-size:11px;color:#555;margin-top:2px;">Date&nbsp;: ${date}</p>
 
   <div class="kpis">
     <div class="kpi">
-      <div class="kpi-label">CA brut</div>
+      <div class="kpi-label">{t("report.gross_revenue")}</div>
       <div class="kpi-value">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Retours</div>
+      <div class="kpi-label">{t("report.refunds")}</div>
       <div class="kpi-value" style="color:#c0392b;">− ${Number(data.total_refunds).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">CA net</div>
+      <div class="kpi-label">{t("report.net_revenue")}</div>
       <div class="kpi-value" style="color:#27ae60;">${Number(data.net_revenue).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Nb ventes</div>
+      <div class="kpi-label">{t("report.sale_count")}</div>
       <div class="kpi-value">${data.sale_count}</div>
     </div>
   </div>
 
   <div class="two-col">
     <div>
-      <h2>Répartition des paiements</h2>
+      <h2>{t("report.payment_breakdown")}</h2>
       <table>
-        <thead><tr><th>Mode</th><th style="text-align:right;">Nb</th><th style="text-align:right;">Montant</th></tr></thead>
+        <thead><tr><th>{t("payment.method")}</th><th style="text-align:right;">{t("report.nb_count")}</th><th style="text-align:right;">{t("report.amount")}</th></tr></thead>
         <tbody>${paymentRows}</tbody>
         <tfoot>
           <tr>
-            <td>Total</td>
+            <td>{t("common.total")}</td>
             <td style="text-align:right;">${data.sale_count}</td>
             <td style="text-align:right;">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</td>
           </tr>
@@ -158,9 +159,9 @@ function buildDailyReportHtml(data: DailyReport, date: string): string {
       </table>
     </div>
     <div>
-      <h2>Top 5 articles</h2>
+      <h2>{t("report.top_5_items")}</h2>
       <table>
-        <thead><tr><th>#</th><th>Article</th><th style="text-align:right;">Qté</th><th style="text-align:right;">CA</th></tr></thead>
+        <thead><tr><th>#</th><th>{t("report.item")}</th><th style="text-align:right;">{t("report.qty")}</th><th style="text-align:right;">{t("report.revenue")}</th></tr></thead>
         <tbody>${productRows}</tbody>
       </table>
     </div>
@@ -186,12 +187,12 @@ export default function DailyReportPage() {
   function handleExportCSV() {
     if (!data) return;
     const rows = data.payment_breakdown.map((row) => ({
-      "Mode": t(`payment_method.${row.method}`, { defaultValue: row.method }),
+      t("payment.method"): t(`payment_method.${row.method}`, { defaultValue: row.method }),
       "Nb transactions": row.count,
       "Montant (DZD)": row.amount,
     }));
     rows.push({
-      "Mode": "TOTAL",
+      t("payment.method"): "TOTAL",
       "Nb transactions": data.sale_count,
       "Montant (DZD)": data.total_revenue,
     });
@@ -203,17 +204,13 @@ export default function DailyReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Rapport journalier</h1>
-          <p className="text-sm text-text-muted">Synthèse des ventes par jour</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("nav.daily_report")}</h1>
+          <p className="text-sm text-text-muted">{t("report.daily_summary")}</p>
         </div>
         <button onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date), "210mm", 15)} disabled={!data} className="btn-secondary">
-          <Printer size={16} />
-          Imprimer
-        </button>
+          <Printer size={16} />{t("common.print")}</button>
         <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
-          <Download size={16} />
-          Exporter CSV
-        </button>
+          <Download size={16} />{t("common.export_csv")}</button>
       </div>
 
       {/* Date picker */}
@@ -230,20 +227,16 @@ export default function DailyReportPage() {
 
       {/* Print title */}
       <div className="hidden print:block text-center mb-4">
-        <h1 className="text-2xl font-bold">Rapport journalier</h1>
+        <h1 className="text-2xl font-bold">{t("nav.daily_report")}</h1>
         <p className="text-gray-500">{date}</p>
       </div>
 
       {isLoading && (
-        <div className="card card-body text-center text-text-muted py-12">
-          Chargement du rapport...
-        </div>
+        <div className="card card-body text-center text-text-muted py-12">{t("report.loading_report")}</div>
       )}
 
       {isError && (
-        <div className="card card-body text-center text-danger py-8">
-          Impossible de charger le rapport pour cette date.
-        </div>
+        <div className="card card-body text-center text-danger py-8">{t("report.error_loading_date")}</div>
       )}
 
       {data && !isLoading && (
@@ -292,7 +285,7 @@ export default function DailyReportPage() {
             {/* Payment breakdown */}
             <div className="card overflow-hidden">
               <div className="card-header">
-                <h2 className="font-semibold text-text-primary">Répartition des paiements</h2>
+                <h2 className="font-semibold text-text-primary">{t("report.payment_breakdown")}</h2>
               </div>
               {paymentBreakdown.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -301,7 +294,7 @@ export default function DailyReportPage() {
                       <tr>
                         <th>Mode de paiement</th>
                         <th className="text-end">Nb transactions</th>
-                        <th className="text-end">Montant</th>
+                        <th className="text-end">{t("report.amount")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -320,7 +313,7 @@ export default function DailyReportPage() {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border">
-                        <td className="px-3 py-2.5 font-semibold">Total</td>
+                        <td className="px-3 py-2.5 font-semibold">{t("common.total")}</td>
                         <td className="px-3 py-2.5 text-end text-text-muted">
                           {paymentBreakdown.reduce((s, r) => s + r.count, 0)}
                         </td>
@@ -341,7 +334,7 @@ export default function DailyReportPage() {
             {/* Top products */}
             <div className="card overflow-hidden">
               <div className="card-header">
-                <h2 className="font-semibold text-text-primary">Top 5 articles</h2>
+                <h2 className="font-semibold text-text-primary">{t("report.top_5_items")}</h2>
               </div>
               {topProducts.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -349,10 +342,10 @@ export default function DailyReportPage() {
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Article</th>
-                        <th>Marque</th>
-                        <th className="text-end">Unités</th>
-                        <th className="text-end">CA</th>
+                        <th>{t("report.item")}</th>
+                        <th>{t("report.brand")}</th>
+                        <th className="text-end">{t("report.units")}</th>
+                        <th className="text-end">{t("report.revenue")}</th>
                       </tr>
                     </thead>
                     <tbody>

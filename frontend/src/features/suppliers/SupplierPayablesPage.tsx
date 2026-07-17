@@ -7,6 +7,7 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Download, Mail, Phone } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
@@ -43,6 +44,7 @@ function SkeletonRow() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SupplierPayablesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -76,7 +78,7 @@ export default function SupplierPayablesPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setExportError("Export impossible — réessayez.");
+      setExportError(t("common.export_error"));
     }
   }
 
@@ -85,19 +87,15 @@ export default function SupplierPayablesPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">
-            Vieillissement des dettes fournisseurs
-          </h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("nav.supplier_payables")}</h1>
           <p className="text-sm text-text-muted mt-0.5">
             {isLoading
-              ? "Chargement..."
+              ? t("common.loading")
               : `${rows.length} fournisseur(s) avec solde impayé`}
           </p>
         </div>
         <button onClick={handleExport} className="btn-secondary">
-          <Download size={15} />
-          Exporter CSV
-        </button>
+          <Download size={15} />{t("common.export_csv")}</button>
       </div>
 
       {exportError && (
@@ -109,31 +107,21 @@ export default function SupplierPayablesPage() {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-primary-500 inline-block" />
-          Courant (pas encore échu)
-        </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-primary-500 inline-block" />{t("supplier.current_not_due")}</span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
-          1–30 jours de retard
-        </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />{t("supplier.days_1_30")}</span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
-          31–60 jours
-        </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />{t("supplier.days_31_60")}</span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-danger inline-block" />
-          +60 jours
-        </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-danger inline-block" />{t("supplier.days_60_plus")}</span>
       </div>
 
       {/* Error */}
       {isError && (
         <div className="card px-4 py-6 text-center space-y-2">
           <AlertCircle size={28} className="text-danger mx-auto" />
-          <p className="text-text-primary font-medium">Erreur de chargement</p>
-          <p className="text-sm text-text-muted">
-            Impossible de récupérer les données.
-          </p>
+          <p className="text-text-primary font-medium">{t("common.error_loading")}</p>
+          <p className="text-sm text-text-muted">{t("common.error_fetching_data")}</p>
         </div>
       )}
 
@@ -146,14 +134,14 @@ export default function SupplierPayablesPage() {
                 <tr>
                   <th>Fournisseur</th>
                   <th className="text-end">
-                    <span className="text-primary-600">Courant</span>
-                    <span className="block text-2xs font-normal text-text-muted">pas échu</span>
+                    <span className="text-primary-600">{t("supplier.current")}</span>
+                    <span className="block text-2xs font-normal text-text-muted">{t("supplier.not_due")}</span>
                   </th>
                   <th className="text-end"><span className="text-warning">1–30j</span></th>
                   <th className="text-end"><span className="text-orange-500">31–60j</span></th>
                   <th className="text-end"><span className="text-orange-600">61–90j</span></th>
                   <th className="text-end"><span className="text-danger">+90j</span></th>
-                  <th className="text-end">Total dû</th>
+                  <th className="text-end">{t("supplier.total_due")}</th>
                 </tr>
               </thead>
 
@@ -162,9 +150,7 @@ export default function SupplierPayablesPage() {
 
                 {!isLoading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-text-muted">
-                      Aucune dette fournisseur en cours. Tout est réglé !
-                    </td>
+                    <td colSpan={7} className="text-center py-12 text-text-muted">{t("supplier.no_payables")}</td>
                   </tr>
                 )}
 

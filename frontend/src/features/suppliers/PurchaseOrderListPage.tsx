@@ -6,17 +6,18 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import type { PurchaseOrder, POStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 const STATUS_TABS: { value: POStatus | ""; label: string }[] = [
   { value: "", label: "Tous" },
-  { value: "draft", label: "Brouillon" },
-  { value: "sent", label: "Envoyé" },
-  { value: "partial", label: "Partiel" },
-  { value: "received", label: "Reçu" },
-  { value: "cancelled", label: "Annulé" },
+  { value: "draft", label: t("supplier.draft") },
+  { value: "sent", label: t("supplier.sent") },
+  { value: "partial", label: t("supplier.partial") },
+  { value: "received", label: t("supplier.received") },
+  { value: "cancelled", label: t("supplier.cancelled") },
 ];
 
 const STATUS_BADGE: Record<POStatus, string> = {
@@ -28,14 +29,15 @@ const STATUS_BADGE: Record<POStatus, string> = {
 };
 
 const STATUS_LABEL: Record<POStatus, string> = {
-  draft: "Brouillon",
-  sent: "Envoyé",
-  partial: "Partiel",
-  received: "Reçu",
-  cancelled: "Annulé",
+  draft: t("supplier.draft"),
+  sent: t("supplier.sent"),
+  partial: t("supplier.partial"),
+  received: t("supplier.received"),
+  cancelled: t("supplier.cancelled"),
 };
 
 export default function PurchaseOrderListPage() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<POStatus | "">("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -57,13 +59,11 @@ export default function PurchaseOrderListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Commandes d'achat</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("nav.purchase_orders")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} commande(s)</p>
         </div>
         <Link to="/purchase-orders/new" className="btn-primary">
-          <Plus size={16} />
-          Nouvelle commande
-        </Link>
+          <Plus size={16} />{t("supplier.new_purchase_order")}</Link>
       </div>
 
       {/* Status filter tabs */}
@@ -92,7 +92,7 @@ export default function PurchaseOrderListPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="form-input ps-9"
-          placeholder="Fournisseur, référence..."
+          placeholder=t("supplier.search_po")
         />
       </div>
 
@@ -103,11 +103,11 @@ export default function PurchaseOrderListPage() {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Fournisseur</th>
-                <th>Référence</th>
-                <th>Date attendue</th>
+                <th>{t("supplier.supplier")}</th>
+                <th>{t("supplier.reference")}</th>
+                <th>{t("supplier.expected_date")}</th>
                 <th>Statut</th>
-                <th className="text-end">Total</th>
+                <th className="text-end">{t("common.total")}</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -119,7 +119,7 @@ export default function PurchaseOrderListPage() {
               )}
               {!isLoading && orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">Aucune commande trouvée.</td>
+                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("supplier.no_po_found")}</td>
                 </tr>
               )}
               {orders.map((po) => (
@@ -145,9 +145,7 @@ export default function PurchaseOrderListPage() {
                     <span className="text-2xs text-text-muted">DZD</span>
                   </td>
                   <td>
-                    <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">
-                      Voir
-                    </Link>
+                    <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">{t("common.view")}</Link>
                   </td>
                 </tr>
               ))}
