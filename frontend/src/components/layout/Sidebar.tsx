@@ -46,8 +46,8 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/sales/new", labelKey: "nav.new_sale", icon: ShoppingCart },
         { to: "/sales", labelKey: "nav.sale_history", icon: History },
-        { to: "/sales/reconciliation", label: "Fermeture de caisse", icon: ClipboardCheck },
-        { to: "/promotions", label: "Promotions", icon: Tag, managerOnly: true },
+        { to: "/sales/reconciliation", labelKey: "nav.reconciliation", icon: ClipboardCheck },
+        { to: "/promotions", labelKey: "nav.promotions", icon: Tag, managerOnly: true },
       ],
     },
     {
@@ -66,9 +66,9 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/inventory/products", labelKey: "nav.products", icon: Package },
         { to: "/inventory/movements", labelKey: "nav.stock_movements", icon: BarChart2, managerOnly: true },
-        { to: "/inventory/transfers", label: "Transferts", icon: ArrowLeftRight, managerOnly: true },
+        { to: "/inventory/transfers", labelKey: "nav.transfers", icon: ArrowLeftRight, managerOnly: true },
         { to: "/inventory/low-stock", labelKey: "nav.low_stock", icon: AlertTriangle },
-        { to: "/inventory/scanner", label: "Scanner code-barres", icon: ScanBarcode },
+        { to: "/inventory/scanner", labelKey: "nav.barcode_scanner", icon: ScanBarcode },
       ],
     },
     {
@@ -78,7 +78,7 @@ function useNavSections(): NavSection[] {
         { to: "/clients", labelKey: "nav.client_list", icon: Users, managerOnly: true },
         { to: "/clients/ageing", labelKey: "nav.debt_ageing", icon: TrendingDown, managerOnly: true },
         { to: "/cheques", labelKey: "nav.cheque_tracker", icon: CreditCard, managerOnly: true },
-        { to: "/loyalty", label: "Fidélité", icon: Gift, managerOnly: true, minPlan: "pro_retail" },
+        { to: "/loyalty", labelKey: "nav.loyalty", icon: Gift, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
     {
@@ -86,8 +86,8 @@ function useNavSections(): NavSection[] {
       label: t("nav.suppliers"),
       items: [
         { to: "/suppliers", labelKey: "nav.suppliers", icon: Factory, managerOnly: true },
-        { to: "/purchase-orders", label: "Commandes d'achat", icon: ShoppingBag, managerOnly: true },
-        { to: "/suppliers/payables", label: "Dettes fournisseurs", icon: Receipt, managerOnly: true },
+        { to: "/purchase-orders", labelKey: "nav.purchase_orders", icon: ShoppingBag, managerOnly: true },
+        { to: "/suppliers/payables", labelKey: "nav.supplier_payables", icon: Receipt, managerOnly: true },
       ],
     },
     {
@@ -97,7 +97,7 @@ function useNavSections(): NavSection[] {
         { to: "/reports/daily", labelKey: "nav.daily_report", icon: CalendarDays, managerOnly: true },
         { to: "/reports/sales", labelKey: "nav.sales_analytics", icon: BarChart, managerOnly: true, minPlan: "pro_retail" },
         { to: "/reports/stock", labelKey: "nav.stock_report", icon: PieChart, managerOnly: true },
-        { to: "/reports/builder", label: "Constructeur de rapports", icon: BarChart2, managerOnly: true, minPlan: "enterprise" },
+        { to: "/reports/builder", labelKey: "nav.report_builder", icon: BarChart2, managerOnly: true, minPlan: "enterprise" },
       ],
     },
     {
@@ -105,8 +105,8 @@ function useNavSections(): NavSection[] {
       label: "",
       items: [
         { to: "/settings", labelKey: "nav.settings", icon: Settings, managerOnly: true },
-        { to: "/settings/audit-log", label: "Journal d'activité", icon: Shield, managerOnly: true },
-        { to: "/settings/webhooks", label: "Webhooks", icon: Webhook, managerOnly: true, minPlan: "pro_retail" },
+        { to: "/settings/audit-log", labelKey: "nav.audit_log", icon: Shield, managerOnly: true },
+        { to: "/settings/webhooks", labelKey: "nav.webhooks", icon: Webhook, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
   ];
@@ -152,7 +152,7 @@ export default function Sidebar() {
                     <div
                       key={item.to}
                       className="nav-item opacity-40 cursor-not-allowed"
-                      title={`Disponible à partir du plan ${PLAN_LABELS[item.minPlan!]}`}
+                      title={`${t("nav.plan_locked")} ${PLAN_LABELS[item.minPlan!]}`}
                     >
                       <item.icon size={16} />
                       <span className="text-sm flex-1">

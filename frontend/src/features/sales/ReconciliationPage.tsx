@@ -12,6 +12,7 @@ import { openPrintPopup } from "@/lib/printPopup";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
+import { useTranslation } from "react-i18next";
 import type { CashReconciliation } from "@/types";
 
 function todayISO(): string {
@@ -23,12 +24,7 @@ function todayISO(): string {
   ].join("-");
 }
 
-const METHOD_LABELS: Record<string, string> = {
-  cash: "Espèces",
-  cheque: "Chèque",
-  ccp: "CCP",
-  virement: "Virement",
-};
+// METHOD_LABELS translation done inline using t("payment_method." + m)
 const METHODS = ["cash", "cheque", "ccp", "virement"] as const;
 type Method = (typeof METHODS)[number];
 
@@ -42,7 +38,7 @@ function buildPrintHtml(rec: CashReconciliation): string {
     const gapStr = gap === 0 ? "—" : `${gap > 0 ? "+" : ""}${gap.toLocaleString("fr-DZ")}`;
     const gapColor = gap < 0 ? "color:#c0392b;" : gap > 0 ? "color:#e67e22;" : "color:#27ae60;";
     return `<tr>
-      <td>${METHOD_LABELS[m]}</td>
+      <td>${t(`payment_method.${m}`)}</td>
       <td style="text-align:right;">${sys.toLocaleString("fr-DZ")}</td>
       <td style="text-align:right;">${act.toLocaleString("fr-DZ")}</td>
       <td style="text-align:right;font-weight:600;${gapColor}">${gapStr}</td>
@@ -74,12 +70,12 @@ function buildPrintHtml(rec: CashReconciliation): string {
   </style>
 </head>
 <body>
-  <h1>Fermeture de caisse</h1>
+  <h1>{"{t('sales.reconciliation_title')}"}</h1>
   <div class="meta">
     Date : ${rec.date}${rec.branch_name ? ` · Caisse : ${rec.branch_name}` : ""}
     · Soumis par : ${rec.submitted_by_name ?? "—"}
     · <span class="status ${rec.status === "approved" ? "approved" : "pending"}">
-        ${rec.status === "approved" ? "Approuvé" : "En attente"}
+        ${rec.status === "approved" ? t("sales.status_approved") : t("sales.status_pending")}
       </span>
   </div>
 
@@ -89,13 +85,15 @@ function buildPrintHtml(rec: CashReconciliation): string {
         <th>Mode</th>
         <th style="text-align:right;">Système</th>
         <th style="text-align:right;">Compté</th>
-        <th style="text-align:right;">Écart</th>
+        <th style="text-align:right;">
+                      {t("sales.gap")}
+                    </th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td>Total</td>
+        <td>{"{t('common.total')}"}</td>
         <td style="text-align:right;">${parseFloat(rec.total_system).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;">${parseFloat(rec.total_actual).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;${gapColor}">
@@ -166,7 +164,7 @@ function HistoryRow({
               rec.status === "approved" ? "badge-success" : "badge-warning",
             )}
           >
-            {rec.status === "approved" ? "Approuvé" : "En attente"}
+            {rec.status === "approved" ? t("sales.status_approved") : t("sales.status_pending")}
           </span>
         </td>
         <td className="px-3 py-2.5 text-end font-mono text-sm">
@@ -192,7 +190,8 @@ function HistoryRow({
                 onClick={(e) => { e.stopPropagation(); onApprove(rec.id); }}
                 className="btn-secondary btn-sm"
               >
-                <Check size={12} /> Approuver
+                <Check size={12} />
+                {t("common.approve")}
               </button>
             )}
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -209,22 +208,22 @@ function HistoryRow({
                 const gap = act - sys;
                 return (
                   <div key={m} className="bg-white rounded-lg p-2.5 border border-border">
-                    <div className="text-xs text-text-muted mb-1">{METHOD_LABELS[m]}</div>
+                    <div className="text-xs text-text-muted mb-1">{t(`payment_method.${m}`)}</div>
                     <div className="flex justify-between items-baseline">
                       <span className="font-mono text-sm">{formatDZD(act)}</span>
                       <GapPill gap={gap} />
                     </div>
-                    <div className="text-2xs text-text-muted mt-0.5">Système: {formatDZD(sys)}</div>
+                    <div className="text-2xs text-text-muted mt-0.5">{t("sales.system_colon")}{formatDZD(sys)}</div>
                   </div>
                 );
               })}
             </div>
             {rec.notes && (
-              <p className="text-xs text-text-muted italic">Notes : {rec.notes}</p>
+              <p className="text-xs text-text-muted italic">{t("common.notes_colon")} {rec.notes}</p>
             )}
             {rec.approved_by_name && (
               <p className="text-xs text-text-muted mt-1">
-                Approuvé par <strong>{rec.approved_by_name}</strong> le {formatDate(rec.approved_at)}
+                {t("sales.approved_by_date", { name: rec.approved_by_name, date: formatDate(rec.approved_at) })}
               </p>
             )}
           </td>
@@ -244,6 +243,7 @@ interface ActualAmounts {
 }
 
 export default function ReconciliationPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { currentBranch } = useBranch();
   const queryClient = useQueryClient();
@@ -341,14 +341,14 @@ export default function ReconciliationPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Fermeture de caisse</h1>
-          <p className="text-sm text-text-muted">Rapprochement journalier des encaissements</p>
+          <h1 className="text-xl font-bold text-text-primary">{"{t('sales.reconciliation_title')}"}</h1>
+          <p className="text-sm text-text-muted">{"{t('sales.reconciliation_desc')}"}</p>
         </div>
       </div>
 
       {/* Date selector */}
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-text-primary whitespace-nowrap">Date :</label>
+        <label className="text-sm font-medium text-text-primary whitespace-nowrap">{"{t('sales.date_colon')}"}</label>
         <input
           type="date"
           value={date}
@@ -379,8 +379,8 @@ export default function ReconciliationPage() {
             )}
             <span className="text-sm font-medium text-text-primary">
               {isApproved
-                ? `Approuvée par ${todayRec.approved_by_name} le ${formatDate(todayRec.approved_at)}`
-                : "Fermeture soumise — en attente d'approbation"}
+                ? t("sales.approved_by_date", { name: todayRec.approved_by_name, date: formatDate(todayRec.approved_at) })
+                : t("sales.reconciliation_submitted_pending")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ export default function ReconciliationPage() {
                 onClick={() => prefillFromRec(todayRec)}
                 className="btn-secondary btn-sm"
               >
-                Modifier
+                {t("common.edit")}
               </button>
             )}
             {canApprove && !isApproved && (
@@ -404,7 +404,8 @@ export default function ReconciliationPage() {
                 disabled={approveMutation.isPending}
                 className="btn-primary btn-sm"
               >
-                <Check size={13} /> Approuver
+                <Check size={13} />
+                {t("common.approve")}
               </button>
             )}
           </div>
@@ -416,26 +417,26 @@ export default function ReconciliationPage() {
         <div className="card">
           <div className="card-header">
             <h2 className="font-semibold text-text-primary">
-              Saisie du comptage caisse
+              {t("sales.cash_count_entry")}
             </h2>
             <p className="text-xs text-text-muted mt-0.5">
-              Entrez les montants comptés physiquement pour chaque mode de paiement
+              {t("sales.cash_count_desc")}
             </p>
           </div>
 
           {summaryLoading ? (
             <div className="card-body text-text-muted text-sm py-8 text-center">
-              Chargement des totaux système…
+              {t("sales.loading_system_totals")}
             </div>
           ) : summaryError ? (
             <div className="card-body text-danger text-sm py-8 text-center">
-              Impossible de charger les totaux pour cette date.
+              {t("sales.error_loading_totals")}
             </div>
           ) : summary?.sale_count === 0 ? (
             <div className="card-body py-8 text-center space-y-1">
-              <p className="text-text-primary font-medium text-sm">Aucune vente enregistrée pour le {date}</p>
+              <p className="text-text-primary font-medium text-sm">{"{t('sales.no_sales_for_date', { date })}"</p>
               <p className="text-text-muted text-xs">
-                Vérifiez la date sélectionnée — les ventes sont filtrées par date locale (heure Algérie).
+                {t("sales.no_sales_hint")}
               </p>
             </div>
           ) : (
@@ -444,16 +445,16 @@ export default function ReconciliationPage() {
                 <thead>
                   <tr className="border-b border-border bg-surface">
                     <th className="px-4 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      Mode de paiement
+                      {t("sales.payment_method")}
                     </th>
                     <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      Système (DZD)
+                      {t("sales.system_dzd")}
                     </th>
                     <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      Compté (DZD)
+                      {t("sales.counted_dzd")}
                     </th>
                     <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      Écart
+                      {t("sales.gap")}
                     </th>
                   </tr>
                 </thead>
@@ -464,7 +465,7 @@ export default function ReconciliationPage() {
                     return (
                       <tr key={m} className="border-b border-border last:border-0">
                         <td className="px-4 py-3 font-medium text-text-primary">
-                          {METHOD_LABELS[m]}
+                          {t(`payment_method.${m}`)}
                         </td>
                         <td className="px-4 py-3 text-end font-mono text-text-muted">
                           {formatDZD(sys)}
@@ -491,7 +492,7 @@ export default function ReconciliationPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-border bg-surface">
-                    <td className="px-4 py-3 font-semibold">Total</td>
+                    <td className="px-4 py-3 font-semibold">{"{t('common.total')}"}</td>
                     <td className="px-4 py-3 text-end font-mono font-semibold">
                       {formatDZD(totalSystem)} DZD
                     </td>
@@ -510,14 +511,14 @@ export default function ReconciliationPage() {
           {/* Summary chips */}
           {summary && (
             <div className="px-4 py-3 border-t border-border flex flex-wrap gap-3 text-xs text-text-muted">
-              <span>{summary.sale_count} vente(s) enregistrée(s)</span>
+              <span>{t("sales.sales_registered_count", { count: summary.sale_count })}</span>
               <span>·</span>
-              <span>Retours : {formatDZD(summary.total_refunds)} DZD</span>
+              <span>{t("sales.refunds_colon")} {formatDZD(summary.total_refunds)} DZD</span>
               {totalGap !== 0 && (
                 <>
                   <span>·</span>
                   <span className={totalGap < 0 ? "text-danger font-medium" : "text-warning font-medium"}>
-                    {totalGap < 0 ? "Manquant" : "Excédent"} : {formatDZD(Math.abs(totalGap))} DZD
+                    {totalGap < 0 ? t("sales.missing") : t("sales.excess")} : {formatDZD(Math.abs(totalGap))} DZD
                   </span>
                 </>
               )}
@@ -527,13 +528,13 @@ export default function ReconciliationPage() {
           {/* Notes */}
           <div className="px-4 py-3 border-t border-border">
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-              Notes / Observations
+              {t("sales.notes_observations")}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="form-input resize-none h-16 text-sm"
-              placeholder="Anomalies constatées, cheques non encaissés, etc."
+              placeholder={t("sales.notes_placeholder")}
             />
           </div>
 
@@ -549,8 +550,7 @@ export default function ReconciliationPage() {
             <div className="mx-4 mb-3 flex items-start gap-2 text-sm bg-warning-light text-warning rounded-lg px-3 py-2">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
               <span>
-                Un écart de <strong>{formatDZD(Math.abs(totalGap))} DZD</strong> sera enregistré.
-                Vérifiez avant de soumettre ou ajoutez une note explicative.
+                {t("sales.gap_warning_text", { amount: formatDZD(Math.abs(totalGap)) })}
               </span>
             </div>
           )}
@@ -562,7 +562,7 @@ export default function ReconciliationPage() {
               disabled={submitMutation.isPending || summaryLoading}
               className="btn-primary w-full"
             >
-              {submitMutation.isPending ? "Enregistrement…" : "Soumettre la fermeture de caisse"}
+              {submitMutation.isPending ? t("sales.recording") : t("sales.submit_reconciliation")}
             </button>
           </div>
         </div>
@@ -572,19 +572,21 @@ export default function ReconciliationPage() {
       {history && history.length > 0 && (
         <div className="card overflow-hidden">
           <div className="card-header">
-            <h2 className="font-semibold text-text-primary">Historique des fermetures</h2>
+            <h2 className="font-semibold text-text-primary">{"{t('sales.reconciliation_history')}"}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface">
                   <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Date</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Caisse</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Statut</th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('sales.register')}"}</th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('common.status')}"}</th>
                   <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Système</th>
                   <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Compté</th>
-                  <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Écart</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Soumis par</th>
+                  <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
+                      {t("sales.gap")}
+                    </th>
+                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{"{t('sales.submitted_by')}"}</th>
                   <th className="px-3 py-2.5" />
                 </tr>
               </thead>

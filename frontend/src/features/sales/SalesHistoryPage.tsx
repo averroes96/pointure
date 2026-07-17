@@ -21,12 +21,12 @@ const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon:
   gold:   { label: "Gold",   className: "text-yellow-600 bg-yellow-100", Icon: Trophy },
 };
 
-const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash", label: "Espèces" },
-  { value: "cheque", label: "Chèque" },
-  { value: "ccp", label: "CCP" },
-  { value: "virement", label: "Virement" },
-  { value: "account", label: "Compte client" },
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
+  { value: "cash", labelKey: "payment.cash" },
+  { value: "cheque", labelKey: "payment.cheque" },
+  { value: "ccp", labelKey: "payment.ccp" },
+  { value: "virement", labelKey: "payment.virement" },
+  { value: "account", labelKey: "payment.account" },
 ];
 
 // ── Return Modal ──────────────────────────────────────────────────────────────
@@ -39,6 +39,7 @@ interface ReturnItemState {
 }
 
 function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<string | null>(null);
 
@@ -94,8 +95,8 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">Traiter un retour</h2>
-            <p className="text-xs text-text-muted">Reçu {sale.receipt_number || `#${sale.id}`}</p>
+            <h2 className="font-semibold text-text-primary">{"{t('sales.process_return')}"}</h2>
+            <p className="text-xs text-text-muted">{"{t('sales.receipt')} {sale.receipt_number || `#${sale.id}`}</p>
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm text-text-muted">
             <X size={16} />
@@ -135,7 +136,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                   {s.selected && (
                     <div className="mt-2 ms-7 flex items-center gap-4 flex-wrap">
                       <label className="flex items-center gap-1.5 text-xs">
-                        <span className="text-text-muted">Qté retournée:</span>
+                        <span className="text-text-muted">{"{t('sales.qty_returned')}"}</span>
                         <input
                           type="number"
                           min={1}
@@ -160,7 +161,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                           onChange={(e) => updateItem(i, { restock: e.target.checked })}
                           className="accent-primary-600"
                         />
-                        <span className="text-text-muted">Remettre en stock</span>
+                        <span className="text-text-muted">{"{t('sales.restock')}"}</span>
                       </label>
                     </div>
                   )}
@@ -171,20 +172,20 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 
           {/* Reason */}
           <div>
-            <label className="form-label">Motif du retour *</label>
+            <label className="form-label">{"{t('sales.return_reason')}"}</label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="form-input"
-              placeholder="Ex: Pointure incorrecte, défaut…"
+              placeholder={t("sales.return_reason_placeholder")}
             />
           </div>
 
           {/* Refund */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Montant remboursé (DZD)</label>
+              <label className="form-label">{"{t('sales.refund_amount')}"}</label>
               <input
                 type="number"
                 min={0}
@@ -195,14 +196,14 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
               />
             </div>
             <div>
-              <label className="form-label">Moyen de remboursement</label>
+              <label className="form-label">{"{t('sales.refund_method')}"}</label>
               <select
                 value={refundMethod}
                 onChange={(e) => setRefundMethod(e.target.value as PaymentMethod)}
                 className="form-input"
               >
                 {PAYMENT_METHOD_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
                 ))}
               </select>
             </div>
@@ -215,7 +216,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
             <p className="text-xs text-danger flex-1">{toast}</p>
           )}
           <div className="text-xs text-text-muted">
-            {selectedItems.length} article{selectedItems.length !== 1 ? "s" : ""} sélectionné{selectedItems.length !== 1 ? "s" : ""}
+            {t("sales.items_selected", { count: selectedItems.length })}
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
@@ -226,7 +227,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
               className="btn-primary btn-sm"
               disabled={!canSubmit || mutation.isPending}
             >
-              {mutation.isPending ? "Traitement…" : "Confirmer le retour"}
+              {mutation.isPending ? t("common.processing") : t("sales.confirm_return")}
             </button>
           </div>
         </div>
@@ -238,6 +239,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 // ── Add Payment Modal ─────────────────────────────────────────────────────────
 
 function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState(parseFloat(sale.balance_due || "0").toFixed(2));
   const [method, setMethod] = useState<PaymentMethod>("cash");
@@ -265,8 +267,8 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">Ajouter un paiement</h2>
-            <p className="text-xs text-text-muted">Versement {sale.receipt_number || `#${sale.id}`}</p>
+            <h2 className="font-semibold text-text-primary">{"{t('sales.add_payment')}"}</h2>
+            <p className="text-xs text-text-muted">{"{t('sales.versement')} {sale.receipt_number || `#${sale.id}`}</p>
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm text-text-muted"><X size={16} /></button>
         </div>
@@ -275,20 +277,20 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           {/* Sale summary */}
           <div className="rounded-lg bg-surface p-3 space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-text-muted">Total vente</span>
+              <span className="text-text-muted">{"{t('sales.sale_total')}"}</span>
               <span className="font-mono font-semibold">{formatDZD(sale.total_amount)} DZD</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted">Deja paye</span>
+              <span className="text-text-muted">{"{t('sales.already_paid')}"}</span>
               <span className="font-mono text-success">{formatDZD(sale.amount_paid)} DZD</span>
             </div>
             <div className="flex justify-between border-t border-border pt-1">
-              <span className="text-text-muted font-medium">Solde restant</span>
+              <span className="text-text-muted font-medium">{"{t('sales.remaining_balance')}"}</span>
               <span className="font-mono font-bold text-danger">{formatDZD(sale.balance_due)} DZD</span>
             </div>
             {sale.due_date && (
               <div className="flex justify-between text-xs">
-                <span className="text-text-muted">Echeance</span>
+                <span className="text-text-muted">{"{t('sales.due_date')}"}</span>
                 <span>{sale.due_date}</span>
               </div>
             )}
@@ -299,7 +301,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           )}
 
           <div>
-            <label className="form-label">Montant (DZD) *</label>
+            <label className="form-label">{"{t('sales.amount_dzd')}"}</label>
             <input
               type="number"
               min={0.01}
@@ -312,22 +314,22 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           </div>
 
           <div>
-            <label className="form-label">Moyen de paiement</label>
+            <label className="form-label">{"{t('sales.payment_method')}"}</label>
             <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="form-input">
               {PAYMENT_METHOD_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="form-label">Notes</label>
+            <label className="form-label">{"{t('sales.notes')}"}</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="form-input"
-              placeholder="Optionnel"
+              placeholder={t("common.optional")}
             />
           </div>
         </div>
@@ -341,7 +343,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
             className="btn-primary btn-sm"
             disabled={mutation.isPending || parseFloat(amount) <= 0}
           >
-            {mutation.isPending ? "Traitement..." : "Confirmer le paiement"}
+            {mutation.isPending ? t("common.processing") : t("sales.confirm_payment")}
           </button>
         </div>
       </div>
@@ -350,15 +352,15 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
 }
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Tous" },
-  { value: "completed", label: "Complete" },
-  { value: "partially_paid", label: "En versement" },
-  { value: "cancelled", label: "Annulee" },
-  { value: "refunded", label: "Remboursee" },
+  { value: "", labelKey: "status.all" },
+  { value: "completed", labelKey: "status.completed" },
+  { value: "partially_paid", labelKey: "status.partially_paid" },
+  { value: "cancelled", labelKey: "status.cancelled" },
+  { value: "refunded", labelKey: "status.refunded" },
 ];
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
-  PAYMENT_METHOD_OPTIONS.map((o) => [o.value, o.label])
+  PAYMENT_METHOD_OPTIONS.map((o) => [o.value, o.labelKey])
 );
 
 export default function SalesHistoryPage() {
@@ -427,18 +429,18 @@ export default function SalesHistoryPage() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-success/10 rounded-lg border border-success/20">
             <TrendingUp size={16} className="text-success" />
-            <span className="text-sm text-text-muted">CA (page):</span>
+            <span className="text-sm text-text-muted">{"{t('sales.page_revenue')}"}</span>
             <span className="font-mono font-semibold text-success">{formatDZD(pageTotalRevenue)} DZD</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-lg border border-primary-200">
             <ShoppingBag size={16} className="text-primary-500" />
-            <span className="text-sm text-text-muted">Ventes (page):</span>
+            <span className="text-sm text-text-muted">{"{t('sales.page_sales')}"}</span>
             <span className="font-mono font-semibold text-primary-600">{sales.filter((s) => s.status === "completed").length}</span>
           </div>
           {partiallyPaidCount > 0 && (
             <div className="flex items-center gap-2 px-4 py-2 bg-warning-light rounded-lg border border-warning/30">
               <Receipt size={16} className="text-warning" />
-              <span className="text-sm text-text-muted">En versement:</span>
+              <span className="text-sm text-text-muted">{"{t('sales.in_installment')}"}</span>
               <span className="font-mono font-semibold text-warning">{partiallyPaidCount}</span>
             </div>
           )}
@@ -454,7 +456,7 @@ export default function SalesHistoryPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="form-input ps-9"
-            placeholder="N° reçu ou caissier…"
+            placeholder={t("sales.search_receipt_cashier")}
           />
         </div>
 
@@ -464,19 +466,19 @@ export default function SalesHistoryPage() {
           className="form-input max-w-[160px]"
         >
           {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
         </select>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-text-muted whitespace-nowrap">Du</label>
+          <label className="text-xs text-text-muted whitespace-nowrap">{"{t('common.from')}"}</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
             className="form-input text-sm py-1.5"
           />
-          <label className="text-xs text-text-muted">au</label>
+          <label className="text-xs text-text-muted">{"{t('common.to')}"}</label>
           <input
             type="date"
             value={dateTo}
@@ -501,14 +503,14 @@ export default function SalesHistoryPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>N° Reçu</th>
-                <th>Date</th>
-                <th>Caissier</th>
-                <th>Client</th>
-                <th>Moyens paiement</th>
+                <th>{"{t('sales.receipt_no')}"}</th>
+                <th>{"{t('common.date')}"}</th>
+                <th>{"{t('sales.cashier')}"}</th>
+                <th>{"{t('sales.client')}"}</th>
+                <th>{"{t('sales.payment_methods')}"}</th>
                 <th>{t("common.status")}</th>
-                <th className="text-end">Total</th>
-                <th className="text-end">Solde dû</th>
+                <th className="text-end">{"{t('common.total')}"}</th>
+                <th className="text-end">{"{t('sales.balance_due')}"}</th>
                 <th>{t("common.actions")}</th>
               </tr>
             </thead>
@@ -549,7 +551,7 @@ export default function SalesHistoryPage() {
                     <td className="text-sm">{sale.cashier_name || "—"}</td>
                     <td className="text-sm">
                       <div className="flex flex-col gap-0.5">
-                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">Comptoir</span>)}</span>
+                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">{"{t('sales.walk_in')}"}</span>)}</span>
                         {sale.loyalty_tier && (() => {
                           const { label, className, Icon } = TIER_CONFIG[sale.loyalty_tier];
                           return (
@@ -570,14 +572,14 @@ export default function SalesHistoryPage() {
                       <div className="flex flex-wrap gap-1">
                         {sale.payments?.map((p, i) => (
                           <span key={i} className="badge badge-neutral text-2xs">
-                            {PAYMENT_METHOD_LABELS[p.method] ?? p.method}
+                            {PAYMENT_METHOD_LABELS[p.method] ? t(PAYMENT_METHOD_LABELS[p.method]) : p.method}
                           </span>
                         ))}
                       </div>
                     </td>
                     <td>
                       <span className={cn("badge", getStatusBadgeClass(sale.status))}>
-                        {STATUS_OPTIONS.find((o) => o.value === sale.status)?.label ?? sale.status}
+                        {STATUS_OPTIONS.find((o) => o.value === sale.status)?.labelKey ? t(STATUS_OPTIONS.find((o) => o.value === sale.status)!.labelKey) : sale.status}
                       </span>
                       {sale.status === "partially_paid" && sale.due_date && (() => {
                         const dueMs = new Date(sale.due_date).getTime() - Date.now();
@@ -587,7 +589,7 @@ export default function SalesHistoryPage() {
                             "text-2xs mt-0.5 font-mono",
                             dueDays < 0 ? "text-danger font-semibold" : dueDays < 7 ? "text-warning" : "text-text-muted"
                           )}>
-                            {dueDays < 0 ? `En retard ${Math.abs(dueDays)}j` : `Ech. ${sale.due_date}`}
+                            {dueDays < 0 ? t("sales.overdue_days", { days: Math.abs(dueDays) }) : t("sales.due_on", { date: sale.due_date })}
                           </p>
                         );
                       })()}
@@ -612,7 +614,7 @@ export default function SalesHistoryPage() {
                       <div className="flex items-center gap-1">
                         <button
                           className="btn-ghost btn-sm text-primary-500"
-                          title="Imprimer"
+                          title={t("common.print")}
                           onClick={() =>
                             sale.status === "partially_paid"
                               ? printBonVersement(sale, storeName)
@@ -634,8 +636,8 @@ export default function SalesHistoryPage() {
                               className="btn-ghost btn-sm text-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
                               title={
                                 (sale.exchange_count ?? 0) >= 3
-                                  ? "Maximum 3 échanges atteint"
-                                  : "Traiter un échange"
+                                  ? t("sales.max_exchanges_reached")
+                                  : t("sales.process_exchange")
                               }
                               disabled={(sale.exchange_count ?? 0) >= 3}
                               onClick={() => setExchangeSale(sale)}
@@ -657,7 +659,7 @@ export default function SalesHistoryPage() {
                               className="btn-ghost btn-sm text-danger"
                               title="Annuler le versement"
                               onClick={() => {
-                                if (confirm(`Annuler le versement ${sale.receipt_number} ?`)) {
+                                if (confirm(t("sales.cancel_versement_confirm", { receipt: sale.receipt_number }))) {
                                   cancelVersementMutation.mutate(sale.id);
                                 }
                               }}
@@ -681,11 +683,11 @@ export default function SalesHistoryPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-xs text-text-muted">
-                              <th className="text-start pb-1 font-medium">Article</th>
-                              <th className="text-end pb-1 font-medium">Qté</th>
-                              <th className="text-end pb-1 font-medium">P.U.</th>
-                              <th className="text-end pb-1 font-medium">Remise</th>
-                              <th className="text-end pb-1 font-medium">Sous-total</th>
+                              <th className="text-start pb-1 font-medium">{"{t('sales.item')}"}</th>
+                              <th className="text-end pb-1 font-medium">{"{t('sales.qty')}"}</th>
+                              <th className="text-end pb-1 font-medium">{"{t('sales.unit_price')}"}</th>
+                              <th className="text-end pb-1 font-medium">{"{t('sales.discount')}"}</th>
+                              <th className="text-end pb-1 font-medium">{"{t('sales.subtotal')}"}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
@@ -736,7 +738,7 @@ export default function SalesHistoryPage() {
         {data && data.total_pages > 1 && (
           <div className="px-4 py-3 border-t border-border flex items-center justify-between">
             <span className="text-xs text-text-muted">
-              Page {data.current_page} / {data.total_pages} · {data.count} ventes
+              {t("sales.page_info", { current: data.current_page, total: data.total_pages, count: data.count })}
             </span>
             <div className="flex gap-2">
               <button

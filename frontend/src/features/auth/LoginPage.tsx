@@ -89,7 +89,7 @@ export default function LoginPage() {
               </div>
               <div className="flex justify-end mt-1">
                 <Link to="/forgot-password" className="text-xs text-primary-500 hover:underline">
-                  Mot de passe oublié ?
+                  {t("auth.forgot_password")}
                 </Link>
               </div>
             </div>

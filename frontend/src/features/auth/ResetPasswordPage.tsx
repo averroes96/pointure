@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const uid = searchParams.get("uid");
   const token = searchParams.get("token");
@@ -26,11 +28,11 @@ export default function ResetPasswordPage() {
     setError("");
 
     if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
+      setError(t("auth.password_too_short"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
+      setError(t("auth.password_mismatch"));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function ResetPasswordPage() {
             <span className="text-3xl">👟</span>
           </div>
           <h1 className="text-2xl font-bold text-primary-500">ShoeDZ</h1>
-          <p className="text-text-muted text-sm mt-1">Nouveau mot de passe</p>
+          <p className="text-text-muted text-sm mt-1">{t("auth.new_password")}</p>
         </div>
 
         {/* Card */}
@@ -69,27 +71,27 @@ export default function ResetPasswordPage() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-success-light rounded-full mx-auto">
                 <KeyRound size={24} className="text-success" />
               </div>
-              <p className="text-text-primary font-medium">Mot de passe réinitialisé !</p>
+              <p className="text-text-primary font-medium">{t("auth.password_reset_success")}</p>
               <p className="text-text-muted text-sm">
-                Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+                {t("auth.password_reset_success_desc")}
               </p>
               <Link
                 to="/login"
                 className="inline-block text-sm text-primary-500 hover:underline mt-2"
               >
-                Se connecter
+                {t("auth.sign_in")}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-text-muted text-sm">
-                Choisissez un nouveau mot de passe pour votre compte.
+                {t("auth.choose_new_password")}
               </p>
 
               {/* New password */}
               <div>
                 <label className="form-label" htmlFor="password">
-                  Nouveau mot de passe
+                  {t("auth.new_password")}
                 </label>
                 <div className="relative">
                   <input
@@ -115,7 +117,7 @@ export default function ResetPasswordPage() {
               {/* Confirm password */}
               <div>
                 <label className="form-label" htmlFor="confirmPassword">
-                  Confirmer le mot de passe
+                  {t("auth.confirm_password")}
                 </label>
                 <input
                   id="confirmPassword"
@@ -145,19 +147,19 @@ export default function ResetPasswordPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Réinitialisation…
+                    {t("auth.resetting")}
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <KeyRound size={16} />
-                    Réinitialiser le mot de passe
+                    {t("auth.reset_password")}
                   </span>
                 )}
               </button>
 
               <div className="text-center">
                 <Link to="/login" className="text-xs text-text-muted hover:text-primary-500 hover:underline">
-                  Retour à la connexion
+                  {t("auth.back_to_login")}
                 </Link>
               </div>
             </form>

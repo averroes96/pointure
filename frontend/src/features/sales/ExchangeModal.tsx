@@ -12,13 +12,14 @@ import { X, Search, Plus, Trash2 } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Sale, SaleItem, Variant, PaymentMethod } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
-const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash", label: "Espèces" },
-  { value: "cheque", label: "Chèque" },
-  { value: "ccp", label: "CCP" },
-  { value: "virement", label: "Virement" },
-  { value: "account", label: "Compte client" },
+const PAYMENT_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
+  { value: "cash", labelKey: "payment.cash" },
+  { value: "cheque", labelKey: "payment.cheque" },
+  { value: "ccp", labelKey: "payment.ccp" },
+  { value: "virement", labelKey: "payment.virement" },
+  { value: "account", labelKey: "payment.account" },
 ];
 
 interface ReturnedItemState {
@@ -195,9 +196,9 @@ export default function ExchangeModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-text-primary">Traiter un échange</h2>
+            <h2 className="font-semibold text-text-primary">{"{t('sales.process_exchange_title')}"}</h2>
             <p className="text-xs text-text-muted">
-              Reçu {sale.receipt_number || `#${sale.id}`}
+              {"{t('sales.receipt')} {"sale.receipt_number || `#${sale.id}`}
             </p>
           </div>
           <button
@@ -245,7 +246,7 @@ export default function ExchangeModal({
                     </div>
                     {s.selected && (
                       <div className="mt-2 ms-7 flex items-center gap-2 text-xs">
-                        <span className="text-text-muted">Qté :</span>
+                        <span className="text-text-muted">{"{t('sales.qty_colon')}"}</span>
                         <input
                           type="number"
                           min={1}
@@ -291,7 +292,7 @@ export default function ExchangeModal({
                   }}
                   onFocus={() => setShowDropdown(true)}
                   className="form-input ps-8 text-sm"
-                  placeholder="Rechercher un article…"
+                  placeholder={t("sales.search_item")}
                 />
                 {showDropdown && searchResults.length > 0 && (
                   <div
@@ -322,7 +323,7 @@ export default function ExchangeModal({
                                 : "text-success"
                             )}
                           >
-                            stock: {v.stock_qty}
+                            {"{t('sales.stock_label')}{"v.stock_qty}
                           </span>
                           <span className="font-mono text-primary-600">
                             {formatDZD(v.product_sale_price)} DZD
@@ -337,7 +338,7 @@ export default function ExchangeModal({
               {/* Added items list */}
               {newItems.length === 0 ? (
                 <div className="text-xs text-text-muted text-center py-6 border border-dashed border-border rounded-lg">
-                  Recherchez et sélectionnez les articles à donner au client.
+                  {t("sales.search_select_items")}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -360,7 +361,7 @@ export default function ExchangeModal({
                       </div>
                       <div className="mt-2 flex items-center gap-3 text-xs">
                         <label className="flex items-center gap-1.5">
-                          <span className="text-text-muted">Qté :</span>
+                          <span className="text-text-muted">{"{t('sales.qty_colon')}"}</span>
                           <input
                             type="number"
                             min={1}
@@ -377,7 +378,7 @@ export default function ExchangeModal({
                           />
                         </label>
                         <label className="flex items-center gap-1.5 flex-1">
-                          <span className="text-text-muted">P.U. :</span>
+                          <span className="text-text-muted">{"{t('sales.unit_price_colon')}"}</span>
                           <input
                             type="number"
                             min={0}
@@ -402,15 +403,15 @@ export default function ExchangeModal({
           {(selectedReturned.length > 0 || newItems.length > 0) && (
             <div className="rounded-lg bg-surface p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-muted">Valeur rendue</span>
+                <span className="text-text-muted">{"{t('sales.returned_value')}"}</span>
                 <span className="font-mono">{formatDZD(returnedValue)} DZD</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">Valeur nouveaux articles</span>
+                <span className="text-text-muted">{"{t('sales.new_items_value')}"}</span>
                 <span className="font-mono">{formatDZD(newValue)} DZD</span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 font-semibold">
-                <span>Différence</span>
+                <span>{"{t('sales.difference')}"}</span>
                 <span
                   className={cn(
                     "font-mono",
@@ -428,7 +429,7 @@ export default function ExchangeModal({
               {diff > 0 && (
                 <div className="flex items-center gap-2 pt-1">
                   <span className="text-text-muted text-xs">
-                    À encaisser :
+                    {t("sales.to_collect")}
                   </span>
                   <select
                     value={extraPaymentMethod}
@@ -439,7 +440,7 @@ export default function ExchangeModal({
                   >
                     {PAYMENT_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.label}
+                        {t(o.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -447,12 +448,12 @@ export default function ExchangeModal({
               )}
               {diff < 0 && (
                 <p className="text-xs text-success pt-1">
-                  À rembourser en espèces : {formatDZD(Math.abs(diff))} DZD
+                  {t("sales.to_refund_cash", { amount: formatDZD(Math.abs(diff)) })}
                 </p>
               )}
               {diff === 0 && selectedReturned.length > 0 && newItems.length > 0 && (
                 <p className="text-xs text-text-muted pt-1">
-                  Échange parfait — aucune différence de prix.
+                  {t("sales.perfect_exchange")}
                 </p>
               )}
             </div>
@@ -460,13 +461,13 @@ export default function ExchangeModal({
 
           {/* ── Reason ────────────────────────────────────────────────────── */}
           <div>
-            <label className="form-label">Motif de l'échange (optionnel)</label>
+            <label className="form-label">{"{t('sales.exchange_reason')}"}</label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="form-input"
-              placeholder="Ex : Pointure incorrecte, défaut…"
+              placeholder={t("sales.exchange_reason_placeholder")}
             />
           </div>
 
@@ -481,9 +482,9 @@ export default function ExchangeModal({
         {/* Footer */}
         <div className="px-5 py-4 border-t border-border flex items-center justify-between gap-3">
           <div className="text-xs text-text-muted">
-            {selectedReturned.length} rendu{selectedReturned.length !== 1 ? "s" : ""}
+            {t("sales.items_returned_count", { count: selectedReturned.length })}
             {newItems.length > 0 && (
-              <> · {newItems.length} nouveau{newItems.length !== 1 ? "x" : ""}</>
+              <> · {t("sales.new_items_count", { count: newItems.length })}</>
             )}
           </div>
           <div className="flex gap-2">
@@ -492,7 +493,7 @@ export default function ExchangeModal({
               className="btn-secondary btn-sm"
               disabled={mutation.isPending}
             >
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               onClick={() => {
@@ -502,7 +503,7 @@ export default function ExchangeModal({
               className="btn-primary btn-sm"
               disabled={!canSubmit}
             >
-              {mutation.isPending ? "Traitement…" : "Confirmer l'échange"}
+              {mutation.isPending ? t("common.processing") : t("sales.confirm_exchange")}
             </button>
           </div>
         </div>

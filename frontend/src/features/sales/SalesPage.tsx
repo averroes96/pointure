@@ -69,7 +69,7 @@ function CreateClientModal({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setError("Le nom est obligatoire."); return; }
+    if (!name.trim()) { setError(t("sales.client_name_required")); return; }
     setError("");
     mutation.mutate();
   }
@@ -88,7 +88,7 @@ function CreateClientModal({
           <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
             <UserPlus size={16} className="text-primary-500" />
           </div>
-          <h3 className="font-semibold text-text-primary">Nouveau client</h3>
+          <h3 className="font-semibold text-text-primary">{"{t('sales.new_client')}"}</h3>
           <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary">
             <X size={18} />
           </button>
@@ -99,18 +99,18 @@ function CreateClientModal({
             <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2">{error}</div>
           )}
           <div>
-            <label className="form-label">Nom <span className="text-danger">*</span></label>
+            <label className="form-label">{"{t('sales.client_name')} "<span className="text-danger">*</span></label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="form-input"
-              placeholder="Nom complet"
+              placeholder={t("sales.client_fullname_placeholder")}
               autoFocus
             />
           </div>
           <div>
-            <label className="form-label">Téléphone</label>
+            <label className="form-label">{"{t('sales.client_phone')}"}</label>
             <input
               type="tel"
               value={phone}
@@ -124,7 +124,7 @@ function CreateClientModal({
               Annuler
             </button>
             <button type="submit" className="btn-primary flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Création…" : "Créer et sélectionner"}
+              {mutation.isPending ? t("sales.client_creating") : t("sales.client_create_select")}
             </button>
           </div>
         </form>
@@ -200,14 +200,14 @@ function ClientSelector({
             value={search}
             onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            placeholder="Rechercher un client (nom, téléphone)…"
+            placeholder={t("sales.client_search_placeholder")}
             className="flex-1 text-sm outline-none bg-transparent text-text-primary placeholder:text-text-muted"
           />
           <button
             type="button"
             onClick={() => setShowCreate(true)}
             className="flex-shrink-0 text-xs flex items-center gap-1 text-primary-500 hover:text-primary-700 font-medium"
-            title="Créer un nouveau client"
+            title={t("sales.client_create_title")}
           >
             <UserPlus size={14} />
           </button>
@@ -235,7 +235,7 @@ function ClientSelector({
                   className="flex items-center gap-2 w-full px-3 py-2.5 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
                 >
                   <UserPlus size={14} />
-                  Créer "{search}"
+                  {t("sales.client_create_search", { search })}
                 </button>
               </>
             ) : (
@@ -245,7 +245,7 @@ function ClientSelector({
                 className="flex items-center gap-2 w-full px-3 py-3 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
               >
                 <UserPlus size={14} />
-                Créer le client "{search}"
+                {t("sales.client_create_search_full", { search })}
               </button>
             )}
           </div>
@@ -542,10 +542,10 @@ export default function SalesPage() {
           <div className="w-16 h-16 bg-warning-light rounded-full flex items-center justify-center mx-auto mb-4">
             <Check size={32} className="text-warning" />
           </div>
-          <h2 className="text-xl font-bold text-text-primary mb-2">Versement enregistre!</h2>
-          <p className="text-text-muted text-sm mb-1">Recu: <strong>{receipt.receipt_number}</strong></p>
+          <h2 className="text-xl font-bold text-text-primary mb-2">{"{t('sales.versement_recorded')}"}</h2>
+          <p className="text-text-muted text-sm mb-1">{"{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
           {receipt.client_name && (
-            <p className="text-text-muted text-sm mb-1">Client: <strong>{receipt.client_name}</strong></p>
+            <p className="text-text-muted text-sm mb-1">{"{t('sales.client')}: "}<strong>{receipt.client_name}</strong></p>
           )}
           <div className="mb-4 mt-3 rounded-xl bg-warning-light border border-warning/30 p-3 text-sm space-y-1">
             <p className="text-text-primary">
@@ -579,20 +579,20 @@ export default function SalesPage() {
         <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
           <Check size={32} className="text-success" />
         </div>
-        <h2 className="text-xl font-bold text-text-primary mb-2">Vente confirmee!</h2>
-        <p className="text-text-muted text-sm mb-3">Recu: <strong>{receipt.receipt_number}</strong></p>
+        <h2 className="text-xl font-bold text-text-primary mb-2">{"{t('sales.sale_confirmed')}"}</h2>
+        <p className="text-text-muted text-sm mb-3">{"{t('sales.receipt')}: "}<strong>{receipt.receipt_number}</strong></p>
 
         {(ptsEarned > 0 || ptsRedeemed > 0) && (
           <div className="mb-4 rounded-xl bg-primary-50 border border-primary-100 p-3 text-sm">
             {ptsRedeemed > 0 && (
               <p className="text-primary-700">
                 <Gift size={14} className="inline mr-1" />
-                {ptsRedeemed} points rachetes (−{redemptionDzd} DZD)
+                {t("sales.points_redeemed_text", { pts: ptsRedeemed, dzd: redemptionDzd })}
               </p>
             )}
             {ptsEarned > 0 && (
               <p className="text-success font-semibold mt-1">
-                +{ptsEarned} points de fidelite gagnes
+                {t("sales.points_earned_text", { pts: ptsEarned })}
               </p>
             )}
           </div>
@@ -636,7 +636,7 @@ export default function SalesPage() {
       <div className="w-full lg:w-1/2 xl:w-3/5 flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.new_sale")}</h1>
-          <p className="text-xs text-text-muted">F2 = rechercher · F10 = confirmer · scanner code-barres partout</p>
+          <p className="text-xs text-text-muted">{"{t('sales.pos_shortcuts')}"}</p>
         </div>
 
         <div className="relative">
@@ -659,9 +659,9 @@ export default function SalesPage() {
               )}
             >
               {scanStatus === "found" ? (
-                <><Check size={11} /> Ajouté</>
+                <><Check size={11} /> {"{t('sales.pos_added')}"}</>
               ) : (
-                <><X size={11} /> Introuvable</>
+                <><X size={11} /> {"{t('sales.pos_not_found')}"}</>
               )}
             </div>
           )}
@@ -684,16 +684,16 @@ export default function SalesPage() {
                         {product.brand} {product.name}
                       </div>
                       <div className="text-sm text-text-muted">
-                        {product.total_stock} en stock · {formatDZD(product.sale_price)} DZD
+                        {product.total_stock} {"{t('sales.in_stock')}"} · {formatDZD(product.sale_price)} DZD
                       </div>
                     </div>
-                    <span className="text-xs text-primary-500">Voir tailles →</span>
+                    <span className="text-xs text-primary-500">{"{t('sales.view_sizes')}"}</span>
                   </div>
                 </div>
 
                 {selectedProduct?.id === product.id && (
                   <div className="px-4 pb-3 bg-primary-50">
-                    <div className="text-xs text-text-muted mb-2">Choisir pointure et couleur:</div>
+                    <div className="text-xs text-text-muted mb-2">{"{t('sales.choose_size_color')}"}</div>
                     <div className="grid grid-cols-4 gap-1.5">
                       {product.variants.map((variant) => (
                         <button
@@ -794,7 +794,7 @@ export default function SalesPage() {
           <div className="flex-1 overflow-auto divide-y divide-border">
             {cart.length === 0 && (
               <div className="py-12 text-center text-text-muted text-sm">
-                Panier vide — recherchez un article
+                {t("sales.empty_cart")}
               </div>
             )}
             {cart.map((item) => (
@@ -870,7 +870,7 @@ export default function SalesPage() {
           <div className="border-t border-border p-4 space-y-3">
             {/* Cart discount */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-text-muted flex-1">Remise panier</span>
+              <span className="text-sm text-text-muted flex-1">{"{t('sales.cart_discount')}"}</span>
               <input
                 type="number"
                 value={cartDiscount}
@@ -885,7 +885,7 @@ export default function SalesPage() {
             {redemptionDzd > 0 && (
               <div className="flex items-center gap-2 text-primary-600">
                 <Gift size={13} />
-                <span className="text-sm flex-1">Remise fidélité ({redeemPoints} pts)</span>
+                <span className="text-sm flex-1">{t("sales.loyalty_discount", { pts: redeemPoints })}</span>
                 <span className="text-sm font-mono font-medium">−{formatDZD(redemptionDzd)} DZD</span>
               </div>
             )}
@@ -911,8 +911,8 @@ export default function SalesPage() {
             {/* Mode Réel toggle */}
             <div className="flex items-center justify-between py-1.5 border rounded-lg px-3 bg-surface">
               <div>
-                <p className="text-sm font-medium text-text-primary">Mode Réel</p>
-                <p className="text-xs text-text-muted">Facture simplifiée avec Timbre (+1% espèces)</p>
+                <p className="text-sm font-medium text-text-primary">{"{t('sales.formal_mode')}"}</p>
+                <p className="text-xs text-text-muted">{"{t('sales.formal_mode_desc')}"}</p>
               </div>
               <label className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
                 <input
@@ -932,9 +932,9 @@ export default function SalesPage() {
               storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
             )}>
               <div>
-                <p className="text-sm font-medium text-text-primary">Versement (acompte)</p>
+                <p className="text-sm font-medium text-text-primary">{"{t('sales.versement_acompte')}"}</p>
                 <p className="text-xs text-text-muted">
-                  Min. {storeSettings?.min_versement_pct ?? 30}% = {formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100)} DZD
+                  {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
                 </p>
               </div>
               <button
@@ -957,7 +957,7 @@ export default function SalesPage() {
                 )}
                 role="switch"
                 aria-checked={isVersement}
-                title={storeSettings?.versement_requires_client && !selectedClient ? "Selectionnez un client pour activer le versement" : ""}
+                title={storeSettings?.versement_requires_client && !selectedClient ? t("sales.select_client_versement") : ""}
               >
                 <span className={cn(
                   "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform",
@@ -1013,7 +1013,7 @@ export default function SalesPage() {
                   belowMin ? "bg-danger-light text-danger" : "bg-success/10 text-success"
                 )}>
                   {belowMin
-                    ? `Acompte minimum: ${formatDZD(Math.ceil(minAmt))} DZD`
+                    ? t("sales.min_versement_warning", { amount: formatDZD(Math.ceil(minAmt)) })
                     : `Solde restant: ${formatDZD(total - paymentTotal)} DZD`
                   }
                 </div>
@@ -1036,12 +1036,10 @@ export default function SalesPage() {
               }
               className="btn-primary w-full justify-center py-3 text-base"
             >
-              {saleMutation.isPending ? (
-                "Traitement..."
-              ) : isVersement ? (
+              {saleMutation.isPending ? t("common.processing") : isVersement ? (
                 <>
                   <Check size={18} />
-                  Versement — {formatDZD(paymentTotal)} DZD
+                  {t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}
                 </>
               ) : (
                 <>

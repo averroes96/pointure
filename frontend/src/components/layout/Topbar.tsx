@@ -17,14 +17,14 @@ const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
 ];
 
-function relativeTime(isoStr: string): string {
+function relativeTime(isoStr: string, t: (key: string, options?: any) => string): string {
   const diff = Date.now() - new Date(isoStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m}m`;
+  if (m < 1) return t("topbar.just_now");
+  if (m < 60) return t("topbar.minutes_ago", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
+  if (h < 24) return t("topbar.hours_ago", { count: h });
+  return t("topbar.days_ago", { count: Math.floor(h / 24) });
 }
 
 const NOTIF_ICON: Record<string, LucideIcon> = {
@@ -113,7 +113,7 @@ export default function Topbar() {
           {showBranchMenu && (
             <div className="absolute start-0 top-full mt-1 bg-white border border-border rounded-md shadow-lg z-50 min-w-[180px]">
               <div className="px-3 py-1.5 border-b border-border">
-                <span className="text-xs text-text-muted font-medium">Agence active</span>
+                <span className="text-xs text-text-muted font-medium">{t("topbar.active_branch")}</span>
               </div>
               {branches.map((b) => (
                 <button
@@ -216,7 +216,7 @@ export default function Topbar() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-text-primary truncate">{notif.title}</p>
                           <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{notif.body}</p>
-                          <p className="text-xs text-text-muted mt-1">{relativeTime(notif.created_at)}</p>
+                          <p className="text-xs text-text-muted mt-1">{relativeTime(notif.created_at, t)}</p>
                         </div>
                         {!notif.read && (
                           <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />

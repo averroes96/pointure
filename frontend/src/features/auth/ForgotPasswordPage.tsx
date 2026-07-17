@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Mail, Send } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export default function ForgotPasswordPage() {
             <span className="text-3xl">👟</span>
           </div>
           <h1 className="text-2xl font-bold text-primary-500">ShoeDZ</h1>
-          <p className="text-text-muted text-sm mt-1">Réinitialisation du mot de passe</p>
+          <p className="text-text-muted text-sm mt-1">{t("auth.forgot_password_title")}</p>
         </div>
 
         {/* Card */}
@@ -49,28 +51,26 @@ export default function ForgotPasswordPage() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-success-light rounded-full mx-auto">
                 <Mail size={24} className="text-success" />
               </div>
-              <p className="text-text-primary font-medium">Email envoyé !</p>
+              <p className="text-text-primary font-medium">{t("auth.email_sent")}</p>
               <p className="text-text-muted text-sm">
-                Vérifiez votre boîte mail — si un compte existe pour cet email,
-                vous recevrez un lien de réinitialisation.
+                {t("auth.email_sent_desc")}
               </p>
               <Link
                 to="/login"
                 className="inline-block text-sm text-primary-500 hover:underline mt-2"
               >
-                Retour à la connexion
+                {t("auth.back_to_login")}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-text-muted text-sm">
-                Entrez votre adresse email et nous vous enverrons un lien pour
-                réinitialiser votre mot de passe.
+                {t("auth.forgot_password_desc")}
               </p>
 
               <div>
                 <label className="form-label" htmlFor="email">
-                  Adresse email
+                  {t("auth.email")}
                 </label>
                 <input
                   id="email"
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="form-input"
-                  placeholder="votre@email.com"
+                  placeholder={t("auth.email_placeholder")}
                   required
                   autoFocus
                 />
@@ -101,19 +101,19 @@ export default function ForgotPasswordPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Envoi en cours…
+                    {t("auth.sending")}
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Send size={16} />
-                    Envoyer le lien
+                    {t("auth.send_link")}
                   </span>
                 )}
               </button>
 
               <div className="text-center">
                 <Link to="/login" className="text-xs text-text-muted hover:text-primary-500 hover:underline">
-                  Retour à la connexion
+                  {t("auth.back_to_login")}
                 </Link>
               </div>
             </form>

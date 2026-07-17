@@ -26,6 +26,7 @@ function KPICard({
   subtitle?: string;
   live?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="kpi-card">
       <div className="flex items-start justify-between">
@@ -35,7 +36,7 @@ function KPICard({
             {live && (
               <span className="flex items-center gap-1 text-success text-2xs font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse inline-block" />
-                LIVE
+                {t("dashboard.live")}
               </span>
             )}
           </div>
@@ -61,13 +62,14 @@ function LiveFeed({
   saleCountDelta: number;
   clearAlerts: () => void;
 }) {
+  const { t } = useTranslation();
   const connected = status === "connected";
 
   return (
     <div className="card">
       <div className="card-header flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-text-primary text-sm">Temps réel</h2>
+          <h2 className="font-semibold text-text-primary text-sm">{t("dashboard.real_time")}</h2>
           <span className={cn(
             "flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-full",
             connected
@@ -79,12 +81,12 @@ function LiveFeed({
             {connected
               ? <Wifi size={10} />
               : <WifiOff size={10} />}
-            {connected ? "Connecté" : status === "connecting" ? "Connexion…" : "Déconnecté"}
+            {connected ? t("dashboard.connected") : status === "connecting" ? t("dashboard.connecting") : t("dashboard.disconnected")}
           </span>
         </div>
         {saleCountDelta > 0 && (
           <span className="text-xs text-text-muted">
-            +{saleCountDelta} vente{saleCountDelta > 1 ? "s" : ""} cette session
+            {t("dashboard.sales_this_session", { count: saleCountDelta })}
           </span>
         )}
       </div>
@@ -93,7 +95,7 @@ function LiveFeed({
         {/* Last sale */}
         <div className="px-4 py-3">
           <div className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
-            Dernière vente
+            {t("dashboard.last_sale")}
           </div>
           {lastSale ? (
             <div className="flex items-center justify-between">
@@ -102,7 +104,7 @@ function LiveFeed({
                   {lastSale.branch_name}
                 </div>
                 <div className="text-xs text-text-muted">
-                  #{lastSale.receipt_number} · {formatSecondsAgo(lastSale.ts)}
+                  #{lastSale.receipt_number} · {formatSecondsAgo(lastSale.ts, t)}
                 </div>
               </div>
               <div className="font-mono font-bold text-success">
@@ -111,7 +113,7 @@ function LiveFeed({
             </div>
           ) : (
             <div className="text-sm text-text-muted">
-              {connected ? "En attente de la prochaine vente…" : "—"}
+              {connected ? t("dashboard.waiting_next_sale") : "—"}
             </div>
           )}
         </div>
@@ -122,7 +124,7 @@ function LiveFeed({
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs font-medium text-text-muted uppercase tracking-wide flex items-center gap-1">
                 <Bell size={10} className="text-warning" />
-                Alertes stock
+                {t("dashboard.stock_alerts")}
               </div>
               <button
                 onClick={clearAlerts}
@@ -147,7 +149,7 @@ function LiveFeed({
                     {alert.colour ? ` / ${alert.colour}` : ""}
                   </span>
                   <span className="font-mono font-semibold flex-shrink-0 ml-2">
-                    {alert.is_out_of_stock ? "Rupture" : `${alert.stock_qty} restant${alert.stock_qty > 1 ? "s" : ""}`}
+                    {alert.is_out_of_stock ? t("dashboard.out_of_stock") : t("dashboard.stock_remaining", { count: alert.stock_qty })}
                   </span>
                 </div>
               ))}
@@ -159,11 +161,11 @@ function LiveFeed({
   );
 }
 
-function formatSecondsAgo(ts: number): string {
+function formatSecondsAgo(ts: number, t: (key: string, options?: any) => string): string {
   const secs = Math.floor((Date.now() - ts) / 1000);
-  if (secs < 60) return `il y a ${secs}s`;
+  if (secs < 60) return t("dashboard.seconds_ago", { count: secs });
   const mins = Math.floor(secs / 60);
-  return `il y a ${mins} min`;
+  return t("topbar.minutes_ago", { count: mins });
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
