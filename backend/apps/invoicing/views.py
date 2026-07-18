@@ -206,7 +206,28 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self.require_manager()
-        dn = serializer.save()
+        dn = serializer.save(tenant=self.request.tenant)
+
+        # Auto-populate client and copy lines if linked to an invoice
+        if dn.invoice and not dn.client:
+            dn.client = dn.invoice.client
+            dn.save(update_fields=['client'])
+            
+            from .models import DeliveryNoteLine
+            lines_to_create = []
+            for line in dn.invoice.lines.all():
+                lines_to_create.append(DeliveryNoteLine(
+                    delivery_note=dn,
+                    variant=line.variant,
+                    description=line.description,
+                    quantity=line.quantity,
+                    unit_price=line.unit_price,
+                    discount_pct=line.discount_pct,
+                    order=line.order
+                ))
+            if lines_to_create:
+                DeliveryNoteLine.objects.bulk_create(lines_to_create)
+
         from .tasks import generate_delivery_note_pdf
         generate_delivery_note_pdf.delay(dn.pk)
 
@@ -319,193 +340,3 @@ class CreditNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.save(tenant=self.request.tenant)
 
 
-
-    @action(detail=False, methods=["post"])
-    def regrouper(self, request):
-        self.require_manager()
-        serializer = RegrouperBLsSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        from apps.clients.models import Client
-        client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
-        
-        bls = DeliveryNote.objects.filter(
-            tenant=request.tenant, 
-            pk__in=data["delivery_note_ids"],
-            client=client,
-            invoice__isnull=True
-        ).prefetch_related("lines")
-        
-        if len(bls) != len(data["delivery_note_ids"]):
-            return Response({"error": "Some Delivery Notes were not found, don't belong to this client, or are already invoiced."}, status=400)
-
-        with transaction.atomic():
-            # Check credit limit
-            estimated_total = sum(
-                line.quantity * line.unit_price * (1 - line.discount_pct / 100)
-                for bl in bls for line in bl.lines.all()
-            )
-            if data.get("apply_tva"):
-                estimated_total *= (1 + data.get("tva_rate", Decimal("0.19")))
-                
-            if client.credit_limit and client.credit_limit > 0:
-                would_be_balance = client.cached_balance + estimated_total
-                if would_be_balance > client.credit_limit:
-                    from rest_framework.exceptions import ValidationError as DRFValidationError
-                    raise DRFValidationError({"error": "credit_limit_exceeded"})
-
-            invoice = Invoice.objects.create(
-                tenant=request.tenant,
-                client=client,
-                date=data["date"],
-                due_date=data["due_date"],
-                series_prefix=data["series_prefix"],
-                apply_tva=data["apply_tva"],
-                tva_rate=data["tva_rate"],
-                is_formal=data.get("is_formal", True),
-                is_paid_in_cash=data.get("is_paid_in_cash", False),
-                notes=data.get("notes", ""),
-                created_by=request.user,
-                status="draft",
-            )
-            
-            # Merge lines
-            order = 0
-            for bl in bls:
-                bl.invoice = invoice
-                bl.save(update_fields=["invoice"])
-                for line in bl.lines.all():
-                    InvoiceLine.objects.create(
-                        invoice=invoice,
-                        variant=line.variant,
-                        description=f"{line.description} (BL {bl.number})",
-                        quantity=line.quantity,
-                        unit_price=line.unit_price,
-                        discount_pct=line.discount_pct,
-                        order=order
-                    )
-                    order += 1
-                    
-            invoice.recalculate_totals()
-            if data.get("confirm"):
-                invoice.status = "sent"
-                invoice.save()
-                
-        return Response(InvoiceSerializer(invoice).data, status=201)
-
-class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    queryset = DeliveryNote.objects.select_related("client", "invoice").prefetch_related("lines")
-    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
-    filterset_fields = ["client", "invoice"]
-    search_fields = ["number", "client__name"]
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return CreateDeliveryNoteSerializer
-        return DeliveryNoteSerializer
-
-    def create(self, request, *args, **kwargs):
-        self.require_manager()
-        serializer = CreateDeliveryNoteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        with transaction.atomic():
-            from apps.clients.models import Client
-            client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
-
-            # Credit limit check for standalone BLs
-            estimated_total = sum(
-                line_data["quantity"] * line_data["unit_price"] *
-                (1 - line_data.get("discount_pct", Decimal("0")) / 100)
-                for line_data in data["lines"]
-            )
-            # Rough estimate assuming 19% TVA if they later invoice it
-            estimated_total *= Decimal("1.19") 
-            if client.credit_limit and client.credit_limit > 0:
-                would_be_balance = client.cached_balance + estimated_total
-                if would_be_balance > client.credit_limit:
-                    from rest_framework.exceptions import ValidationError as DRFValidationError
-                    raise DRFValidationError({"error": "credit_limit_exceeded"})
-
-            bl = DeliveryNote.objects.create(
-                tenant=request.tenant,
-                client=client,
-                date=data["date"],
-                number=data["number"],
-                delivered_by=data.get("delivered_by", ""),
-                notes=data.get("notes", ""),
-            )
-            from .models import DeliveryNoteLine
-            for i, line_data in enumerate(data["lines"]):
-                DeliveryNoteLine.objects.create(
-                    delivery_note=bl,
-                    variant=line_data.get("variant"),
-                    description=line_data["description"],
-                    quantity=line_data["quantity"],
-                    unit_price=line_data["unit_price"],
-                    discount_pct=line_data.get("discount_pct", Decimal("0.00")),
-                    order=i,
-                )
-        return Response(DeliveryNoteSerializer(bl).data, status=201)
-
-
-
-class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    queryset = DeliveryNote.objects.select_related("client", "invoice").prefetch_related("lines")
-    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
-    filterset_fields = ["client", "invoice"]
-    search_fields = ["number", "client__name"]
-
-    def get_serializer_class(self):
-        from .serializers import CreateDeliveryNoteSerializer, DeliveryNoteSerializer
-        if self.action == "create":
-            return CreateDeliveryNoteSerializer
-        return DeliveryNoteSerializer
-
-    def create(self, request, *args, **kwargs):
-        self.require_manager()
-        from .serializers import CreateDeliveryNoteSerializer, DeliveryNoteSerializer
-        serializer = CreateDeliveryNoteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        with transaction.atomic():
-            from apps.clients.models import Client
-            client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
-
-            # Credit limit check for standalone BLs
-            estimated_total = sum(
-                line_data["quantity"] * line_data["unit_price"] *
-                (1 - line_data.get("discount_pct", Decimal("0")) / 100)
-                for line_data in data["lines"]
-            )
-            estimated_total *= Decimal("1.19") 
-            if client.credit_limit and client.credit_limit > 0:
-                would_be_balance = client.cached_balance + estimated_total
-                if would_be_balance > client.credit_limit:
-                    from rest_framework.exceptions import ValidationError as DRFValidationError
-                    raise DRFValidationError({"error": "credit_limit_exceeded"})
-
-            bl = DeliveryNote.objects.create(
-                tenant=request.tenant,
-                client=client,
-                date=data["date"],
-                number=data["number"],
-                delivered_by=data.get("delivered_by", ""),
-                notes=data.get("notes", ""),
-            )
-            from .models import DeliveryNoteLine
-            for i, line_data in enumerate(data["lines"]):
-                DeliveryNoteLine.objects.create(
-                    delivery_note=bl,
-                    variant=line_data.get("variant"),
-                    description=line_data["description"],
-                    quantity=line_data["quantity"],
-                    unit_price=line_data["unit_price"],
-                    discount_pct=line_data.get("discount_pct", Decimal("0.00")),
-                    order=i,
-                )
-        from rest_framework.response import Response
-        return Response(DeliveryNoteSerializer(bl).data, status=201)

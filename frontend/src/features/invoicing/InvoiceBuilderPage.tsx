@@ -17,18 +17,9 @@ import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
+import { InvoiceProductMatrix, type MatrixConfig, createEmptyMatrix } from "./components/InvoiceProductMatrix";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface LineItem {
-  id: string; // local uuid
-  description: string;
-  variant_id: number | null;
-  variant_label: string; // display only
-  quantity: string;
-  unit_price: string;
-  discount_pct: string;
-}
 
 interface PaymentEntry {
   method: "cash" | "ccp" | "virement" | "cheque";
@@ -50,18 +41,6 @@ function addDays(d: Date, n: number): Date {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
   return r;
-}
-
-function emptyLine(): LineItem {
-  return {
-    id: localId(),
-    description: "",
-    variant_id: null,
-    variant_label: "",
-    quantity: "1",
-    unit_price: "",
-    discount_pct: "0",
-  };
 }
 
 const TVA_RATE = 19;
@@ -184,225 +163,6 @@ function ClientSelector({
   );
 }
 
-/**
- * ProductSearchCell — autocomplete on the Description column.
- * Searches /inventory/products/ as the user types (≥2 chars).
- * On selection it fills both the description text AND the unit price.
- */
-function ProductSearchCell({
-  description,
-  onDescriptionChange,
-  onProductSelect,
-  lineRef,
-  onKeyDown,
-  useWholesale,
-}: {
-  description: string;
-  onDescriptionChange: (v: string) => void;
-  onProductSelect: (description: string, unitPrice: string) => void;
-  lineRef?: (el: HTMLInputElement | null) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  useWholesale?: boolean;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const { data, isFetching } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ["invoice-product-search", description],
-    queryFn: () =>
-      api
-        .get(`/inventory/products/?search=${encodeURIComponent(description)}&page_size=8`)
-        .then((r) => r.data),
-    enabled: open && description.length >= 2,
-  });
-
-  const products = data?.results ?? [];
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={wrapperRef} className="relative">
-      <input
-        ref={lineRef}
-        type="text"
-        value={description}
-        onChange={(e) => {
-          onDescriptionChange(e.target.value);
-          setOpen(e.target.value.length >= 2);
-        }}
-        onFocus={() => { if (description.length >= 2) setOpen(true); }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") { setOpen(false); return; }
-          onKeyDown(e);
-        }}
-        className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white transition-colors"
-        placeholder={t("invoice.search_product")}
-      />
-
-      {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 w-72 bg-white border border-border rounded-md shadow-lg overflow-hidden">
-          <div className="max-h-44 overflow-y-auto divide-y divide-border">
-            {description.length >= 2 && isFetching && (
-              <div className="px-3 py-2 text-xs text-text-muted">Chargement…</div>
-            )}
-            {description.length >= 2 && !isFetching && products.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">{t("inventory.no_product_found")}</div>
-            )}
-            {products.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()} // Keep input focused until click
-                onClick={() => {
-                  onProductSelect(`${p.brand} ${p.name}`, p.sale_price);
-                  setOpen(false);
-                }}
-                className="w-full text-start px-3 py-2 text-xs hover:bg-surface transition-colors"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium truncate">{p.brand} {p.name}</span>
-                  <span className="font-mono text-primary-600 flex-shrink-0">
-                    {formatDZD(p.sale_price)} DZD
-                  </span>
-                </div>
-                <div className="text-text-muted mt-0.5">
-                  Stock&nbsp;: {p.total_stock}
-                  {p.has_low_stock && (
-                    <span className="ml-2 text-warning">⚠ stock bas</span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Variant search popup — links a line to a specific size/colour SKU */
-function VariantSearchCell({
-  value,
-  onSelect,
-  onClear,
-}: {
-  value: { id: number; label: string } | null;
-  onSelect: (v: { id: number; label: string; unitPrice: string }) => void;
-  onClear: () => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const { data, isFetching } = useQuery<PaginatedResponse<Variant>>({
-    queryKey: ["variants-search", query],
-    queryFn: () =>
-      api
-        .get(`/inventory/variants/?search=${encodeURIComponent(query)}&page_size=15`)
-        .then((r) => r.data),
-    enabled: open && query.length >= 2,
-  });
-
-  const variants = data?.results ?? [];
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={wrapperRef} className="relative min-w-[160px]">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full text-start text-xs px-2 py-1 border border-border rounded bg-white hover:border-primary-300 transition-colors flex items-center justify-between gap-1"
-      >
-        <span className={cn("truncate", !value && "text-text-muted")}>
-          {value ? value.label : t("invoice.size_color")}
-        </span>
-        {value ? (
-          <span
-            role="button"
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-            className="text-text-muted hover:text-danger flex-shrink-0"
-          >
-            <X size={10} />
-          </span>
-        ) : (
-          <Search size={10} className="text-text-muted flex-shrink-0" />
-        )}
-      </button>
-
-      {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 w-64 bg-white border border-border rounded-md shadow-lg overflow-hidden">
-          <div className="p-1.5 border-b border-border">
-            <input
-              autoFocus
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="form-input py-1 text-xs"
-              placeholder="Nom, pointure, code-barres…"
-            />
-          </div>
-          <div className="max-h-40 overflow-y-auto">
-            {query.length < 2 && (
-              <div className="px-3 py-2 text-xs text-text-muted">{t("common.type_2_chars")}</div>
-            )}
-            {query.length >= 2 && isFetching && (
-              <div className="px-3 py-2 text-xs text-text-muted">Chargement…</div>
-            )}
-            {query.length >= 2 && !isFetching && variants.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">{t("inventory.no_variant_found")}</div>
-            )}
-            {variants.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => {
-                  onSelect({
-                    id: v.id,
-                    label: `${v.product_name} EU${v.size_eu} ${v.colour === "N/A" ? t("common.na") : v.colour}`,
-                    unitPrice: v.product_sale_price,
-                  });
-                  setOpen(false);
-                  setQuery("");
-                }}
-                className="w-full text-start px-3 py-1.5 text-xs hover:bg-surface transition-colors"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span className="font-medium">{v.product_name}</span>
-                    <span className="text-text-muted ml-1">EU{v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}</span>
-                  </div>
-                  <span className="font-mono text-primary-600 flex-shrink-0 text-2xs">
-                    {formatDZD(v.product_sale_price)} DZD
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function InvoiceBuilderPage() {
@@ -417,13 +177,13 @@ export default function InvoiceBuilderPage() {
   const [date, setDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDue);
   const [seriesPrefix, setSeriesPrefix] = useState("FA");
-  const [isFormal, setIsFormal] = useState(true);
+  const [isFormal, setIsFormal] = useState(false);
   const [applyTva, setApplyTva] = useState(true);
   const [isPaidInCash, setIsPaidInCash] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // ── Lines ──
-  const [lines, setLines] = useState<LineItem[]>([emptyLine(), emptyLine(), emptyLine()]);
+  // ── Matrices ──
+  const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
 
   // ── Payment ──
   const [payment, setPayment] = useState<PaymentEntry>({
@@ -444,70 +204,18 @@ export default function InvoiceBuilderPage() {
     would_be_balance: string;
   } | null>(null);
 
-  // ── Refs for keyboard navigation ──
-  const lineRefs = useRef<Record<string, Record<string, HTMLInputElement | null>>>({});
-
-  const setLineRef = useCallback(
-    (lineId: string, field: string) => (el: HTMLInputElement | null) => {
-      if (!lineRefs.current[lineId]) lineRefs.current[lineId] = {};
-      lineRefs.current[lineId][field] = el;
-    },
-    []
-  );
-
-  // ── Line operations ──
-  function updateLine(id: string, field: keyof LineItem, value: string | number | null) {
-    setLines((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, [field]: value } : l))
-    );
-  }
-
-  function addLine() {
-    setLines((prev) => [...prev, emptyLine()]);
-  }
-
-  function removeLine(id: string) {
-    setLines((prev) => {
-      if (prev.length <= 1) return prev;
-      return prev.filter((l) => l.id !== id);
-    });
-  }
-
-  // Enter key advances to next line's description
-  function handleLineKeyDown(e: React.KeyboardEvent, lineId: string, field: string) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const lineIdx = lines.findIndex((l) => l.id === lineId);
-      const fields = ["description", "quantity", "unit_price", "discount_pct"];
-      const fieldIdx = fields.indexOf(field);
-
-      if (fieldIdx < fields.length - 1) {
-        // Next field in same line
-        lineRefs.current[lineId]?.[fields[fieldIdx + 1]]?.focus();
-      } else if (lineIdx < lines.length - 1) {
-        // First field of next line
-        const nextLine = lines[lineIdx + 1];
-        lineRefs.current[nextLine.id]?.["description"]?.focus();
-      } else {
-        // Add a new line and focus it
-        const newLine = emptyLine();
-        setLines((prev) => [...prev, newLine]);
-        setTimeout(() => {
-          lineRefs.current[newLine.id]?.["description"]?.focus();
-        }, 50);
-      }
-    }
-  }
-
   // ── Totals ──
-  function lineTotal(l: LineItem): number {
-    const qty = parseFloat(l.quantity) || 0;
-    const price = parseFloat(l.unit_price) || 0;
-    const disc = parseFloat(l.discount_pct) || 0;
-    return qty * price * (1 - disc / 100);
-  }
+  const subtotalHT = matrices.reduce((sum, m) => {
+    if (!m.product) return sum;
+    let pairs = 0;
+    Object.values(m.quantities).forEach(sizes => {
+      Object.values(sizes).forEach(qty => pairs += qty);
+    });
+    const price = parseFloat(m.unit_price) || 0;
+    const disc = parseFloat(m.discount_pct) || 0;
+    return sum + (pairs * price * (1 - disc / 100));
+  }, 0);
 
-  const subtotalHT = lines.reduce((sum, l) => sum + lineTotal(l), 0);
   const tvaAmount = (isFormal && applyTva) ? subtotalHT * (TVA_RATE / 100) : 0;
   const baseTtc = subtotalHT + tvaAmount;
   
@@ -520,6 +228,32 @@ export default function InvoiceBuilderPage() {
   const paidAmount = addPayment ? parseFloat(payment.amount) || 0 : 0;
   const balanceDue = Math.max(0, totalTTC - paidAmount);
 
+  // ── Extract Lines ──
+  function getFlatLines() {
+    const flatLines = [];
+    for (const m of matrices) {
+      if (!m.product) continue;
+      for (const c in m.quantities) {
+        for (const s in m.quantities[c]) {
+          const qty = m.quantities[c][s];
+          if (qty > 0) {
+            const variant = m.product.variants.find(v => (v.colour || "N/A") === c && v.size_eu.toString() === s);
+            if (variant) {
+              flatLines.push({
+                description: `${m.product.name} EU${s} ${c === "N/A" ? "" : c}`.trim(),
+                variant: variant.id,
+                quantity: qty.toString(),
+                unit_price: m.unit_price || "0",
+                discount_pct: m.discount_pct || "0",
+              });
+            }
+          }
+        }
+      }
+    }
+    return flatLines;
+  }
+
   // ── Build payload ──
   function buildPayload(): Record<string, unknown> {
     const payload: Record<string, unknown> = {
@@ -531,19 +265,8 @@ export default function InvoiceBuilderPage() {
       is_formal: isFormal,
       is_paid_in_cash: isPaidInCash,
       notes,
-      // confirm: true — assigns invoice number (FA-2026-00001) immediately
-      // and sets status to "sent".  Without this the invoice stays as a
-      // numberless draft forever.
       confirm: true,
-      lines: lines
-        .filter((l) => l.description.trim() || l.variant_id)
-        .map((l) => ({
-          description: l.description,
-          variant: l.variant_id,
-          quantity: l.quantity || "1",
-          unit_price: l.unit_price || "0",
-          discount_pct: l.discount_pct || "0",
-        })),
+      lines: getFlatLines(),
     };
     if (addPayment && paidAmount > 0) {
       payload.payment = {
@@ -591,12 +314,32 @@ export default function InvoiceBuilderPage() {
     setFormError(null);
     setCreditLimitWarning(null);
 
-    const validLines = lines.filter(
-      (l) => l.description.trim() || l.variant_id
-    );
-    if (validLines.length === 0) {
+    if (!client) {
+      setFormError("Veuillez sélectionner un client.");
+      return;
+    }
+
+    const flatLines = getFlatLines();
+    if (flatLines.length === 0) {
       setFormError(t("invoice.add_one_line_error"));
       return;
+    }
+
+    // Validate stock
+    for (const m of matrices) {
+      if (!m.product) continue;
+      for (const c in m.quantities) {
+        for (const s in m.quantities[c]) {
+          const qty = m.quantities[c][s];
+          if (qty > 0) {
+            const variant = m.product.variants.find(v => (v.colour || "N/A") === c && v.size_eu.toString() === s);
+            if (variant && qty > variant.stock_qty) {
+              setFormError("La quantité demandée pour un ou plusieurs articles dépasse le stock disponible.");
+              return;
+            }
+          }
+        }
+      }
     }
 
     mutation.mutate(undefined);
@@ -808,145 +551,29 @@ export default function InvoiceBuilderPage() {
           </div>
 
           {/* Line items */}
-          <div className="card overflow-hidden">
+          <div className="card overflow-visible">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Lignes de facture</h2>
-              <span className="text-xs text-text-muted">Appuyez sur Entrée pour passer au champ suivant</span>
+              <h2 className="font-semibold text-text-primary">Articles facturés</h2>
+              <span className="text-xs text-text-muted">Sélectionnez les produits et spécifiez les quantités</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="min-w-[200px]">Description</th>
-                    <th className="min-w-[160px]">Variante</th>
-                    <th className="w-20 text-center">Qté</th>
-                    <th className="w-28 text-end">P.U. HT</th>
-                    <th className="w-20 text-center">Remise %</th>
-                    <th className="w-28 text-end">{t("invoice.total_ht")}</th>
-                    <th className="w-10" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line) => (
-                    <tr key={line.id}>
-                      {/* Description — has product autocomplete */}
-                      <td>
-                        <ProductSearchCell
-                          description={line.description}
-                          onDescriptionChange={(v) => updateLine(line.id, "description", v)}
-                          onProductSelect={(description, unitPrice) => {
-                            updateLine(line.id, "description", description);
-                            // Only overwrite price when the field is still empty
-                            if (!line.unit_price) {
-                              updateLine(line.id, "unit_price", unitPrice);
-                            }
-                          }}
-                          lineRef={setLineRef(line.id, "description")}
-                          onKeyDown={(e) => handleLineKeyDown(e, line.id, "description")}
-                        />
-                      </td>
-
-                      {/* Variant — optional SKU link (auto-fills price too) */}
-                      <td>
-                        <VariantSearchCell
-                          value={
-                            line.variant_id
-                              ? { id: line.variant_id, label: line.variant_label }
-                              : null
-                          }
-                          onSelect={(v) => {
-                            updateLine(line.id, "variant_id", v.id);
-                            updateLine(line.id, "variant_label", v.label);
-                            if (!line.description) {
-                              updateLine(line.id, "description", v.label);
-                            }
-                            // Auto-fill price from variant's product sale_price
-                            if (!line.unit_price) {
-                              updateLine(line.id, "unit_price", v.unitPrice);
-                            }
-                          }}
-                          onClear={() => {
-                            updateLine(line.id, "variant_id", null);
-                            updateLine(line.id, "variant_label", "");
-                          }}
-                        />
-                      </td>
-
-                      {/* Quantity */}
-                      <td>
-                        <input
-                          ref={setLineRef(line.id, "quantity")}
-                          type="number"
-                          value={line.quantity}
-                          onChange={(e) => updateLine(line.id, "quantity", e.target.value)}
-                          onKeyDown={(e) => handleLineKeyDown(e, line.id, "quantity")}
-                          className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white text-center font-mono transition-colors"
-                          min="0"
-                          step="1"
-                        />
-                      </td>
-
-                      {/* Unit price */}
-                      <td>
-                        <input
-                          ref={setLineRef(line.id, "unit_price")}
-                          type="number"
-                          value={line.unit_price}
-                          onChange={(e) => updateLine(line.id, "unit_price", e.target.value)}
-                          onKeyDown={(e) => handleLineKeyDown(e, line.id, "unit_price")}
-                          className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white text-end font-mono transition-colors"
-                          min="0"
-                          step="100"
-                          placeholder="0.00"
-                        />
-                      </td>
-
-                      {/* Discount % */}
-                      <td>
-                        <input
-                          ref={setLineRef(line.id, "discount_pct")}
-                          type="number"
-                          value={line.discount_pct}
-                          onChange={(e) => updateLine(line.id, "discount_pct", e.target.value)}
-                          onKeyDown={(e) => handleLineKeyDown(e, line.id, "discount_pct")}
-                          className="w-full px-2 py-1 text-sm border border-transparent hover:border-border focus:border-primary-400 focus:outline-none rounded bg-transparent focus:bg-white text-center font-mono transition-colors"
-                          min="0"
-                          max="100"
-                          step="1"
-                        />
-                      </td>
-
-                      {/* Line total */}
-                      <td className="text-end">
-                        <span className="font-mono text-sm text-text-primary">
-                          {lineTotal(line) > 0 ? formatDZD(lineTotal(line)) : "—"}
-                        </span>
-                      </td>
-
-                      {/* Remove */}
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => removeLine(line.id)}
-                          disabled={lines.length <= 1}
-                          className="w-7 h-7 rounded flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="px-4 py-3 border-t border-border">
+            
+            <div className="p-4 space-y-4">
+              {matrices.map((m, i) => (
+                <InvoiceProductMatrix
+                  key={m.id}
+                  config={m}
+                  onChange={(newConfig) => setMatrices(prev => prev.map(old => old.id === m.id ? newConfig : old))}
+                  onRemove={() => setMatrices(prev => prev.length > 1 ? prev.filter(old => old.id !== m.id) : prev)}
+                />
+              ))}
+              
               <button
                 type="button"
-                onClick={addLine}
-                className="btn-ghost btn-sm text-primary-500"
+                onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
+                className="btn-ghost btn-sm text-primary-500 w-full justify-center border border-dashed border-primary-200"
               >
-                <Plus size={14} />{t("invoice.add_line")}</button>
+                <Plus size={14} /> Ajouter un autre produit
+              </button>
             </div>
           </div>
 
@@ -1091,7 +718,7 @@ export default function InvoiceBuilderPage() {
 
               {/* Lines count */}
               <div className="pt-2 text-xs text-text-muted border-t border-border">
-                {lines.filter((l) => l.description.trim() || l.variant_id).length} ligne(s)
+                {getFlatLines().length} ligne(s)
                 · Client: {client?.name ?? <em>non défini</em>}
               </div>
             </div>
