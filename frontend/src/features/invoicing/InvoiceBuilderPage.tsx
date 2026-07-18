@@ -245,6 +245,7 @@ export default function InvoiceBuilderPage() {
                 quantity: qty.toString(),
                 unit_price: m.unit_price || "0",
                 discount_pct: m.discount_pct || "0",
+                cartons: m.cartons || 0,
               });
             }
           }

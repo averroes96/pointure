@@ -13,7 +13,7 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
         model = InvoiceLine
         fields = [
             "id", "variant", "description", "quantity",
-            "unit_price", "discount_pct", "line_total", "order",
+            "unit_price", "discount_pct", "cartons", "line_total", "order",
         ]
         read_only_fields = ["id", "line_total"]
 
@@ -91,7 +91,7 @@ class CreateInvoiceSerializer(serializers.Serializer):
 class DeliveryNoteLineSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryNoteLine
-        fields = ["id", "variant", "description", "quantity", "unit_price", "discount_pct", "order"]
+        fields = ["id", "variant", "description", "quantity", "unit_price", "discount_pct", "cartons", "order"]
         read_only_fields = ["id"]
 
 class DeliveryNoteSerializer(serializers.ModelSerializer):

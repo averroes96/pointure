@@ -206,6 +206,7 @@ class InvoiceLine(models.Model):
     discount_pct = models.DecimalField(
         _("Discount %"), max_digits=5, decimal_places=2, default=Decimal("0.00")
     )
+    cartons = models.PositiveIntegerField(_("Cartons"), default=0)
     order = models.PositiveSmallIntegerField(_("Order"), default=0)
 
     class Meta:
@@ -304,6 +305,7 @@ class DeliveryNoteLine(models.Model):
     quantity = models.DecimalField(_("Quantity"), max_digits=10, decimal_places=2)
     unit_price = models.DecimalField(_("Unit Price HT"), max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount_pct = models.DecimalField(_("Discount %"), max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    cartons = models.PositiveIntegerField(_("Cartons"), default=0)
     order = models.PositiveSmallIntegerField(_("Order"), default=0)
 
     class Meta:

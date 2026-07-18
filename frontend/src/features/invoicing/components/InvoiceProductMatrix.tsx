@@ -18,6 +18,7 @@ export interface ProductResult {
   brand: string;
   sale_price: string;
   wholesale_price?: string;
+  purchase_price?: string;
   variants: VariantData[];
 }
 
@@ -200,7 +201,7 @@ export function InvoiceProductMatrix({
             ...config,
             product: p,
             quantities: {},
-            unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : p.sale_price,
+            unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
             discount_pct: "0"
           })}
           onClear={() => onChange({ ...config, product: null, quantities: {} })}

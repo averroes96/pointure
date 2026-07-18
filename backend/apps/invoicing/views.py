@@ -108,6 +108,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     quantity=line_data["quantity"],
                     unit_price=line_data["unit_price"],
                     discount_pct=line_data.get("discount_pct", Decimal("0")),
+                    cartons=line_data.get("cartons", 0),
                     order=i,
                 )
 
@@ -223,6 +224,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     quantity=line.quantity,
                     unit_price=line.unit_price,
                     discount_pct=line.discount_pct,
+                    cartons=line.cartons,
                     order=line.order
                 ))
             if lines_to_create:

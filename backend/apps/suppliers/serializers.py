@@ -103,6 +103,7 @@ class POLineInputSerializer(serializers.Serializer):
     variant = serializers.IntegerField(required=False, allow_null=True, default=None)
     description = serializers.CharField(max_length=300)
     quantity_ordered = serializers.IntegerField(min_value=1, required=False)
+    cartons = serializers.IntegerField(min_value=0, required=False, default=0)
     agreed_unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
     carton_sizes = CartonSizeInputSerializer(many=True, required=False, allow_null=True, default=None)
 

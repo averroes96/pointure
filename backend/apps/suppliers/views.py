@@ -469,6 +469,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     description=line_data["description"],
                     quantity_ordered=qty_ordered,
                     agreed_unit_price=line_data["agreed_unit_price"],
+                    cartons=line_data.get("cartons", 0),
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
                 

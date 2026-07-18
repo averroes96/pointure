@@ -45,10 +45,41 @@ def render_to_pdf(template_name: str, context: dict, language: str = "fr") -> by
     return pdf_bytes
 
 
+def group_lines_by_product(lines):
+    groups = {}
+    for line in lines:
+        if getattr(line, "variant", None) and line.variant.product:
+            key = f"prod_{line.variant.product.pk}"
+            name = line.variant.product.name
+        else:
+            key = f"desc_{line.description}"
+            name = line.description
+            
+        if key not in groups:
+            groups[key] = {
+                "name": name,
+                "quantity": 0,
+                "unit_price": getattr(line, "unit_price", getattr(line, "agreed_unit_price", 0)),
+                "total_price": 0,
+                "cartons": 0,
+            }
+        
+        qty = getattr(line, "quantity", getattr(line, "quantity_ordered", 0))
+        groups[key]["quantity"] += qty
+        groups[key]["total_price"] += line.line_total
+        
+        c = getattr(line, "cartons", 0)
+        if c > groups[key]["cartons"]:
+            groups[key]["cartons"] = c
+            
+    return list(groups.values())
+
+
 def render_invoice_pdf(invoice, language: str = "fr") -> bytes:
+    lines = list(invoice.lines.select_related("variant__product"))
     context = {
         "invoice": invoice,
-        "lines": list(invoice.lines.select_related("variant__product")),
+        "grouped_lines": group_lines_by_product(lines),
         "tenant": invoice.tenant,
         "client": invoice.client,
         "branch": invoice.branch,
@@ -57,11 +88,12 @@ def render_invoice_pdf(invoice, language: str = "fr") -> bytes:
 
 
 def render_delivery_note_pdf(delivery_note, language: str = "fr") -> bytes:
+    lines = list(delivery_note.invoice.lines.select_related("variant__product")) if delivery_note.invoice else []
     context = {
         "dn": delivery_note,
         "invoice": delivery_note.invoice,
-        "tenant": delivery_note.invoice.tenant,
-        "lines": list(delivery_note.invoice.lines.select_related("variant__product")),
+        "tenant": delivery_note.invoice.tenant if delivery_note.invoice else delivery_note.tenant,
+        "grouped_lines": group_lines_by_product(lines),
     }
     return render_to_pdf("pdf/delivery_note.html", context, language)
 
@@ -76,11 +108,12 @@ def render_credit_note_pdf(credit_note, language: str = "fr") -> bytes:
 
 
 def render_purchase_order_pdf(purchase_order, language: str = "fr") -> bytes:
+    lines = list(purchase_order.lines.select_related("variant__product"))
     context = {
         "po": purchase_order,
         "tenant": purchase_order.tenant,
         "supplier": purchase_order.supplier,
-        "lines": list(purchase_order.lines.select_related("variant__product")),
+        "grouped_lines": group_lines_by_product(lines),
     }
     return render_to_pdf("pdf/purchase_order.html", context, language)
 
@@ -105,7 +138,7 @@ def render_supplier_invoice_pdf(supplier_invoice, language: str = "fr") -> bytes
         "tenant": supplier_invoice.tenant,
         "supplier": supplier_invoice.supplier,
         "purchase_order": supplier_invoice.purchase_order,
-        "po_lines": po_lines,
+        "grouped_po_lines": group_lines_by_product(po_lines),
         "amount_paid": amount_paid,
         "balance_due": supplier_invoice.total_amount - amount_paid,
     }

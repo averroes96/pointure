@@ -42,17 +42,17 @@
     <tr>
       <th>#</th>
       <th>Désignation</th>
-      <th>Référence</th>
+      <th class="num">Cartons</th>
       <th class="num">Quantité</th>
     </tr>
   </thead>
   <tbody>
-    {% for line in lines %}
+    {% for item in grouped_lines %}
     <tr>
       <td>{{ forloop.counter }}</td>
-      <td>{{ line.description }}</td>
-      <td>{% if line.variant %}{{ line.variant.barcode }}{% endif %}</td>
-      <td class="num">{{ line.quantity }}</td>
+      <td>{{ item.name }}</td>
+      <td class="num">{% if item.cartons > 0 %}{{ item.cartons }}{% else %}—{% endif %}</td>
+      <td class="num">{{ item.quantity }}</td>
     </tr>
     {% endfor %}
   </tbody>

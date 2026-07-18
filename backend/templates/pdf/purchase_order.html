@@ -52,24 +52,21 @@
     <tr>
       <th>#</th>
       <th>Description</th>
+      <th class="num">Cartons</th>
       <th class="num">Qté</th>
       <th class="num">Prix unitaire</th>
       <th class="num">Total</th>
     </tr>
   </thead>
   <tbody>
-    {% for line in lines %}
+    {% for item in grouped_lines %}
     <tr>
       <td>{{ forloop.counter }}</td>
-      <td>
-        {{ line.description }}
-        {% if line.variant %}
-          <br><small style="color:#64748B;">{{ line.variant.product.brand }} — EU{{ line.variant.size_eu }} — {{ line.variant.colour }}</small>
-        {% endif %}
-      </td>
-      <td class="num">{{ line.quantity_ordered }}</td>
-      <td class="num">{{ line.agreed_unit_price|floatformat:2 }}</td>
-      <td class="num">{{ line.line_total|floatformat:2 }}</td>
+      <td>{{ item.name }}</td>
+      <td class="num">{% if item.cartons > 0 %}{{ item.cartons }}{% else %}—{% endif %}</td>
+      <td class="num">{{ item.quantity }}</td>
+      <td class="num">{{ item.unit_price|floatformat:2 }}</td>
+      <td class="num">{{ item.total_price|floatformat:2 }}</td>
     </tr>
     {% endfor %}
   </tbody>

@@ -371,6 +371,7 @@ export default function PurchaseOrderFormPage() {
             description: l.description || (l.is_carton ? `Assortiment ${l.carton_config.product_name}` : ""),
             quantity_ordered: parseInt(l.quantity_ordered) || 1, // backend recalculates in carton mode
             agreed_unit_price: parseFloat(l.agreed_unit_price) || 0,
+            cartons: l.is_carton ? l.carton_config.cartons_received : 0,
             carton_sizes: carton_sizes.length > 0 ? carton_sizes : undefined,
           };
         }),
