@@ -253,23 +253,23 @@ export function CartonPanel({
           <span className="text-text-muted text-xs">Cartons</span>
           <input type="number" min={1} value={cartons_received}
             onChange={(e) => handleCartonCountChange(parseInt(e.target.value) || 1)}
-            className="form-input py-1 w-14 text-center text-sm font-mono"
+            className="form-input py-1 w-16 text-center text-sm font-mono"
           />
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-text-muted text-xs">EU</span>
           <input type="number" min={15} max={60} value={config.size_from}
             onChange={(e) => handleRangeChange("size_from", parseInt(e.target.value) || 36)}
-            className="form-input py-1 w-12 text-center text-sm font-mono"
+            className="form-input py-1 w-14 text-center text-sm font-mono"
           />
           <span className="text-text-muted">→</span>
           <input type="number" min={15} max={60} value={config.size_to}
             onChange={(e) => handleRangeChange("size_to", parseInt(e.target.value) || 41)}
-            className="form-input py-1 w-12 text-center text-sm font-mono"
+            className="form-input py-1 w-14 text-center text-sm font-mono"
           />
         </div>
         <div className="flex items-center gap-1.5 ml-2 border-l border-primary-200 pl-4">
-          <input type="number" value={distributeTotal} onChange={(e) => setDistributeTotal(parseInt(e.target.value) || 0)} className="form-input py-1 w-14 text-center text-sm font-mono" />
+          <input type="number" value={distributeTotal} onChange={(e) => setDistributeTotal(parseInt(e.target.value) || 0)} className="form-input py-1 w-16 text-center text-sm font-mono" />
           <span className="text-xs text-text-muted">paires au total</span>
           <button type="button" onClick={applyEven} disabled={!sizes.length} className="btn-secondary btn-sm ml-1">
             Répartir
@@ -330,7 +330,7 @@ export function CartonPanel({
                           type="number" min={0}
                           value={quantities[colour]?.[s] ?? 0}
                           onChange={(e) => updateQty(colour, s, parseInt(e.target.value) || 0)}
-                          className="w-10 text-center py-0.5 text-xs font-mono border border-border rounded bg-white focus:outline-none focus:border-primary-400"
+                          className="w-14 text-center py-0.5 text-xs font-mono border border-border rounded bg-white focus:outline-none focus:border-primary-400"
                         />
                       </td>
                     ))}

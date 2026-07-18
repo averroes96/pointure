@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import LicenseState
 
 
 @admin.register(LicenseState)
-class LicenseStateAdmin(admin.ModelAdmin):
+class LicenseStateAdmin(ModelAdmin):
     """Read-only admin view for the local license cache."""
 
     list_display = (

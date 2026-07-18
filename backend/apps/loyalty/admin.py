@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import LoyaltyAccount, LoyaltyProgram, LoyaltyTransaction, TierChoices
 
@@ -20,13 +21,13 @@ def _tier_badge(tier: str, label: str) -> str:
 
 
 @admin.register(LoyaltyProgram)
-class LoyaltyProgramAdmin(admin.ModelAdmin):
+class LoyaltyProgramAdmin(ModelAdmin):
     list_display = ["tenant", "points_per_100dzd", "redemption_value", "min_redemption_points", "expiry_months", "is_active"]
     list_filter = ["is_active"]
     search_fields = ["tenant__name"]
 
 
-class LoyaltyTransactionInline(admin.TabularInline):
+class LoyaltyTransactionInline(TabularInline):
     model = LoyaltyTransaction
     extra = 0
     readonly_fields = ["points", "transaction_type", "description", "balance_after", "reference_type", "reference_id", "created_at"]
@@ -38,7 +39,7 @@ class LoyaltyTransactionInline(admin.TabularInline):
 
 
 @admin.register(LoyaltyAccount)
-class LoyaltyAccountAdmin(admin.ModelAdmin):
+class LoyaltyAccountAdmin(ModelAdmin):
     list_display = ["client", "tenant", "_tier_badge", "points_balance", "total_earned", "enrolled_at"]
     list_filter = ["tier", "tenant"]
     search_fields = ["client__name", "client__phone"]
@@ -51,7 +52,7 @@ class LoyaltyAccountAdmin(admin.ModelAdmin):
 
 
 @admin.register(LoyaltyTransaction)
-class LoyaltyTransactionAdmin(admin.ModelAdmin):
+class LoyaltyTransactionAdmin(ModelAdmin):
     list_display = ["account", "points", "transaction_type", "description", "balance_after", "created_at"]
     list_filter = ["transaction_type"]
     search_fields = ["account__client__name", "description"]

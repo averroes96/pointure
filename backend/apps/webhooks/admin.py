@@ -1,10 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .models import WebhookDelivery, WebhookEndpoint
 
 
 @admin.register(WebhookEndpoint)
-class WebhookEndpointAdmin(admin.ModelAdmin):
+class WebhookEndpointAdmin(ModelAdmin):
     list_display = ["name", "url", "tenant", "is_active", "created_at"]
     list_filter = ["is_active", "tenant"]
     search_fields = ["name", "url"]
@@ -12,7 +13,7 @@ class WebhookEndpointAdmin(admin.ModelAdmin):
 
 
 @admin.register(WebhookDelivery)
-class WebhookDeliveryAdmin(admin.ModelAdmin):
+class WebhookDeliveryAdmin(ModelAdmin):
     list_display = ["idempotency_key", "endpoint", "event_type", "status", "attempts", "created_at"]
     list_filter = ["status", "event_type"]
     search_fields = ["event_type", "endpoint__name"]

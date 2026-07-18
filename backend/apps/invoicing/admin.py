@@ -1,21 +1,22 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import CreditNote, DeliveryNote, Invoice, InvoiceCounter, InvoiceLine, InvoicePayment
 
 
-class InvoiceLineInline(admin.TabularInline):
+class InvoiceLineInline(TabularInline):
     model = InvoiceLine
     extra = 0
     readonly_fields = ["line_total"]
 
 
-class InvoicePaymentInline(admin.TabularInline):
+class InvoicePaymentInline(TabularInline):
     model = InvoicePayment
     extra = 0
     readonly_fields = ["created_at"]
 
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(ModelAdmin):
     list_display = ["number", "client", "date", "due_date", "total_ttc", "status", "tenant"]
     list_filter = ["status", "apply_tva", "tenant"]
     search_fields = ["number", "client__name"]
@@ -24,6 +25,6 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(InvoiceCounter)
-class InvoiceCounterAdmin(admin.ModelAdmin):
+class InvoiceCounterAdmin(ModelAdmin):
     list_display = ["tenant", "prefix", "year", "last_sequence"]
     readonly_fields = ["last_sequence"]

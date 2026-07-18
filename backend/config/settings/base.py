@@ -25,7 +25,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
 # Application Definition
 # ─────────────────────────────────────────────
 DJANGO_APPS = [
-    "admin_interface",
+    "unfold",
     "colorfield",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -542,3 +542,23 @@ if SENTRY_DSN:
 # ─────────────────────────────────────────────
 X_FRAME_OPTIONS = "SAMEORIGIN"
 SILENCED_SYSTEM_CHECKS = ["security.W019"]
+
+UNFOLD = {
+    "SITE_TITLE": "ShoeDZ Admin",
+    "SITE_HEADER": "ShoeDZ Admin",
+    "SITE_URL": "/",
+    "COLORS": {
+        "primary": {
+            "50": "238 242 255",
+            "100": "224 231 255",
+            "200": "199 210 254",
+            "300": "165 180 252",
+            "400": "129 140 248",
+            "500": "99 102 241",
+            "600": "79 70 229",
+            "700": "67 56 202",
+            "800": "55 48 163",
+            "900": "49 46 129",
+        },
+    },
+}

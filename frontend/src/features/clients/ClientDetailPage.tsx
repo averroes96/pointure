@@ -57,8 +57,14 @@ interface PaymentFormState {
 
 // PAYMENT_METHODS populated dynamically
 
-// TABS populated dynamically
-
+// Tabs definition
+const TABS = [
+  { key: "info", label: "Informations" },
+  { key: "ledger", label: "Grand Livre" },
+  { key: "cheques", label: "Chèques" },
+  { key: "invoices", label: "Factures" },
+  { key: "loyalty", label: "Fidélité" },
+];
 // ── Info Field helper ──────────────────────────────────────────────────────
 
 function InfoField({

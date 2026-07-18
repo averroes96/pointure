@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import DeviceToken
 
 
 @admin.register(DeviceToken)
-class DeviceTokenAdmin(admin.ModelAdmin):
+class DeviceTokenAdmin(ModelAdmin):
     list_display = ("_token_short", "_platform", "user", "_tenant", "updated_at")
     list_filter = ("platform", "tenant")
     search_fields = ("user__email", "tenant__name", "token")

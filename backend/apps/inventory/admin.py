@@ -1,8 +1,9 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import Product, StockMovement, StockTransfer, Variant
 
 
-class VariantInline(admin.TabularInline):
+class VariantInline(TabularInline):
     model = Variant
     extra = 0
     fields = ["size_eu", "colour", "barcode", "stock_qty", "alert_threshold", "is_active"]
@@ -10,7 +11,7 @@ class VariantInline(admin.TabularInline):
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ModelAdmin):
     list_display = ["name", "brand", "category", "gender", "sale_price", "total_stock", "tenant"]
     list_filter = ["category", "gender", "season", "is_active", "tenant"]
     search_fields = ["name", "brand", "reference"]
@@ -19,7 +20,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(Variant)
-class VariantAdmin(admin.ModelAdmin):
+class VariantAdmin(ModelAdmin):
     list_display = ["product", "size_eu", "colour", "barcode", "stock_qty", "is_active"]
     list_filter = ["is_active"]
     search_fields = ["barcode", "colour", "product__name"]
@@ -27,7 +28,7 @@ class VariantAdmin(admin.ModelAdmin):
 
 
 @admin.register(StockMovement)
-class StockMovementAdmin(admin.ModelAdmin):
+class StockMovementAdmin(ModelAdmin):
     list_display = ["timestamp", "variant", "quantity_delta", "reason", "branch", "user"]
     list_filter = ["reason", "branch"]
     search_fields = ["variant__product__name", "user__email"]
@@ -41,7 +42,7 @@ class StockMovementAdmin(admin.ModelAdmin):
 
 
 @admin.register(StockTransfer)
-class StockTransferAdmin(admin.ModelAdmin):
+class StockTransferAdmin(ModelAdmin):
     list_display = ["created_at", "variant", "quantity", "from_branch", "to_branch", "status"]
     list_filter = ["status"]
     readonly_fields = ["created_at", "received_at"]

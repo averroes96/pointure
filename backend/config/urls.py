@@ -1,4 +1,14 @@
 """ShoeDZ — Root URL Configuration."""
+import django.urls.converters
+_original_register_converter = django.urls.converters.register_converter
+
+def register_converter_silent(converter, type_name):
+    try:
+        _original_register_converter(converter, type_name)
+    except ValueError:
+        pass
+
+django.urls.converters.register_converter = register_converter_silent
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin

@@ -3,6 +3,7 @@ Enhanced Django Admin for ShoeDZ.
 Provides tenant management, user oversight, audit log, and plan administration.
 """
 from django.contrib import admin, messages
+from unfold.admin import ModelAdmin, TabularInline
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Count
 from django.utils.html import format_html
@@ -65,7 +66,7 @@ def active_badge(is_active, yes="Active", no="Inactive"):
 
 # ── Inlines ───────────────────────────────────────────────────────────────────
 
-class UserInline(admin.TabularInline):
+class UserInline(TabularInline):
     model = User
     fields = ("email", "_name", "role", "is_active")
     readonly_fields = ("email", "_name", "role", "is_active")
@@ -79,7 +80,7 @@ class UserInline(admin.TabularInline):
     _name.short_description = "Name"
 
 
-class BranchInline(admin.TabularInline):
+class BranchInline(TabularInline):
     model = Branch
     fields = ("name", "wilaya", "is_headquarters", "is_active")
     readonly_fields = ("name", "wilaya", "is_headquarters", "is_active")
@@ -92,7 +93,7 @@ class BranchInline(admin.TabularInline):
 # ── Tenant ────────────────────────────────────────────────────────────────────
 
 @admin.register(Tenant)
-class TenantAdmin(admin.ModelAdmin):
+class TenantAdmin(ModelAdmin):
     list_display = (
         "name", "_plan", "_active",
         "_users", "_branches", "wilaya", "created_at",
@@ -175,9 +176,9 @@ class TenantAdmin(admin.ModelAdmin):
 # ── User ──────────────────────────────────────────────────────────────────────
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_display = (
-        "email", "_name", "_tenant", "_role", "_active", "last_login",
+        "email", "_name", "_tenant", "_role", "_active", "is_staff", "is_superuser", "last_login",
     )
     list_filter = ("role", "is_active", "tenant__plan")
     search_fields = ("email", "first_name", "last_name", "tenant__name")
@@ -240,7 +241,7 @@ class UserAdmin(BaseUserAdmin):
 # ── Branch ────────────────────────────────────────────────────────────────────
 
 @admin.register(Branch)
-class BranchAdmin(admin.ModelAdmin):
+class BranchAdmin(ModelAdmin):
     list_display = ("name", "_tenant", "wilaya", "_hq", "_active")
     list_filter = ("is_active", "is_headquarters", "wilaya")
     search_fields = ("name", "tenant__name")
@@ -266,7 +267,7 @@ class BranchAdmin(admin.ModelAdmin):
 # ── AuditLog ──────────────────────────────────────────────────────────────────
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+class AuditLogAdmin(ModelAdmin):
     list_display = (
         "timestamp", "_action", "model_name",
         "_object", "_user", "_tenant",

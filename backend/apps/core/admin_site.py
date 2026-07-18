@@ -4,15 +4,14 @@ from django.db.models import Count
 from django.template.response import TemplateResponse
 from django.urls import path
 
+from unfold.sites import UnfoldAdminSite
 
-class ShoeDZAdminSite(admin.AdminSite):
+class ShoeDZAdminSite(UnfoldAdminSite):
     site_header = "👟 ShoeDZ Administration"
     site_title = "ShoeDZ Admin"
     index_title = "Tableau de bord"
 
-    def get_urls(self):
-        urls = super().get_urls()
-        return [path("", self.admin_view(self.index), name="index")] + urls[1:]
+    # Removed get_urls override because Unfold adds its own views here
 
     def index(self, request, extra_context=None):
         from apps.core.models import Tenant, User
