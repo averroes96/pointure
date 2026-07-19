@@ -9,9 +9,9 @@
  * - POST /invoicing/invoices/ on submit
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Client, Product, Variant } from "@/types";
@@ -168,6 +168,15 @@ function ClientSelector({
 export default function InvoiceBuilderPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
+  const { data: invoiceToEdit, isSuccess: isInvoiceLoaded } = useQuery<any>({
+    queryKey: ["invoice", id],
+    queryFn: () => api.get(`/invoicing/invoices/${id}/`).then((r) => r.data),
+    enabled: isEditMode,
+  });
 
   const today = toISODate(new Date());
   const defaultDue = toISODate(addDays(new Date(), 30));
@@ -177,13 +186,68 @@ export default function InvoiceBuilderPage() {
   const [date, setDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDue);
   const [seriesPrefix, setSeriesPrefix] = useState("FA");
-  const [isFormal, setIsFormal] = useState(false);
+  const [isFormal, setIsFormal] = useState(true);
   const [applyTva, setApplyTva] = useState(true);
   const [isPaidInCash, setIsPaidInCash] = useState(false);
   const [notes, setNotes] = useState("");
 
   // ── Matrices ──
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
+
+  // Hydrate edit state
+  useEffect(() => {
+    if (isInvoiceLoaded && invoiceToEdit && matrices.length === 1 && !matrices[0].product) {
+      setClient({ id: invoiceToEdit.client, name: invoiceToEdit.client_name } as any);
+      setDate(invoiceToEdit.date);
+      setDueDate(invoiceToEdit.due_date);
+      setSeriesPrefix(invoiceToEdit.series_prefix);
+      setApplyTva(invoiceToEdit.apply_tva);
+      setIsFormal(invoiceToEdit.is_formal);
+      setIsPaidInCash(invoiceToEdit.is_paid_in_cash);
+      setNotes(invoiceToEdit.notes || "");
+
+      // Rebuild matrices
+      const loadMatrices = async () => {
+        const productMap = new Map<number, MatrixConfig>();
+
+        for (const line of invoiceToEdit.lines) {
+          if (!line.product_id) continue;
+
+          let matrix = productMap.get(line.product_id);
+          if (!matrix) {
+            // Fetch product details to get variants
+            const pRes = await api.get(`/inventory/products/${line.product_id}/`);
+            matrix = {
+              id: Math.random().toString(36).slice(2, 10),
+              product: pRes.data,
+              cartons: line.cartons,
+              pairs_per_carton: 10,
+              unit_price: line.unit_price,
+              discount_pct: line.discount_pct,
+              quantities: {},
+            };
+            productMap.set(line.product_id, matrix);
+          }
+
+          const colour = line.colour || "N/A";
+          const size = parseInt(line.size_eu);
+          if (size && !isNaN(size)) {
+            if (!matrix.quantities[colour]) {
+              matrix.quantities[colour] = {};
+            }
+            matrix.quantities[colour][size] = line.quantity;
+          }
+        }
+
+        const m = Array.from(productMap.values());
+        if (m.length > 0) {
+          setMatrices(m);
+        }
+      };
+
+      loadMatrices();
+    }
+  }, [isInvoiceLoaded, invoiceToEdit]);
 
   // ── Payment ──
   const [payment, setPayment] = useState<PaymentEntry>({
@@ -218,12 +282,12 @@ export default function InvoiceBuilderPage() {
 
   const tvaAmount = (isFormal && applyTva) ? subtotalHT * (TVA_RATE / 100) : 0;
   const baseTtc = subtotalHT + tvaAmount;
-  
+
   let timbreFiscal = 0;
   if (isFormal && isPaidInCash) {
     timbreFiscal = Math.min(baseTtc * 0.01, 2500);
   }
-  
+
   const totalTTC = baseTtc + timbreFiscal;
   const paidAmount = addPayment ? parseFloat(payment.amount) || 0 : 0;
   const balanceDue = Math.max(0, totalTTC - paidAmount);
@@ -256,7 +320,7 @@ export default function InvoiceBuilderPage() {
   }
 
   // ── Build payload ──
-  function buildPayload(): Record<string, unknown> {
+  function buildPayload(isConfirm: boolean): Record<string, unknown> {
     const payload: Record<string, unknown> = {
       client_id: client?.id ?? null,
       date,
@@ -266,7 +330,7 @@ export default function InvoiceBuilderPage() {
       is_formal: isFormal,
       is_paid_in_cash: isPaidInCash,
       notes,
-      confirm: true,
+      confirm: isConfirm,
       lines: getFlatLines(),
     };
     if (addPayment && paidAmount > 0) {
@@ -281,23 +345,39 @@ export default function InvoiceBuilderPage() {
 
   // ── Mutation ──
   const mutation = useMutation({
-    mutationFn: (url?: string) =>
-      api.post(url ?? "/invoicing/invoices/", buildPayload()).then((r) => r.data),
+    mutationFn: async (vars: { endpoint?: string; isConfirm: boolean }) => {
+      const payload = buildPayload(vars.isConfirm);
+      if (vars.endpoint) {
+        return api.post(vars.endpoint, payload).then(r => r.data);
+      }
+      if (isEditMode) {
+        return api.put(`/invoicing/invoices/${id}/`, payload).then(r => r.data);
+      }
+      return api.post("/invoicing/invoices/", payload).then(r => r.data);
+    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       navigate("/invoices");
     },
     onError: (err: unknown) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = (err as any)?.response?.data;
+      const responseData = (err as any)?.response?.data;
+      
+      // core/exceptions.py returns { error: { details: { ... } } }
+      const details = responseData?.error?.details || responseData;
+      
+      const errStr = Array.isArray(details?.error) ? details.error[0] : details?.error;
+      const codeStr = Array.isArray(details?.code) ? details.code[0] : details?.code;
+
       if (
-        data?.error === "credit_limit_exceeded" ||
-        data?.code === "credit_limit_exceeded"
+        errStr === "credit_limit_exceeded" ||
+        codeStr === "credit_limit_exceeded"
       ) {
         setCreditLimitWarning({
-          credit_limit: data.credit_limit,
-          current_balance: data.current_balance,
-          invoice_total: data.invoice_total,
-          would_be_balance: data.would_be_balance,
+          credit_limit: Array.isArray(details.credit_limit) ? details.credit_limit[0] : details.credit_limit,
+          current_balance: Array.isArray(details.current_balance) ? details.current_balance[0] : details.current_balance,
+          invoice_total: Array.isArray(details.invoice_total) ? details.invoice_total[0] : details.invoice_total,
+          would_be_balance: Array.isArray(details.would_be_balance) ? details.would_be_balance[0] : details.would_be_balance,
         });
       } else {
         setFormError(getApiError(err));
@@ -305,15 +385,13 @@ export default function InvoiceBuilderPage() {
     },
   });
 
-  function handleForceSubmit() {
-    setCreditLimitWarning(null);
-    mutation.mutate("/invoicing/invoices/?force=true");
-  }
+  const [pendingConfirmState, setPendingConfirmState] = useState<boolean>(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent, isConfirm: boolean) {
     e.preventDefault();
     setFormError(null);
     setCreditLimitWarning(null);
+    setPendingConfirmState(isConfirm);
 
     if (!client) {
       setFormError("Veuillez sélectionner un client.");
@@ -343,12 +421,17 @@ export default function InvoiceBuilderPage() {
       }
     }
 
-    mutation.mutate(undefined);
+    mutation.mutate({ isConfirm });
+  }
+
+  function handleForceSubmit() {
+    setCreditLimitWarning(null);
+    mutation.mutate({ endpoint: "/invoicing/invoices/?force=true", isConfirm: pendingConfirmState });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pb-12">
+    <form onSubmit={(e) => e.preventDefault()} className="space-y-5 pb-12">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -373,7 +456,17 @@ export default function InvoiceBuilderPage() {
             Annuler
           </button>
           <button
-            type="submit"
+            type="button"
+            onClick={(e) => handleSubmit(e, false)}
+            disabled={mutation.isPending}
+            className="btn-secondary"
+          >
+            <Save size={16} />
+            Brouillon
+          </button>
+          <button
+            type="button"
+            onClick={(e) => handleSubmit(e, true)}
             disabled={mutation.isPending}
             className="btn-primary"
           >
@@ -557,7 +650,7 @@ export default function InvoiceBuilderPage() {
               <h2 className="font-semibold text-text-primary">Articles facturés</h2>
               <span className="text-xs text-text-muted">Sélectionnez les produits et spécifiez les quantités</span>
             </div>
-            
+
             <div className="p-4 space-y-4">
               {matrices.map((m, i) => (
                 <InvoiceProductMatrix
@@ -567,7 +660,7 @@ export default function InvoiceBuilderPage() {
                   onRemove={() => setMatrices(prev => prev.length > 1 ? prev.filter(old => old.id !== m.id) : prev)}
                 />
               ))}
-              
+
               <button
                 type="button"
                 onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
@@ -673,7 +766,7 @@ export default function InvoiceBuilderPage() {
                   </span>
                 </div>
               )}
-              
+
               {/* Timbre Fiscal */}
               {(isFormal && isPaidInCash) && (
                 <div className="flex items-center justify-between text-amber-700">

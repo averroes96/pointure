@@ -498,10 +498,120 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     tenant=request.tenant,
                     user=request.user
                 )
+            elif data.get("confirm"):
+                po.status = POStatusChoices.SENT
+                po.save(update_fields=["status"])
 
         po.refresh_from_db()
         out_ser = PurchaseOrderSerializer(po)
         return Response(out_ser.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        po = self.get_object()
+        if po.status != POStatusChoices.DRAFT:
+            return Response(
+                {"detail": "Impossible de modifier une commande qui n'est plus à l'état brouillon."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        input_ser = CreatePurchaseOrderSerializer(data=request.data)
+        input_ser.is_valid(raise_exception=True)
+        data = input_ser.validated_data
+
+        supplier = Supplier.objects.filter(tenant=request.tenant, id=data["supplier"]).first()
+        if not supplier:
+            return Response({"detail": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        from decimal import Decimal
+        with transaction.atomic():
+            po.supplier = supplier
+            po.reference = data.get("reference", "")
+            po.expected_date = data.get("expected_date")
+            po.notes = data.get("notes", "")
+            po.save()
+
+            po.lines.all().delete()
+            
+            total = Decimal("0")
+            lines_data_for_receive = []
+
+            for line_data in data["lines"]:
+                variant_id = line_data.get("variant")
+                carton_sizes = line_data.get("carton_sizes") or []
+                
+                qty_ordered = line_data.get("quantity_ordered")
+                if carton_sizes:
+                    qty_ordered = sum(cs.get("quantity", 0) for cs in carton_sizes)
+
+                variant = None
+                if variant_id:
+                    from apps.inventory.models import Variant
+                    variant = Variant.objects.filter(tenant=request.tenant, id=variant_id).first()
+
+                line = POLine.objects.create(
+                    order=po,
+                    variant=variant,
+                    description=line_data["description"],
+                    quantity_ordered=qty_ordered,
+                    agreed_unit_price=line_data["agreed_unit_price"],
+                    cartons=line_data.get("cartons", 0),
+                )
+                total += line.agreed_unit_price * line.quantity_ordered
+                
+                lines_data_for_receive.append({
+                    "id": line.id,
+                    "quantity_received": qty_ordered,
+                    "variant_id": variant_id,
+                    "new_variant": None,
+                    "carton_sizes": carton_sizes
+                })
+
+            po.total_amount = total
+            po.save(update_fields=["total_amount"])
+
+            if data.get("receive_immediately"):
+                for ld in lines_data_for_receive:
+                    if not ld["variant_id"] and not ld["carton_sizes"]:
+                        from rest_framework.exceptions import ValidationError
+                        raise ValidationError("En réception directe, chaque ligne doit être liée à une variante ou utiliser le mode carton.")
+
+                _process_receive_lines(
+                    po=po,
+                    lines_data=lines_data_for_receive,
+                    bl_reference=data.get("bl_reference", ""),
+                    branch_id=data.get("branch"),
+                    tenant=request.tenant,
+                    user=request.user
+                )
+            elif data.get("confirm"):
+                po.status = POStatusChoices.SENT
+                po.save(update_fields=["status"])
+
+        po.refresh_from_db()
+        out_ser = PurchaseOrderSerializer(po)
+        return Response(out_ser.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        self.require_manager()
+        po = self.get_object()
+        
+        if po.status == POStatusChoices.CANCELLED:
+            return Response(
+                {"error": {"code": "already_cancelled", "message": "Purchase order is already cancelled."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        has_received = po.lines.filter(quantity_received__gt=0).exists()
+        if has_received:
+            return Response(
+                {"error": {"code": "has_received", "message": "Cannot cancel a purchase order that has received items."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        po.status = POStatusChoices.CANCELLED
+        po.save(update_fields=["status"])
+        return Response(PurchaseOrderSerializer(po).data)
 
     @action(detail=True, methods=["post"], url_path="receive")
     def receive(self, request, pk=None):

@@ -119,6 +119,7 @@ class CreatePurchaseOrderSerializer(serializers.Serializer):
     expected_date = serializers.DateField(required=False, allow_null=True, default=None)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     lines = POLineInputSerializer(many=True)
+    confirm = serializers.BooleanField(required=False, default=False)
     
     # Direct Reception options
     receive_immediately = serializers.BooleanField(required=False, default=False)

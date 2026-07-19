@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, ShoppingBag } from "lucide-react";
+import { Plus, Search, ShoppingBag, Edit2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
@@ -147,7 +147,20 @@ export default function PurchaseOrderListPage() {
                     <span className="text-2xs text-text-muted">DZD</span>
                   </td>
                   <td>
-                    <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">{t("common.view")}</Link>
+                    <div className="flex items-center gap-1 justify-end">
+                      {po.status === "draft" && (
+                        <Link
+                          to={`/purchase-orders/${po.id}/edit`}
+                          className="btn-ghost btn-sm text-primary-500"
+                          title="Modifier le brouillon"
+                        >
+                          <Edit2 size={14} />
+                        </Link>
+                      )}
+                      <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">
+                        {t("common.view")}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

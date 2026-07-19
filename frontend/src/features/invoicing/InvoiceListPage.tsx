@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, FileText, Download, Loader2, MessageCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Search, FileText, Download, Loader2, MessageCircle, XCircle, Edit2 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Invoice } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 
 export default function InvoiceListPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -56,6 +58,18 @@ export default function InvoiceListPage() {
       setPdfError(getApiError(err));
     } finally {
       setLoadingPdfId(null);
+    }
+  }
+
+  const queryClient = useQueryClient();
+
+  async function cancelInvoice(invoiceId: number) {
+    if (!window.confirm(t("Êtes-vous sûr de vouloir annuler cette facture ?"))) return;
+    try {
+      await api.post(`/invoicing/invoices/${invoiceId}/cancel/`);
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    } catch (err) {
+      alert(getApiError(err));
     }
   }
 
@@ -192,6 +206,15 @@ export default function InvoiceListPage() {
                   </td>
                   <td>
                     <div className="flex items-center gap-1">
+                      {invoice.status === "draft" && (
+                        <button
+                          onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
+                          className="btn-ghost btn-sm text-primary-500"
+                          title="Modifier le brouillon"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      )}
                       <button
                         onClick={() => openPdf(invoice.id)}
                         disabled={loadingPdfId === invoice.id}
@@ -221,6 +244,15 @@ export default function InvoiceListPage() {
                       >
                         <MessageCircle size={14} />
                       </button>
+                      {(invoice.status === "draft" || invoice.status === "sent") && parseFloat(invoice.total_ttc) === parseFloat(invoice.balance_due) && (
+                        <button
+                          onClick={() => cancelInvoice(invoice.id)}
+                          className="btn-ghost btn-sm text-danger disabled:opacity-50"
+                          title="Annuler la facture"
+                        >
+                          <XCircle size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

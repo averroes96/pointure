@@ -251,7 +251,7 @@ export function InvoiceProductMatrix({
               <input
                 type="number"
                 min="0"
-                step="100"
+                step="any"
                 value={config.unit_price}
                 onChange={(e) => onChange({ ...config, unit_price: e.target.value })}
                 className="form-input text-xs py-1 w-32 font-mono text-end"

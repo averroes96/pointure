@@ -136,6 +136,7 @@ function AppRoutes() {
           <Route path="invoices">
             <Route index element={<InvoiceListPage />} />
             <Route path="new" element={<InvoiceBuilderPage />} />
+            <Route path=":id/edit" element={<InvoiceBuilderPage />} />
           </Route>
           <Route path="delivery-notes">
             <Route index element={<DeliveryNotesPage />} />
@@ -183,6 +184,7 @@ function AppRoutes() {
           <Route path="purchase-orders">
             <Route index element={<PurchaseOrderListPage />} />
             <Route path="new" element={<PurchaseOrderFormPage />} />
+            <Route path=":id/edit" element={<PurchaseOrderFormPage />} />
             <Route path=":id" element={<PurchaseOrderDetailPage />} />
           </Route>
 

@@ -8,12 +8,16 @@ from .models import CreditNote, DeliveryNote, DeliveryNoteLine, Invoice, Invoice
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
     line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    product_id = serializers.IntegerField(source="variant.product_id", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    colour = serializers.CharField(source="variant.colour", read_only=True)
+    size_eu = serializers.CharField(source="variant.size_eu", read_only=True)
 
     class Meta:
         model = InvoiceLine
         fields = [
-            "id", "variant", "description", "quantity",
-            "unit_price", "discount_pct", "cartons", "line_total", "order",
+            "id", "variant", "product_id", "product_name", "colour", "size_eu",
+            "description", "quantity", "unit_price", "discount_pct", "cartons", "line_total", "order",
         ]
         read_only_fields = ["id", "line_total"]
 

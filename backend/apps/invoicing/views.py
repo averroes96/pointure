@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.models import RoleChoices
 from apps.core.plan_permissions import PlanRequired
-from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment
+from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
 from .serializers import (
     CreateDeliveryNoteSerializer,
     RegrouperBLsSerializer,
@@ -137,6 +137,72 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_201_CREATED)
 
+    def update(self, request, *args, **kwargs):
+        """Update a DRAFT invoice."""
+        invoice = self.get_object()
+        if invoice.status != InvoiceStatusChoices.DRAFT:
+            return Response(
+                {"detail": "Impossible de modifier une facture qui n'est plus à l'état brouillon."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CreateInvoiceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        with transaction.atomic():
+            # Update main invoice fields
+            invoice.client_id = data.get("client_id")
+            invoice.branch_id = data.get("branch_id")
+            invoice.date = data["date"]
+            invoice.due_date = data["due_date"]
+            invoice.series_prefix = data["series_prefix"]
+            invoice.apply_tva = data["apply_tva"]
+            invoice.tva_rate = data["tva_rate"]
+            invoice.is_formal = data.get("is_formal", True)
+            invoice.is_paid_in_cash = data.get("is_paid_in_cash", False)
+            invoice.notes = data.get("notes", "")
+            invoice.save()
+
+            # Recreate lines
+            invoice.lines.all().delete()
+            for i, line_data in enumerate(data["lines"]):
+                InvoiceLine.objects.create(
+                    invoice=invoice,
+                    variant=line_data.get("variant"),
+                    description=line_data["description"],
+                    quantity=line_data["quantity"],
+                    unit_price=line_data["unit_price"],
+                    discount_pct=line_data.get("discount_pct", Decimal("0")),
+                    cartons=line_data.get("cartons", 0),
+                    order=i,
+                )
+
+            # Recompute totals
+            invoice.compute_totals()
+            invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
+
+            # Confirm if requested
+            if data.get("confirm"):
+                invoice.confirm()
+
+            # Record initial payment if provided (only if one doesn't exist yet, or just add it)
+            payment_data = data.get("payment")
+            if payment_data and payment_data.get("amount"):
+                InvoicePayment.objects.create(
+                    invoice=invoice,
+                    amount=payment_data["amount"],
+                    method=payment_data["method"],
+                    date=payment_data["date"],
+                    notes=payment_data.get("notes", ""),
+                    recorded_by=request.user,
+                )
+
+            # Re-queue PDF generation
+            generate_invoice_pdf.delay(invoice.pk)
+
+        return Response(InvoiceSerializer(invoice).data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"])
     def confirm(self, request, pk=None):
         """Assign invoice number and set status to sent."""
@@ -149,6 +215,39 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             )
         invoice.confirm()
         generate_invoice_pdf.delay(invoice.pk)
+        return Response(InvoiceSerializer(invoice).data)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        """Cancel an invoice if no payments have been made."""
+        self.require_manager()
+        invoice = self.get_object()
+        
+        if invoice.status == InvoiceStatusChoices.CANCELLED:
+            return Response(
+                {"error": {"code": "already_cancelled", "message": "Invoice is already cancelled."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        if invoice.total_paid > 0:
+            return Response(
+                {"error": {"code": "has_payments", "message": "Cannot cancel an invoice with payments. Issue a Credit Note instead."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if invoice.delivery_notes.exists():
+            return Response(
+                {"error": {"code": "has_delivery_notes", "message": "Cannot cancel an invoice with active delivery notes."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Reverse client ledger entry if exists
+        from apps.clients.models import ClientLedger
+        ClientLedger.objects.filter(reference_type="Invoice", reference_id=str(invoice.pk)).delete()
+
+        invoice.status = InvoiceStatusChoices.CANCELLED
+        invoice.save(update_fields=["status"])
+        
         return Response(InvoiceSerializer(invoice).data)
 
     @action(detail=True, methods=["get"])

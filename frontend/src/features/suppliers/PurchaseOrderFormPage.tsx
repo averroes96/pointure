@@ -9,9 +9,9 @@ import React from "react";
  *         lines: description, quantity_ordered, agreed_unit_price
  */
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation, Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
   X, Search, Plus, Trash2, ShoppingBag, Factory, Upload,
@@ -223,6 +223,14 @@ export default function PurchaseOrderFormPage() {
   const queryClient = useQueryClient();
   const { currentBranch } = useBranch();
 
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
+  const { data: poToEdit, isSuccess: isPOLoaded } = useQuery<any>({
+    queryKey: ["purchase-order", id],
+    queryFn: () => api.get(`/suppliers/purchase-orders/${id}/`).then((r) => r.data),
+    enabled: isEditMode,
+  });
+
   // Lines pre-filled from Low Stock page via navigate(..., { state: { lines } })
   const prefilledLines: Pick<LineItem, "description" | "quantity_ordered" | "agreed_unit_price">[] =
     location.state?.lines ?? [];
@@ -233,13 +241,36 @@ export default function PurchaseOrderFormPage() {
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
   
-  const [receiveImmediately, setReceiveImmediately] = useState(true);
+  const [receiveImmediately, setReceiveImmediately] = useState(!isEditMode); // Enabled by default for new POs
   const [blReference, setBlReference] = useState("");
   const [lines, setLines] = useState<LineItem[]>(
     prefilledLines.length > 0
-      ? prefilledLines.map((l) => ({ _id: localId(), ...l }))
+      ? prefilledLines.map((l) => ({ _id: localId(), variant_id: null, is_carton: false, carton_config: { ...DEFAULT_CARTON }, ...l }))
       : [emptyLine()]
   );
+
+  // Hydrate edit state
+  useEffect(() => {
+    if (isPOLoaded && poToEdit && lines.length === 1 && lines[0].description === "") {
+      setSelectedSupplier({ id: poToEdit.supplier, name: poToEdit.supplier_name } as Supplier);
+      setReference(poToEdit.reference || "");
+      setExpectedDate(poToEdit.expected_date || "");
+      setNotes(poToEdit.notes || "");
+      
+      const hydratedLines = poToEdit.lines.map((l: any) => ({
+        _id: localId(),
+        variant_id: l.variant,
+        description: l.description,
+        quantity_ordered: String(l.quantity_ordered),
+        agreed_unit_price: String(l.agreed_unit_price),
+        is_carton: false,
+        carton_config: { ...DEFAULT_CARTON }
+      }));
+      if (hydratedLines.length > 0) {
+        setLines(hydratedLines);
+      }
+    }
+  }, [isPOLoaded, poToEdit]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -332,18 +363,20 @@ export default function PurchaseOrderFormPage() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async ({ isConfirm }: { isConfirm: boolean }) => {
+      const isDirectReception = receiveImmediately && isConfirm;
       const payload = {
         supplier: selectedSupplier!.id,
         reference,
         expected_date: expectedDate || null,
         notes,
-        receive_immediately: receiveImmediately,
-        branch: currentBranch?.id || null,
-        bl_reference: receiveImmediately ? blReference : "",
+        receive_immediately: isDirectReception,
+        branch: isDirectReception && currentBranch ? currentBranch.id : undefined,
+        bl_reference: isDirectReception ? blReference : undefined,
+        confirm: isConfirm,
         lines: lines.map((l) => {
           let carton_sizes: any[] = [];
-          if (receiveImmediately && l.is_carton) {
+          if (isDirectReception && l.is_carton) {
             const cfg = l.carton_config;
             const sizes = getSizeRange(cfg.size_from, cfg.size_to);
             const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
@@ -376,6 +409,9 @@ export default function PurchaseOrderFormPage() {
           };
         }),
       };
+      if (isEditMode) {
+        return api.put(`/suppliers/purchase-orders/${id}/`, payload);
+      }
       return api.post("/suppliers/purchase-orders/", payload);
     },
     onSuccess: (res) => {
@@ -386,12 +422,15 @@ export default function PurchaseOrderFormPage() {
     onError: (err) => setFormError(getApiError(err)),
   });
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent, isConfirm: boolean = false) {
     e.preventDefault();
     if (!selectedSupplier) { setFormError(t("supplier.error_select_supplier")); return; }
     if (lines.length === 0) { setFormError("Ajoutez au moins une ligne."); return; }
+    
+    const isDirectReception = receiveImmediately && isConfirm;
+    
     for (const l of lines) {
-      if (receiveImmediately && !l.variant_id && !l.is_carton) { setFormError("En mode Réception Directe, chaque ligne doit avoir une variante sélectionnée ou être en Mode Carton."); return; }
+      if (isDirectReception && !l.variant_id && !l.is_carton) { setFormError("En mode Réception Directe, chaque ligne doit avoir une variante sélectionnée ou être en Mode Carton."); return; }
       if (!l.is_carton && !l.description.trim()) { setFormError("Chaque ligne (hors carton) doit avoir une description."); return; }
       if (!l.agreed_unit_price || parseFloat(l.agreed_unit_price) <= 0) {
         setFormError("Chaque ligne doit avoir un prix unitaire valide."); return;
@@ -401,7 +440,7 @@ export default function PurchaseOrderFormPage() {
       }
     }
     setFormError(null);
-    saveMutation.mutate();
+    saveMutation.mutate({ isConfirm });
   }
 
   return (
@@ -452,7 +491,7 @@ export default function PurchaseOrderFormPage() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
         {formError && (
           <div className="flex items-center gap-2 px-4 py-3 bg-danger-light border border-danger/30 rounded-lg text-sm text-danger">
             <AlertTriangle size={14} className="flex-shrink-0" />
@@ -690,13 +729,25 @@ export default function PurchaseOrderFormPage() {
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link to="/purchase-orders" className="btn-secondary">Annuler</Link>
           <button
-            type="submit"
+            type="button"
+            onClick={(e) => handleSubmit(e, false)}
+            disabled={saveMutation.isPending || saved || !selectedSupplier}
+            className="btn-secondary"
+          >
+            {saveMutation.isPending && !saved
+              ? <><Loader2 size={14} className="animate-spin" /> ...</>
+              : <><Save size={14} /> Brouillon</>
+            }
+          </button>
+          <button
+            type="button"
+            onClick={(e) => handleSubmit(e, true)}
             disabled={saveMutation.isPending || saved || !selectedSupplier}
             className="btn-primary"
           >
-            {saveMutation.isPending
+            {saveMutation.isPending && !saved
               ? <><Loader2 size={14} className="animate-spin" /> Création…</>
-              : <><Save size={14} /> Créer la commande</>
+              : <><Save size={14} /> Confirmer la commande</>
             }
           </button>
         </div>
