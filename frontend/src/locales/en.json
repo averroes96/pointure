@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "ShoeDZ",
-    "tagline": "Shoe Store Management"
+    "tagline": "Shoe Store Management",
+    "loading": "Loading...",
+    "cancel": "Cancel"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -63,6 +65,8 @@
   },
   "invoice": {
     "new": "New Invoice",
+    "error_select_client": "Please select a client.",
+    "error_stock_exceeded": "The requested quantity for one or more items exceeds available stock.",
     "number": "Invoice No.",
     "client": "Client",
     "date": "Date",
@@ -122,7 +126,32 @@
     "search_product": "Search product...",
     "select_client": "Select a client",
     "size_color": "Size / Color",
-    "status_all": "All statuses"
+    "status_all": "All statuses",
+    "fill_info": "Fill in the information below",
+    "general_info": "General Information",
+    "series_prefix": "Series Prefix",
+    "notes_optional": "Notes (optional)",
+    "billed_items": "Billed Items",
+    "select_products_quantities": "Select products and specify quantities",
+    "initial_payment": "Initial Payment",
+    "payment_method": "Payment Method",
+    "payment_amount": "Amount",
+    "payment_date": "Payment Date",
+    "summary": "Summary",
+    "subtotal_ht": "Subtotal (excl. VAT)",
+    "tva_rate": "VAT ({{rate}}%)",
+    "timbre_fiscal": "Fiscal Stamp (1% max 2500)",
+    "amount_paid": "Amount Paid",
+    "credit_limit_exceeded": "⚠️ Credit Limit Exceeded",
+    "current_balance": "Current Balance",
+    "invoice_amount": "Invoice Amount",
+    "new_balance": "New Balance",
+    "credit_limit": "Credit Limit",
+    "not_defined": "not defined",
+    "real_mode": "Real Mode (Official Invoice)",
+    "apply_tva": "Apply VAT ({{rate}}%)",
+    "cash_payment_stamp": "Cash Payment (Fiscal Stamp 1%)",
+    "notes_placeholder": "Internal notes or additional information..."
   },
   "client": {
     "new": "New Client",
@@ -476,6 +505,11 @@
   "supplier": {
     "new": "New Supplier",
     "edit": "Edit Supplier",
+    "error_add_one_line": "Please add at least one line item.",
+    "error_direct_reception_variant": "In Direct Reception mode, each line must have a selected variant or be in Carton Mode.",
+    "error_line_description": "Each non-carton line must have a description.",
+    "error_unit_price": "Each line must have a valid unit price.",
+    "error_quantity": "Each line must have a quantity ≥ 1.",
     "name": "Supplier",
     "contact_name": "Contact Person",
     "phone": "Phone",
@@ -541,7 +575,19 @@
     "status": "Status",
     "supplier": "Supplier",
     "suppliers": "Suppliers",
-    "total_due": "Total Due"
+    "total_due": "Total Due",
+    "po_new_title": "New Purchase Order",
+    "po_new_desc": "Create a supplier purchase order.",
+    "po_expected_date": "Expected Delivery Date",
+    "po_bl_reference": "Supplier BL Reference",
+    "po_carton_mode": "Carton Mode (Assortment)",
+    "po_total_order": "Order Total",
+    "po_confirm": "Confirm Order",
+    "po_direct_reception": "Direct Reception",
+    "import_pdf": "Import PDF",
+    "add_manual": "Add Manually",
+    "error_pdf_import": "Failed to import PDF: ",
+    "delete_line": "Delete Line"
   },
   "transfer_status": {
     "pending": "Pending",

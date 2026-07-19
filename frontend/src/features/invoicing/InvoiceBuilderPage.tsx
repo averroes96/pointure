@@ -134,7 +134,7 @@ function ClientSelector({
           </div>
           <div className="max-h-52 overflow-y-auto">
             {isFetching && (
-              <div className="px-3 py-2 text-xs text-text-muted">Chargement...</div>
+              <div className="px-3 py-2 text-xs text-text-muted">{t("app.loading")}</div>
             )}
             {!isFetching && clients.length === 0 && (
               <div className="px-3 py-2 text-xs text-text-muted">{t("invoice.no_client_found")}</div>
@@ -394,7 +394,7 @@ export default function InvoiceBuilderPage() {
     setPendingConfirmState(isConfirm);
 
     if (!client) {
-      setFormError("Veuillez sélectionner un client.");
+      setFormError(t("invoice.error_select_client"));
       return;
     }
 
@@ -413,7 +413,7 @@ export default function InvoiceBuilderPage() {
           if (qty > 0) {
             const variant = m.product.variants.find(v => (v.colour || "N/A") === c && v.size_eu.toString() === s);
             if (variant && qty > variant.stock_qty) {
-              setFormError("La quantité demandée pour un ou plusieurs articles dépasse le stock disponible.");
+              setFormError(t("invoice.error_stock_exceeded"));
               return;
             }
           }
@@ -444,7 +444,7 @@ export default function InvoiceBuilderPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-text-primary">{t("invoice.new")}</h1>
-            <p className="text-sm text-text-muted">Remplissez les informations ci-dessous</p>
+            <p className="text-sm text-text-muted">{t("invoice.fill_info")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -452,18 +452,14 @@ export default function InvoiceBuilderPage() {
             type="button"
             onClick={() => navigate("/invoices")}
             className="btn-secondary"
-          >
-            Annuler
-          </button>
+          >{t("app.cancel")}</button>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, false)}
             disabled={mutation.isPending}
             className="btn-secondary"
           >
-            <Save size={16} />
-            Brouillon
-          </button>
+            <Save size={16} />{t("invoice.status_draft")}</button>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, true)}
@@ -471,7 +467,7 @@ export default function InvoiceBuilderPage() {
             className="btn-primary"
           >
             <Save size={16} />
-            {mutation.isPending ? "Enregistrement..." : "Enregistrer"}
+            {mutation.isPending ? t("app.saving") : t("common.save")}
           </button>
         </div>
       </div>
@@ -493,15 +489,15 @@ export default function InvoiceBuilderPage() {
           <div className="flex items-start gap-2">
             <AlertCircle size={18} className="text-warning mt-0.5 flex-shrink-0" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-warning">⚠️ Plafond de crédit dépassé</p>
+              <p className="text-sm font-semibold text-warning">{t("invoice.credit_limit_exceeded")}</p>
               <p className="text-xs text-text-muted">
-                Solde actuel: <strong>{formatDZD(creditLimitWarning.current_balance)} DZD</strong>
+                {t("invoice.current_balance")}: <strong>{formatDZD(creditLimitWarning.current_balance)} DZD</strong>
                 {" | "}
-                Facture: <strong>{formatDZD(creditLimitWarning.invoice_total)} DZD</strong>
+                {t("invoice.invoice_amount")}: <strong>{formatDZD(creditLimitWarning.invoice_total)} DZD</strong>
                 {" | "}
-                Nouveau solde: <strong>{formatDZD(creditLimitWarning.would_be_balance)} DZD</strong>
+                {t("invoice.new_balance")}: <strong>{formatDZD(creditLimitWarning.would_be_balance)} DZD</strong>
                 {" | "}
-                Plafond: <strong>{formatDZD(creditLimitWarning.credit_limit)} DZD</strong>
+                {t("invoice.credit_limit")}: <strong>{formatDZD(creditLimitWarning.credit_limit)} DZD</strong>
               </p>
             </div>
           </div>
@@ -510,9 +506,7 @@ export default function InvoiceBuilderPage() {
               type="button"
               onClick={() => setCreditLimitWarning(null)}
               className="btn-secondary btn-sm"
-            >
-              Annuler
-            </button>
+            >{t("app.cancel")}</button>
             <button
               type="button"
               onClick={handleForceSubmit}
@@ -531,18 +525,18 @@ export default function InvoiceBuilderPage() {
           {/* Client + metadata */}
           <div className="card">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Informations générales</h2>
+              <h2 className="font-semibold text-text-primary">{t("invoice.general_info")}</h2>
             </div>
             <div className="card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Client */}
               <div className="sm:col-span-2">
-                <label className="form-label">Client</label>
+                <label className="form-label">{t("invoice.client")}</label>
                 <ClientSelector value={client} onChange={setClient} />
               </div>
 
               {/* Date */}
               <div>
-                <label className="form-label">Date de facture</label>
+                <label className="form-label">{t("invoice.date")}</label>
                 <input
                   type="date"
                   value={date}
@@ -564,7 +558,7 @@ export default function InvoiceBuilderPage() {
 
               {/* Series prefix */}
               <div>
-                <label className="form-label">Préfixe série</label>
+                <label className="form-label">{t("invoice.series_prefix")}</label>
                 <input
                   type="text"
                   value={seriesPrefix}
@@ -589,7 +583,7 @@ export default function InvoiceBuilderPage() {
                     <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                   </div>
                   <span className="text-sm font-medium text-text-primary">
-                    Mode Réel (Facture Officielle)
+                    {t("invoice.real_mode")}
                   </span>
                 </label>
 
@@ -606,7 +600,7 @@ export default function InvoiceBuilderPage() {
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
                     <span className="text-sm font-medium text-text-primary">
-                      Appliquer TVA ({TVA_RATE}%)
+                      {t("invoice.apply_tva", { rate: TVA_RATE })}
                     </span>
                   </label>
                 )}
@@ -624,7 +618,7 @@ export default function InvoiceBuilderPage() {
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
                     <span className="text-sm font-medium text-amber-700">
-                      Paiement en espèces (Timbre Fiscal 1%)
+                      {t("invoice.cash_payment_stamp")}
                     </span>
                   </label>
                 )}
@@ -632,13 +626,13 @@ export default function InvoiceBuilderPage() {
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="form-label">Notes (optionnel)</label>
+                <label className="form-label">{t("invoice.notes_optional")}</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="form-input resize-none"
                   rows={2}
-                  placeholder="Notes internes ou informations complémentaires..."
+                  placeholder={t("invoice.notes_placeholder")}
                 />
               </div>
             </div>
@@ -647,8 +641,8 @@ export default function InvoiceBuilderPage() {
           {/* Line items */}
           <div className="card overflow-visible">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Articles facturés</h2>
-              <span className="text-xs text-text-muted">Sélectionnez les produits et spécifiez les quantités</span>
+              <h2 className="font-semibold text-text-primary">{t("invoice.billed_items")}</h2>
+              <span className="text-xs text-text-muted">{t("invoice.select_products_quantities")}</span>
             </div>
 
             <div className="p-4 space-y-4">
@@ -674,7 +668,7 @@ export default function InvoiceBuilderPage() {
           {/* Payment recording */}
           <div className="card">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Paiement initial</h2>
+              <h2 className="font-semibold text-text-primary">{t("invoice.initial_payment")}</h2>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -682,14 +676,14 @@ export default function InvoiceBuilderPage() {
                   onChange={(e) => setAddPayment(e.target.checked)}
                   className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-300"
                 />
-                <span className="text-sm text-text-muted">Enregistrer un paiement</span>
+                <span className="text-sm text-text-muted">{t("invoice.record_payment")}</span>
               </label>
             </div>
 
             {addPayment && (
               <div className="card-body grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="form-label">Mode de paiement</label>
+                  <label className="form-label">{t("invoice.payment_method")}</label>
                   <select
                     value={payment.method}
                     onChange={(e) =>
@@ -708,7 +702,7 @@ export default function InvoiceBuilderPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Montant</label>
+                  <label className="form-label">{t("invoice.payment_amount")}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -727,7 +721,7 @@ export default function InvoiceBuilderPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Date du paiement</label>
+                  <label className="form-label">{t("invoice.payment_date")}</label>
                   <input
                     type="date"
                     value={payment.date}
@@ -746,12 +740,12 @@ export default function InvoiceBuilderPage() {
         <div className="space-y-4">
           <div className="card sticky top-20">
             <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Récapitulatif</h2>
+              <h2 className="font-semibold text-text-primary">{t("invoice.summary")}</h2>
             </div>
             <div className="card-body space-y-3">
               {/* Subtotal HT */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-text-muted">Sous-total HT</span>
+                <span className="text-sm text-text-muted">{t("invoice.subtotal_ht")}</span>
                 <span className="font-mono text-sm text-text-primary">
                   {formatDZD(subtotalHT)} DZD
                 </span>
@@ -760,7 +754,7 @@ export default function InvoiceBuilderPage() {
               {/* TVA */}
               {(isFormal && applyTva) && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">TVA ({TVA_RATE}%)</span>
+                  <span className="text-sm text-text-muted">{t("invoice.tva_rate", { rate: TVA_RATE })}</span>
                   <span className="font-mono text-sm text-text-primary">
                     {formatDZD(tvaAmount)} DZD
                   </span>
@@ -770,7 +764,7 @@ export default function InvoiceBuilderPage() {
               {/* Timbre Fiscal */}
               {(isFormal && isPaidInCash) && (
                 <div className="flex items-center justify-between text-amber-700">
-                  <span className="text-sm">Timbre Fiscal (1% max 2500)</span>
+                  <span className="text-sm">{t("invoice.timbre_fiscal")}</span>
                   <span className="font-mono text-sm">
                     {formatDZD(timbreFiscal)} DZD
                   </span>
@@ -791,7 +785,7 @@ export default function InvoiceBuilderPage() {
               {addPayment && paidAmount > 0 && (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-muted">Montant payé</span>
+                    <span className="text-sm text-text-muted">{t("invoice.amount_paid")}</span>
                     <span className="font-mono text-sm text-success">
                       − {formatDZD(paidAmount)} DZD
                     </span>
@@ -813,7 +807,7 @@ export default function InvoiceBuilderPage() {
               {/* Lines count */}
               <div className="pt-2 text-xs text-text-muted border-t border-border">
                 {getFlatLines().length} ligne(s)
-                · Client: {client?.name ?? <em>non défini</em>}
+                · Client: {client?.name ?? <em>{t("invoice.not_defined")}</em>}
               </div>
             </div>
 
@@ -825,15 +819,13 @@ export default function InvoiceBuilderPage() {
                 className="btn-primary w-full justify-center"
               >
                 <Save size={15} />
-                {mutation.isPending ? "Enregistrement..." : t("invoice.save_invoice")}
+                {mutation.isPending ? t("app.saving") : t("invoice.save_invoice")}
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/invoices")}
                 className="btn-secondary w-full justify-center"
-              >
-                Annuler
-              </button>
+              >{t("app.cancel")}</button>
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "ShoeDZ",
-    "tagline": "Gestion de chaussures"
+    "tagline": "Gestion de chaussures",
+    "loading": "Chargement...",
+    "cancel": "Annuler"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -92,6 +94,8 @@
   },
   "invoice": {
     "new": "Nouvelle Facture",
+    "error_select_client": "Veuillez sélectionner un client.",
+    "error_stock_exceeded": "La quantité demandée pour un ou plusieurs articles dépasse le stock disponible.",
     "number": "N° Facture",
     "client": "Client",
     "date": "Date",
@@ -151,7 +155,32 @@
     "search_product": "Rechercher un produit...",
     "select_client": "Sélectionnez un client",
     "size_color": "Taille / Couleur",
-    "status_all": "Tous les statuts"
+    "status_all": "Tous les statuts",
+    "fill_info": "Remplissez les informations ci-dessous",
+    "general_info": "Informations générales",
+    "series_prefix": "Préfixe série",
+    "notes_optional": "Notes (optionnel)",
+    "billed_items": "Articles facturés",
+    "select_products_quantities": "Sélectionnez les produits et spécifiez les quantités",
+    "initial_payment": "Paiement initial",
+    "payment_method": "Mode de paiement",
+    "payment_amount": "Montant",
+    "payment_date": "Date du paiement",
+    "summary": "Récapitulatif",
+    "subtotal_ht": "Sous-total HT",
+    "tva_rate": "TVA ({{rate}}%)",
+    "timbre_fiscal": "Timbre Fiscal (1% max 2500)",
+    "amount_paid": "Montant payé",
+    "credit_limit_exceeded": "⚠️ Plafond de crédit dépassé",
+    "current_balance": "Solde actuel",
+    "invoice_amount": "Facture",
+    "new_balance": "Nouveau solde",
+    "credit_limit": "Plafond",
+    "not_defined": "non défini",
+    "real_mode": "Mode Réel (Facture Officielle)",
+    "apply_tva": "Appliquer TVA ({{rate}}%)",
+    "cash_payment_stamp": "Paiement en espèces (Timbre Fiscal 1%)",
+    "notes_placeholder": "Notes internes ou informations complémentaires..."
   },
   "client": {
     "new": "Nouveau client",
@@ -505,6 +534,11 @@
   "supplier": {
     "new": "Nouveau Fournisseur",
     "edit": "Modifier fournisseur",
+    "error_add_one_line": "Ajoutez au moins une ligne.",
+    "error_direct_reception_variant": "En mode Réception Directe, chaque ligne doit avoir une variante sélectionnée ou être en Mode Carton.",
+    "error_line_description": "Chaque ligne (hors carton) doit avoir une description.",
+    "error_unit_price": "Chaque ligne doit avoir un prix unitaire valide.",
+    "error_quantity": "Chaque ligne doit avoir une quantité ≥ 1.",
     "name": "Fournisseur",
     "contact_name": "Contact",
     "phone": "Téléphone",
@@ -570,7 +604,19 @@
     "status": "Statut",
     "supplier": "Fournisseur",
     "suppliers": "Fournisseurs",
-    "total_due": "Total dû"
+    "total_due": "Total dû",
+    "po_new_title": "Nouvelle commande d'achat",
+    "po_new_desc": "Créez un bon de commande fournisseur.",
+    "po_expected_date": "Date de livraison attendue",
+    "po_bl_reference": "Référence BL Fournisseur",
+    "po_carton_mode": "Mode Carton (Assortiment)",
+    "po_total_order": "Total commande",
+    "po_confirm": "Confirmer la commande",
+    "po_direct_reception": "Réception directe",
+    "import_pdf": "Importer PDF",
+    "add_manual": "Ajouter manuellement",
+    "error_pdf_import": "Échec de l'importation du PDF: ",
+    "delete_line": "Supprimer la ligne"
   },
   "transfer_status": {
     "pending": "En attente",

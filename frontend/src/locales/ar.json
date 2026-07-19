@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "ShoeDZ",
-    "tagline": "إدارة محلات الأحذية"
+    "tagline": "إدارة محلات الأحذية",
+    "loading": "جاري التحميل...",
+    "cancel": "إلغاء"
   },
   "nav": {
     "dashboard": "لوحة القيادة",
@@ -63,6 +65,8 @@
   },
   "invoice": {
     "new": "فاتورة جديدة",
+    "error_select_client": "يرجى تحديد الزبون.",
+    "error_stock_exceeded": "الكمية المطلوبة لمنتج واحد أو أكثر تتجاوز المخزون المتوفر.",
     "number": "رقم الفاتورة",
     "client": "الزبون",
     "date": "التاريخ",
@@ -122,7 +126,32 @@
     "search_product": "بحث عن منتج...",
     "select_client": "حدد عميلاً",
     "size_color": "المقاس / اللون",
-    "status_all": "جميع الحالات"
+    "status_all": "جميع الحالات",
+    "fill_info": "املأ المعلومات أدناه",
+    "general_info": "معلومات عامة",
+    "series_prefix": "بادئة السلسلة",
+    "notes_optional": "ملاحظات (اختياري)",
+    "billed_items": "العناصر المفوترة",
+    "select_products_quantities": "حدد المنتجات والكميات",
+    "initial_payment": "الدفعة الأولية",
+    "payment_method": "طريقة الدفع",
+    "payment_amount": "المبلغ",
+    "payment_date": "تاريخ الدفع",
+    "summary": "الملخص",
+    "subtotal_ht": "المجموع (بدون ضريبة)",
+    "tva_rate": "الضريبة ({{rate}}%)",
+    "timbre_fiscal": "الطابع الضريبي (1% أقصى 2500)",
+    "amount_paid": "المبلغ المدفوع",
+    "credit_limit_exceeded": "⚠️ تجاوز الحد الائتماني",
+    "current_balance": "الرصيد الحالي",
+    "invoice_amount": "قيمة الفاتورة",
+    "new_balance": "الرصيد الجديد",
+    "credit_limit": "الحد الائتماني",
+    "not_defined": "غير محدد",
+    "real_mode": "الوضع الفعلي (فاتورة رسمية)",
+    "apply_tva": "تطبيق الضريبة ({{rate}}%)",
+    "cash_payment_stamp": "الدفع نقدًا (الطابع الضريبي 1%)",
+    "notes_placeholder": "ملاحظات داخلية أو معلومات إضافية..."
   },
   "client": {
     "new": "زبون جديد",
@@ -476,6 +505,11 @@
   "supplier": {
     "new": "مورد جديد",
     "edit": "تعديل المورد",
+    "error_add_one_line": "يرجى إضافة سطر واحد على الأقل.",
+    "error_direct_reception_variant": "في وضع الاستلام المباشر، يجب أن يكون لكل سطر نوع محدد أو أن يكون في وضع الكرتون.",
+    "error_line_description": "يجب أن يحتوي كل سطر (غير الكرتون) على وصف.",
+    "error_unit_price": "يجب أن يكون لكل سطر سعر وحدة صالح.",
+    "error_quantity": "يجب أن يكون لكل سطر كمية ≥ 1.",
     "name": "المورد",
     "contact_name": "جهة الاتصال",
     "phone": "الهاتف",
@@ -541,7 +575,19 @@
     "status": "الحالة",
     "supplier": "مورد",
     "suppliers": "الموردين",
-    "total_due": "إجمالي المستحق"
+    "total_due": "إجمالي المستحق",
+    "po_new_title": "طلب شراء جديد",
+    "po_new_desc": "إنشاء طلب شراء من المورد.",
+    "po_expected_date": "تاريخ التسليم المتوقع",
+    "po_bl_reference": "مرجع وصل تسليم المورد",
+    "po_carton_mode": "وضع الكرتون (تشكيلة)",
+    "po_total_order": "إجمالي الطلب",
+    "po_confirm": "تأكيد الطلب",
+    "po_direct_reception": "استلام مباشر",
+    "import_pdf": "استيراد PDF",
+    "add_manual": "إضافة يدوية",
+    "error_pdf_import": "فشل استيراد PDF: ",
+    "delete_line": "حذف السطر"
   },
   "transfer_status": {
     "pending": "قيد الانتظار",

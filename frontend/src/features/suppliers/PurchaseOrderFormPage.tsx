@@ -332,7 +332,7 @@ export default function PurchaseOrderFormPage() {
         setReceiveImmediately(true);
       }
     } catch (err: any) {
-      setFormError("Échec de l'importation du PDF: " + getApiError(err));
+      setFormError(t("supplier.error_pdf_import") + getApiError(err));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -425,18 +425,18 @@ export default function PurchaseOrderFormPage() {
   function handleSubmit(e: React.FormEvent, isConfirm: boolean = false) {
     e.preventDefault();
     if (!selectedSupplier) { setFormError(t("supplier.error_select_supplier")); return; }
-    if (lines.length === 0) { setFormError("Ajoutez au moins une ligne."); return; }
+    if (lines.length === 0) { setFormError(t("supplier.error_add_one_line")); return; }
     
     const isDirectReception = receiveImmediately && isConfirm;
     
     for (const l of lines) {
-      if (isDirectReception && !l.variant_id && !l.is_carton) { setFormError("En mode Réception Directe, chaque ligne doit avoir une variante sélectionnée ou être en Mode Carton."); return; }
-      if (!l.is_carton && !l.description.trim()) { setFormError("Chaque ligne (hors carton) doit avoir une description."); return; }
+      if (isDirectReception && !l.variant_id && !l.is_carton) { setFormError(t("supplier.error_direct_reception_variant")); return; }
+      if (!l.is_carton && !l.description.trim()) { setFormError(t("supplier.error_line_description")); return; }
       if (!l.agreed_unit_price || parseFloat(l.agreed_unit_price) <= 0) {
-        setFormError("Chaque ligne doit avoir un prix unitaire valide."); return;
+        setFormError(t("supplier.error_unit_price")); return;
       }
-      if (!l.quantity_ordered || parseInt(l.quantity_ordered) < 1) {
-        setFormError("Chaque ligne doit avoir une quantité ≥ 1."); return;
+      if (!l.is_carton && (!l.quantity_ordered || parseInt(l.quantity_ordered) < 1)) {
+        setFormError(t("supplier.error_quantity")); return;
       }
     }
     setFormError(null);
@@ -451,8 +451,8 @@ export default function PurchaseOrderFormPage() {
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Nouvelle commande d'achat</h1>
-          <p className="text-sm text-text-muted">Créez un bon de commande fournisseur.</p>
+          <h1 className="text-xl font-bold text-text-primary">{t("supplier.po_new_title")}</h1>
+          <p className="text-sm text-text-muted">{t("supplier.po_new_desc")}</p>
         </div>
         <div className="ms-auto">
           <input
@@ -546,7 +546,7 @@ export default function PurchaseOrderFormPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Date de livraison attendue</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("supplier.po_expected_date")}</label>
               <input
                 type="date"
                 value={expectedDate}
@@ -559,7 +559,7 @@ export default function PurchaseOrderFormPage() {
           {receiveImmediately && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Référence BL Fournisseur</label>
+                <label className="block text-xs font-medium text-text-muted mb-1">{t("supplier.po_bl_reference")}</label>
                 <input
                   type="text"
                   value={blReference}
@@ -578,7 +578,7 @@ export default function PurchaseOrderFormPage() {
               onChange={(e) => setNotes(e.target.value)}
               className="form-input resize-none"
               rows={2}
-              placeholder="Instructions spéciales, conditions..."
+              placeholder={t("common.notes")}
             />
           </div>
         </div>
@@ -613,7 +613,7 @@ export default function PurchaseOrderFormPage() {
                           <div className="flex flex-col gap-2">
                             <label className="flex items-center gap-2 cursor-pointer text-sm">
                               <input type="checkbox" checked={line.is_carton} onChange={(e) => updateLine(line._id, "is_carton", e.target.checked)} className="rounded border-border text-primary-500 focus:ring-primary-500" />
-                              <span className="font-medium text-text-primary">Mode Carton (Assortiment)</span>
+                              <span className="font-medium text-text-primary">{t("supplier.po_carton_mode")}</span>
                             </label>
                             
                             {!line.is_carton && (
@@ -675,7 +675,7 @@ export default function PurchaseOrderFormPage() {
                           onClick={() => removeLine(line._id)}
                           disabled={lines.length === 1}
                           className="btn-ghost btn-sm text-text-muted hover:text-danger disabled:opacity-30"
-                          title="Supprimer la ligne"
+                          title={t("supplier.delete_line")}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -716,7 +716,7 @@ export default function PurchaseOrderFormPage() {
           {/* Grand total */}
           {grandTotal > 0 && (
             <div className="rounded-lg bg-surface border border-border px-4 py-3 flex justify-between items-center">
-              <span className="font-semibold text-sm text-text-primary">Total commande</span>
+              <span className="font-semibold text-sm text-text-primary">{t("supplier.po_total_order")}</span>
               <span className="font-mono font-bold text-text-primary text-lg">
                 {formatDZD(grandTotal)}{" "}
                 <span className="text-sm font-normal text-text-muted">DZD</span>
@@ -727,7 +727,7 @@ export default function PurchaseOrderFormPage() {
 
         {/* Submit */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link to="/purchase-orders" className="btn-secondary">Annuler</Link>
+          <Link to="/purchase-orders" className="btn-secondary">{t("app.cancel")}</Link>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, false)}
@@ -736,7 +736,7 @@ export default function PurchaseOrderFormPage() {
           >
             {saveMutation.isPending && !saved
               ? <><Loader2 size={14} className="animate-spin" /> ...</>
-              : <><Save size={14} /> Brouillon</>
+              : <><Save size={14} /> {t("supplier.draft")}</>
             }
           </button>
           <button
@@ -746,8 +746,8 @@ export default function PurchaseOrderFormPage() {
             className="btn-primary"
           >
             {saveMutation.isPending && !saved
-              ? <><Loader2 size={14} className="animate-spin" /> Création…</>
-              : <><Save size={14} /> Confirmer la commande</>
+              ? <><Loader2 size={14} className="animate-spin" /> {t("app.creating")}</>
+              : <><Save size={14} /> {t("supplier.po_confirm")}</>
             }
           </button>
         </div>
