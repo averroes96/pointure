@@ -189,8 +189,32 @@ class Invoice(TenantScopedModel):
         )["total"] or Decimal("0.00")
 
     @property
+    def credit_notes_total(self):
+        return self.credit_notes.aggregate(
+            total=models.Sum("total_ttc")
+        )["total"] or Decimal("0.00")
+
+    @property
     def balance_due(self):
-        return self.total_ttc - self.total_paid
+        return self.total_ttc - self.total_paid - self.credit_notes_total
+
+    def update_status(self):
+        """Update invoice status based on payments and credit notes."""
+        if self.status in (InvoiceStatusChoices.DRAFT, InvoiceStatusChoices.CANCELLED):
+            return
+            
+        paid_and_credited = self.total_paid + self.credit_notes_total
+        
+        if paid_and_credited >= self.total_ttc:
+            new_status = InvoiceStatusChoices.PAID
+        elif self.total_paid > 0 or self.credit_notes_total > 0:
+            new_status = InvoiceStatusChoices.PARTIAL
+        else:
+            new_status = InvoiceStatusChoices.SENT
+            
+        if self.status != new_status:
+            Invoice.objects.filter(pk=self.pk).update(status=new_status)
+            self.status = new_status
 
 
 class InvoiceLine(models.Model):
@@ -249,20 +273,9 @@ class InvoicePayment(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Update invoice status based on payments
-        self._update_invoice_status()
+        self.invoice.update_status()
         # Record credit in client ledger
         self._record_client_credit()
-
-    def _update_invoice_status(self):
-        inv = self.invoice
-        paid = inv.total_paid
-        if paid >= inv.total_ttc:
-            new_status = InvoiceStatusChoices.PAID
-        elif paid > 0:
-            new_status = InvoiceStatusChoices.PARTIAL
-        else:
-            return
-        Invoice.objects.filter(pk=inv.pk).update(status=new_status)
 
     def _record_client_credit(self):
         if not self.invoice.client:
@@ -331,3 +344,30 @@ class CreditNote(TenantScopedModel):
 
     def __str__(self):
         return f"Avoir {self.number} on {self.original_invoice}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Generate number if not set
+        if not self.number:
+            CreditNote.objects.filter(pk=self.pk).update(number=f"AV-{self.original_invoice.number}-{self.pk}")
+            self.number = f"AV-{self.original_invoice.number}-{self.pk}"
+        # Update original invoice status
+        self.original_invoice.update_status()
+        # Record credit in client ledger
+        self._record_client_credit()
+
+    def _record_client_credit(self):
+        if not self.original_invoice.client:
+            return
+        from apps.clients.models import ClientLedger
+        ClientLedger.objects.update_or_create(
+            client=self.original_invoice.client,
+            reference_type="CreditNote",
+            reference_id=str(self.pk),
+            defaults={
+                "entry_type": "credit",
+                "amount": self.total_ttc,
+                "description": f"Avoir sur facture {self.original_invoice.number}",
+                "date": self.date,
+            }
+        )
