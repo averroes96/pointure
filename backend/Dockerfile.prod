@@ -22,7 +22,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-COPY . .
+COPY . /app
 
 RUN mkdir -p /app/logs
 RUN python manage.py collectstatic --no-input --settings=config.settings.production || true
