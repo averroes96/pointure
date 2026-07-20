@@ -33,6 +33,7 @@ services:
       - path: /media
     envs:
       - key: DJANGO_SETTINGS_MODULE
+        scope: RUN_AND_BUILD_TIME
         value: config.settings.production
       - key: DATABASE_URL
         scope: RUN_TIME
@@ -49,6 +50,15 @@ services:
       - key: ALLOWED_HOSTS
         scope: RUN_TIME
         value: ${pointure-backend.PUBLIC_URL}
+      - key: EMAIL_HOST
+        scope: RUN_AND_BUILD_TIME
+        value: "localhost"
+      - key: EMAIL_HOST_USER
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: EMAIL_HOST_PASSWORD
+        scope: RUN_AND_BUILD_TIME
+        value: ""
 
 workers:
   - name: pointure-worker
@@ -61,6 +71,7 @@ workers:
     run_command: celery -A config worker -l warning -Q default,pdf,notifications --concurrency 4
     envs:
       - key: DJANGO_SETTINGS_MODULE
+        scope: RUN_AND_BUILD_TIME
         value: config.settings.production
       - key: DATABASE_URL
         scope: RUN_TIME
@@ -71,6 +82,15 @@ workers:
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+      - key: EMAIL_HOST
+        scope: RUN_AND_BUILD_TIME
+        value: "localhost"
+      - key: EMAIL_HOST_USER
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: EMAIL_HOST_PASSWORD
+        scope: RUN_AND_BUILD_TIME
+        value: ""
 
   - name: pointure-beat
     github:
@@ -82,6 +102,7 @@ workers:
     run_command: celery -A config beat -l warning --scheduler django_celery_beat.schedulers:DatabaseScheduler
     envs:
       - key: DJANGO_SETTINGS_MODULE
+        scope: RUN_AND_BUILD_TIME
         value: config.settings.production
       - key: DATABASE_URL
         scope: RUN_TIME
@@ -92,6 +113,15 @@ workers:
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+      - key: EMAIL_HOST
+        scope: RUN_AND_BUILD_TIME
+        value: "localhost"
+      - key: EMAIL_HOST_USER
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: EMAIL_HOST_PASSWORD
+        scope: RUN_AND_BUILD_TIME
+        value: ""
 
 static_sites:
   - name: pointure-frontend
@@ -119,6 +149,7 @@ jobs:
     kind: PRE_DEPLOY
     envs:
       - key: DJANGO_SETTINGS_MODULE
+        scope: RUN_AND_BUILD_TIME
         value: config.settings.production
       - key: DATABASE_URL
         scope: RUN_TIME
@@ -129,3 +160,12 @@ jobs:
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+      - key: EMAIL_HOST
+        scope: RUN_AND_BUILD_TIME
+        value: "localhost"
+      - key: EMAIL_HOST_USER
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: EMAIL_HOST_PASSWORD
+        scope: RUN_AND_BUILD_TIME
+        value: ""
