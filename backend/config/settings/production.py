@@ -50,3 +50,8 @@ LOGGING["handlers"]["file"] = {  # noqa: F405
     "formatter": "verbose",
 }
 LOGGING["root"]["handlers"].append("file")  # noqa: F405
+
+# ─────────────────────────────────────────────
+# Static files (WhiteNoise)
+# ─────────────────────────────────────────────
+STORAGES["staticfiles"]["BACKEND"] = "whitenoise.storage.CompressedManifestStaticFilesStorage"
