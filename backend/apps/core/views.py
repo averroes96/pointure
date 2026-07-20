@@ -265,3 +265,75 @@ class PasswordResetConfirmView(APIView):
         user.save()
         return Response({"detail": "Mot de passe réinitialisé avec succès."})
 
+
+from django.apps import apps
+from django.db import transaction
+from django.conf import settings
+
+class SyncReceiverView(APIView):
+    """
+    Endpoint for receiving offline synchronization events from local nodes.
+    Uses Last-Write-Wins (LWW) conflict resolution based on updated_at.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # 1. Simple shared secret authentication
+        expected_key = getattr(settings, "NODE_API_KEY", "")
+        provided_key = request.headers.get("Authorization", "").replace("Bearer ", "")
+        
+        if expected_key and provided_key != expected_key:
+            return Response({"error": "Unauthorized node"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        events = request.data.get("events", [])
+        processed = 0
+        
+        with transaction.atomic():
+            for event in events:
+                model_name = event.get("model_name")
+                object_id = event.get("object_id")
+                action = event.get("action")
+                payload = event.get("payload", {})
+                
+                if not all([model_name, object_id, action]):
+                    continue
+                    
+                try:
+                    app_label, model_name_str = model_name.split(".")
+                    ModelClass = apps.get_model(app_label, model_name_str)
+                except Exception:
+                    continue  # Skip unknown models
+                    
+                if action == "DELETE":
+                    ModelClass.objects.filter(pk=object_id).delete()
+                    processed += 1
+                else:
+                    # CREATE or UPDATE
+                    try:
+                        instance = ModelClass.objects.get(pk=object_id)
+                        
+                        # Last-Write-Wins check
+                        if "updated_at" in payload and hasattr(instance, "updated_at"):
+                            incoming_date = payload["updated_at"]
+                            if instance.updated_at and str(instance.updated_at.isoformat()) >= str(incoming_date):
+                                continue  # Cloud has newer data, ignore
+                                
+                    except ModelClass.DoesNotExist:
+                        instance = ModelClass()
+                        
+                    # Apply payload
+                    for key, value in payload.items():
+                        try:
+                            field = ModelClass._meta.get_field(key)
+                            if field.is_relation and field.many_to_one:
+                                setattr(instance, f"{key}_id", value)
+                            else:
+                                setattr(instance, key, value)
+                        except Exception:
+                            # Skip unknown fields
+                            pass
+                            
+                    instance.save()
+                    processed += 1
+                    
+        return Response({"status": "ok", "processed": processed})
