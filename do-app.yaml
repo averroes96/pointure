@@ -30,6 +30,14 @@ services:
     source_dir: backend
     run_command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class gthread --threads 2 --timeout 120
     http_port: 8000
+    routes:
+      - path: /api
+      - path: /admin
+      - path: /schema
+      - path: /docs
+      - path: /static
+      - path: /media
+
     envs:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
