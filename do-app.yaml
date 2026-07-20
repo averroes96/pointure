@@ -25,12 +25,7 @@ services:
     run_command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class gthread --threads 2 --timeout 120
     http_port: 8000
     routes:
-      - path: /api
-      - path: /admin
-      - path: /schema
-      - path: /docs
-      - path: /static
-      - path: /media
+      - path: /
     envs:
       - key: DJANGO_SETTINGS_MODULE
         scope: RUN_AND_BUILD_TIME
@@ -97,19 +92,4 @@ workers:
       - key: EMAIL_HOST_PASSWORD
         scope: RUN_AND_BUILD_TIME
         value: ""
-
-static_sites:
-  - name: pointure-frontend
-    github:
-      branch: main
-      repo: averroes96/pointure
-      deploy_on_push: true
-    source_dir: frontend
-    build_command: npm install && npm run build
-    output_dir: dist
-    envs:
-      - key: VITE_API_URL
-        scope: RUN_AND_BUILD_TIME
-        value: https://${APP_DOMAIN}
-
 
