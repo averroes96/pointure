@@ -8,17 +8,13 @@ databases:
     version: "12"
     production: true
     cluster_name: pointure-db-cluster
-
-# The Managed Redis
-services:
   - name: pointure-redis
-    image:
-      registry_type: DOCKER_HUB
-      registry: docker.io
-      repository: redis
-      tag: "7.0-alpine"
-    internal_ports:
-      - 6379
+    engine: REDIS
+    version: "7"
+    production: true
+    cluster_name: pointure-redis-cluster
+
+
 
 # The Django Backend
   - name: pointure-backend
@@ -46,7 +42,7 @@ services:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: redis://${pointure-redis.HOSTNAME}:6379/0
+        value: ${pointure-redis.DATABASE_URL}
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
@@ -75,7 +71,7 @@ workers:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: redis://${pointure-redis.HOSTNAME}:6379/0
+        value: ${pointure-redis.DATABASE_URL}
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
@@ -97,7 +93,7 @@ workers:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: redis://${pointure-redis.HOSTNAME}:6379/0
+        value: ${pointure-redis.DATABASE_URL}
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
