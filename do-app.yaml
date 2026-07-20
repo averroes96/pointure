@@ -106,3 +106,26 @@ static_sites:
       - key: VITE_API_URL
         scope: RUN_AND_BUILD_TIME
         value: https://${pointure-backend.PUBLIC_URL}
+
+jobs:
+  - name: pointure-migrate
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    dockerfile_path: backend/Dockerfile.prod
+    source_dir: backend
+    run_command: python manage.py migrate --noinput
+    kind: PRE_DEPLOY
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${pointure-db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
