@@ -1,0 +1,110 @@
+name: pointure-cloud
+region: fra1
+
+# The Managed Database (PostgreSQL)
+databases:
+  - name: pointure-db
+    engine: PG
+    version: "12"
+    production: true
+    cluster_name: pointure-db-cluster
+
+# The Managed Redis
+services:
+  - name: pointure-redis
+    image:
+      registry_type: DOCKER_HUB
+      registry: docker.io
+      repository: redis
+      tag: "7.0-alpine"
+    internal_ports:
+      - 6379
+
+# The Django Backend
+  - name: pointure-backend
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    dockerfile_path: backend/Dockerfile.prod
+    source_dir: backend
+    run_command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class gthread --threads 2 --timeout 120
+    http_port: 8000
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${pointure-db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+      - key: CORS_ALLOWED_ORIGINS
+        scope: RUN_TIME
+        value: https://${pointure-frontend.PUBLIC_URL}
+      - key: ALLOWED_HOSTS
+        scope: RUN_TIME
+        value: ${pointure-backend.PUBLIC_URL}
+
+# The Celery Worker
+workers:
+  - name: pointure-worker
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    dockerfile_path: backend/Dockerfile.prod
+    source_dir: backend
+    run_command: celery -A config worker -l warning -Q default,pdf,notifications --concurrency 4
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${pointure-db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+
+# The Celery Beat (Scheduler)
+  - name: pointure-beat
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    dockerfile_path: backend/Dockerfile.prod
+    source_dir: backend
+    run_command: celery -A config beat -l warning --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    envs:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${pointure-db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+
+# The React Frontend (Static Site)
+static_sites:
+  - name: pointure-frontend
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm install && npm run build
+    output_dir: dist
+    envs:
+      - key: VITE_API_URL
+        scope: RUN_AND_BUILD_TIME
+        value: https://${pointure-backend.PUBLIC_URL}
