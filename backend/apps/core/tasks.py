@@ -169,3 +169,56 @@ def _prune_old_backups(s3_client, bucket: str, retention_days: int) -> None:
 
     if deleted:
         logger.info("Pruned %d backup(s) older than %d days.", deleted, retention_days)
+
+
+import requests
+from django.conf import settings
+from .models import SyncOutbox
+from celery import shared_task
+import logging
+
+logger = logging.getLogger(__name__)
+
+@shared_task
+def sync_with_cloud_server():
+    """
+    Pushes local SyncOutbox events to the centralized cloud server.
+    """
+    cloud_api_url = getattr(settings, "CLOUD_API_URL", None)
+    if not cloud_api_url:
+        logger.warning("CLOUD_API_URL not set. Skipping sync.")
+        return
+
+    # Get unsynced events in order
+    outbox_events = SyncOutbox.objects.filter(synced=False).order_by("timestamp")
+    if not outbox_events.exists():
+        return
+
+    payload = []
+    for event in outbox_events:
+        payload.append({
+            "id": str(event.id),
+            "tenant_id": str(event.tenant_id),
+            "model_name": event.model_name,
+            "object_id": event.object_id,
+            "action": event.action,
+            "payload": event.payload,
+            "timestamp": event.timestamp.isoformat()
+        })
+
+    try:
+        response = requests.post(
+            f"{cloud_api_url}/api/v1/sync/push/",
+            json={"events": payload},
+            headers={"Authorization": f"Bearer {getattr(settings, 'NODE_API_KEY', '')}"},
+            timeout=30
+        )
+        response.raise_for_status()
+        
+        # If successful, mark as synced
+        outbox_events.update(synced=True)
+        logger.info(f"Successfully synced {len(payload)} events to cloud.")
+        
+    except requests.RequestException as e:
+        logger.error(f"Failed to sync with cloud: {e}")
+

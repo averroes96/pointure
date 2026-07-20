@@ -1,3 +1,4 @@
+import uuid
 """
 Loyalty system models.
 
@@ -166,6 +167,7 @@ class TransactionTypeChoices(models.TextChoices):
 
 class LoyaltyTransaction(models.Model):
     """Immutable event log for all loyalty point movements."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     account = models.ForeignKey(
         LoyaltyAccount,

@@ -1,3 +1,4 @@
+import uuid
 """
 Invoicing models: Invoice, InvoiceLine, InvoicePayment, DeliveryNote, CreditNote.
 
@@ -37,6 +38,7 @@ class InvoiceCounter(models.Model):
     Per-tenant, per-year, per-prefix sequence counter.
     Uses SELECT FOR UPDATE to prevent race conditions on concurrent creation.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey("core.Tenant", on_delete=models.CASCADE)
     prefix = models.CharField(max_length=20, default="FA")
     year = models.IntegerField()
@@ -219,6 +221,7 @@ class Invoice(TenantScopedModel):
 
 class InvoiceLine(models.Model):
     """One line item on an invoice."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="lines")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.SET_NULL, null=True, blank=True,
@@ -248,6 +251,7 @@ class InvoiceLine(models.Model):
 
 class InvoicePayment(models.Model):
     """Payment recorded against an invoice."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(_("Amount"), max_digits=12, decimal_places=2)
     method = models.CharField(
@@ -309,6 +313,7 @@ class DeliveryNote(TenantScopedModel):
 
 class DeliveryNoteLine(models.Model):
     """One line item on a delivery note."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     delivery_note = models.ForeignKey(DeliveryNote, on_delete=models.CASCADE, related_name="lines")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.SET_NULL, null=True, blank=True,

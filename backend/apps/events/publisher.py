@@ -24,8 +24,9 @@ def publish(tenant_id: int, event_type: str, payload: dict) -> None:
             socket_connect_timeout=1,
             socket_timeout=1,
         )
-        data = json.dumps({"type": event_type, **payload})
-        r.publish(f"{CHANNEL_PREFIX}{tenant_id}", data)
+        from django.core.serializers.json import DjangoJSONEncoder
+        data = json.dumps({"type": event_type, **payload}, cls=DjangoJSONEncoder)
+        r.publish(f"{CHANNEL_PREFIX}{str(tenant_id)}", data)
         r.close()
     except Exception:
         logger.debug("SSE publish skipped (non-critical)", exc_info=True)

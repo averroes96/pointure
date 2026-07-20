@@ -1,3 +1,4 @@
+import uuid
 """
 Inventory models: Product, Variant (SKU), StockMovement, StockTransfer.
 

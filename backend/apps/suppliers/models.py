@@ -1,3 +1,4 @@
+import uuid
 """Supplier models: Supplier, PurchaseOrder, POLine, SupplierInvoice, SupplierPayment."""
 from decimal import Decimal
 
@@ -66,6 +67,7 @@ class PurchaseOrder(TenantScopedModel):
 
 
 class POLine(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="lines")
     variant = models.ForeignKey("inventory.Variant", on_delete=models.PROTECT, null=True, blank=True)
     description = models.CharField(max_length=300)

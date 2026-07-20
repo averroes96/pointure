@@ -1,3 +1,4 @@
+import uuid
 """
 Sales models: Sale, SaleItem, Payment, Return, ReturnItem.
 All writes create StockMovement records automatically.
@@ -77,6 +78,7 @@ class Sale(TenantScopedModel):
 
 class SaleItem(models.Model):
     """Line item within a sale."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.PROTECT, related_name="sale_items"
@@ -100,6 +102,7 @@ class SaleItem(models.Model):
 
 class Payment(models.Model):
     """Payment linked to a sale (can be multiple for split payments)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(_("Amount"), max_digits=12, decimal_places=2)
     method = models.CharField(
@@ -145,6 +148,7 @@ class Return(TenantScopedModel):
 
 class ReturnItem(models.Model):
     """Item returned within a return."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     return_obj = models.ForeignKey(Return, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.PROTECT, related_name="return_items"
@@ -235,6 +239,7 @@ class Exchange(TenantScopedModel):
 
 class ExchangeReturnItem(models.Model):
     """Item returned by the customer as part of an exchange (restocked)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, related_name="returned_items")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.PROTECT, related_name="exchange_returns"
@@ -248,6 +253,7 @@ class ExchangeReturnItem(models.Model):
 
 class ExchangeNewItem(models.Model):
     """New item given to the customer as part of an exchange (deducted from stock)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, related_name="new_items")
     variant = models.ForeignKey(
         "inventory.Variant", on_delete=models.PROTECT, related_name="exchange_new_items"

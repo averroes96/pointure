@@ -1,3 +1,4 @@
+import uuid
 """Promotions: scheduled discounts by category, product, or minimum quantity."""
 from decimal import Decimal
 

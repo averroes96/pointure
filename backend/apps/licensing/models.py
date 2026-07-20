@@ -1,3 +1,4 @@
+import uuid
 """
 Local license cache model.
 
@@ -11,6 +12,7 @@ from django.utils import timezone
 
 class LicenseState(models.Model):
     """Singleton-like table — only one row is ever created (id=1)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     machine_id = models.CharField(max_length=64, blank=True)
     license_key = models.CharField(max_length=64, blank=True)

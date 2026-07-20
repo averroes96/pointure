@@ -133,3 +133,62 @@ def audit_post_delete(sender, instance, **kwargs):
     if not _is_audited(instance):
         return
     _write_audit(instance, "delete")
+
+import json
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from django.core.serializers.json import DjangoJSONEncoder
+from django.forms.models import model_to_dict
+
+from .models import TenantScopedModel, SyncOutbox, AuditLog
+
+def serialize_model(instance):
+    """Safely serialize a Django model instance to JSON dict."""
+    try:
+        return model_to_dict(instance)
+    except Exception:
+        return {}
+
+@receiver(post_save)
+def sync_outbox_post_save(sender, instance, created, **kwargs):
+    # Only track TenantScopedModel subclasses
+    if not issubclass(sender, TenantScopedModel):
+        return
+    
+    # Don't track SyncOutbox itself if it ever inherits it, or AuditLog
+    if sender in (SyncOutbox, AuditLog):
+        return
+        
+    action = AuditLog.ActionChoices.CREATE if created else AuditLog.ActionChoices.UPDATE
+    payload = serialize_model(instance)
+    
+    # We must handle UUIDs in JSON
+    # It's better to just stringify the payload or rely on a robust serializer
+    try:
+        payload_json = json.loads(json.dumps(payload, cls=DjangoJSONEncoder))
+    except TypeError:
+        payload_json = {}
+
+    SyncOutbox.objects.create(
+        tenant=instance.tenant,
+        model_name=sender.__name__,
+        object_id=str(instance.pk),
+        action=action,
+        payload=payload_json
+    )
+
+@receiver(post_delete)
+def sync_outbox_post_delete(sender, instance, **kwargs):
+    if not issubclass(sender, TenantScopedModel):
+        return
+        
+    if sender in (SyncOutbox, AuditLog):
+        return
+        
+    SyncOutbox.objects.create(
+        tenant=instance.tenant,
+        model_name=sender.__name__,
+        object_id=str(instance.pk),
+        action=AuditLog.ActionChoices.DELETE,
+        payload={"id": str(instance.pk)}
+    )

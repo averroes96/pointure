@@ -17,3 +17,10 @@ app.autodiscover_tasks()
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
     print(f"Request: {self.request!r}")
+
+app.conf.beat_schedule = {
+    'sync-with-cloud-every-5-minutes': {
+        'task': 'apps.core.tasks.sync_with_cloud_server',
+        'schedule': 300.0,  # 5 minutes in seconds
+    },
+}

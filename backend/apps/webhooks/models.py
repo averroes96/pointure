@@ -45,6 +45,7 @@ class WebhookEndpoint(TenantScopedModel):
 
 class WebhookDelivery(models.Model):
     """Outbox entry for a single webhook delivery attempt."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     idempotency_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     endpoint = models.ForeignKey(

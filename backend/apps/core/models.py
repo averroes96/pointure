@@ -103,6 +103,7 @@ class Tenant(models.Model):
 
 class User(AbstractUser):
     """Custom user model. Tied to a tenant and has a role."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Remove username — we use email
     username = None
     email = models.EmailField(_("Email Address"), unique=True)
@@ -161,6 +162,7 @@ class User(AbstractUser):
 
 class Branch(models.Model):
     """A physical location belonging to a tenant."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="branches")
     name = models.CharField(_("Branch Name"), max_length=150)
     address = models.TextField(_("Address"), blank=True)
@@ -189,6 +191,7 @@ class TenantScopedModel(models.Model):
     The custom TenantManager auto-filters by request.tenant.
     Direct use of .objects is intentionally shadowed — always use from views.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(
         Tenant,
         on_delete=models.CASCADE,
@@ -210,6 +213,7 @@ class AuditLog(models.Model):
     Immutable audit trail. Written via Django signals on financial models.
     Owner-only view in the admin.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     class ActionChoices(models.TextChoices):
         CREATE = "create", _("Created")
         UPDATE = "update", _("Updated")
@@ -261,3 +265,28 @@ class StoreSettings(TenantScopedModel):
 
     def __str__(self):
         return f"Settings — {self.tenant}"
+
+# ─────────────────────────────────────────────
+# SyncOutbox
+# ─────────────────────────────────────────────
+
+class SyncOutbox(models.Model):
+    """
+    Transactional Outbox for tracking offline changes.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="sync_outbox")
+    model_name = models.CharField(max_length=100)
+    object_id = models.CharField(max_length=50)
+    action = models.CharField(max_length=10, choices=AuditLog.ActionChoices.choices)
+    payload = models.JSONField(default=dict, blank=True)
+    synced = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = _("Sync Outbox Event")
+        verbose_name_plural = _("Sync Outbox Events")
+        ordering = ["timestamp"]
+
+    def __str__(self):
+        return f"{self.action} {self.model_name}#{self.object_id} (Synced: {self.synced})"

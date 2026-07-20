@@ -1,3 +1,4 @@
+import uuid
 """
 Client models: Client, ClientLedger, Cheque.
 Client.cached_balance is maintained via signals on ClientLedger.
@@ -95,6 +96,7 @@ class ClientLedger(models.Model):
     Debit entries = client owes us (invoice issued).
     Credit entries = client paid us.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="ledger_entries")
     entry_type = models.CharField(
         _("Entry Type"), max_length=6, choices=LedgerEntryTypeChoices.choices
