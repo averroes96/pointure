@@ -1,22 +1,20 @@
 name: pointure-cloud
 region: fra1
 
-# The Managed Database (PostgreSQL)
 databases:
   - name: pointure-db
     engine: PG
     version: "12"
-    production: true
-    cluster_name: pointure-db-cluster
+
+services:
   - name: pointure-redis
-    engine: REDIS
-    version: "7"
-    production: true
-    cluster_name: pointure-redis-cluster
+    image:
+      registry_type: DOCKER_HUB
+      repository: redis
+      tag: "7.0-alpine"
+    internal_ports:
+      - 6379
 
-
-
-# The Django Backend
   - name: pointure-backend
     github:
       branch: main
@@ -33,7 +31,6 @@ databases:
       - path: /docs
       - path: /static
       - path: /media
-
     envs:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
@@ -42,7 +39,7 @@ databases:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: ${pointure-redis.DATABASE_URL}
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
@@ -53,7 +50,6 @@ databases:
         scope: RUN_TIME
         value: ${pointure-backend.PUBLIC_URL}
 
-# The Celery Worker
 workers:
   - name: pointure-worker
     github:
@@ -71,12 +67,11 @@ workers:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: ${pointure-redis.DATABASE_URL}
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
 
-# The Celery Beat (Scheduler)
   - name: pointure-beat
     github:
       branch: main
@@ -93,12 +88,11 @@ workers:
         value: ${pointure-db.DATABASE_URL}
       - key: REDIS_URL
         scope: RUN_TIME
-        value: ${pointure-redis.DATABASE_URL}
+        value: redis://${pointure-redis.HOSTNAME}:6379/0
       - key: SECRET_KEY
         scope: RUN_TIME
         value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
 
-# The React Frontend (Static Site)
 static_sites:
   - name: pointure-frontend
     github:

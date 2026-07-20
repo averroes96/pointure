@@ -1,0 +1,29 @@
+name: pointure-license-server
+region: fra1
+
+# Database for License Server
+databases:
+  - name: license-db
+    engine: PG
+    version: "12"
+
+# Django Web Service
+services:
+  - name: license-backend
+    github:
+      branch: main
+      repo: averroes96/pointure
+      deploy_on_push: true
+    dockerfile_path: license-server/Dockerfile
+    source_dir: license-server
+    http_port: 8000
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${license-db.DATABASE_URL}
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_A_SECURE_SECRET_KEY
+      - key: ALLOWED_HOSTS
+        scope: RUN_TIME
+        value: ${license-backend.PUBLIC_URL}

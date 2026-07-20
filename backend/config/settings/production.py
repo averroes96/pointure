@@ -26,11 +26,11 @@ CSRF_COOKIE_SECURE = True
 # safe fallback defaults for a live server.
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-# Required env vars (no defaults — startup fails fast if they are missing):
-EMAIL_HOST = config("EMAIL_HOST")
+# Provide defaults so startup doesn't fail if they are missing
+EMAIL_HOST = config("EMAIL_HOST", default="")
 EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 
 # Port 587 → STARTTLS; port 465 → SSL.  Set exactly one to True in .env.prod.
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
