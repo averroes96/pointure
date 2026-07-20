@@ -142,8 +142,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         out_serializer = ProductSerializer(product, context={"request": request})
         return Response(out_serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["post"], url_path="import",
-            parser_classes=None)  # accepts MultiPartParser via DEFAULT_PARSER_CLASSES
+    @action(detail=False, methods=["post"], url_path="import")
     def import_products(self, request):
         """
         POST /inventory/products/import/
