@@ -54,4 +54,10 @@ LOGGING["root"]["handlers"].append("file")  # noqa: F405
 # ─────────────────────────────────────────────
 # Static files (WhiteNoise)
 # ─────────────────────────────────────────────
-STORAGES["staticfiles"]["BACKEND"] = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+if "STORAGES" not in locals():
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+else:
+    STORAGES["staticfiles"] = {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
