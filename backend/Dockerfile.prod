@@ -24,10 +24,10 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
+RUN mkdir -p /app/logs
 RUN python manage.py collectstatic --no-input --settings=config.settings.production || true
 
 RUN addgroup --system django && adduser --system --ingroup django django
-RUN mkdir -p /app/logs
 RUN chown -R django:django /app
 USER django
 
