@@ -77,7 +77,7 @@ class NewVariantInputSerializer(serializers.Serializer):
     Either supply product_id (link to an existing product) OR product_name + brand
     to find-or-create the product. product_id takes precedence when present.
     """
-    product_id     = serializers.IntegerField(required=False, allow_null=True, default=None)
+    product_id     = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_name   = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
     brand          = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     category       = serializers.ChoiceField(
@@ -95,12 +95,12 @@ class CartonSizeInputSerializer(serializers.Serializer):
     size_eu   = serializers.IntegerField(min_value=15, max_value=60)
     quantity  = serializers.IntegerField(min_value=0)
     # Variant resolution — same logic as top-level receive
-    variant_id  = serializers.IntegerField(required=False, allow_null=True, default=None)
+    variant_id  = serializers.UUIDField(required=False, allow_null=True, default=None)
     new_variant = NewVariantInputSerializer(required=False, allow_null=True, default=None)
 
 
 class POLineInputSerializer(serializers.Serializer):
-    variant = serializers.IntegerField(required=False, allow_null=True, default=None)
+    variant = serializers.UUIDField(required=False, allow_null=True, default=None)
     description = serializers.CharField(max_length=300)
     quantity_ordered = serializers.IntegerField(min_value=1, required=False)
     cartons = serializers.IntegerField(min_value=0, required=False, default=0)
@@ -114,7 +114,7 @@ class POLineInputSerializer(serializers.Serializer):
 
 
 class CreatePurchaseOrderSerializer(serializers.Serializer):
-    supplier = serializers.IntegerField()
+    supplier = serializers.UUIDField()
     reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     expected_date = serializers.DateField(required=False, allow_null=True, default=None)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
@@ -123,15 +123,15 @@ class CreatePurchaseOrderSerializer(serializers.Serializer):
     
     # Direct Reception options
     receive_immediately = serializers.BooleanField(required=False, default=False)
-    branch = serializers.IntegerField(required=False, allow_null=True, default=None)
+    branch = serializers.UUIDField(required=False, allow_null=True, default=None)
     bl_reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
 
 
 class ReceiveLineInputSerializer(serializers.Serializer):
-    id               = serializers.IntegerField()
+    id               = serializers.UUIDField()
     quantity_received = serializers.IntegerField(min_value=0)
     # Resolution for unlinked lines (mutually exclusive — send one or neither)
-    variant_id   = serializers.IntegerField(required=False, allow_null=True, default=None)
+    variant_id   = serializers.UUIDField(required=False, allow_null=True, default=None)
     new_variant  = NewVariantInputSerializer(required=False, allow_null=True, default=None)
     # Carton mode: per-size expansion (overrides variant_id / new_variant when present)
     # quantity_received is ignored and recomputed as sum of carton_sizes quantities.
@@ -143,7 +143,7 @@ class ReceiveLinesSerializer(serializers.Serializer):
     # Supplier's delivery note reference (BL number) — stored on each StockMovement
     bl_reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     # Branch that received the stock — defaults to HQ if omitted
-    branch = serializers.IntegerField(required=False, allow_null=True, default=None)
+    branch = serializers.UUIDField(required=False, allow_null=True, default=None)
 
 
 # ── Supplier Invoice / Payment ─────────────────────────────────────────────────
