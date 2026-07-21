@@ -8,7 +8,7 @@ from .models import CreditNote, DeliveryNote, DeliveryNoteLine, Invoice, Invoice
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
     line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    product_id = serializers.IntegerField(source="variant.product_id", read_only=True)
+    product_id = serializers.UUIDField(source="variant.product_id", read_only=True)
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
     colour = serializers.CharField(source="variant.colour", read_only=True)
     size_eu = serializers.CharField(source="variant.size_eu", read_only=True)
@@ -74,8 +74,8 @@ class InitialPaymentInput(serializers.Serializer):
 
 class CreateInvoiceSerializer(serializers.Serializer):
     """Input for creating a new invoice with lines."""
-    client_id = serializers.IntegerField(required=False, allow_null=True)
-    branch_id = serializers.IntegerField(required=False, allow_null=True)
+    client_id = serializers.UUIDField(required=False, allow_null=True)
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
     date = serializers.DateField()
     due_date = serializers.DateField()
     series_prefix = serializers.CharField(default="FA", max_length=20)
@@ -112,7 +112,7 @@ class DeliveryNoteSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 class CreateDeliveryNoteSerializer(serializers.Serializer):
-    client_id = serializers.IntegerField(required=True)
+    client_id = serializers.UUIDField(required=True)
     date = serializers.DateField()
     number = serializers.CharField(max_length=30)
     delivered_by = serializers.CharField(max_length=150, required=False, allow_blank=True)
@@ -120,9 +120,9 @@ class CreateDeliveryNoteSerializer(serializers.Serializer):
     lines = DeliveryNoteLineSerializer(many=True, min_length=1)
 
 class RegrouperBLsSerializer(serializers.Serializer):
-    client_id = serializers.IntegerField(required=True)
+    client_id = serializers.UUIDField(required=True)
     delivery_note_ids = serializers.ListField(
-        child=serializers.IntegerField(), min_length=1
+        child=serializers.UUIDField(), min_length=1
     )
     date = serializers.DateField()
     due_date = serializers.DateField()

@@ -71,7 +71,7 @@ class SaleSerializer(serializers.ModelSerializer):
 # ─── Create sale input ────────────────────────────────────────────────────────
 
 class CreateSaleItemInput(serializers.Serializer):
-    variant_id = serializers.IntegerField()
+    variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2)
     discount_amount = serializers.DecimalField(
@@ -90,8 +90,8 @@ class CreateSaleSerializer(serializers.Serializer):
     """
     Input for POST /api/v1/sales/ — creates the complete sale atomically.
     """
-    branch_id = serializers.IntegerField(required=False, allow_null=True)
-    client_id = serializers.IntegerField(required=False, allow_null=True)
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
+    client_id = serializers.UUIDField(required=False, allow_null=True)
     items = CreateSaleItemInput(many=True, min_length=1)
     payments = CreatePaymentInput(many=True, min_length=1)
     cart_discount = serializers.DecimalField(
@@ -430,7 +430,7 @@ class AddPaymentSerializer(serializers.Serializer):
 
 
 class ReturnItemInput(serializers.Serializer):
-    variant_id = serializers.IntegerField()
+    variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
     restock = serializers.BooleanField(default=True)
 
@@ -652,7 +652,7 @@ class CashReconciliationSerializer(serializers.ModelSerializer):
 
 class CreateReconciliationSerializer(serializers.Serializer):
     date = serializers.DateField()
-    branch = serializers.IntegerField(required=False, allow_null=True)
+    branch = serializers.UUIDField(required=False, allow_null=True)
     actual_cash = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_cheque = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_ccp = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
@@ -663,12 +663,12 @@ class CreateReconciliationSerializer(serializers.Serializer):
 # ─── Exchange input ───────────────────────────────────────────────────────────
 
 class ExchangeReturnItemInput(serializers.Serializer):
-    variant_id = serializers.IntegerField()
+    variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
 
 
 class ExchangeNewItemInput(serializers.Serializer):
-    variant_id = serializers.IntegerField()
+    variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2)
 

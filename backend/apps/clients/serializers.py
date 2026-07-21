@@ -64,7 +64,7 @@ class ChequeSerializer(serializers.ModelSerializer):
 
 class DebtAgeingRowSerializer(serializers.Serializer):
     """One row in the debt ageing report."""
-    client_id = serializers.IntegerField()
+    client_id = serializers.UUIDField()
     client_name = serializers.CharField()
     phone = serializers.CharField()
     wilaya = serializers.CharField()
