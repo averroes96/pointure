@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
-const PO_STATUS_LABELS: Record<string, string> = {
+const getPOStatusLabels = (t: (key: string) => string): Record<string, string> => ({
   draft: t("supplier.draft"),
   sent: t("supplier.sent"),
-  partial: "Partiel",
+  partial: t("supplier.partial"),
   received: t("supplier.received"),
   cancelled: t("supplier.cancelled"),
-};
+});
 
 const PO_STATUS_BADGE: Record<string, string> = {
   draft: "badge-neutral",
@@ -321,7 +321,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
                   <td className="text-text-muted">{po.expected_date ? formatDate(po.expected_date) : "—"}</td>
                   <td>
                     <span className={cn("badge", PO_STATUS_BADGE[po.status])}>
-                      {PO_STATUS_LABELS[po.status] ?? po.status}
+                      {getPOStatusLabels(t)[po.status] ?? po.status}
                     </span>
                   </td>
                   <td className="text-end font-mono text-sm">{formatDZD(po.total_amount)} DZD</td>
