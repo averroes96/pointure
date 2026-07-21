@@ -149,17 +149,31 @@ class ProductLocation(TenantScopedModel):
 
 def generate_barcode(variant):
     """
-    Generate an EAN-13-like barcode from tenant + product + variant sequence.
-    Format: 213 + tenant_seq(4) + product_id(3) + variant_seq(3)
+    Generate a 14-digit numeric string barcode for CODE-128C / EAN rendering.
+    Format: 213 + tenant_num(3) + product_num(4) + variant_num(3) + check(1)
+    Handles UUID primary keys safely without TypeError.
     """
-    tenant_num = str(hash(str(variant.product.tenant_id)) % 10000).zfill(4)
-    product_num = str(variant.product_id % 1000).zfill(3)
-    variant_num = str(variant.pk % 1000).zfill(3) if variant.pk else "000"
-    base = f"213{tenant_num}{product_num}{variant_num}"
-    # EAN-13 check digit
+    def _to_num(val):
+        if not val:
+            return 0
+        s = str(val).replace("-", "")
+        try:
+            return int(s[:8], 16)
+        except ValueError:
+            return abs(hash(s))
+
+    t_val = _to_num(getattr(variant.product, "tenant_id", None))
+    p_val = _to_num(variant.product_id)
+    v_val = _to_num(variant.pk)
+
+    tenant_num = str(t_val % 1000).zfill(3)
+    product_num = str(p_val % 10000).zfill(4)
+    variant_num = str(v_val % 1000).zfill(3)
+
+    base = f"213{tenant_num}{product_num}{variant_num}"  # 13 digits
     total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(base))
     check = (10 - (total % 10)) % 10
-    return base + str(check)
+    return base + str(check)  # 14 digits
 
 
 class Variant(TenantScopedModel):
@@ -194,7 +208,7 @@ class Variant(TenantScopedModel):
         # Auto-generate barcode if not set (can only be done after pk is assigned)
         is_new = not self.pk
         super().save(*args, **kwargs)
-        if is_new and not self.barcode:
+        if (is_new or not self.barcode) and self.pk:
             self.barcode = generate_barcode(self)
             Variant.objects.filter(pk=self.pk).update(barcode=self.barcode)
 

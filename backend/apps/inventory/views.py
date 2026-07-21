@@ -372,15 +372,18 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         and opens it in a new tab where the browser renders it inline.
         """
         product = self.get_object()
-        variants = (
+        variants = list(
             product.variants
             .filter(is_active=True)
-            .exclude(barcode__isnull=True)
-            .exclude(barcode="")
             .order_by("size_eu", "colour")
         )
 
-        labels_html = "\n".join(_render_label(product, v) for v in variants)
+        for v in variants:
+            if not v.barcode:
+                v.barcode = generate_barcode(v)
+                Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
+
+        labels_html = "\n".join(_render_label(product, v) for v in variants if v.barcode)
 
         if not labels_html:
             labels_html = (
@@ -638,11 +641,8 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         variant = self.get_object()
         if not variant.barcode:
-            return HttpResponse(
-                "Cette variante n'a pas encore de code-barres.",
-                content_type="text/plain",
-                status=400,
-            )
+            variant.barcode = generate_barcode(variant)
+            Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
         copies = max(1, min(int(request.query_params.get("copies", 1) or 1), 200))
 
