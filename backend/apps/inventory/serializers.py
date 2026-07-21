@@ -171,6 +171,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
     variant_str = serializers.CharField(source="variant.__str__", read_only=True)
     user_email = serializers.CharField(source="user.email", read_only=True)
     branch_name = serializers.CharField(source="branch.name", read_only=True)
+    reference_id = serializers.SerializerMethodField()
 
     class Meta:
         model = StockMovement
@@ -180,6 +181,14 @@ class StockMovementSerializer(serializers.ModelSerializer):
             "bl_reference", "notes", "user_email", "timestamp",
         ]
         read_only_fields = ["id", "timestamp", "user_email"]
+
+    def get_reference_id(self, obj) -> str:
+        if obj.bl_reference:
+            return obj.bl_reference
+        ref = obj.reference_id or ""
+        if len(ref) == 36 and "-" in ref:
+            return f"#{ref[:8]}"
+        return ref
 
 
 class StockAdjustmentSerializer(serializers.Serializer):

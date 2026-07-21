@@ -305,7 +305,7 @@ class CreateSaleSerializer(serializers.Serializer):
                 branch=branch,
                 quantity_delta=-item_data["quantity"],
                 reason=MovementReasonChoices.SALE,
-                reference_id=str(sale.pk),
+                reference_id=receipt_number or str(sale.pk),
                 reference_type="Sale",
                 user=cashier,
             )
