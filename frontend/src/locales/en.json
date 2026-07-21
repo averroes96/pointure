@@ -588,7 +588,10 @@
     "import_pdf": "Import PDF",
     "add_manual": "Add Manually",
     "error_pdf_import": "Failed to import PDF: ",
-    "delete_line": "Delete Line"
+    "delete_line": "Delete Line",
+    "unspecified_reference": "Unspecified",
+    "purchase_order": "Purchase Order",
+    "order_with_ref": "Order {{ref}}"
   },
   "transfer_status": {
     "pending": "Pending",

@@ -104,36 +104,40 @@ export default function PurchaseOrderListPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>N°</th>
                 <th>{t("supplier.supplier")}</th>
                 <th>{t("supplier.reference")}</th>
                 <th>{t("supplier.expected_date")}</th>
                 <th>Statut</th>
                 <th className="text-end">{t("common.total")}</th>
-                <th>Actions</th>
+                <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">Chargement...</td>
+                  <td colSpan={6} className="text-center py-8 text-text-muted">Chargement...</td>
                 </tr>
               )}
               {!isLoading && orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("supplier.no_po_found")}</td>
+                  <td colSpan={6} className="text-center py-8 text-text-muted">{t("supplier.no_po_found")}</td>
                 </tr>
               )}
               {orders.map((po) => (
                 <tr key={po.id}>
-                  <td>
+                  <td className="font-medium text-text-primary">
                     <div className="flex items-center gap-2">
                       <ShoppingBag size={13} className="text-text-muted flex-shrink-0" />
-                      <span className="font-mono font-medium text-sm">#{po.id}</span>
+                      <span>{po.supplier_name}</span>
                     </div>
                   </td>
-                  <td className="font-medium text-text-primary">{po.supplier_name}</td>
-                  <td className="text-text-muted text-sm">{po.reference || "—"}</td>
+                  <td>
+                    {po.reference ? (
+                      <span className="font-medium text-text-primary">{po.reference}</span>
+                    ) : (
+                      <span className="text-text-muted text-xs italic">{t("supplier.unspecified_reference")}</span>
+                    )}
+                  </td>
                   <td className="text-text-muted">
                     {po.expected_date ? formatDate(po.expected_date) : "—"}
                   </td>

@@ -806,7 +806,7 @@ export default function PurchaseOrderDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-text-primary">
-                Commande #{po.id}
+                {po.reference ? t("supplier.order_with_ref", { ref: po.reference }) : t("supplier.purchase_order")}
               </h1>
               <span className={cn("badge", STATUS_BADGE[po.status])}>
                 {STATUS_LABEL[po.status]}

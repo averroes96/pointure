@@ -299,25 +299,29 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>N°</th>
                 <th>{t("supplier.reference")}</th>
                 <th>Date attendue</th>
                 <th>{t("supplier.status")}</th>
                 <th className="text-end">{t("common.total")}</th>
-                <th>Actions</th>
+                <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
               )}
               {!isLoading && orders.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-text-muted">Aucune commande.</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-text-muted">Aucune commande.</td></tr>
               )}
               {orders.map((po) => (
                 <tr key={po.id}>
-                  <td className="font-mono text-sm">#{po.id}</td>
-                  <td className="font-medium">{po.reference || "—"}</td>
+                  <td>
+                    {po.reference ? (
+                      <span className="font-medium text-text-primary">{po.reference}</span>
+                    ) : (
+                      <span className="text-text-muted text-xs italic">{t("supplier.unspecified_reference")}</span>
+                    )}
+                  </td>
                   <td className="text-text-muted">{po.expected_date ? formatDate(po.expected_date) : "—"}</td>
                   <td>
                     <span className={cn("badge", PO_STATUS_BADGE[po.status])}>
@@ -325,7 +329,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
                     </span>
                   </td>
                   <td className="text-end font-mono text-sm">{formatDZD(po.total_amount)} DZD</td>
-                  <td>
+                  <td className="text-end">
                     <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">
                       Voir
                     </Link>

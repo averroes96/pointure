@@ -617,7 +617,10 @@
     "import_pdf": "Importer PDF",
     "add_manual": "Ajouter manuellement",
     "error_pdf_import": "Échec de l'importation du PDF: ",
-    "delete_line": "Supprimer la ligne"
+    "delete_line": "Supprimer la ligne",
+    "unspecified_reference": "Non spécifiée",
+    "purchase_order": "Bon de commande",
+    "order_with_ref": "Commande {{ref}}"
   },
   "transfer_status": {
     "pending": "En attente",

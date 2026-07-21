@@ -588,7 +588,10 @@
     "import_pdf": "استيراد PDF",
     "add_manual": "إضافة يدوية",
     "error_pdf_import": "فشل استيراد PDF: ",
-    "delete_line": "حذف السطر"
+    "delete_line": "حذف السطر",
+    "unspecified_reference": "غير محدد",
+    "purchase_order": "أمر شراء",
+    "order_with_ref": "طلب {{ref}}"
   },
   "transfer_status": {
     "pending": "قيد الانتظار",
