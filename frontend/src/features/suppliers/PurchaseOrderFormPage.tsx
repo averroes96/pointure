@@ -295,7 +295,7 @@ export default function PurchaseOrderFormPage() {
         const newLines = parsedLines.map((pl: any) => ({
           _id: localId(),
           variant_id: null,
-          description: `Auto-import ${pl.reference}`,
+          description: pl.reference,
           quantity_ordered: String(pl.total_pairs || (pl.cartons * pl.pairs_per_carton) || 1),
           agreed_unit_price: String(pl.price || ""),
           is_carton: true,
