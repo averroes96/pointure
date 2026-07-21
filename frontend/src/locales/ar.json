@@ -3,7 +3,8 @@
     "name": "ShoeDZ",
     "tagline": "إدارة محلات الأحذية",
     "loading": "جاري التحميل...",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "creating": "جارٍ الإنشاء..."
   },
   "nav": {
     "dashboard": "لوحة القيادة",

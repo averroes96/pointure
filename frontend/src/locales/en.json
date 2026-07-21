@@ -3,7 +3,8 @@
     "name": "ShoeDZ",
     "tagline": "Shoe Store Management",
     "loading": "Loading...",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "creating": "Creating..."
   },
   "nav": {
     "dashboard": "Dashboard",

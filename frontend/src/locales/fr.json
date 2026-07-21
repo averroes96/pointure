@@ -3,7 +3,8 @@
     "name": "ShoeDZ",
     "tagline": "Gestion de chaussures",
     "loading": "Chargement...",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "creating": "Création..."
   },
   "nav": {
     "dashboard": "Tableau de bord",
