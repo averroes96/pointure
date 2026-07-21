@@ -465,7 +465,11 @@
     "reconciliation_history": "Reconciliation History",
     "register": "Register",
     "submitted_by": "Submitted by",
-    "sale": "Sale"
+    "sale": "Sale",
+    "opening_float": "Opening Cash Float",
+    "expenses": "Petty Expenses (Outflow)",
+    "cash_drops": "Cash Drops / Safe Deposit",
+    "expected_cash": "Expected Closing Cash"
   },
   "cheque": {
     "number": "Cheque #",

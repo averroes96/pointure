@@ -247,7 +247,10 @@ export interface CashReconciliation {
   system_virement: string;
   system_account: string;
   system_sales_count: number;
-  system_total_refunds: string;
+  opening_float: string;
+  expenses: string;
+  cash_drops: string;
+  expected_cash: string;
   actual_cash: string;
   actual_cheque: string;
   actual_ccp: string;

@@ -190,7 +190,10 @@ class CashReconciliation(TenantScopedModel):
     system_sales_count = models.PositiveIntegerField(default=0)
     system_total_refunds = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
 
-    # Actual counted amounts
+    # Actual counted amounts & movements
+    opening_float = models.DecimalField(_("Opening Cash Float"), max_digits=12, decimal_places=2, default=Decimal("0"))
+    expenses = models.DecimalField(_("Petty Cash Expenses"), max_digits=12, decimal_places=2, default=Decimal("0"))
+    cash_drops = models.DecimalField(_("Cash Drops / Safe Deposit"), max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_cash = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_cheque = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_ccp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))

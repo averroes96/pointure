@@ -1,12 +1,12 @@
 /**
  * End-of-day cash reconciliation.
- * Cashier enters actual counted amounts per payment method;
- * the system computes gaps vs what was recorded in sales.
+ * Cashier enters opening float, petty expenses, cash drops, and actual counted amounts per payment method;
+ * the system computes gaps vs expected cash in drawer.
  * Managers can approve the submission.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Clock, AlertTriangle, Check, ChevronDown, ChevronUp, Printer } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, Check, ChevronDown, ChevronUp, Printer, DollarSign, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import { openPrintPopup } from "@/lib/printPopup";
 import { cn } from "@/lib/utils";
@@ -24,29 +24,33 @@ function todayISO(): string {
   ].join("-");
 }
 
-// METHOD_LABELS translation done inline using t("payment_method." + m)
 const METHODS = ["cash", "cheque", "ccp", "virement"] as const;
 type Method = (typeof METHODS)[number];
 
 // ── Print template ────────────────────────────────────────────────────────────
 
 function buildPrintHtml(rec: CashReconciliation): string {
+  const opening = parseFloat(rec.opening_float || "0");
+  const exp = parseFloat(rec.expenses || "0");
+  const drops = parseFloat(rec.cash_drops || "0");
+  const expectedCash = parseFloat(rec.expected_cash || "0");
+  const totalGap = parseFloat(rec.total_gap || "0");
+
+  const gapColor = totalGap < 0 ? "color:#c0392b;" : totalGap > 0 ? "color:#e67e22;" : "color:#27ae60;";
+
   const rows = METHODS.map((m) => {
-    const sys = parseFloat((rec as any)[`system_${m}`] ?? "0");
+    const sys = m === "cash" ? expectedCash : parseFloat((rec as any)[`system_${m}`] ?? "0");
     const act = parseFloat((rec as any)[`actual_${m}`] ?? "0");
-    const gap = act - sys;
+    const gap = m === "cash" ? act - expectedCash : act - sys;
     const gapStr = gap === 0 ? "—" : `${gap > 0 ? "+" : ""}${gap.toLocaleString("fr-DZ")}`;
-    const gapColor = gap < 0 ? "color:#c0392b;" : gap > 0 ? "color:#e67e22;" : "color:#27ae60;";
+    const color = gap < 0 ? "color:#c0392b;" : gap > 0 ? "color:#e67e22;" : "color:#27ae60;";
     return `<tr>
-      <td>${t(`payment_method.${m}`)}</td>
-      <td style="text-align:right;">${sys.toLocaleString("fr-DZ")}</td>
-      <td style="text-align:right;">${act.toLocaleString("fr-DZ")}</td>
-      <td style="text-align:right;font-weight:600;${gapColor}">${gapStr}</td>
+      <td>${m === "cash" ? "Espèces (Caisse Théorique)" : m.toUpperCase()}</td>
+      <td style="text-align:right;">${sys.toLocaleString("fr-DZ")} DZD</td>
+      <td style="text-align:right;">${act.toLocaleString("fr-DZ")} DZD</td>
+      <td style="text-align:right;font-weight:600;${color}">${gapStr} DZD</td>
     </tr>`;
   }).join("");
-
-  const totalGap = parseFloat(rec.total_gap);
-  const gapColor = totalGap < 0 ? "color:#c0392b;" : totalGap > 0 ? "color:#e67e22;" : "color:#27ae60;";
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -58,6 +62,9 @@ function buildPrintHtml(rec: CashReconciliation): string {
     body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:12mm;}
     h1{font-size:17px;font-weight:700;margin-bottom:3px;}
     .meta{font-size:11px;color:#555;margin-bottom:12px;}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;background:#f9f9f9;padding:10px;border-radius:6px;border:1px solid #ddd;}
+    .grid-item{font-size:11px;}
+    .grid-item strong{display:block;font-size:12px;color:#111;margin-top:2px;}
     table{width:100%;border-collapse:collapse;margin-top:8px;}
     th,td{padding:6px 8px;border-bottom:1px solid #eee;text-align:left;}
     th{background:#f5f5f5;font-weight:600;font-size:10px;text-transform:uppercase;}
@@ -70,30 +77,35 @@ function buildPrintHtml(rec: CashReconciliation): string {
   </style>
 </head>
 <body>
-  <h1>{t("sales.reconciliation_title")}</h1>
+  <h1>Fermeture de caisse (Reconciliation)</h1>
   <div class="meta">
     Date : ${rec.date}${rec.branch_name ? ` · Caisse : ${rec.branch_name}` : ""}
     · Soumis par : ${rec.submitted_by_name ?? "—"}
     · <span class="status ${rec.status === "approved" ? "approved" : "pending"}">
-        ${rec.status === "approved" ? t("sales.status_approved") : t("sales.status_pending")}
+        ${rec.status === "approved" ? "Approuvé" : "En attente"}
       </span>
+  </div>
+
+  <div class="grid">
+    <div class="grid-item">Fond de caisse initial<strong>+ ${opening.toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">Ventes Espèces<strong>+ ${parseFloat(rec.system_cash).toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">Dépenses & Retraits<strong>- ${(exp + drops).toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">Caisse Théorique<strong>= ${expectedCash.toLocaleString("fr-DZ")} DZD</strong></div>
   </div>
 
   <table>
     <thead>
       <tr>
         <th>Mode</th>
-        <th style="text-align:right;">Système</th>
+        <th style="text-align:right;">Théorique / Système</th>
         <th style="text-align:right;">Compté</th>
-        <th style="text-align:right;">
-                      {t("sales.gap")}
-                    </th>
+        <th style="text-align:right;">Écart</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td>{t("common.total")}</td>
+        <td>TOTAL</td>
         <td style="text-align:right;">${parseFloat(rec.total_system).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;">${parseFloat(rec.total_actual).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;${gapColor}">
@@ -103,9 +115,9 @@ function buildPrintHtml(rec: CashReconciliation): string {
     </tfoot>
   </table>
 
-  <p style="margin-top:8px;font-size:10px;color:#777;">Ventes : ${rec.system_sales_count} · Retours : ${parseFloat(rec.system_total_refunds).toLocaleString("fr-DZ")} DZD</p>
+  <p style="margin-top:8px;font-size:10px;color:#777;">Ventes enregistrées : ${rec.system_sales_count} · Retours : ${parseFloat(rec.system_total_refunds).toLocaleString("fr-DZ")} DZD</p>
 
-  ${rec.notes ? `<div class="notes"><strong>Notes :</strong> ${rec.notes}</div>` : ""}
+  ${rec.notes ? `<div class="notes"><strong>Notes / Observations :</strong> ${rec.notes}</div>` : ""}
 
   <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:11px;">
     <div>
@@ -204,7 +216,7 @@ function HistoryRow({
           <td colSpan={8} className="px-4 py-3">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-2">
               {METHODS.map((m) => {
-                const sys = parseFloat((rec as any)[`system_${m}`]);
+                const sys = m === "cash" ? parseFloat(rec.expected_cash || rec.system_cash) : parseFloat((rec as any)[`system_${m}`]);
                 const act = parseFloat((rec as any)[`actual_${m}`]);
                 const gap = act - sys;
                 return (
@@ -250,6 +262,9 @@ export default function ReconciliationPage() {
   const queryClient = useQueryClient();
 
   const [date, setDate] = useState(todayISO());
+  const [openingFloat, setOpeningFloat] = useState("");
+  const [expenses, setExpenses] = useState("");
+  const [cashDrops, setCashDrops] = useState("");
   const [amounts, setAmounts] = useState<ActualAmounts>({ cash: "", cheque: "", ccp: "", virement: "" });
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -286,15 +301,26 @@ export default function ReconciliationPage() {
   const todayRec = existing?.[0] ?? null;
   const systemAmounts = summary?.by_payment_method ?? {};
 
+  const numOpeningFloat = parseFloat(openingFloat || "0") || 0;
+  const numExpenses = parseFloat(expenses || "0") || 0;
+  const numCashDrops = parseFloat(cashDrops || "0") || 0;
+  const totalRefunds = summary?.total_refunds || 0;
+  const rawCashSales = parseFloat(String(systemAmounts["cash"] ?? "0")) || 0;
+
+  // Expected cash = Opening Float + Sales Cash - Refunds - Expenses - Cash Drops
+  const expectedCash = numOpeningFloat + rawCashSales - totalRefunds - numExpenses - numCashDrops;
+
   function getActual(m: Method): number {
     return parseFloat(amounts[m] || "0") || 0;
   }
   function getSystem(m: Method): number {
+    if (m === "cash") return expectedCash;
     return parseFloat(String(systemAmounts[m] ?? "0")) || 0;
   }
   function getGap(m: Method): number {
     return getActual(m) - getSystem(m);
   }
+
   const totalSystem = METHODS.reduce((s, m) => s + getSystem(m), 0);
   const totalActual = METHODS.reduce((s, m) => s + getActual(m), 0);
   const totalGap = totalActual - totalSystem;
@@ -304,6 +330,9 @@ export default function ReconciliationPage() {
       api.post("/sales/reconciliations/submit/", {
         date,
         branch: branchId,
+        opening_float: openingFloat || "0",
+        expenses: expenses || "0",
+        cash_drops: cashDrops || "0",
         actual_cash: amounts.cash || "0",
         actual_cheque: amounts.cheque || "0",
         actual_ccp: amounts.ccp || "0",
@@ -326,6 +355,9 @@ export default function ReconciliationPage() {
 
   // Pre-fill form from existing pending reconciliation
   function prefillFromRec(rec: CashReconciliation) {
+    setOpeningFloat(rec.opening_float || "");
+    setExpenses(rec.expenses || "");
+    setCashDrops(rec.cash_drops || "");
     setAmounts({
       cash: rec.actual_cash,
       cheque: rec.actual_cheque,
@@ -415,7 +447,7 @@ export default function ReconciliationPage() {
 
       {/* Reconciliation form (hidden when approved) */}
       {!isApproved && (
-        <div className="card">
+        <div className="card space-y-0">
           <div className="card-header">
             <h2 className="font-semibold text-text-primary">
               {t("sales.cash_count_entry")}
@@ -423,6 +455,60 @@ export default function ReconciliationPage() {
             <p className="text-xs text-text-muted mt-0.5">
               {t("sales.cash_count_desc")}
             </p>
+          </div>
+
+          {/* Cash Drawer Movements (Opening Float, Expenses, Cash Drops) */}
+          <div className="p-4 border-b border-border bg-surface/50 grid sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                {t("sales.opening_float")} (+)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={openingFloat}
+                  onChange={(e) => setOpeningFloat(e.target.value)}
+                  className="form-input font-mono text-end"
+                  placeholder="0.00 DZD"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                {t("sales.expenses")} (-)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={expenses}
+                  onChange={(e) => setExpenses(e.target.value)}
+                  className="form-input font-mono text-end text-danger"
+                  placeholder="0.00 DZD"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                {t("sales.cash_drops")} (-)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={cashDrops}
+                  onChange={(e) => setCashDrops(e.target.value)}
+                  className="form-input font-mono text-end text-danger"
+                  placeholder="0.00 DZD"
+                />
+              </div>
+            </div>
           </div>
 
           {summaryLoading ? (
@@ -449,7 +535,7 @@ export default function ReconciliationPage() {
                       {t("sales.payment_method")}
                     </th>
                     <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.system_dzd")}
+                      {t("sales.expected_cash")} / Système
                     </th>
                     <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
                       {t("sales.counted_dzd")}
@@ -466,7 +552,7 @@ export default function ReconciliationPage() {
                     return (
                       <tr key={m} className="border-b border-border last:border-0">
                         <td className="px-4 py-3 font-medium text-text-primary">
-                          {t(`payment_method.${m}`)}
+                          {t(`payment_method.${m}`)} {m === "cash" && <span className="text-xs text-text-muted font-normal">(Fond + Ventes - Dépenses/Retraits)</span>}
                         </td>
                         <td className="px-4 py-3 text-end font-mono text-text-muted">
                           {formatDZD(sys)}

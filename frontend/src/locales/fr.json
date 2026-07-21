@@ -494,7 +494,11 @@
     "reconciliation_history": "Historique des fermetures",
     "register": "Caisse",
     "submitted_by": "Soumis par",
-    "sale": "Vente"
+    "sale": "Vente",
+    "opening_float": "Fond de caisse initial",
+    "expenses": "Dépenses de caisse (Sortie)",
+    "cash_drops": "Prélèvements / Retraits coffre",
+    "expected_cash": "Caisse théorique"
   },
   "cheque": {
     "number": "N° chèque",

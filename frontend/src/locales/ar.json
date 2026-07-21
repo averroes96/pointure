@@ -465,7 +465,11 @@
     "reconciliation_history": "سجل إغلاق الصندوق",
     "register": "الصندوق",
     "submitted_by": "تم الإرسال بواسطة",
-    "sale": "بيع"
+    "sale": "بيع",
+    "opening_float": "Fond de caisse (الرصيد الأولي)",
+    "expenses": "مصروفات النثرية (خروج)",
+    "cash_drops": "المسحوبات / إيداع الخزنة",
+    "expected_cash": "النقد المتوقع في الصندوق"
   },
   "cheque": {
     "number": "رقم الشيك",

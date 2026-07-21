@@ -300,6 +300,9 @@ class CashReconciliationViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSe
             "system_total_refunds": total_refunds,
         }
         actual = {
+            "opening_float": data.get("opening_float", Decimal("0")),
+            "expenses": data.get("expenses", Decimal("0")),
+            "cash_drops": data.get("cash_drops", Decimal("0")),
             "actual_cash": data["actual_cash"],
             "actual_cheque": data["actual_cheque"],
             "actual_ccp": data["actual_ccp"],
