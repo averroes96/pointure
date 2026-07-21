@@ -48,14 +48,14 @@ export default function SupplierFormPage() {
   // ── Load existing supplier when editing ───────────────────────────────────
 
   const { isLoading: loadingSupplier } = useQuery<Supplier>({
-    queryKey: ["supplier", Number(id)],
+    queryKey: ["supplier", id],
     queryFn: () => api.get(`/suppliers/${id}/`).then((r) => r.data),
     enabled: isEditing,
     staleTime: 0,
   });
 
   const { data: existingSupplier } = useQuery<Supplier>({
-    queryKey: ["supplier", Number(id)],
+    queryKey: ["supplier", id],
     enabled: isEditing,
   });
 
@@ -82,7 +82,7 @@ export default function SupplierFormPage() {
       return api.post("/suppliers/", form);
     },
     onSuccess: (res) => {
-      const savedId: number = res.data.id ?? parseInt(id!);
+      const savedId = res.data.id ?? id!;
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["supplier", savedId] });
       navigate(`/suppliers/${savedId}`);

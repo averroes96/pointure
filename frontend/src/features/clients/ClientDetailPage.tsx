@@ -983,7 +983,7 @@ export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const clientId = Number(id);
+  const clientId = id;
   const { canAccess } = usePlan();
   const hasLoyalty = canAccess("pro_retail");
 
@@ -994,7 +994,7 @@ export default function ClientDetailPage() {
     queryKey: ["client", clientId],
     queryFn: () =>
       api.get(`/clients/${clientId}/`).then((r) => r.data),
-    enabled: !isNaN(clientId),
+    enabled: Boolean(clientId),
   });
 
   if (isLoading) {

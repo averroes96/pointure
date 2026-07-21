@@ -763,12 +763,12 @@ export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const poId = Number(id);
+  const poId = id;
 
   const { data: po, isLoading, isError } = useQuery<PurchaseOrder>({
     queryKey: ["purchase-order", poId],
     queryFn: () => api.get(`/suppliers/purchase-orders/${poId}/`).then((r) => r.data),
-    enabled: !isNaN(poId),
+    enabled: Boolean(poId),
   });
 
   if (isLoading) {

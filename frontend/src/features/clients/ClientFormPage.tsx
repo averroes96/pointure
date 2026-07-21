@@ -140,7 +140,7 @@ export default function ClientFormPage() {
       return api.post("/clients/", payload);
     },
     onSuccess: (res) => {
-      const savedId: number = res.data.id ?? parseInt(id!);
+      const savedId = res.data.id ?? id!;
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["client", String(savedId)] });
       setSaved(true);

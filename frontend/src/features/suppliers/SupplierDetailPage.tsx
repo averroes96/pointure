@@ -497,14 +497,14 @@ export default function SupplierDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const supplierId = Number(id);
+  const supplierId = id;
   const [activeTab, setActiveTab] = useState<Tab>("info");
   const [showPayment, setShowPayment] = useState(false);
 
   const { data: supplier, isLoading, isError } = useQuery<Supplier>({
     queryKey: ["supplier", supplierId],
     queryFn: () => api.get(`/suppliers/${supplierId}/`).then((r) => r.data),
-    enabled: !isNaN(supplierId),
+    enabled: Boolean(supplierId),
   });
 
   if (isLoading) {

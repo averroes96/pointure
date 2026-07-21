@@ -147,7 +147,7 @@ export default function ProductDetailPage() {
   const adjustMutation = useMutation({
     mutationFn: () => {
       const adjustments = Object.entries(adjustForm.deltas)
-        .map(([id, delta]) => ({ variant: parseInt(id), quantity_delta: parseInt(delta) }))
+        .map(([id, delta]) => ({ variant: id, quantity_delta: parseInt(delta) }))
         .filter((adj) => !isNaN(adj.quantity_delta) && adj.quantity_delta !== 0);
 
       return api.post("/inventory/movements/bulk-adjust/", {
@@ -160,7 +160,7 @@ export default function ProductDetailPage() {
     onSuccess: () => {
       // Capture before clearing so auto-print can use them
       const positiveAdjustments = Object.entries(adjustForm.deltas)
-        .map(([id, delta]) => ({ variantId: parseInt(id), delta: parseInt(delta) }))
+        .map(([id, delta]) => ({ variantId: id, delta: parseInt(delta) }))
         .filter((adj) => !isNaN(adj.delta) && adj.delta > 0);
 
       queryClient.invalidateQueries({ queryKey: ["product", id] });

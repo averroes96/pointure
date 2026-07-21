@@ -314,7 +314,7 @@ export default function ProductFormPage() {
       return api.post("/inventory/products/", payload);
     },
     onSuccess: (res) => {
-      const savedId: number = res.data.id ?? parseInt(id!);
+      const savedId = res.data.id ?? id!;
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", String(savedId)] });
       setSaved(true);
