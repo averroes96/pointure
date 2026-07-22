@@ -33,6 +33,7 @@ class RecordPaymentSerializer(serializers.Serializer):
     method = serializers.ChoiceField(choices=["cash", "cheque", "ccp", "virement"])
     date = serializers.DateField()
     notes = serializers.CharField(required=False, allow_blank=True)
+    invoice_id = serializers.UUIDField(required=False, allow_null=True)
     # Cheque-specific
     cheque_number = serializers.CharField(required=False, allow_blank=True)
     cheque_bank = serializers.CharField(required=False, allow_blank=True)

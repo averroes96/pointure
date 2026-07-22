@@ -53,6 +53,7 @@ interface PaymentFormState {
   method: "cash" | "ccp" | "virement" | "cheque";
   notes: string;
   date: string;
+  invoice_id?: string;
 }
 
 // PAYMENT_METHODS populated dynamically
@@ -129,8 +130,19 @@ function PaymentModal({
     method: "cash",
     notes: "",
     date: today,
+    invoice_id: "",
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Fetch open invoices for target selection
+  const { data: openInvoices = [] } = useQuery<Invoice[]>({
+    queryKey: ["client-open-invoices", clientId],
+    queryFn: () =>
+      api.get(`/invoicing/invoices/?client_id=${clientId}`).then((r) => {
+        const list = Array.isArray(r.data) ? r.data : r.data.results ?? [];
+        return list.filter((inv: Invoice) => inv.status === "sent" || inv.status === "partial" || inv.status === "overdue");
+      }),
+  });
 
   const mutation = useMutation({
     mutationFn: (payload: PaymentFormState) =>
@@ -140,11 +152,13 @@ function PaymentModal({
           method: payload.method,
           notes: payload.notes,
           date: payload.date,
+          invoice_id: payload.invoice_id || undefined,
         })
         .then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client", clientId] });
       queryClient.invalidateQueries({ queryKey: ["client-ledger", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       onClose();
     },
     onError: (error) => {
@@ -182,6 +196,33 @@ function PaymentModal({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="card-body space-y-4">
+          {/* Target Invoice (optional) */}
+          {openInvoices.length > 0 && (
+            <div>
+              <label className="form-label">{t("payment.target_invoice", "Facture concernée (optionnel)")}</label>
+              <select
+                value={form.invoice_id || ""}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const targetInv = openInvoices.find((i) => String(i.id) === selectedId);
+                  setForm((f) => ({
+                    ...f,
+                    invoice_id: selectedId,
+                    amount: targetInv ? String(targetInv.balance_due) : f.amount,
+                  }));
+                }}
+                className="form-input"
+              >
+                <option value="">{t("payment.all_open_invoices", "Toutes les factures en cours (par ancienneté)")}</option>
+                {openInvoices.map((inv) => (
+                  <option key={inv.id} value={inv.id}>
+                    Facture #{inv.number || inv.id} — {formatDZD(inv.balance_due)} DZD restant
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Amount */}
           <div>
             <label className="form-label">{t("payment.amount")}</label>

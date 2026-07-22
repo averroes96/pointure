@@ -170,13 +170,24 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     due_date=data.get("cheque_due_date") or data["date"],
                 )
 
-            # Auto-allocate client payment to oldest open/partial invoices
+            # Auto-allocate client payment to target invoice or oldest open/partial invoices
             from apps.invoicing.models import Invoice, InvoicePayment
             unallocated = data["amount"]
-            open_invoices = Invoice.objects.filter(
+            invoice_id = data.get("invoice_id")
+            target_invoice = None
+            if invoice_id:
+                target_invoice = Invoice.objects.filter(
+                    pk=invoice_id, client=client, status__in=["sent", "partial", "overdue"]
+                ).first()
+
+            open_invoices = list(Invoice.objects.filter(
                 client=client,
                 status__in=["sent", "partial", "overdue"],
-            ).order_by("date", "created_at")
+            ).order_by("date", "created_at"))
+
+            if target_invoice and target_invoice in open_invoices:
+                open_invoices.remove(target_invoice)
+                open_invoices.insert(0, target_invoice)
 
             for inv in open_invoices:
                 if unallocated <= Decimal("0.00"):
@@ -190,7 +201,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     amount=pay_amt,
                     method=data["method"] if data["method"] in ["cash", "cheque", "virement"] else "cash",
                     date=data["date"],
-                    notes=f"Règlement client auto-affecté",
+                    notes=data.get("notes") or f"Règlement client" + (f" (Facture {inv.number})" if inv == target_invoice else ""),
                     recorded_by=request.user,
                 )
                 unallocated -= pay_amt
