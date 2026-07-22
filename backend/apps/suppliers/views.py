@@ -381,16 +381,31 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                 po.status = POStatusChoices.PARTIAL
         po.save()
 
-        # Discrepancies
-        for ln in all_lines:
-            if ln.quantity_received < ln.quantity_ordered:
-                discrepancies.append({
-                    "line_id": ln.id,
-                    "description": ln.description,
-                    "ordered": ln.quantity_ordered,
-                    "received": ln.quantity_received,
-                    "shortage": ln.quantity_ordered - ln.quantity_received,
-                })
+        # Auto-create or update SupplierInvoice ONLY when PO status is fully received
+        if po.status == POStatusChoices.RECEIVED:
+            received_total = sum(
+                ln.quantity_received * ln.agreed_unit_price for ln in all_lines
+            )
+            if received_total > 0:
+                from django.utils import timezone
+                inv, created = SupplierInvoice.objects.get_or_create(
+                    tenant=tenant,
+                    purchase_order=po,
+                    defaults={
+                        "supplier": po.supplier,
+                        "invoice_number": bl_reference or po.reference or f"BR-{str(po.id)[:8]}",
+                        "date": timezone.now().date(),
+                        "due_date": timezone.now().date(),
+                        "total_amount": received_total,
+                    },
+                )
+                if not created:
+                    inv.total_amount = received_total
+                    if bl_reference:
+                        inv.invoice_number = bl_reference
+                    inv.save()
+
+                po.supplier.recompute_balance()
 
     po.refresh_from_db()
     return {
