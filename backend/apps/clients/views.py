@@ -276,50 +276,135 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return response
 
     def _compute_ageing(self, today):
-        """Compute debt ageing data via Python post-processing for flexibility."""
+        """
+        Compute comprehensive client debt ageing report.
+        Integrates:
+        1. Invoices (Invoice model)
+        2. POS credit / versement sales (Sale model with status=partially_paid or is_versement=True)
+        3. ClientLedger debit entries
+        4. Real-time balance recomputation.
+        Bucket mapping matches UI headers:
+        - current: 0-30 days old
+        - days_30: 31-60 days old
+        - days_60: 61-90 days old
+        - days_90_plus: 90+ days old
+        """
         from apps.invoicing.models import Invoice
-        import datetime
+        from apps.sales.models import Sale
+        from apps.clients.models import ClientLedger, Client
+        from decimal import Decimal
 
-        clients = Client.objects.filter(
-            tenant=self.request.tenant,
-            cached_balance__gt=0,
+        tenant = self.request.tenant
+
+        # Get all clients with positive cached_balance or active unpaid invoices/sales
+        client_ids = set(
+            Client.objects.filter(tenant=tenant, cached_balance__gt=0).values_list("id", flat=True)
         )
+        invoice_client_ids = set(
+            Invoice.objects.filter(tenant=tenant, status__in=["sent", "partial", "overdue"], client__isnull=False).values_list("client_id", flat=True)
+        )
+        sale_client_ids = set(
+            Sale.objects.filter(tenant=tenant, status="partially_paid", client__isnull=False).values_list("client_id", flat=True)
+        )
+        all_ids = client_ids | invoice_client_ids | sale_client_ids
+
+        clients = Client.objects.filter(id__in=all_ids).order_by("name")
         result = []
 
         for client in clients:
+            # Guarantee up-to-date ledger balance
+            client.recompute_balance()
+            if client.cached_balance <= Decimal("0.00"):
+                continue
+
+            buckets = {
+                "current": Decimal("0.00"),
+                "days_30": Decimal("0.00"),
+                "days_60": Decimal("0.00"),
+                "days_90": Decimal("0.00"),
+                "days_90_plus": Decimal("0.00"),
+            }
+
+            accounted_debt = Decimal("0.00")
+
+            # 1. Unpaid formal invoices
             invoices = Invoice.objects.filter(
                 client=client,
                 status__in=["sent", "partial", "overdue"],
             )
-            buckets = {"current": Decimal("0"), "days_30": Decimal("0"),
-                       "days_60": Decimal("0"), "days_90": Decimal("0"),
-                       "days_90_plus": Decimal("0")}
-
             for inv in invoices:
                 remaining = inv.total_ttc - inv.total_paid
-                if remaining <= 0:
+                if remaining <= Decimal("0.00"):
                     continue
-                days_overdue = (today - inv.due_date).days
-                if days_overdue <= 0:
+
+                inv_date = inv.date or inv.due_date
+                age_days = (today - inv_date).days
+
+                if age_days <= 30:
                     buckets["current"] += remaining
-                elif days_overdue <= 30:
+                elif age_days <= 60:
                     buckets["days_30"] += remaining
-                elif days_overdue <= 60:
+                elif age_days <= 90:
                     buckets["days_60"] += remaining
-                elif days_overdue <= 90:
-                    buckets["days_90"] += remaining
                 else:
                     buckets["days_90_plus"] += remaining
 
-            total = sum(buckets.values())
-            if total > 0:
+                accounted_debt += remaining
+
+            # 2. Unpaid POS versement/credit sales (not attached to an invoice)
+            sales = Sale.objects.filter(
+                client=client,
+                status="partially_paid",
+            )
+            for sale in sales:
+                paid = sum(p.amount for p in sale.payments.all())
+                remaining = sale.total_amount - paid
+                if remaining <= Decimal("0.00"):
+                    continue
+
+                sale_date = sale.created_at.date()
+                age_days = (today - sale_date).days
+
+                if age_days <= 30:
+                    buckets["current"] += remaining
+                elif age_days <= 60:
+                    buckets["days_30"] += remaining
+                elif age_days <= 90:
+                    buckets["days_60"] += remaining
+                else:
+                    buckets["days_90_plus"] += remaining
+
+                accounted_debt += remaining
+
+            # 3. Unallocated ledger balance (if cached_balance exceeds invoice/sale totals)
+            unallocated = client.cached_balance - accounted_debt
+            if unallocated > Decimal("0.00"):
+                last_debit = client.ledger_entries.filter(entry_type="debit").order_by("-date").first()
+                entry_date = last_debit.date if last_debit else today
+                age_days = (today - entry_date).days
+
+                if age_days <= 30:
+                    buckets["current"] += unallocated
+                elif age_days <= 60:
+                    buckets["days_30"] += unallocated
+                elif age_days <= 90:
+                    buckets["days_60"] += unallocated
+                else:
+                    buckets["days_90_plus"] += unallocated
+
+            total_debt = sum(buckets.values())
+            if total_debt > Decimal("0.00"):
                 result.append({
                     "client_id": client.pk,
                     "client_name": client.name,
-                    "phone": client.phone,
-                    "wilaya": client.wilaya,
-                    **buckets,
-                    "total": total,
+                    "phone": client.phone or "",
+                    "wilaya": client.wilaya or "",
+                    "current": str(buckets["current"]),
+                    "days_30": str(buckets["days_30"]),
+                    "days_60": str(buckets["days_60"]),
+                    "days_90": "0.00",
+                    "days_90_plus": str(buckets["days_90_plus"]),
+                    "total": str(total_debt),
                 })
 
         return result
