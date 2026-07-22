@@ -117,9 +117,6 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
 
             # Confirm if requested — assigns number (FA-2026-00001) + sets to sent
-            if data.get("confirm"):
-                invoice.confirm()
-
             # Record initial payment if provided
             payment_data = data.get("payment")
             if payment_data and payment_data.get("amount"):
@@ -131,6 +128,12 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     notes=payment_data.get("notes", ""),
                     recorded_by=request.user,
                 )
+
+            # Confirm if requested
+            if data.get("confirm"):
+                invoice.confirm()
+            else:
+                invoice.update_status()
 
             # Queue PDF generation
             generate_invoice_pdf.delay(invoice.pk)
@@ -182,10 +185,6 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             invoice.compute_totals()
             invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
 
-            # Confirm if requested
-            if data.get("confirm"):
-                invoice.confirm()
-
             # Record initial payment if provided (only if one doesn't exist yet, or just add it)
             payment_data = data.get("payment")
             if payment_data and payment_data.get("amount"):
@@ -197,6 +196,12 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     notes=payment_data.get("notes", ""),
                     recorded_by=request.user,
                 )
+
+            # Confirm if requested
+            if data.get("confirm"):
+                invoice.confirm()
+            else:
+                invoice.update_status()
 
             # Re-queue PDF generation
             generate_invoice_pdf.delay(invoice.pk)

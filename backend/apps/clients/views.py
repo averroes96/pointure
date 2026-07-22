@@ -170,6 +170,31 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     due_date=data.get("cheque_due_date") or data["date"],
                 )
 
+            # Auto-allocate client payment to oldest open/partial invoices
+            from apps.invoicing.models import Invoice, InvoicePayment
+            unallocated = data["amount"]
+            open_invoices = Invoice.objects.filter(
+                client=client,
+                status__in=["sent", "partial", "overdue"],
+            ).order_by("date", "created_at")
+
+            for inv in open_invoices:
+                if unallocated <= Decimal("0.00"):
+                    break
+                rem = inv.balance_due
+                if rem <= Decimal("0.00"):
+                    continue
+                pay_amt = min(unallocated, rem)
+                InvoicePayment.objects.create(
+                    invoice=inv,
+                    amount=pay_amt,
+                    method=data["method"] if data["method"] in ["cash", "cheque", "virement"] else "cash",
+                    date=data["date"],
+                    notes=f"Règlement client auto-affecté",
+                    recorded_by=request.user,
+                )
+                unallocated -= pay_amt
+
         return Response(
             ClientLedgerSerializer(entry).data, status=status.HTTP_201_CREATED
         )
@@ -393,6 +418,15 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     buckets["days_90_plus"] += unallocated
 
             total_debt = sum(buckets.values())
+            # If client's ledger balance is lower than invoice total (due to general payments), scale buckets to match cached_balance
+            if client.cached_balance < total_debt and total_debt > Decimal("0.00"):
+                ratio = client.cached_balance / total_debt
+                buckets["current"] = (buckets["current"] * ratio).quantize(Decimal("0.01"))
+                buckets["days_30"] = (buckets["days_30"] * ratio).quantize(Decimal("0.01"))
+                buckets["days_60"] = (buckets["days_60"] * ratio).quantize(Decimal("0.01"))
+                buckets["days_90_plus"] = (buckets["days_90_plus"] * ratio).quantize(Decimal("0.01"))
+                total_debt = client.cached_balance
+
             if total_debt > Decimal("0.00"):
                 result.append({
                     "client_id": client.pk,

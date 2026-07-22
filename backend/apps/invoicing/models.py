@@ -158,12 +158,13 @@ class Invoice(TenantScopedModel):
         self.total_ttc = base_ttc + self.timbre_fiscal
 
     def confirm(self):
-        """Assign invoice number and set status to sent."""
+        """Assign invoice number and set status based on payments."""
         if self.status == InvoiceStatusChoices.DRAFT:
             with transaction.atomic():
                 self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix)
                 self.status = InvoiceStatusChoices.SENT
                 self.save(update_fields=["number", "status"])
+                self.update_status()
 
     def _sync_client_ledger(self):
         """Create or update a client ledger debit entry for this invoice."""
@@ -202,17 +203,19 @@ class Invoice(TenantScopedModel):
 
     def update_status(self):
         """Update invoice status based on payments and credit notes."""
-        if self.status in (InvoiceStatusChoices.DRAFT, InvoiceStatusChoices.CANCELLED):
+        if self.status == InvoiceStatusChoices.CANCELLED:
             return
             
         paid_and_credited = self.total_paid + self.credit_notes_total
         
-        if paid_and_credited >= self.total_ttc:
+        if self.total_ttc > 0 and paid_and_credited >= self.total_ttc:
             new_status = InvoiceStatusChoices.PAID
         elif self.total_paid > 0 or self.credit_notes_total > 0:
             new_status = InvoiceStatusChoices.PARTIAL
-        else:
+        elif self.status != InvoiceStatusChoices.DRAFT:
             new_status = InvoiceStatusChoices.SENT
+        else:
+            new_status = InvoiceStatusChoices.DRAFT
             
         if self.status != new_status:
             Invoice.objects.filter(pk=self.pk).update(status=new_status)
