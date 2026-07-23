@@ -80,6 +80,9 @@ class Tenant(models.Model):
     address = models.TextField(_("Address"), blank=True)
     wilaya = models.CharField(_("Wilaya"), max_length=2, choices=WILAYA_CHOICES, blank=True)
     logo = models.ImageField(_("Logo"), upload_to="tenants/logos/", blank=True, null=True)
+    
+    # Integrations
+    api_key = models.CharField(_("Integration API Key"), max_length=64, unique=True, null=True, blank=True)
 
     class Meta:
         verbose_name = _("Tenant")
