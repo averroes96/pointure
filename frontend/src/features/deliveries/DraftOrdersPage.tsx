@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Truck, Check, X, Package, Plus } from "lucide-react";
 import api, { getApiError, formatDate } from "@/lib/api";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
+import { useWilayas, useCommunes } from "@/hooks/useLocationData";
+import { VariantSearchInput } from "@/components/ui/VariantSearchInput";
+import type { Variant } from "@/types";
 
 export default function DraftOrdersPage() {
   const { t } = useTranslation();
@@ -20,6 +23,11 @@ export default function DraftOrdersPage() {
     customer_notes: "",
     source: "manual"
   });
+
+  const { data: wilayas } = useWilayas();
+  const { data: communes } = useCommunes(newOrder.wilaya);
+  
+  const [dispatchItems, setDispatchItems] = useState<{variant: Variant, quantity: number}[]>([]);
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["customer-orders"],
@@ -154,8 +162,48 @@ export default function DraftOrdersPage() {
 
             <div className="mb-6 p-4 border border-border rounded bg-surface">
               <label className="form-label mb-2">{t("deliveries.variant_to_include")}</label>
-              <input id="variantId" type="text" placeholder="Variant UUID" className="form-input mb-2 text-sm font-mono" />
-              <input id="qty" type="number" defaultValue="1" className="form-input mb-2" min="1" />
+              <div className="mb-2">
+                <VariantSearchInput 
+                  value={null} 
+                  onSelect={(v) => {
+                    setDispatchItems(prev => {
+                      if (prev.find(item => item.variant.id === v.id)) return prev;
+                      return [...prev, { variant: v, quantity: 1 }];
+                    });
+                  }} 
+                />
+              </div>
+              
+              {dispatchItems.length > 0 && (
+                <div className="flex flex-col gap-2 mt-3 max-h-48 overflow-y-auto">
+                  {dispatchItems.map((item, index) => (
+                    <div key={item.variant.id} className="flex items-center gap-2 bg-background p-2 rounded border border-border text-sm">
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium text-text-primary">{item.variant.product_name}</div>
+                        <div className="text-xs text-text-muted truncate">
+                          T{item.variant.size_eu} · {item.variant.colour === "N/A" ? "N/A" : item.variant.colour}
+                        </div>
+                      </div>
+                      <input 
+                        type="number" 
+                        min="1"
+                        className="form-input w-20 h-8 text-sm text-center"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 1;
+                          setDispatchItems(prev => prev.map((p, i) => i === index ? { ...p, quantity: val } : p));
+                        }}
+                      />
+                      <button 
+                        className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                        onClick={() => setDispatchItems(prev => prev.filter((_, i) => i !== index))}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -164,10 +212,8 @@ export default function DraftOrdersPage() {
                 onClick={() => {
                   const provider = (document.getElementById('providerSelect') as HTMLSelectElement).value;
                   const shipping_fee = (document.getElementById('shippingFee') as HTMLInputElement).value;
-                  const variantId = (document.getElementById('variantId') as HTMLInputElement).value;
-                  const qty = (document.getElementById('qty') as HTMLInputElement).value;
                   
-                  if (!variantId) {
+                  if (dispatchItems.length === 0) {
                     setToast(t("deliveries.missing_variant_id"));
                     return;
                   }
@@ -177,8 +223,8 @@ export default function DraftOrdersPage() {
                     payload: {
                       provider,
                       shipping_fee,
-                      variant_ids: [variantId],
-                      quantities: [parseInt(qty)]
+                      variant_ids: dispatchItems.map(item => item.variant.id),
+                      quantities: dispatchItems.map(item => item.quantity)
                     }
                   });
                 }}
@@ -186,7 +232,7 @@ export default function DraftOrdersPage() {
               >
                 <Truck className="w-4 h-4" /> Dispatch
               </button>
-              <button className="btn-secondary" onClick={() => setSelectedOrder(null)}>Cancel</button>
+              <button className="btn-secondary" onClick={() => { setSelectedOrder(null); setDispatchItems([]); }}>Cancel</button>
             </div>
           </div>
         )}
@@ -208,11 +254,33 @@ export default function DraftOrdersPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="form-label">{t("client.wilaya", "Wilaya")}</label>
-                  <input className="form-input" placeholder="Ex: 16" value={newOrder.wilaya} onChange={(e) => setNewOrder({...newOrder, wilaya: e.target.value})} />
+                  <select 
+                    className="form-input" 
+                    value={newOrder.wilaya} 
+                    onChange={(e) => {
+                      // When wilaya changes, reset commune
+                      setNewOrder({...newOrder, wilaya: e.target.value, commune: ""});
+                    }}
+                  >
+                    <option value="">{t("common.select", "Select...")}</option>
+                    {wilayas?.map((w) => (
+                      <option key={w.id} value={w.code}>{w.code} - {w.name} ({w.ar_name})</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="form-label">{t("client.commune", "Commune")}</label>
-                  <input className="form-input" value={newOrder.commune} onChange={(e) => setNewOrder({...newOrder, commune: e.target.value})} />
+                  <select 
+                    className="form-input" 
+                    value={newOrder.commune} 
+                    onChange={(e) => setNewOrder({...newOrder, commune: e.target.value})}
+                    disabled={!newOrder.wilaya}
+                  >
+                    <option value="">{t("common.select", "Select...")}</option>
+                    {communes?.map((c) => (
+                      <option key={c.id} value={c.name}>{c.name} ({c.ar_name})</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div>

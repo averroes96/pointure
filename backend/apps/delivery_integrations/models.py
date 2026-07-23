@@ -30,6 +30,7 @@ class CustomerOrderSourceChoices(models.TextChoices):
     OUEDKNISS = "ouedkniss", _("Ouedkniss")
     TIKTOK = "tiktok", _("TikTok")
     PHONE = "phone", _("Phone Call")
+    MANUAL = "manual", _("Manual")
 
 
 class ProviderConfig(TenantScopedModel):
@@ -67,8 +68,8 @@ class CustomerOrder(TenantScopedModel):
     # Customer Details
     customer_name = models.CharField(_("Customer Name"), max_length=200)
     customer_phone = models.CharField(_("Customer Phone"), max_length=20)
-    wilaya = models.CharField(_("Wilaya"), max_length=50)
-    commune = models.CharField(_("Commune"), max_length=100)
+    wilaya = models.CharField(_("Wilaya"), max_length=50, blank=True)
+    commune = models.CharField(_("Commune"), max_length=100, blank=True)
     address = models.TextField(_("Detailed Address"), blank=True)
     
     # What they ordered (raw text)

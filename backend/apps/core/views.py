@@ -9,7 +9,7 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.core.models import AuditLog, Branch, StoreSettings, Tenant, User
+from apps.core.models import AuditLog, Branch, StoreSettings, Tenant, User, Wilaya, Commune
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.serializers import (
     AuditLogSerializer,
@@ -19,7 +19,22 @@ from apps.core.serializers import (
     TenantSerializer,
     UserCreateSerializer,
     UserSerializer,
+    WilayaSerializer,
+    CommuneSerializer,
 )
+
+class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Wilaya.objects.all()
+    serializer_class = WilayaSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+class CommuneViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Commune.objects.all()
+    serializer_class = CommuneSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["wilaya"]
+    pagination_class = None
 
 
 class MeView(viewsets.GenericViewSet):

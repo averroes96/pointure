@@ -1,7 +1,19 @@
 """Core serializers: Tenant, User, Branch."""
 from rest_framework import serializers
 
-from .models import AuditLog, Branch, StoreSettings, Tenant, User
+from .models import AuditLog, Branch, StoreSettings, Tenant, User, Wilaya, Commune
+
+class WilayaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wilaya
+        fields = ["id", "code", "name", "ar_name"]
+
+class CommuneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Commune
+        fields = ["id", "post_code", "name", "ar_name", "wilaya"]
+
+
 
 
 class TenantSerializer(serializers.ModelSerializer):

@@ -18,9 +18,24 @@ class DzshipClient:
         """
         url = f"{cls.BASE_URL}/orders"
         
+        # Map our internal apiId/apiToken to what the specific courier expects via dzship
+        mapped_credentials = {}
+        if courier == "maystro":
+            mapped_credentials = {"apiKey": credentials.get("apiToken")}
+        elif courier == "zr_express":
+            mapped_credentials = {"client": credentials.get("apiId"), "token": credentials.get("apiToken")}
+        elif courier == "noest":
+            mapped_credentials = {"token": credentials.get("apiToken")}
+        else:
+            # Default (Yalidine, etc.)
+            mapped_credentials = {
+                "apiId": credentials.get("apiId"),
+                "apiToken": credentials.get("apiToken")
+            }
+        
         payload = {
             "courier": courier,
-            "credentials": credentials,
+            "credentials": mapped_credentials,
             "order": order_data
         }
         

@@ -76,6 +76,9 @@ def check_quota(request, resource: str, current_count: int) -> None:
 
     tenant = getattr(request, "tenant", None)
     if not tenant:
+        tenant = getattr(request.user, "tenant", None)
+        
+    if not tenant:
         return
 
     plan = getattr(tenant, "plan", "free") or "free"
@@ -123,9 +126,14 @@ def PlanRequired(min_plan: str) -> type:
                 return False
             if request.user.is_superuser:
                 return True
+            
             tenant = getattr(request, "tenant", None)
             if not tenant:
+                tenant = getattr(request.user, "tenant", None)
+                
+            if not tenant:
                 return False
+                
             current_rank = PLAN_RANK.get(tenant.plan, 0)
             if current_rank < required_rank:
                 self.message = {

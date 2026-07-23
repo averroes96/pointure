@@ -26,7 +26,8 @@ import {
 import api, { getApiError } from "@/lib/api";
 import type { Client, ClientType } from "@/types";
 import { cn } from "@/lib/utils";
-import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
+import { wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
+import { useWilayas } from "@/hooks/useLocationData";
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,8 @@ export default function ClientFormPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const { data: wilayas } = useWilayas();
   const [saved, setSaved] = useState(false);
 
   // ── Load existing client when editing ───────────────────────────────────────
@@ -295,21 +298,18 @@ export default function ClientFormPage() {
               </Field>
 
               <Field label={t("client.wilaya")} icon={MapPin}>
-                <input
-                  type="text"
-                  list="wilaya-list"
-                  value={wilayaLabel(form.wilaya)}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, wilaya: parseWilayaCode(e.target.value) }))
-                  }
+                <select
                   className="form-input"
-                  placeholder="Ex: 16 - Alger"
-                />
-                <datalist id="wilaya-list">
-                  {WILAYA_ENTRIES.map(({ code, name }) => (
-                    <option key={code} value={`${code} - ${name}`} />
+                  value={form.wilaya}
+                  onChange={(e) => setForm((f) => ({ ...f, wilaya: e.target.value }))}
+                >
+                  <option value="">Sélectionnez une wilaya...</option>
+                  {wilayas?.map((w) => (
+                    <option key={w.code} value={w.code}>
+                      {w.code} - {w.name} ({w.ar_name})
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </Field>
             </div>
 

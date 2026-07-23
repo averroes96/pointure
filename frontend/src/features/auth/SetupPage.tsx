@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import api from "@/lib/api";
-import { WILAYA_ENTRIES } from "@/lib/wilayas";
+import { useWilayas } from "@/hooks/useLocationData";
 import { cn } from "@/lib/utils";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -51,6 +51,7 @@ function Spinner() {
 export default function SetupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { data: wilayas } = useWilayas();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({
@@ -276,9 +277,9 @@ export default function SetupPage() {
                     className="form-input"
                   >
                     <option value="">— Sélectionner —</option>
-                    {WILAYA_ENTRIES.map((w) => (
+                    {wilayas?.map((w) => (
                       <option key={w.code} value={w.code}>
-                        {w.code} - {w.name}
+                        {w.code} - {w.name} ({w.ar_name})
                       </option>
                     ))}
                   </select>

@@ -8,7 +8,8 @@ import DeliverySettingsTab from "@/features/deliveries/DeliverySettingsPage";
 import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
-import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
+import { WILAYA_ENTRIES, wilayaLabel, parseWilayaCode, wilayaName } from "@/lib/wilayas";
+import { useWilayas } from "@/hooks/useLocationData";
 import i18n from "@/lib/i18n";
 const t = i18n.t.bind(i18n);
 
@@ -598,6 +599,8 @@ function AgencesTab() {
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
+  const { data: wilayas } = useWilayas();
+
   const { data, isLoading } = useQuery<PaginatedResponse<Branch>>({
     queryKey: ["settings", "branches"],
     queryFn: () => api.get("/core/branches/").then((r) => r.data),
@@ -657,19 +660,17 @@ function AgencesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="form-label">Wilaya</label>
-                <input
-                  type="text"
-                  list="branch-wilaya-list"
+                <select
                   className="form-input"
-                  placeholder="Ex: 16 - Alger"
-                  value={wilayaLabel(branchWilaya)}
-                  onChange={(e) => setValue("wilaya", parseWilayaCode(e.target.value), { shouldDirty: true })}
-                />
-                <datalist id="branch-wilaya-list">
-                  {WILAYA_ENTRIES.map(({ code, name }) => (
-                    <option key={code} value={`${code} - ${name}`} />
+                  {...register("wilaya")}
+                >
+                  <option value="">Sélectionner...</option>
+                  {wilayas?.map((w) => (
+                    <option key={w.code} value={w.code}>
+                      {w.code} - {w.name} ({w.ar_name})
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </div>
               <div>
                 <label className="form-label">{t("user.phone")}</label>

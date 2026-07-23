@@ -16,10 +16,12 @@ from .serializers import (
 )
 from .services.dzship_client import DzshipClient
 
+from apps.core.mixins import TenantScopedViewSetMixin
+
 logger = logging.getLogger(__name__)
 
 
-class ProviderConfigViewSet(viewsets.ModelViewSet):
+class ProviderConfigViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage delivery API credentials (dzship configs)."""
     serializer_class = ProviderConfigSerializer
     permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
@@ -27,11 +29,8 @@ class ProviderConfigViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return ProviderConfig.objects.filter(tenant=self.request.user.tenant)
 
-    def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant)
 
-
-class CustomerOrderViewSet(viewsets.ModelViewSet):
+class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage Draft/External Orders and Dispatch them."""
     serializer_class = CustomerOrderSerializer
     permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
@@ -74,7 +73,7 @@ class CustomerOrderViewSet(viewsets.ModelViewSet):
                     variant = variant_map[str_v_id]
                     # Note: We aren't doing strict stock enforcement here as per Pointure standard, 
                     # but Sale creation will trigger signals to create StockMovements.
-                    price = variant.price_retail
+                    price = variant.product.sale_price
                     total_amount += (price * qty)
                     sale_items.append((variant, qty, price))
                 
@@ -105,7 +104,7 @@ class CustomerOrderViewSet(viewsets.ModelViewSet):
                     "recipient": {
                         "fullName": customer_order.customer_name,
                         "phone": customer_order.customer_phone,
-                        "wilayaCode": customer_order.wilaya, # Note: Needs exact mapping depending on UI
+                        "wilayaCode": int(customer_order.wilaya) if customer_order.wilaya.isdigit() else None,
                         "communeName": customer_order.commune
                     },
                     "deliveryType": "home", # Default to home

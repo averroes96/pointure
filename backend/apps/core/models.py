@@ -55,6 +55,38 @@ WILAYA_CHOICES = [
 
 
 # ─────────────────────────────────────────────
+# Wilaya & Commune
+# ─────────────────────────────────────────────
+
+class Wilaya(models.Model):
+    code = models.CharField(_("Code"), max_length=2, unique=True)
+    name = models.CharField(_("Name"), max_length=100)
+    ar_name = models.CharField(_("Arabic Name"), max_length=100)
+
+    class Meta:
+        verbose_name = _("Wilaya")
+        verbose_name_plural = _("Wilayas")
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class Commune(models.Model):
+    wilaya = models.ForeignKey(Wilaya, on_delete=models.CASCADE, related_name="communes")
+    post_code = models.CharField(_("Post Code"), max_length=10)
+    name = models.CharField(_("Name"), max_length=100)
+    ar_name = models.CharField(_("Arabic Name"), max_length=100)
+
+    class Meta:
+        verbose_name = _("Commune")
+        verbose_name_plural = _("Communes")
+        ordering = ["wilaya__code", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+# ─────────────────────────────────────────────
 # Tenant
 # ─────────────────────────────────────────────
 
