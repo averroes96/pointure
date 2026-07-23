@@ -63,6 +63,14 @@ function useNavSections(): NavSection[] {
       ],
     },
     {
+      key: "deliveries",
+      label: "Deliveries & External Orders",
+      items: [
+        { to: "/deliveries/drafts", label: "Draft Orders", icon: Truck, managerOnly: true, minPlan: "pro_retail" },
+        { to: "/deliveries/settings", label: "Delivery Settings", icon: Settings, managerOnly: true, minPlan: "pro_retail" },
+      ],
+    },
+    {
       key: "inventory",
       label: t("nav.inventory"),
       items: [

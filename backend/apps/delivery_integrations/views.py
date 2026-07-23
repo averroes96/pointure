@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import transaction
 
 from apps.core.models import Tenant
+from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import Variant
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices
 from .models import ProviderConfig, CustomerOrder, CustomerOrderStatusChoices
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ProviderConfigViewSet(viewsets.ModelViewSet):
     """Manage delivery API credentials (dzship configs)."""
     serializer_class = ProviderConfigSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
 
     def get_queryset(self):
         return ProviderConfig.objects.filter(tenant=self.request.user.tenant)
@@ -33,7 +34,7 @@ class ProviderConfigViewSet(viewsets.ModelViewSet):
 class CustomerOrderViewSet(viewsets.ModelViewSet):
     """Manage Draft/External Orders and Dispatch them."""
     serializer_class = CustomerOrderSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
 
     def get_queryset(self):
         return CustomerOrder.objects.filter(tenant=self.request.user.tenant)

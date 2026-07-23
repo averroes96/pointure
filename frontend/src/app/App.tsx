@@ -80,6 +80,10 @@ const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));
 const AuditLogPage = lazy(() => import("@/features/settings/AuditLogPage"));
 const WebhooksPage = lazy(() => import("@/features/webhooks/WebhooksPage"));
 
+// Deliveries
+const DeliverySettingsPage = lazy(() => import("@/features/deliveries/DeliverySettingsPage"));
+const DraftOrdersPage = lazy(() => import("@/features/deliveries/DraftOrdersPage"));
+
 // Loyalty
 const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
 
@@ -186,6 +190,12 @@ function AppRoutes() {
             <Route path="new" element={<PurchaseOrderFormPage />} />
             <Route path=":id/edit" element={<PurchaseOrderFormPage />} />
             <Route path=":id" element={<PurchaseOrderDetailPage />} />
+          </Route>
+
+          {/* Deliveries & External Orders */}
+          <Route path="deliveries">
+            <Route path="drafts" element={<DraftOrdersPage />} />
+            <Route path="settings" element={<DeliverySettingsPage />} />
           </Route>
 
           {/* Reports */}
