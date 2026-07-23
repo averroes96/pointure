@@ -41,7 +41,10 @@
     "audit_log": "Audit Log",
     "webhooks": "Webhooks",
     "plan_locked": "Available from plan",
-    "sales_report": "Sales Report"
+    "sales_report": "Sales Report",
+    "deliveries": "Deliveries & External Orders",
+    "draft_orders": "Draft Orders",
+    "delivery_settings": "Delivery Settings"
   },
   "auth": {
     "login": "Login",
@@ -659,7 +662,8 @@
     "export_error": "Export error",
     "page_info_movements": "Movement Details",
     "saving": "Saving...",
-    "type_2_chars": "Type at least 2 characters"
+    "type_2_chars": "Type at least 2 characters",
+    "dispatch": "Dispatch"
   },
   "status": {
     "completed": "Completed",
@@ -761,5 +765,31 @@
     "language": "Language",
     "last_name": "Last Name",
     "phone": "Phone"
+  },
+  "deliveries": {
+    "settings_title": "Delivery Integrations (dzship)",
+    "add_new_provider": "Add New Provider",
+    "configured_providers": "Configured Providers",
+    "settings_saved": "Settings saved successfully",
+    "no_providers": "No providers configured yet.",
+    "draft_orders_title": "WhatsApp & Draft Orders",
+    "dispatch_success": "Order Dispatched Successfully via dzship!",
+    "source": "Source",
+    "destination": "Destination",
+    "customer_notes": "Customer Notes / Requested",
+    "no_notes": "No notes",
+    "validate_and_dispatch": "Validate & Dispatch",
+    "tracking": "Tracking",
+    "no_draft_orders": "No draft orders found.",
+    "dispatch_order": "Dispatch Order",
+    "select_provider": "Select Provider",
+    "shipping_fee": "Shipping Fee (DZD)",
+    "variant_to_include": "Variant to Include",
+    "missing_variant_id": "Please enter a Variant ID to dispatch.",
+    "provider": "Provider",
+    "api_id": "API ID / Token",
+    "api_secret": "API Secret / Key",
+    "new_manual_order": "New Manual Order",
+    "draft_created": "Manual draft order created successfully!"
   }
 }

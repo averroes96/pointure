@@ -41,7 +41,10 @@
     "audit_log": "سجل التدقيق",
     "webhooks": "الـ Webhooks",
     "plan_locked": "متاح ابتداءً من الباقة",
-    "sales_report": "تقرير المبيعات"
+    "sales_report": "تقرير المبيعات",
+    "deliveries": "التوصيل والطلبات الخارجية",
+    "draft_orders": "مسودات الطلبات",
+    "delivery_settings": "إعدادات التوصيل"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -659,7 +662,8 @@
     "export_error": "خطأ في التصدير",
     "page_info_movements": "تفاصيل الحركات",
     "saving": "جارٍ الحفظ...",
-    "type_2_chars": "اكتب حرفين على الأقل"
+    "type_2_chars": "اكتب حرفين على الأقل",
+    "dispatch": "إرسال"
   },
   "status": {
     "completed": "مكتمل",
@@ -761,5 +765,31 @@
     "language": "اللغة",
     "last_name": "الاسم الأخير",
     "phone": "الهاتف"
+  },
+  "deliveries": {
+    "settings_title": "تكامل التوصيل (dzship)",
+    "add_new_provider": "إضافة مزود جديد",
+    "configured_providers": "المزودون المكونون",
+    "settings_saved": "تم حفظ الإعدادات بنجاح",
+    "no_providers": "لم يتم تكوين أي مزودين بعد.",
+    "draft_orders_title": "طلبات واتساب والمسودات",
+    "dispatch_success": "تم إرسال الطلب بنجاح عبر dzship!",
+    "source": "المصدر",
+    "destination": "الوجهة",
+    "customer_notes": "ملاحظات العميل / المطلوب",
+    "no_notes": "لا توجد ملاحظات",
+    "validate_and_dispatch": "تحقق وإرسال",
+    "tracking": "تتبع",
+    "no_draft_orders": "لم يتم العثور على مسودات طلبات.",
+    "dispatch_order": "إرسال الطلب",
+    "select_provider": "اختر المزود",
+    "shipping_fee": "رسوم التوصيل (د.ج)",
+    "variant_to_include": "المتغير المراد تضمينه",
+    "missing_variant_id": "يرجى إدخال معرف المتغير للإرسال.",
+    "provider": "المزود",
+    "api_id": "معرف API / الرمز",
+    "api_secret": "سر API / المفتاح",
+    "new_manual_order": "طلب يدوي جديد",
+    "draft_created": "تم إنشاء مسودة الطلب اليدوي بنجاح!"
   }
 }

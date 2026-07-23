@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Building2, Shield, Users, MapPin, Upload, Banknote, type LucideIcon } from "lucide-react";
+import { User, Building2, Shield, Users, MapPin, Upload, Banknote, Truck, type LucideIcon } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
+import DeliverySettingsTab from "@/features/deliveries/DeliverySettingsPage";
 import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -839,7 +840,7 @@ function VersementsTab() {
 
 // ─── Main SettingsPage ───────────────────────────────────────────────────
 
-type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences" | "versements";
+type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences" | "versements" | "deliveries";
 
 interface Tab {
   key: TabKey;
@@ -855,6 +856,7 @@ const TABS: Tab[] = [
   { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
   { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
   { key: "versements", label: "Versements", icon: Banknote, roles: ["owner"] },
+  { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
 ];
 
 export default function SettingsPage() {
@@ -936,6 +938,8 @@ export default function SettingsPage() {
             {activeTab === "agences" && <AgencesTab />}
 
             {activeTab === "versements" && <VersementsTab />}
+
+            {activeTab === "deliveries" && <DeliverySettingsTab />}
           </div>
         </div>
       </div>

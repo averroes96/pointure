@@ -50,6 +50,7 @@ function useNavSections(): NavSection[] {
         { to: "/sales", labelKey: "nav.sale_history", icon: History },
         { to: "/sales/reconciliation", labelKey: "nav.reconciliation", icon: ClipboardCheck },
         { to: "/promotions", labelKey: "nav.promotions", icon: Tag, managerOnly: true },
+        { to: "/deliveries/drafts", labelKey: "nav.draft_orders", icon: Truck, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
     {
@@ -62,14 +63,7 @@ function useNavSections(): NavSection[] {
         { to: "/credit-notes", labelKey: "nav.credit_notes", icon: FileX, managerOnly: true, minPlan: "pro_wholesale" },
       ],
     },
-    {
-      key: "deliveries",
-      label: "Deliveries & External Orders",
-      items: [
-        { to: "/deliveries/drafts", label: "Draft Orders", icon: Truck, managerOnly: true, minPlan: "pro_retail" },
-        { to: "/deliveries/settings", label: "Delivery Settings", icon: Settings, managerOnly: true, minPlan: "pro_retail" },
-      ],
-    },
+
     {
       key: "inventory",
       label: t("nav.inventory"),

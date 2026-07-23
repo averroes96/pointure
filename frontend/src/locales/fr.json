@@ -41,7 +41,10 @@
     "audit_log": "Journal d'audit",
     "webhooks": "Webhooks",
     "plan_locked": "Disponible à partir du plan",
-    "sales_report": "Rapport des Ventes"
+    "sales_report": "Rapport des Ventes",
+    "deliveries": "Livraisons et Commandes Externes",
+    "draft_orders": "Brouillons de Commandes",
+    "delivery_settings": "Paramètres de Livraison"
   },
   "auth": {
     "login": "Connexion",
@@ -688,7 +691,8 @@
     "export_error": "Erreur lors de l'export",
     "page_info_movements": "Détail des mouvements",
     "saving": "Enregistrement...",
-    "type_2_chars": "Tapez 2 caractères minimum"
+    "type_2_chars": "Tapez 2 caractères minimum",
+    "dispatch": "Expédier"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -792,5 +796,31 @@
     "language": "Langue",
     "last_name": "Nom",
     "phone": "Téléphone"
+  },
+  "deliveries": {
+    "settings_title": "Intégrations de Livraison (dzship)",
+    "add_new_provider": "Ajouter un nouveau fournisseur",
+    "configured_providers": "Fournisseurs Configurés",
+    "settings_saved": "Paramètres enregistrés avec succès",
+    "no_providers": "Aucun fournisseur configuré pour le moment.",
+    "draft_orders_title": "Commandes WhatsApp et Brouillons",
+    "dispatch_success": "Commande expédiée avec succès via dzship !",
+    "source": "Source",
+    "destination": "Destination",
+    "customer_notes": "Notes du Client / Demandé",
+    "no_notes": "Aucune note",
+    "validate_and_dispatch": "Valider et Expédier",
+    "tracking": "Suivi",
+    "no_draft_orders": "Aucun brouillon de commande trouvé.",
+    "dispatch_order": "Expédier la Commande",
+    "select_provider": "Sélectionner le Fournisseur",
+    "shipping_fee": "Frais de Livraison (DZD)",
+    "variant_to_include": "Variante à inclure",
+    "missing_variant_id": "Veuillez entrer un ID de Variante pour expédier.",
+    "provider": "Fournisseur",
+    "api_id": "ID API / Jeton",
+    "api_secret": "Secret API / Clé",
+    "new_manual_order": "Nouvelle Commande Manuelle",
+    "draft_created": "Brouillon de commande manuelle créé avec succès !"
   }
 }

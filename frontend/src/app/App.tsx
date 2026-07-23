@@ -195,7 +195,6 @@ function AppRoutes() {
           {/* Deliveries & External Orders */}
           <Route path="deliveries">
             <Route path="drafts" element={<DraftOrdersPage />} />
-            <Route path="settings" element={<DeliverySettingsPage />} />
           </Route>
 
           {/* Reports */}
