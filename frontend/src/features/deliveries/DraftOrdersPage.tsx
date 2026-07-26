@@ -29,6 +29,7 @@ export default function DraftOrdersPage() {
   const { data: selectedCommunes } = useCommunes(selectedOrder?.wilaya || "16");
   
   const [dispatchItems, setDispatchItems] = useState<{variant: Variant, quantity: number}[]>([]);
+  const [totalPrice, setTotalPrice] = useState<string>("0");
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["customer-orders"],
@@ -220,8 +221,15 @@ export default function DraftOrdersPage() {
             </div>
             
             <div className="mb-4">
-              <label className="form-label">{t("deliveries.shipping_fee")}</label>
-              <input id="shippingFee" type="number" defaultValue="600" className="form-input" />
+              <label className="form-label">{t("deliveries.total_price", "Total Price (COD)")}</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                value={totalPrice}
+                onChange={(e) => setTotalPrice(e.target.value)}
+                placeholder="Enter total price..."
+              />
+              <p className="text-xs text-text-muted mt-1">{t("deliveries.total_price_hint", "The amount the customer pays on delivery. Delivery fees are calculated by the delivery service.")}</p>
             </div>
 
             <div className="mb-6 p-4 border border-border rounded bg-surface">
@@ -232,7 +240,11 @@ export default function DraftOrdersPage() {
                   onSelect={(v) => {
                     setDispatchItems(prev => {
                       if (prev.find(item => item.variant.id === v.id)) return prev;
-                      return [...prev, { variant: v, quantity: 1 }];
+                      const next = [...prev, { variant: v, quantity: 1 }];
+                      // Auto-calculate total price from product prices
+                      const sum = next.reduce((acc, item) => acc + (Number(item.variant.product_sale_price || 0) * item.quantity), 0);
+                      setTotalPrice(String(sum));
+                      return next;
                     });
                   }} 
                 />
@@ -255,12 +267,24 @@ export default function DraftOrdersPage() {
                         value={item.quantity}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 1;
-                          setDispatchItems(prev => prev.map((p, i) => i === index ? { ...p, quantity: val } : p));
+                          setDispatchItems(prev => {
+                            const next = prev.map((p, i) => i === index ? { ...p, quantity: val } : p);
+                            const sum = next.reduce((acc, it) => acc + (Number(it.variant.product_sale_price || 0) * it.quantity), 0);
+                            setTotalPrice(String(sum));
+                            return next;
+                          });
                         }}
                       />
                       <button 
                         className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
-                        onClick={() => setDispatchItems(prev => prev.filter((_, i) => i !== index))}
+                        onClick={() => {
+                          setDispatchItems(prev => {
+                            const next = prev.filter((_, i) => i !== index);
+                            const sum = next.reduce((acc, it) => acc + (Number(it.variant.product_sale_price || 0) * it.quantity), 0);
+                            setTotalPrice(String(sum));
+                            return next;
+                          });
+                        }}
                       >
                         <X size={14} />
                       </button>
@@ -275,10 +299,14 @@ export default function DraftOrdersPage() {
                 className="btn-primary flex-1 flex items-center justify-center gap-2"
                 onClick={async () => {
                   const provider = (document.getElementById('providerSelect') as HTMLSelectElement).value;
-                  const shipping_fee = (document.getElementById('shippingFee') as HTMLInputElement).value;
                   
                   if (dispatchItems.length === 0) {
                     setToast(t("deliveries.missing_variant_id"));
+                    return;
+                  }
+
+                  if (!totalPrice || Number(totalPrice) <= 0) {
+                    setToast(t("deliveries.missing_total_price", "Please set a total price."));
                     return;
                   }
 
@@ -299,7 +327,7 @@ export default function DraftOrdersPage() {
                       id: selectedOrder.id,
                       payload: {
                         provider,
-                        shipping_fee,
+                        total_price: totalPrice,
                         variant_ids: dispatchItems.map(item => item.variant.id),
                         quantities: dispatchItems.map(item => item.quantity)
                       }

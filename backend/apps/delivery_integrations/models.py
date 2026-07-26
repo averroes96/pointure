@@ -87,6 +87,12 @@ class CustomerOrder(TenantScopedModel):
     )
     tracking_number = models.CharField(_("Tracking Number"), max_length=100, blank=True, null=True)
     
+    # Session tracking — ties messages from the same social user to one draft
+    sender_id = models.CharField(
+        _("Sender ID"), max_length=100, blank=True, null=True, db_index=True,
+        help_text=_("The external user ID from Meta (Messenger/Instagram) used to merge multi-message orders.")
+    )
+    
     # Link to the official financial record (Sale)
     sale = models.OneToOneField(
         "sales.Sale", on_delete=models.SET_NULL, null=True, blank=True, related_name="customer_order"

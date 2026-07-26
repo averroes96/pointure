@@ -57,7 +57,9 @@ class CustomerOrderDispatchSerializer(serializers.Serializer):
     Serializer used when a store manager validates a draft order and dispatches it.
     """
     provider = serializers.ChoiceField(choices=[('yalidine', 'Yalidine'), ('zr_express', 'ZR Express'), ('maystro', 'Maystro Delivery'), ('noest', 'NOEST')])
-    shipping_fee = serializers.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # The total price the customer pays on delivery (COD amount).
+    # Stores set this manually — it may or may not match the sum of product prices.
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
     # The manager must select the specific variants that correspond to what the customer ordered.
     variant_ids = serializers.ListField(
         child=serializers.UUIDField(),

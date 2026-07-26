@@ -62,7 +62,7 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         provider_name = serializer.validated_data["provider"]
-        shipping_fee = serializer.validated_data["shipping_fee"]
+        total_price = serializer.validated_data["total_price"]  # COD amount set by the store
         variant_ids = serializer.validated_data["variant_ids"]
         quantities = serializer.validated_data["quantities"]
 
@@ -73,29 +73,27 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                # 2. Fetch variants and calculate total
+                # 2. Fetch variants and calculate product total (for the Sale record)
                 variants = Variant.objects.filter(id__in=variant_ids).select_for_update()
                 variant_map = {str(v.id): v for v in variants}
                 
-                total_amount = Decimal("0.00")
+                product_total = Decimal("0.00")
                 sale_items = []
                 for v_id, qty in zip(variant_ids, quantities):
                     str_v_id = str(v_id)
                     if str_v_id not in variant_map:
                         raise ValueError(f"Variant {str_v_id} not found.")
                     variant = variant_map[str_v_id]
-                    # Note: We aren't doing strict stock enforcement here as per Pointure standard, 
-                    # but Sale creation will trigger signals to create StockMovements.
                     price = variant.product.sale_price
-                    total_amount += (price * qty)
+                    product_total += (price * qty)
                     sale_items.append((variant, qty, price))
                 
-                # 3. Create Sale
+                # 3. Create Sale — total is product value only, no delivery fees
                 sale = Sale.objects.create(
                     tenant=request.user.tenant,
                     cashier=request.user,
-                    status=SaleStatusChoices.COMPLETED,  # Or a new custom status
-                    total_amount=total_amount + shipping_fee,
+                    status=SaleStatusChoices.COMPLETED,
+                    total_amount=product_total,
                     notes=f"Delivery Order: {customer_order.id}",
                 )
                 
@@ -120,9 +118,9 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                         "wilayaCode": int(customer_order.wilaya) if customer_order.wilaya.isdigit() else None,
                         "communeName": customer_order.commune
                     },
-                    "deliveryType": "home", # Default to home
+                    "deliveryType": "home",
                     "productList": " / ".join([f"{v.product.name} x{qty}" for v, qty, _ in sale_items]),
-                    "codAmount": float(total_amount + shipping_fee)
+                    "codAmount": float(total_price)  # The store-set price, delivery fees handled by delivery service
                 }
 
                 # 5. Call dzship API
@@ -131,7 +129,6 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 # 6. Update CustomerOrder
                 customer_order.sale = sale
                 customer_order.provider = provider_name
-                customer_order.shipping_fee = shipping_fee
                 customer_order.status = CustomerOrderStatusChoices.DISPATCHED
                 customer_order.tracking_number = dzship_response.get("trackingNumber")
                 customer_order.save()
@@ -406,6 +403,7 @@ class MetaWebhookView(views.APIView):
 
         entries = payload.get("entry", [])
         orders_created = 0
+        orders_updated = 0
 
         for entry in entries:
             page_id = str(entry.get("id", ""))
@@ -423,6 +421,7 @@ class MetaWebhookView(views.APIView):
             for event in messaging_events:
                 message = event.get("message", {})
                 text = message.get("text", "")
+                sender_id = event.get("sender", {}).get("id", "")
 
                 if not text:
                     # Skip non-text events (images, reactions, read receipts, etc.)
@@ -431,47 +430,93 @@ class MetaWebhookView(views.APIView):
                 # Determine the source channel
                 source = "messenger" if obj_type == "page" else "instagram"
 
+                # --- Session buffering: look for an existing draft from this sender ---
+                existing_draft = None
+                if sender_id:
+                    from django.utils import timezone
+                    from datetime import timedelta
+                    session_window = timezone.now() - timedelta(hours=12)
+                    existing_draft = CustomerOrder.objects.filter(
+                        tenant=integration.tenant,
+                        sender_id=sender_id,
+                        status=CustomerOrderStatusChoices.DRAFT,
+                        updated_at__gte=session_window,
+                    ).order_by("-updated_at").first()
+
                 if integration.ai_enabled:
-                    # Use Gemini to parse the message into structured order data
-                    parsed = parse_order_message(text)
+                    # Build the full conversation text for AI parsing
+                    if existing_draft:
+                        combined_text = f"{existing_draft.customer_notes}\n{text}"
+                    else:
+                        combined_text = text
+
+                    # Use Gemini to parse the combined message into structured order data
+                    parsed = parse_order_message(combined_text)
                     if parsed:
-                        if not parsed.get("is_order_intent"):
+                        if not parsed.get("is_order_intent") and not existing_draft:
+                            # Only skip non-order messages when there is no active session
                             logger.info("Skipped non-order message: %s", text)
                             continue
 
-                        CustomerOrder.objects.create(
-                            tenant=integration.tenant,
-                            source=source,
-                            customer_name=parsed.get("customer_name", ""),
-                            customer_phone=parsed.get("phone", ""),
-                            wilaya=parsed.get("wilaya", ""),
-                            commune=parsed.get("commune", ""),
-                            address=parsed.get("address", ""),
-                            customer_notes=parsed.get("notes", text),
-                        )
-                        orders_created += 1
+                        if existing_draft:
+                            # Update the existing draft with newly parsed fields
+                            existing_draft.customer_name = parsed.get("customer_name") or existing_draft.customer_name
+                            existing_draft.customer_phone = parsed.get("phone") or existing_draft.customer_phone
+                            existing_draft.wilaya = parsed.get("wilaya") or existing_draft.wilaya
+                            existing_draft.commune = parsed.get("commune") or existing_draft.commune
+                            existing_draft.address = parsed.get("address") or existing_draft.address
+                            existing_draft.customer_notes = combined_text
+                            existing_draft.save()
+                            orders_updated += 1
+                            logger.info("Updated existing draft %s for sender %s", existing_draft.id, sender_id)
+                        else:
+                            CustomerOrder.objects.create(
+                                tenant=integration.tenant,
+                                source=source,
+                                sender_id=sender_id,
+                                customer_name=parsed.get("customer_name", ""),
+                                customer_phone=parsed.get("phone", ""),
+                                wilaya=parsed.get("wilaya", ""),
+                                commune=parsed.get("commune", ""),
+                                address=parsed.get("address", ""),
+                                customer_notes=parsed.get("notes", text),
+                            )
+                            orders_created += 1
                     else:
-                        # AI parsing failed — save raw message as a draft anyway
+                        # AI parsing failed — save or append raw message as a draft
+                        if existing_draft:
+                            existing_draft.customer_notes = f"{existing_draft.customer_notes}\n{text}"
+                            existing_draft.save()
+                            orders_updated += 1
+                        else:
+                            CustomerOrder.objects.create(
+                                tenant=integration.tenant,
+                                source=source,
+                                sender_id=sender_id,
+                                customer_name="",
+                                customer_phone="",
+                                customer_notes=text,
+                            )
+                            orders_created += 1
+                else:
+                    # AI disabled — save or append raw message
+                    if existing_draft:
+                        existing_draft.customer_notes = f"{existing_draft.customer_notes}\n{text}"
+                        existing_draft.save()
+                        orders_updated += 1
+                    else:
                         CustomerOrder.objects.create(
                             tenant=integration.tenant,
                             source=source,
+                            sender_id=sender_id,
                             customer_name="",
                             customer_phone="",
                             customer_notes=text,
                         )
                         orders_created += 1
-                else:
-                    # AI disabled — just save raw message
-                    CustomerOrder.objects.create(
-                        tenant=integration.tenant,
-                        source=source,
-                        customer_name="",
-                        customer_phone="",
-                        customer_notes=text,
-                    )
-                    orders_created += 1
 
-        logger.info("Meta webhook processed: %d orders created.", orders_created)
+        logger.info("Meta webhook processed: %d orders created, %d orders updated.", orders_created, orders_updated)
         # Meta requires a 200 OK response within 20 seconds
         return Response({"detail": "EVENT_RECEIVED"}, status=200)
+
 
