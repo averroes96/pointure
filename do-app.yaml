@@ -57,6 +57,22 @@ services:
       - key: EMAIL_HOST_PASSWORD
         scope: RUN_AND_BUILD_TIME
         value: ""
+      # --- Delivery Integrations ---
+      - key: GEMINI_API_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_GEMINI_API_KEY
+      - key: META_APP_ID
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_META_APP_ID
+      - key: META_APP_SECRET
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_META_APP_SECRET
+      - key: META_WEBHOOK_VERIFY_TOKEN
+        scope: RUN_TIME
+        value: pointure_meta_secret
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        value: https://${APP_DOMAIN}
 
 workers:
   - name: pointure-worker
@@ -92,4 +108,19 @@ workers:
       - key: EMAIL_HOST_PASSWORD
         scope: RUN_AND_BUILD_TIME
         value: ""
-
+      # --- Delivery Integrations ---
+      - key: GEMINI_API_KEY
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_GEMINI_API_KEY
+      - key: META_APP_ID
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_META_APP_ID
+      - key: META_APP_SECRET
+        scope: RUN_TIME
+        value: REPLACE_ME_WITH_META_APP_SECRET
+      - key: META_WEBHOOK_VERIFY_TOKEN
+        scope: RUN_TIME
+        value: pointure_meta_secret
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        value: https://${APP_DOMAIN}
