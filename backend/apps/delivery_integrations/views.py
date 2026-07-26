@@ -246,8 +246,8 @@ class MetaOAuthURLView(views.APIView):
             return Response({"detail": "META_APP_ID is not configured."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # The redirect URI must perfectly match what is registered in the Meta App
-        # In a real setup, request.build_absolute_uri() works, but behind ngrok/proxies we might need to rely on host headers
-        redirect_uri = request.build_absolute_uri('/api/v1/deliveries/meta-oauth/callback/')
+        # Force https in case we are behind a proxy that strips the original scheme
+        redirect_uri = request.build_absolute_uri('/api/v1/deliveries/meta-oauth/callback/').replace('http://', 'https://')
         
         # Pass the tenant ID in the state parameter to know who logged in upon callback
         state = str(request.user.tenant.id)
