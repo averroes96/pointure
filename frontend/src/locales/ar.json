@@ -44,7 +44,8 @@
     "sales_report": "تقرير المبيعات",
     "deliveries": "التوصيل والطلبات الخارجية",
     "draft_orders": "مسودات الطلبات",
-    "delivery_settings": "إعدادات التوصيل"
+    "delivery_settings": "إعدادات التوصيل",
+    "global_ledger": "دفتر الأستاذ للعملاء"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -155,7 +156,8 @@
     "real_mode": "الوضع الفعلي (فاتورة رسمية)",
     "apply_tva": "تطبيق الضريبة ({{rate}}%)",
     "cash_payment_stamp": "الدفع نقدًا (الطابع الضريبي 1%)",
-    "notes_placeholder": "ملاحظات داخلية أو معلومات إضافية..."
+    "notes_placeholder": "ملاحظات داخلية أو معلومات إضافية...",
+    "edit_invoice": "تعديل الفاتورة"
   },
   "client": {
     "new": "زبون جديد",
@@ -230,7 +232,9 @@
     "name_required": "اسم الزبون مطلوب.",
     "invoices_tab": "الفواتير",
     "info_tab": "بطاقة الزبون",
-    "reference": "المرجع"
+    "reference": "المرجع",
+    "balance_after": "الرصيد (بعد)",
+    "no_ledger_entries": "لم يتم العثور على قيود."
   },
   "inventory": {
     "product": "المنتج",
@@ -663,7 +667,9 @@
     "page_info_movements": "تفاصيل الحركات",
     "saving": "جارٍ الحفظ...",
     "type_2_chars": "اكتب حرفين على الأقل",
-    "dispatch": "إرسال"
+    "dispatch": "إرسال",
+    "more_results": "المزيد من النتائج",
+    "entries": "قيود"
   },
   "status": {
     "completed": "مكتمل",

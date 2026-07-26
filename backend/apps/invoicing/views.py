@@ -141,14 +141,26 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """Update a DRAFT invoice."""
+        """Update an invoice as long as no payment is registered."""
         invoice = self.get_object()
-        if invoice.status != InvoiceStatusChoices.DRAFT:
+        
+        if invoice.payments.exists():
             return Response(
-                {"detail": "Impossible de modifier une facture qui n'est plus à l'état brouillon."},
+                {"detail": "Impossible de modifier une facture ayant déjà un paiement enregistré."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+            
+        if hasattr(invoice, 'delivery_notes') and invoice.delivery_notes.exists():
+            return Response(
+                {"detail": "Impossible de modifier la facture car un bon de livraison (BL) a déjà été généré. Veuillez d'abord supprimer le BL pour libérer le stock."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        if invoice.status == InvoiceStatusChoices.CANCELLED:
+            return Response(
+                {"detail": "Impossible de modifier une facture annulée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = CreateInvoiceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

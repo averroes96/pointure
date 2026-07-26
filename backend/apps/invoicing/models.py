@@ -180,7 +180,7 @@ class Invoice(TenantScopedModel):
             defaults={
                 "entry_type": "debit",
                 "amount": self.total_ttc,
-                "description": f"Invoice {self.number}",
+                "description": f"Facture {self.number}",
                 "date": self.date,
             },
         )
@@ -292,7 +292,7 @@ class InvoicePayment(models.Model):
             client=self.invoice.client,
             entry_type="credit",
             amount=self.amount,
-            description=f"Payment on Invoice {self.invoice.number}",
+            description=f"Paiement sur facture {self.invoice.number}",
             reference_type="InvoicePayment",
             reference_id=str(self.pk),
             date=self.date,

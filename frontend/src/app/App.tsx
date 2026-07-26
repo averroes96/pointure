@@ -58,6 +58,7 @@ const ClientsPage = lazy(() => import("@/features/clients/ClientsPage"));
 const ClientDetailPage = lazy(() => import("@/features/clients/ClientDetailPage"));
 const ClientFormPage = lazy(() => import("@/features/clients/ClientFormPage"));
 const DebtAgeingPage = lazy(() => import("@/features/clients/DebtAgeingPage"));
+const GlobalLedgerPage = lazy(() => import("@/features/clients/GlobalLedgerPage"));
 const ChequePage = lazy(() => import("@/features/clients/ChequePage"));
 
 // Suppliers
@@ -167,6 +168,7 @@ function AppRoutes() {
           <Route path="clients">
             <Route index element={<ClientsPage />} />
             <Route path="new" element={<ClientFormPage />} />
+            <Route path="ledger" element={<GlobalLedgerPage />} />
             <Route path=":id" element={<ClientDetailPage />} />
             <Route path=":id/edit" element={<ClientFormPage />} />
             <Route path="ageing" element={<DebtAgeingPage />} />

@@ -221,7 +221,7 @@ export default function InvoiceBuilderPage() {
               id: Math.random().toString(36).slice(2, 10),
               product: pRes.data,
               cartons: line.cartons,
-              pairs_per_carton: 10,
+              pairs_per_carton: 0, // We will calculate this after gathering all quantities
               unit_price: line.unit_price,
               discount_pct: line.discount_pct,
               quantities: {},
@@ -235,11 +235,26 @@ export default function InvoiceBuilderPage() {
             if (!matrix.quantities[colour]) {
               matrix.quantities[colour] = {};
             }
-            matrix.quantities[colour][size] = line.quantity;
+            matrix.quantities[colour][size] = parseFloat(line.quantity as string) || 0;
           }
         }
 
-        const m = Array.from(productMap.values());
+        const m = Array.from(productMap.values()).map(matrix => {
+          // Calculate pairs_per_carton
+          let totalPairs = 0;
+          for (const c in matrix.quantities) {
+            for (const s in matrix.quantities[c]) {
+              totalPairs += matrix.quantities[c][s];
+            }
+          }
+          if (matrix.cartons && matrix.cartons > 0) {
+            matrix.pairs_per_carton = Math.round(totalPairs / matrix.cartons);
+          } else {
+            matrix.pairs_per_carton = 10;
+          }
+          return matrix;
+        });
+
         if (m.length > 0) {
           setMatrices(m);
         }
@@ -348,6 +363,9 @@ export default function InvoiceBuilderPage() {
     mutationFn: async (vars: { endpoint?: string; isConfirm: boolean }) => {
       const payload = buildPayload(vars.isConfirm);
       if (vars.endpoint) {
+        if (isEditMode) {
+          return api.put(vars.endpoint, payload).then(r => r.data);
+        }
         return api.post(vars.endpoint, payload).then(r => r.data);
       }
       if (isEditMode) {
@@ -426,7 +444,10 @@ export default function InvoiceBuilderPage() {
 
   function handleForceSubmit() {
     setCreditLimitWarning(null);
-    mutation.mutate({ endpoint: "/invoicing/invoices/?force=true", isConfirm: pendingConfirmState });
+    const forceEndpoint = isEditMode 
+      ? `/invoicing/invoices/${id}/?force=true`
+      : "/invoicing/invoices/?force=true";
+    mutation.mutate({ endpoint: forceEndpoint, isConfirm: pendingConfirmState });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -814,7 +835,8 @@ export default function InvoiceBuilderPage() {
             {/* Action buttons (repeated for convenience) */}
             <div className="px-5 pb-4 space-y-2">
               <button
-                type="submit"
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
                 disabled={mutation.isPending}
                 className="btn-primary w-full justify-center"
               >

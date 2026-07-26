@@ -206,11 +206,11 @@ export default function InvoiceListPage() {
                   </td>
                   <td>
                     <div className="flex items-center gap-1">
-                      {invoice.status === "draft" && (
+                      {parseFloat(invoice.total_paid) === 0 && invoice.status !== "cancelled" && (
                         <button
                           onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
                           className="btn-ghost btn-sm text-primary-500"
-                          title="Modifier le brouillon"
+                          title={t("invoice.edit_invoice", "Modifier la facture")}
                         >
                           <Edit2 size={14} />
                         </button>

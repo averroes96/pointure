@@ -44,7 +44,8 @@
     "sales_report": "Rapport des Ventes",
     "deliveries": "Livraisons et Commandes Externes",
     "draft_orders": "Brouillons de Commandes",
-    "delivery_settings": "Paramètres de Livraison"
+    "delivery_settings": "Paramètres de Livraison",
+    "global_ledger": "Grand Livre Clients"
   },
   "auth": {
     "login": "Connexion",
@@ -184,7 +185,8 @@
     "real_mode": "Mode Réel (Facture Officielle)",
     "apply_tva": "Appliquer TVA ({{rate}}%)",
     "cash_payment_stamp": "Paiement en espèces (Timbre Fiscal 1%)",
-    "notes_placeholder": "Notes internes ou informations complémentaires..."
+    "notes_placeholder": "Notes internes ou informations complémentaires...",
+    "edit_invoice": "Modifier la facture"
   },
   "client": {
     "new": "Nouveau client",
@@ -259,7 +261,9 @@
     "name_required": "Le nom du client est obligatoire.",
     "invoices_tab": "Factures",
     "info_tab": "Fiche client",
-    "reference": "Référence"
+    "reference": "Référence",
+    "balance_after": "Solde (Après)",
+    "no_ledger_entries": "Aucune écriture trouvée."
   },
   "inventory": {
     "product": "Article",
@@ -692,7 +696,9 @@
     "page_info_movements": "Détail des mouvements",
     "saving": "Enregistrement...",
     "type_2_chars": "Tapez 2 caractères minimum",
-    "dispatch": "Expédier"
+    "dispatch": "Expédier",
+    "more_results": "Plus de résultats",
+    "entries": "écritures"
   },
   "topbar": {
     "just_now": "à l'instant",

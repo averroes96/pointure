@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
-  Factory, PieChart, CalendarDays, BarChart,
+  Factory, PieChart, CalendarDays, BarChart, BookOpen,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
   type LucideIcon,
 } from "lucide-react";
@@ -80,6 +80,7 @@ function useNavSections(): NavSection[] {
       label: t("nav.clients"),
       items: [
         { to: "/clients", labelKey: "nav.client_list", icon: Users, managerOnly: true },
+        { to: "/clients/ledger", labelKey: "nav.global_ledger", icon: BookOpen, managerOnly: true },
         { to: "/clients/ageing", labelKey: "nav.debt_ageing", icon: TrendingDown, managerOnly: true },
         { to: "/cheques", labelKey: "nav.cheque_tracker", icon: CreditCard, managerOnly: true },
         { to: "/loyalty", labelKey: "nav.loyalty", icon: Gift, managerOnly: true, minPlan: "pro_retail" },

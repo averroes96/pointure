@@ -182,7 +182,7 @@ export function InvoiceProductMatrix({
 
   // Calculate sum of pairs currently configured
   const currentTotalPairs = colours.reduce(
-    (sum, c) => sum + sizes.reduce((s, sz) => s + (config.quantities[c]?.[sz] ?? 0), 0),
+    (sum, c) => sum + sizes.reduce((s, sz) => s + (parseFloat(config.quantities[c]?.[sz] as any) || 0), 0),
     0
   );
 

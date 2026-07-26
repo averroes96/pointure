@@ -44,7 +44,8 @@
     "sales_report": "Sales Report",
     "deliveries": "Deliveries & External Orders",
     "draft_orders": "Draft Orders",
-    "delivery_settings": "Delivery Settings"
+    "delivery_settings": "Delivery Settings",
+    "global_ledger": "Global Client Ledger"
   },
   "auth": {
     "login": "Login",
@@ -155,7 +156,8 @@
     "real_mode": "Real Mode (Official Invoice)",
     "apply_tva": "Apply VAT ({{rate}}%)",
     "cash_payment_stamp": "Cash Payment (Fiscal Stamp 1%)",
-    "notes_placeholder": "Internal notes or additional information..."
+    "notes_placeholder": "Internal notes or additional information...",
+    "edit_invoice": "Edit invoice"
   },
   "client": {
     "new": "New Client",
@@ -230,7 +232,9 @@
     "name_required": "Client name is required.",
     "invoices_tab": "Invoices",
     "info_tab": "Client Info",
-    "reference": "Reference"
+    "reference": "Reference",
+    "balance_after": "Balance (After)",
+    "no_ledger_entries": "No ledger entries found."
   },
   "inventory": {
     "product": "Product",
@@ -663,7 +667,9 @@
     "page_info_movements": "Movement Details",
     "saving": "Saving...",
     "type_2_chars": "Type at least 2 characters",
-    "dispatch": "Dispatch"
+    "dispatch": "Dispatch",
+    "more_results": "More results",
+    "entries": "entries"
   },
   "status": {
     "completed": "Completed",

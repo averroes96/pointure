@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from apps.core.mixins import TenantScopedViewSetMixin
 from .models import Cheque, Client, ClientLedger
@@ -124,18 +125,19 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
 
-        qs = client.ledger_entries.all()
+        qs = client.ledger_entries.all().order_by("-date", "-created_at")
         if from_date:
             qs = qs.filter(date__gte=from_date)
         if to_date:
             qs = qs.filter(date__lte=to_date)
 
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = ClientLedgerSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = ClientLedgerSerializer(qs, many=True)
-        return Response({
-            "client": ClientSerializer(client).data,
-            "entries": serializer.data,
-            "balance": client.cached_balance,
-        })
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="record-payment")
     def record_payment(self, request, pk=None):
@@ -148,12 +150,20 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         data = serializer.validated_data
 
         with transaction.atomic():
+            method_labels = {
+                "cash": "ESPÈCES",
+                "cheque": "CHÈQUE",
+                "virement": "VIREMENT",
+                "ccp": "CCP"
+            }
+            method_label = method_labels.get(data["method"], data["method"].upper())
+            
             # Create ledger credit entry
             entry = ClientLedger.objects.create(
                 client=client,
                 entry_type="credit",
                 amount=data["amount"],
-                description=f"Payment — {data['method'].upper()}",
+                description=f"Paiement — {method_label}",
                 reference_type="Payment",
                 date=data["date"],
             )
@@ -454,6 +464,27 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         return result
 
+
+class ClientLedgerViewSet(viewsets.ReadOnlyModelViewSet):
+    """Global ledger view for all clients."""
+    permission_classes = [IsAuthenticated]
+    queryset = ClientLedger.objects.select_related("client").order_by("-date", "-created_at")
+    serializer_class = ClientLedgerSerializer
+    filterset_fields = ["client", "entry_type", "reference_type"]
+    ordering_fields = ["date", "amount"]
+    
+    def get_queryset(self):
+        # We must filter by the client's tenant. Since we removed TenantScopedViewSetMixin,
+        # we access the tenant via the authenticated user.
+        tenant = getattr(self.request.user, "tenant", None)
+        qs = super().get_queryset().filter(client__tenant=tenant)
+        from_date = self.request.query_params.get("from")
+        to_date = self.request.query_params.get("to")
+        if from_date:
+            qs = qs.filter(date__gte=from_date)
+        if to_date:
+            qs = qs.filter(date__lte=to_date)
+        return qs
 
 class ChequeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Cheque.objects.select_related("client", "supplier")

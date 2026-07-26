@@ -55,12 +55,13 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     """Lightweight list serializer."""
     client_name = serializers.CharField(source="client.name", read_only=True)
     balance_due = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Invoice
         fields = [
             "id", "number", "client", "client_name", "date", "due_date",
-            "status", "total_ttc", "balance_due",
+            "status", "total_ttc", "balance_due", "total_paid",
         ]
 
 

@@ -120,7 +120,21 @@ class ClientLedger(models.Model):
         return f"{self.entry_type} {self.amount} — {self.client}"
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+        
+        # Rebuild running balance for this client to ensure balance_after is accurate
+        # We iterate chronologically to calculate the running balance.
+        entries = ClientLedger.objects.filter(client=self.client).order_by("date", "created_at")
+        balance = Decimal("0.00")
+        for e in entries:
+            if e.entry_type == "debit":
+                balance += e.amount
+            else:
+                balance -= e.amount
+            if e.balance_after != balance:
+                ClientLedger.objects.filter(pk=e.pk).update(balance_after=balance)
+        
         # Keep client's cached_balance in sync
         self.client.recompute_balance()
 

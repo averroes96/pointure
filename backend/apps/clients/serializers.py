@@ -18,10 +18,13 @@ class ClientSerializer(serializers.ModelSerializer):
 
 
 class ClientLedgerSerializer(serializers.ModelSerializer):
+    client_id = serializers.UUIDField(source="client.id", read_only=True)
+    client_name = serializers.CharField(source="client.name", read_only=True)
+
     class Meta:
         model = ClientLedger
         fields = [
-            "id", "entry_type", "amount", "description",
+            "id", "client_id", "client_name", "entry_type", "amount", "description",
             "reference_type", "reference_id", "date", "balance_after", "created_at",
         ]
         read_only_fields = ["id", "created_at", "balance_after"]
