@@ -102,3 +102,46 @@ class CustomerOrder(TenantScopedModel):
 
     def __str__(self):
         return f"Order from {self.customer_name} via {self.get_source_display()}"
+
+
+class SocialPlatformChoices(models.TextChoices):
+    FACEBOOK = "facebook", _("Facebook Messenger")
+    INSTAGRAM = "instagram", _("Instagram DM")
+
+
+class SocialIntegration(TenantScopedModel):
+    """
+    Stores the configuration needed to receive messages from a Meta Page or
+    Instagram account via the Meta Webhooks API.
+    """
+    platform = models.CharField(
+        _("Platform"), max_length=20, choices=SocialPlatformChoices.choices
+    )
+    page_id = models.CharField(
+        _("Page ID"), max_length=100,
+        help_text=_("The Facebook Page ID or Instagram Business Account ID.")
+    )
+    page_name = models.CharField(
+        _("Page Name"), max_length=200, blank=True,
+        help_text=_("Friendly name for display purposes.")
+    )
+    access_token = models.CharField(
+        _("Page Access Token"), max_length=512,
+        help_text=_("Long-lived Page Access Token from Meta.")
+    )
+    is_active = models.BooleanField(_("Active"), default=True)
+    ai_enabled = models.BooleanField(
+        _("AI Parsing Enabled"), default=True,
+        help_text=_("When enabled, incoming messages are automatically parsed by AI to extract order details.")
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Social Integration")
+        verbose_name_plural = _("Social Integrations")
+        unique_together = [["tenant", "platform", "page_id"]]
+
+    def __str__(self):
+        return f"{self.get_platform_display()} — {self.page_name or self.page_id} ({self.tenant.name})"

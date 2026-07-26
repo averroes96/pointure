@@ -821,6 +821,19 @@
     "api_id": "ID API / Jeton",
     "api_secret": "Secret API / Clé",
     "new_manual_order": "Nouvelle Commande Manuelle",
-    "draft_created": "Brouillon de commande manuelle créé avec succès !"
+    "draft_created": "Brouillon de commande manuelle créé avec succès !",
+    "social_automations": "Automatisations Sociales",
+    "social_automations_desc": "Connectez vos pages Facebook et comptes Instagram pour recevoir automatiquement les commandes dans votre tableau de bord.",
+    "add_social_integration": "Ajouter une intégration",
+    "platform": "Plateforme",
+    "page_id": "ID de la Page",
+    "page_name": "Nom de la Page",
+    "access_token": "Jeton d'Accès (Page Access Token)",
+    "ai_parsing": "Analyse IA",
+    "ai_parsing_desc": "Les messages entrants seront automatiquement analysés par l'IA pour extraire les détails de la commande.",
+    "no_social_integrations": "Aucune intégration sociale configurée.",
+    "social_saved": "Intégration sociale enregistrée avec succès !",
+    "webhook_url": "URL du Webhook",
+    "webhook_url_desc": "Collez cette URL dans votre console Meta Developer comme URL de Callback."
   }
 }

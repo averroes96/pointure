@@ -5,16 +5,23 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import transaction
+from django.http import HttpResponse
+from decouple import config
 
 from apps.core.models import Tenant
 from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import Variant
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices
-from .models import ProviderConfig, CustomerOrder, CustomerOrderStatusChoices
+from .models import (
+    ProviderConfig, CustomerOrder, CustomerOrderStatusChoices,
+    SocialIntegration,
+)
 from .serializers import (
-    ProviderConfigSerializer, CustomerOrderSerializer, CustomerOrderDispatchSerializer
+    ProviderConfigSerializer, CustomerOrderSerializer,
+    CustomerOrderDispatchSerializer, SocialIntegrationSerializer,
 )
 from .services.dzship_client import DzshipClient
+from .services.ai_parser import parse_order_message
 
 from apps.core.mixins import TenantScopedViewSetMixin
 
@@ -37,6 +44,12 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return CustomerOrder.objects.filter(tenant=self.request.user.tenant)
+
+    def perform_destroy(self, instance):
+        if instance.status != CustomerOrderStatusChoices.DRAFT:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Only draft orders can be deleted. Once dispatched, an order cannot be deleted.")
+        instance.delete()
 
     @action(detail=True, methods=["post"])
     def dispatch_order(self, request, pk=None):
@@ -205,3 +218,260 @@ class WebhookReceiverView(views.APIView):
 
         order.save()
         return Response({"detail": "Webhook processed"})
+
+
+# ─────────────────────────────────────────────
+# Social Integrations (Facebook Messenger / Instagram)
+# ─────────────────────────────────────────────
+
+class SocialIntegrationViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """Manage social media integrations (Facebook Messenger, Instagram DM)."""
+    serializer_class = SocialIntegrationSerializer
+    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
+
+    def get_queryset(self):
+        return SocialIntegration.objects.filter(tenant=self.request.user.tenant)
+
+
+import urllib.parse
+import requests
+from django.shortcuts import redirect
+
+class MetaOAuthURLView(views.APIView):
+    """
+    Returns the official Facebook OAuth URL for the store owner to log in.
+    """
+    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
+
+    def get(self, request):
+        app_id = config("META_APP_ID", default="")
+        if not app_id:
+            return Response({"detail": "META_APP_ID is not configured."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # The redirect URI must perfectly match what is registered in the Meta App
+        # In a real setup, request.build_absolute_uri() works, but behind ngrok/proxies we might need to rely on host headers
+        redirect_uri = request.build_absolute_uri('/api/v1/deliveries/meta-oauth/callback/')
+        
+        # Pass the tenant ID in the state parameter to know who logged in upon callback
+        state = str(request.user.tenant.id)
+
+        params = {
+            "client_id": app_id,
+            "redirect_uri": redirect_uri,
+            "state": state,
+            "scope": "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata,business_management",
+            "response_type": "code"
+        }
+        
+        url = "https://www.facebook.com/v19.0/dialog/oauth?" + urllib.parse.urlencode(params)
+        return Response({"url": url})
+
+
+class MetaOAuthCallbackView(views.APIView):
+    """
+    Handles the redirect from Facebook after the store owner logs in.
+    Exchanges the code for a token, fetches their pages, and creates SocialIntegrations.
+    """
+    permission_classes = [AllowAny] # Because Facebook redirects the user directly here
+
+    def get(self, request):
+        code = request.query_params.get("code")
+        state = request.query_params.get("state")
+        error = request.query_params.get("error")
+        
+        frontend_redirect = f'{config("FRONTEND_URL", default="http://localhost:5173")}/settings'
+
+        if error or not code or not state:
+            logger.error("Meta OAuth failed: %s", error)
+            return redirect(f"{frontend_redirect}?error=oauth_failed")
+
+        tenant_id = state
+        tenant = Tenant.objects.filter(id=tenant_id).first()
+        if not tenant:
+            return redirect(f"{frontend_redirect}?error=tenant_not_found")
+
+        app_id = config("META_APP_ID", default="")
+        app_secret = config("META_APP_SECRET", default="")
+        redirect_uri = request.build_absolute_uri('/api/v1/deliveries/meta-oauth/callback/')
+
+        # 1. Exchange code for User Access Token
+        token_url = "https://graph.facebook.com/v19.0/oauth/access_token"
+        token_res = requests.get(token_url, params={
+            "client_id": app_id,
+            "redirect_uri": redirect_uri,
+            "client_secret": app_secret,
+            "code": code
+        })
+        
+        if not token_res.ok:
+            logger.error("Failed to get Meta access token: %s", token_res.text)
+            return redirect(f"{frontend_redirect}?error=token_exchange_failed")
+            
+        user_access_token = token_res.json().get("access_token")
+
+        # 2. Fetch the Facebook Pages this user manages
+        perms_res = requests.get("https://graph.facebook.com/v19.0/me/permissions", params={"access_token": user_access_token})
+        if perms_res.ok:
+            logger.info("Meta Token Permissions: %s", perms_res.json().get("data", []))
+
+        pages_url = "https://graph.facebook.com/v19.0/me/accounts"
+        pages_res = requests.get(pages_url, params={"access_token": user_access_token})
+        
+        if not pages_res.ok:
+            logger.error("Failed to fetch Meta pages: %s", pages_res.text)
+            return redirect(f"{frontend_redirect}?error=fetch_pages_failed")
+            
+        pages = pages_res.json().get("data", [])
+        logger.info("Meta pages fetched: %s", pages)
+        
+        if not pages:
+            return redirect(f"{frontend_redirect}?error=no_pages_found")
+
+        # 3. Save each page as a SocialIntegration and subscribe the webhook
+        for page in pages:
+            page_id = page.get("id")
+            page_token = page.get("access_token")
+            page_name = page.get("name")
+            
+            integration, created = SocialIntegration.objects.update_or_create(
+                tenant=tenant,
+                platform="facebook",
+                page_id=page_id,
+                defaults={
+                    "page_name": page_name,
+                    "access_token": page_token,
+                    "is_active": True,
+                    "ai_enabled": True
+                }
+            )
+            
+            # Subscribe the Pointure webhook to this page's messages
+            sub_url = f"https://graph.facebook.com/v19.0/{page_id}/subscribed_apps"
+            sub_res = requests.post(sub_url, params={
+                "access_token": page_token,
+                "subscribed_fields": "messages"
+            })
+            if not sub_res.ok:
+                logger.warning("Failed to subscribe webhook for page %s: %s", page_id, sub_res.text)
+
+        return redirect(f"{frontend_redirect}?success=oauth_complete")
+
+
+class MetaWebhookView(views.APIView):
+    """
+    Receives incoming messages from Meta (Facebook Messenger & Instagram DM)
+    via the Meta Webhooks API.
+
+    GET  → Webhook verification challenge (Meta sends this once during setup).
+    POST → Incoming message events. Each message is parsed by AI and
+           automatically converted into a CustomerOrder draft.
+    """
+    permission_classes = [AllowAny]
+
+    # The verify token is configured per-deployment; Meta sends it during
+    # the initial webhook subscription handshake.
+    VERIFY_TOKEN = config("META_WEBHOOK_VERIFY_TOKEN", default="pointure_meta_secret")
+
+    def get(self, request):
+        """Handle Meta webhook verification challenge."""
+        mode = request.query_params.get("hub.mode")
+        token = request.query_params.get("hub.verify_token")
+        challenge = request.query_params.get("hub.challenge")
+
+        if mode == "subscribe" and token == self.VERIFY_TOKEN:
+            logger.info("Meta webhook verified successfully.")
+            return HttpResponse(challenge, content_type="text/plain", status=200)
+
+        logger.warning("Meta webhook verification failed: token mismatch.")
+        return HttpResponse("Forbidden", status=403)
+
+    def post(self, request):
+        """
+        Process incoming Meta webhook events.
+
+        Meta sends a payload like:
+        {
+          "object": "page" | "instagram",
+          "entry": [{
+            "id": "<PAGE_ID>",
+            "messaging": [{
+              "sender": {"id": "..."},
+              "message": {"text": "..."}
+            }]
+          }]
+        }
+        """
+        payload = request.data
+        obj_type = payload.get("object")  # "page" for Messenger, "instagram" for IG
+
+        entries = payload.get("entry", [])
+        orders_created = 0
+
+        for entry in entries:
+            page_id = str(entry.get("id", ""))
+            messaging_events = entry.get("messaging", [])
+
+            # Find the SocialIntegration (and thus the Tenant) for this page
+            integration = SocialIntegration.objects.filter(
+                page_id=page_id, is_active=True
+            ).select_related("tenant").first()
+
+            if not integration:
+                logger.warning("No active SocialIntegration for page_id=%s", page_id)
+                continue
+
+            for event in messaging_events:
+                message = event.get("message", {})
+                text = message.get("text", "")
+
+                if not text:
+                    # Skip non-text events (images, reactions, read receipts, etc.)
+                    continue
+
+                # Determine the source channel
+                source = "messenger" if obj_type == "page" else "instagram"
+
+                if integration.ai_enabled:
+                    # Use Gemini to parse the message into structured order data
+                    parsed = parse_order_message(text)
+                    if parsed:
+                        if not parsed.get("is_order_intent"):
+                            logger.info("Skipped non-order message: %s", text)
+                            continue
+
+                        CustomerOrder.objects.create(
+                            tenant=integration.tenant,
+                            source=source,
+                            customer_name=parsed.get("customer_name", ""),
+                            customer_phone=parsed.get("phone", ""),
+                            wilaya=parsed.get("wilaya", ""),
+                            commune=parsed.get("commune", ""),
+                            address=parsed.get("address", ""),
+                            customer_notes=parsed.get("notes", text),
+                        )
+                        orders_created += 1
+                    else:
+                        # AI parsing failed — save raw message as a draft anyway
+                        CustomerOrder.objects.create(
+                            tenant=integration.tenant,
+                            source=source,
+                            customer_name="",
+                            customer_phone="",
+                            customer_notes=text,
+                        )
+                        orders_created += 1
+                else:
+                    # AI disabled — just save raw message
+                    CustomerOrder.objects.create(
+                        tenant=integration.tenant,
+                        source=source,
+                        customer_name="",
+                        customer_phone="",
+                        customer_notes=text,
+                    )
+                    orders_created += 1
+
+        logger.info("Meta webhook processed: %d orders created.", orders_created)
+        # Meta requires a 200 OK response within 20 seconds
+        return Response({"detail": "EVENT_RECEIVED"}, status=200)
+
