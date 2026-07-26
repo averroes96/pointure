@@ -88,12 +88,12 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     product_total += (price * qty)
                     sale_items.append((variant, qty, price))
                 
-                # 3. Create Sale — total is product value only, no delivery fees
+                # 3. Create Sale — total is what the store entered as total_price
                 sale = Sale.objects.create(
                     tenant=request.user.tenant,
                     cashier=request.user,
                     status=SaleStatusChoices.COMPLETED,
-                    total_amount=product_total,
+                    total_amount=total_price,
                     notes=f"Delivery Order: {customer_order.id}",
                 )
                 

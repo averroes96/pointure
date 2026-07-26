@@ -232,7 +232,7 @@ export default function DraftOrdersPage() {
               <p className="text-xs text-text-muted mt-1">{t("deliveries.total_price_hint", "The amount the customer pays on delivery. Delivery fees are calculated by the delivery service.")}</p>
             </div>
 
-            <div className="mb-6 p-4 border border-border rounded bg-surface">
+              <div className="mb-6 p-4 border border-border rounded bg-surface">
               <label className="form-label mb-2">{t("deliveries.variant_to_include")}</label>
               <div className="mb-2">
                 <VariantSearchInput 
@@ -240,11 +240,7 @@ export default function DraftOrdersPage() {
                   onSelect={(v) => {
                     setDispatchItems(prev => {
                       if (prev.find(item => item.variant.id === v.id)) return prev;
-                      const next = [...prev, { variant: v, quantity: 1 }];
-                      // Auto-calculate total price from product prices
-                      const sum = next.reduce((acc, item) => acc + (Number(item.variant.product_sale_price || 0) * item.quantity), 0);
-                      setTotalPrice(String(sum));
-                      return next;
+                      return [...prev, { variant: v, quantity: 1 }];
                     });
                   }} 
                 />
@@ -267,23 +263,13 @@ export default function DraftOrdersPage() {
                         value={item.quantity}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 1;
-                          setDispatchItems(prev => {
-                            const next = prev.map((p, i) => i === index ? { ...p, quantity: val } : p);
-                            const sum = next.reduce((acc, it) => acc + (Number(it.variant.product_sale_price || 0) * it.quantity), 0);
-                            setTotalPrice(String(sum));
-                            return next;
-                          });
+                          setDispatchItems(prev => prev.map((p, i) => i === index ? { ...p, quantity: val } : p));
                         }}
                       />
                       <button 
                         className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
                         onClick={() => {
-                          setDispatchItems(prev => {
-                            const next = prev.filter((_, i) => i !== index);
-                            const sum = next.reduce((acc, it) => acc + (Number(it.variant.product_sale_price || 0) * it.quantity), 0);
-                            setTotalPrice(String(sum));
-                            return next;
-                          });
+                          setDispatchItems(prev => prev.filter((_, i) => i !== index));
                         }}
                       >
                         <X size={14} />
