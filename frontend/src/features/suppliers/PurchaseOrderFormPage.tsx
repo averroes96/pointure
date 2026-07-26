@@ -305,6 +305,7 @@ export default function PurchaseOrderFormPage() {
             size_from: pl.size_from || 36,
             size_to: pl.size_to || 41,
             cartons_received: pl.cartons || 1,
+            pairs_per_carton: pl.pairs_per_carton || 10,
             purchase_price: String(pl.price || ""),
             // Automatically distribute the total pairs across sizes
             quantities: {
