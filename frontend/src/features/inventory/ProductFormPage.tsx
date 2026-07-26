@@ -62,6 +62,7 @@ interface FormState {
   purchase_price: string;
   is_active: boolean;
   alert_threshold: number;
+  pairs_per_carton: number;
   location: string;
 }
 
@@ -78,6 +79,7 @@ const EMPTY_FORM: FormState = {
   purchase_price: "",
   is_active: true,
   alert_threshold: 10,
+  pairs_per_carton: 10,
   location: "",
 };
 
@@ -174,6 +176,7 @@ export default function ProductFormPage() {
       purchase_price: existingProduct.purchase_price ?? "",
       is_active: existingProduct.is_active,
       alert_threshold: existingProduct.alert_threshold ?? 10,
+      pairs_per_carton: existingProduct.pairs_per_carton ?? 10,
     });
     if (existingProduct.image) setImagePreview(existingProduct.image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -293,6 +296,7 @@ export default function ProductFormPage() {
             sizes: selectedSizes,
             colours: selectedColours,
             alert_threshold: alertThreshold,
+            pairs_per_carton: form.pairs_per_carton,
           });
           return res;
         }
@@ -534,13 +538,22 @@ export default function ProductFormPage() {
                 </Field>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 grid grid-cols-2 gap-3">
                 <Field label="Seuil d'alerte global" hint="Alerte de stock bas sur l'ensemble du produit.">
                   <input
                     type="number"
                     min="0"
                     value={form.alert_threshold}
                     onChange={(e) => setForm((f) => ({ ...f, alert_threshold: parseInt(e.target.value) || 0 }))}
+                    className="form-input"
+                  />
+                </Field>
+                <Field label="Paires par Carton" hint="Utilisé par défaut lors de la commande ou facturation.">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.pairs_per_carton}
+                    onChange={(e) => setForm((f) => ({ ...f, pairs_per_carton: parseInt(e.target.value) || 1 }))}
                     className="form-input"
                   />
                 </Field>

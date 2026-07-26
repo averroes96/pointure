@@ -61,7 +61,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = [
             "id", "number", "client", "client_name", "date", "due_date",
-            "status", "total_ttc", "balance_due", "total_paid",
+            "status", "total_ttc", "balance_due", "total_paid", "created_at"
         ]
 
 

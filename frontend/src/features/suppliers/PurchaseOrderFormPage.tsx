@@ -405,6 +405,7 @@ export default function PurchaseOrderFormPage() {
             quantity_ordered: parseInt(l.quantity_ordered) || 1, // backend recalculates in carton mode
             agreed_unit_price: parseFloat(l.agreed_unit_price) || 0,
             cartons: l.is_carton ? l.carton_config.cartons_received : 0,
+            pairs_per_carton: l.is_carton ? l.carton_config.pairs_per_carton : 10,
             carton_sizes: carton_sizes.length > 0 ? carton_sizes : undefined,
           };
         }),

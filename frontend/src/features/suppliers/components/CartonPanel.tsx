@@ -99,6 +99,7 @@ export interface CartonConfig {
   size_from: number;
   size_to: number;
   cartons_received: number;
+  pairs_per_carton: number;
   quantities: Record<string, Record<number, number>>;
 }
 
@@ -108,6 +109,7 @@ export const DEFAULT_CARTON: CartonConfig = {
   colours: [],
   size_from: 36, size_to: 41,
   cartons_received: 1,
+  pairs_per_carton: 10,
   quantities: {},
 };
 
@@ -253,6 +255,13 @@ export function CartonPanel({
           <span className="text-text-muted text-xs">Cartons</span>
           <input type="number" min={1} value={cartons_received}
             onChange={(e) => handleCartonCountChange(parseInt(e.target.value) || 1)}
+            className="form-input py-1 w-16 text-center text-sm font-mono"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 ml-2 border-l border-primary-200 pl-4">
+          <span className="text-text-muted text-xs">Paires/Carton</span>
+          <input type="number" min={1} value={config.pairs_per_carton}
+            onChange={(e) => onChange({ ...config, pairs_per_carton: parseInt(e.target.value) || 1 })}
             className="form-input py-1 w-16 text-center text-sm font-mono"
           />
         </div>

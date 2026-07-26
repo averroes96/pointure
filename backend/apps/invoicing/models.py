@@ -166,6 +166,24 @@ class Invoice(TenantScopedModel):
                 self.save(update_fields=["number", "status"])
                 self.update_status()
 
+                # Deduct inventory for all lines
+                if self.branch:
+                    from apps.inventory.models import StockMovement
+                    for line in self.lines.all():
+                        if line.variant:
+                            StockMovement.objects.create(
+                                tenant=self.tenant,
+                                branch=self.branch,
+                                variant=line.variant,
+                                movement_type="SALE",
+                                quantity_delta=-line.quantity,
+                                reference=f"INV-{self.number or self.pk}",
+                                notes=f"Facture {self.number or self.pk}"
+                            )
+                            line.variant.refresh_stock()
+                            if self.branch:
+                                line.variant.refresh_stock(branch=self.branch)
+
     def _sync_client_ledger(self):
         """Create or update a client ledger debit entry for this invoice."""
         if not self.client:

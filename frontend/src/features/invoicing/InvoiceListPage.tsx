@@ -147,6 +147,7 @@ export default function InvoiceListPage() {
               <tr>
                 <th>{t("invoice.number")}</th>
                 <th>{t("invoice.client")}</th>
+                <th>Création</th>
                 <th>{t("invoice.date")}</th>
                 <th>{t("invoice.due_date")}</th>
                 <th>{t("invoice.status")}</th>
@@ -158,12 +159,12 @@ export default function InvoiceListPage() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+                  <td colSpan={9} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
                 </tr>
               )}
               {!isLoading && invoices.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
+                  <td colSpan={9} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
                 </tr>
               )}
               {invoices.map((invoice) => (
@@ -175,6 +176,7 @@ export default function InvoiceListPage() {
                     </div>
                   </td>
                   <td>{invoice.client_name || "—"}</td>
+                  <td className="text-text-muted text-xs">{new Date(invoice.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}</td>
                   <td className="text-text-muted">{formatDate(invoice.date)}</td>
                   <td>
                     <span

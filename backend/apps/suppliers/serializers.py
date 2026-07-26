@@ -24,7 +24,7 @@ class POLineSerializer(serializers.ModelSerializer):
         model = POLine
         fields = [
             "id", "variant", "variant_label", "description", "quantity_ordered",
-            "quantity_received", "agreed_unit_price", "line_total",
+            "quantity_received", "cartons", "pairs_per_carton", "agreed_unit_price", "line_total",
         ]
 
     def get_variant_label(self, obj) -> str | None:
@@ -104,6 +104,7 @@ class POLineInputSerializer(serializers.Serializer):
     description = serializers.CharField(max_length=300)
     quantity_ordered = serializers.IntegerField(min_value=1, required=False)
     cartons = serializers.IntegerField(min_value=0, required=False, default=0)
+    pairs_per_carton = serializers.IntegerField(min_value=1, required=False, default=10)
     agreed_unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
     carton_sizes = CartonSizeInputSerializer(many=True, required=False, allow_null=True, default=None)
 

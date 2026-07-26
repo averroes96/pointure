@@ -31,8 +31,8 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
     filterset_fields = ["status", "client", "branch"]
     search_fields = ["number", "client__name"]
-    ordering_fields = ["date", "due_date", "total_ttc", "number"]
-    ordering = ["-date"]
+    ordering_fields = ["date", "due_date", "total_ttc", "number", "created_at"]
+    ordering = ["-created_at"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -166,6 +166,26 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         data = serializer.validated_data
 
         with transaction.atomic():
+            # If the invoice was already confirmed, return all inventory first
+            was_confirmed = invoice.status != InvoiceStatusChoices.DRAFT
+            old_branch = invoice.branch
+            if was_confirmed and old_branch:
+                from apps.inventory.models import StockMovement
+                for line in invoice.lines.all():
+                    if line.variant:
+                        StockMovement.objects.create(
+                            tenant=request.tenant,
+                            branch=old_branch,
+                            variant=line.variant,
+                            movement_type="RETURN",
+                            quantity_delta=line.quantity,
+                            reference=f"EDIT-RET-{invoice.number or invoice.pk}",
+                            notes=f"Retour avant modification Facture {invoice.number or invoice.pk}"
+                        )
+                        line.variant.refresh_stock()
+                        if old_branch:
+                            line.variant.refresh_stock(branch=old_branch)
+
             # Update main invoice fields
             invoice.client_id = data.get("client_id")
             invoice.branch_id = data.get("branch_id")
@@ -181,8 +201,9 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Recreate lines
             invoice.lines.all().delete()
+            new_lines = []
             for i, line_data in enumerate(data["lines"]):
-                InvoiceLine.objects.create(
+                l = InvoiceLine.objects.create(
                     invoice=invoice,
                     variant=line_data.get("variant"),
                     description=line_data["description"],
@@ -192,6 +213,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     cartons=line_data.get("cartons", 0),
                     order=i,
                 )
+                new_lines.append(l)
 
             # Recompute totals
             invoice.compute_totals()
@@ -200,6 +222,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             # Record initial payment if provided (only if one doesn't exist yet, or just add it)
             payment_data = data.get("payment")
             if payment_data and payment_data.get("amount"):
+                from apps.invoicing.models import InvoicePayment
                 InvoicePayment.objects.create(
                     invoice=invoice,
                     amount=payment_data["amount"],
@@ -209,11 +232,28 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     recorded_by=request.user,
                 )
 
-            # Confirm if requested
+            # Confirm if requested (this will handle deduction if it was draft)
             if data.get("confirm"):
                 invoice.confirm()
             else:
                 invoice.update_status()
+                # If it was already confirmed, and we didn't call confirm() just now, we need to deduct the new lines
+                if was_confirmed and invoice.branch:
+                    from apps.inventory.models import StockMovement
+                    for line in new_lines:
+                        if line.variant:
+                            StockMovement.objects.create(
+                                tenant=request.tenant,
+                                branch=invoice.branch,
+                                variant=line.variant,
+                                movement_type="SALE",
+                                quantity_delta=-line.quantity,
+                                reference=f"EDIT-SALE-{invoice.number or invoice.pk}",
+                                notes=f"Déduction après modification Facture {invoice.number or invoice.pk}"
+                            )
+                            line.variant.refresh_stock()
+                            if invoice.branch:
+                                line.variant.refresh_stock(branch=invoice.branch)
 
             # Re-queue PDF generation
             generate_invoice_pdf.delay(invoice.pk)
@@ -261,6 +301,25 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         # Reverse client ledger entry if exists
         from apps.clients.models import ClientLedger
         ClientLedger.objects.filter(reference_type="Invoice", reference_id=str(invoice.pk)).delete()
+
+        # Restore inventory if branch exists and status was sent/overdue/paid (not draft)
+        # Note: If it's a draft, it hasn't deducted stock yet, so only restore if it was confirmed.
+        if invoice.branch and invoice.status != InvoiceStatusChoices.DRAFT:
+            from apps.inventory.models import StockMovement
+            for line in invoice.lines.all():
+                if line.variant:
+                    StockMovement.objects.create(
+                        tenant=request.tenant,
+                        branch=invoice.branch,
+                        variant=line.variant,
+                        movement_type="RETURN",
+                        quantity_delta=line.quantity,  # positive to return stock
+                        reference=f"CANCEL-{invoice.number or invoice.pk}",
+                        notes=f"Annulation Facture {invoice.number or invoice.pk}"
+                    )
+                    line.variant.refresh_stock()
+                    if invoice.branch:
+                        line.variant.refresh_stock(branch=invoice.branch)
 
         invoice.status = InvoiceStatusChoices.CANCELLED
         invoice.save(update_fields=["status"])

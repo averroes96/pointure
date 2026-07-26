@@ -94,6 +94,7 @@ class Product(TenantScopedModel):
     )
     image = models.ImageField(_("Photo"), upload_to="products/", blank=True, null=True)
     description = models.TextField(_("Description"), blank=True)
+    pairs_per_carton = models.PositiveIntegerField(_("Pairs per Carton"), default=10)
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)
     is_active = models.BooleanField(_("Active"), default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -69,8 +69,11 @@ def group_lines_by_product(lines):
         groups[key]["total_price"] += line.line_total
         
         c = getattr(line, "cartons", 0)
+        ppc = getattr(line, "pairs_per_carton", 0)
         if c > groups[key]["cartons"]:
             groups[key]["cartons"] = c
+        if ppc > getattr(groups[key], "pairs_per_carton", 0) or "pairs_per_carton" not in groups[key]:
+            groups[key]["pairs_per_carton"] = ppc
             
     return list(groups.values())
 

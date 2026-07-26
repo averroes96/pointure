@@ -53,6 +53,7 @@
       <th>#</th>
       <th>Description</th>
       <th class="num">Cartons</th>
+      <th class="num">Paires/Carton</th>
       <th class="num">Qté</th>
       <th class="num">Prix unitaire</th>
       <th class="num">Total</th>
@@ -64,6 +65,7 @@
       <td>{{ forloop.counter }}</td>
       <td>{{ item.name }}</td>
       <td class="num">{% if item.cartons > 0 %}{{ item.cartons }}{% else %}—{% endif %}</td>
+      <td class="num">{% if item.pairs_per_carton > 0 %}{{ item.pairs_per_carton }}{% else %}—{% endif %}</td>
       <td class="num">{{ item.quantity }}</td>
       <td class="num">{{ item.unit_price|floatformat:2 }}</td>
       <td class="num">{{ item.total_price|floatformat:2 }}</td>

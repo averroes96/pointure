@@ -74,6 +74,7 @@ class POLine(models.Model):
     quantity_ordered = models.PositiveIntegerField()
     quantity_received = models.IntegerField(default=0)
     cartons = models.PositiveIntegerField(default=0)
+    pairs_per_carton = models.PositiveIntegerField(default=10)
     agreed_unit_price = models.DecimalField(max_digits=12, decimal_places=2)
 
     @property

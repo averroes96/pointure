@@ -485,6 +485,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     quantity_ordered=qty_ordered,
                     agreed_unit_price=line_data["agreed_unit_price"],
                     cartons=line_data.get("cartons", 0),
+                    pairs_per_carton=line_data.get("pairs_per_carton", 10),
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
                 
@@ -570,6 +571,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     quantity_ordered=qty_ordered,
                     agreed_unit_price=line_data["agreed_unit_price"],
                     cartons=line_data.get("cartons", 0),
+                    pairs_per_carton=line_data.get("pairs_per_carton", 10),
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
                 
