@@ -19,6 +19,7 @@ export interface ProductResult {
   sale_price: string;
   wholesale_price?: string;
   purchase_price?: string;
+  pairs_per_carton?: number;
   variants: VariantData[];
 }
 
@@ -200,6 +201,7 @@ export function InvoiceProductMatrix({
           onSelect={(p) => onChange({
             ...config,
             product: p,
+            pairs_per_carton: p.pairs_per_carton ?? 10,
             quantities: {},
             unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
             discount_pct: "0"

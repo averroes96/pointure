@@ -44,6 +44,7 @@ def _resolve_product(tenant, nv: dict):
             category=nv.get("category", "other"),
             purchase_price=nv.get("purchase_price", 0),
             sale_price=nv.get("sale_price", 0),
+            pairs_per_carton=nv.get("pairs_per_carton", 10),
             is_active=True,
         )
     )

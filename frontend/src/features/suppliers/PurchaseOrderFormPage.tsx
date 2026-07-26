@@ -396,6 +396,7 @@ export default function PurchaseOrderFormPage() {
                     colour: colour || "N/A",
                     purchase_price: parseFloat(cfg.purchase_price) || 0,
                     sale_price: parseFloat(cfg.sale_price) || 0,
+                    pairs_per_carton: cfg.pairs_per_carton || 10,
                   },
                 }))
             );

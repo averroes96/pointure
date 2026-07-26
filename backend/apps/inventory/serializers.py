@@ -124,7 +124,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
             "sale_price", "wholesale_price", "purchase_price", "pamp", "total_stock", "has_low_stock", "is_total_low_stock",
-            "alert_threshold", "image", "is_active", "wholesale_price", "variants", "location",
+            "alert_threshold", "pairs_per_carton", "image", "is_active", "wholesale_price", "variants", "location",
         ]
 
     def to_representation(self, instance):

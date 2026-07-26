@@ -88,6 +88,7 @@ class NewVariantInputSerializer(serializers.Serializer):
     colour         = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
     purchase_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
     sale_price     = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
+    pairs_per_carton = serializers.IntegerField(min_value=1, required=False, default=10)
 
 
 class CartonSizeInputSerializer(serializers.Serializer):

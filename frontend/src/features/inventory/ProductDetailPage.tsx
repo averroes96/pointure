@@ -337,10 +337,11 @@ export default function ProductDetailPage() {
         {/* Classification + description */}
         <div className="card p-5 space-y-4">
           <h3 className="text-sm font-semibold text-text-primary">Informations</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <InfoBadge label="Catégorie" value={CATEGORY_LABELS[product.category] ?? product.category} />
             <InfoBadge label="Genre" value={GENDER_LABELS[product.gender] ?? product.gender} />
             <InfoBadge label="Saison" value={SEASON_LABELS[product.season] ?? product.season} />
+            <InfoBadge label="Paires / Carton" value={product.pairs_per_carton ?? 10} />
           </div>
           {product.description && (
             <p className="text-sm text-text-muted border-t border-border pt-3 leading-relaxed">
