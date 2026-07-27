@@ -585,10 +585,26 @@ function LedgerTab({ clientId }: { clientId: number }) {
                   {formatDate(entry.date)}
                 </td>
                 <td className="max-w-xs truncate">{entry.description || "—"}</td>
-                <td className="font-mono text-xs text-text-muted">
-                  {entry.reference_type && entry.reference_id
-                    ? `${entry.reference_type} #${entry.reference_id}`
-                    : "—"}
+                <td>
+                  {entry.reference_type === "Invoice" && entry.reference_id ? (
+                    <Link 
+                      to={`/invoices/${entry.reference_id}/edit`} 
+                      className="inline-flex items-center gap-1 text-primary-600 hover:underline"
+                      title="Ouvrir la facture"
+                    >
+                      <FileText size={14} />
+                      <span className="font-mono text-xs">FA-{entry.reference_id.substring(0,8)}</span>
+                    </Link>
+                  ) : entry.reference_type && entry.reference_id ? (
+                    <div className="inline-flex items-center gap-1 text-text-muted" title={entry.reference_type}>
+                      <CreditCard size={14} />
+                      <span className="font-mono text-xs">
+                        {entry.reference_type === 'InvoicePayment' ? 'PMT' : entry.reference_type.substring(0,3).toUpperCase()}-{entry.reference_id.substring(0,8)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-text-muted">—</span>
+                  )}
                 </td>
                 <td className="text-end font-mono">
                   {entry.entry_type === "debit" ? (
