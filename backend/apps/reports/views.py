@@ -262,20 +262,35 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             tenant=tenant, created_at__date=target_date, status="completed"
         )
         totals = sales_qs.aggregate(
-            total_revenue=Sum("total_amount"), items_sold=Sum("items__quantity")
+            total_revenue=Sum("total_amount"), 
+            items_sold=Sum("items__quantity"),
+            total_discounts=Sum("discount_amount"),
+            total_stamps=Sum("timbre_fiscal")
         )
         sale_count = sales_qs.count()
 
+        from apps.sales.models import Return
+        returns_qs = Return.objects.filter(tenant=tenant, created_at__date=target_date)
+        total_refunds = returns_qs.aggregate(t=Sum("refund_amount"))["t"] or Decimal("0")
+
+        total_revenue = totals["total_revenue"] or Decimal("0")
+        net_revenue = total_revenue - total_refunds
+
         # Payment breakdown by method
         from apps.sales.models import Payment
+        from django.db.models import Count
         payments_qs = Payment.objects.filter(sale__in=sales_qs)
         by_method = {
-            item["method"]: item["total"]
-            for item in payments_qs.values("method").annotate(total=Sum("amount"))
+            item["method"]: {"total": item["total"], "count": item["count"]}
+            for item in payments_qs.values("method").annotate(total=Sum("amount"), count=Count("id"))
         }
         payment_breakdown = [
-            {"method": method, "amount": by_method.get(method, Decimal("0")), "count": 0}
-            for method in ["cash", "ccp", "virement", "cheque"]
+            {
+                "method": method, 
+                "amount": by_method.get(method, {}).get("total", Decimal("0")), 
+                "count": by_method.get(method, {}).get("count", 0)
+            }
+            for method in ["cash", "ccp", "virement", "cheque", "account"]
         ]
 
         # Top 5 products
@@ -292,12 +307,16 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         return Response({
             "date": str(target_date),
-            "total_revenue": totals["total_revenue"] or Decimal("0"),
+            "total_revenue": total_revenue,
+            "total_refunds": total_refunds,
+            "net_revenue": net_revenue,
+            "total_discounts": totals["total_discounts"] or Decimal("0"),
+            "total_stamps": totals["total_stamps"] or Decimal("0"),
             "sale_count": sale_count,
-            "cash_total": by_method.get("cash", Decimal("0")),
-            "ccp_total": by_method.get("ccp", Decimal("0")),
-            "virement_total": by_method.get("virement", Decimal("0")),
-            "cheque_total": by_method.get("cheque", Decimal("0")),
+            "cash_total": by_method.get("cash", {}).get("total", Decimal("0")),
+            "ccp_total": by_method.get("ccp", {}).get("total", Decimal("0")),
+            "virement_total": by_method.get("virement", {}).get("total", Decimal("0")),
+            "cheque_total": by_method.get("cheque", {}).get("total", Decimal("0")),
             "items_sold": totals["items_sold"] or 0,
             "top_products": top_products,
             "payment_breakdown": payment_breakdown,

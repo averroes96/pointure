@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, RotateCcw, type LucideIcon } from "lucide-react";
+import { TrendingUp, ShoppingBag, BarChart2, CreditCard, Printer, Download, RotateCcw, Tag, FileSignature, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { downloadCSV } from "@/lib/csvExport";
 import { openPrintPopup } from "@/lib/printPopup";
@@ -25,6 +25,8 @@ interface DailyReport {
   sale_count: number;
   total_refunds: string;
   net_revenue: string;
+  total_discounts: string;
+  total_stamps: string;
   cash_total: string;
   ccp_total: string;
   virement_total: string;
@@ -73,16 +75,11 @@ function KPICard({
   );
 }
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Espèces", cheque: "Chèque", ccp: "CCP",
-  virement: "Virement", account: "Compte client",
-};
-
-function buildDailyReportHtml(data: DailyReport, date: string): string {
+function buildDailyReportHtml(data: DailyReport, date: string, t: any): string {
   const paymentRows = data.payment_breakdown
     .map((r) => `
       <tr>
-        <td>${PAYMENT_LABELS[r.method] ?? r.method}</td>
+        <td>${t(`payment_method.${r.method}`, { defaultValue: r.method })}</td>
         <td style="text-align:right;">${r.count}</td>
         <td style="text-align:right;font-weight:600;">${Number(r.amount).toLocaleString("fr-DZ")} DZD</td>
       </tr>`)
@@ -102,7 +99,7 @@ function buildDailyReportHtml(data: DailyReport, date: string): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <title>Rapport journalier ${date}</title>
+  <title>${t("nav.daily_report")} ${date}</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:Arial,sans-serif; font-size:12px; color:#000; padding:12mm; }
@@ -121,47 +118,47 @@ function buildDailyReportHtml(data: DailyReport, date: string): string {
   </style>
 </head>
 <body>
-  <h1>{t("nav.daily_report")}</h1>
+  <h1>${t("nav.daily_report")}</h1>
   <p style="font-size:11px;color:#555;margin-top:2px;">Date&nbsp;: ${date}</p>
 
   <div class="kpis">
     <div class="kpi">
-      <div class="kpi-label">{t("report.gross_revenue")}</div>
+      <div class="kpi-label">${t("report.gross_revenue")}</div>
       <div class="kpi-value">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">{t("report.refunds")}</div>
+      <div class="kpi-label">${t("report.refunds")}</div>
       <div class="kpi-value" style="color:#c0392b;">− ${Number(data.total_refunds).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">{t("report.net_revenue")}</div>
+      <div class="kpi-label">${t("report.net_revenue")}</div>
       <div class="kpi-value" style="color:#27ae60;">${Number(data.net_revenue).toLocaleString("fr-DZ")} DZD</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">{t("report.sale_count")}</div>
+      <div class="kpi-label">${t("report.sale_count")}</div>
       <div class="kpi-value">${data.sale_count}</div>
     </div>
   </div>
 
   <div class="two-col">
     <div>
-      <h2>{t("report.payment_breakdown")}</h2>
+      <h2>${t("report.payment_breakdown")}</h2>
       <table>
-        <thead><tr><th>{t("payment.method")}</th><th style="text-align:right;">{t("report.nb_count")}</th><th style="text-align:right;">{t("report.amount")}</th></tr></thead>
+        <thead><tr><th>${t("payment.method")}</th><th style="text-align:right;">${t("report.nb_count")}</th><th style="text-align:right;">${t("report.amount")}</th></tr></thead>
         <tbody>${paymentRows}</tbody>
         <tfoot>
           <tr>
-            <td>{t("common.total")}</td>
-            <td style="text-align:right;">${data.sale_count}</td>
+            <td>${t("common.total")}</td>
+            <td style="text-align:right;">${data.payment_breakdown.reduce((s, r) => s + r.count, 0)}</td>
             <td style="text-align:right;">${Number(data.total_revenue).toLocaleString("fr-DZ")} DZD</td>
           </tr>
         </tfoot>
       </table>
     </div>
     <div>
-      <h2>{t("report.top_5_items")}</h2>
+      <h2>${t("report.top_5_items")}</h2>
       <table>
-        <thead><tr><th>#</th><th>{t("report.item")}</th><th style="text-align:right;">{t("report.qty")}</th><th style="text-align:right;">{t("report.revenue")}</th></tr></thead>
+        <thead><tr><th>#</th><th>${t("report.item")}</th><th style="text-align:right;">${t("report.qty")}</th><th style="text-align:right;">${t("report.revenue")}</th></tr></thead>
         <tbody>${productRows}</tbody>
       </table>
     </div>
@@ -188,13 +185,13 @@ export default function DailyReportPage() {
     if (!data) return;
     const rows = data.payment_breakdown.map((row) => ({
       [t("payment.method")]: t(`payment_method.${row.method}`, { defaultValue: row.method }),
-      "Nb transactions": row.count,
-      "Montant (DZD)": row.amount,
+      [t("report.nb_count", "Nb transactions")]: row.count,
+      [t("report.amount", "Montant (DZD)")]: row.amount,
     }));
     rows.push({
-      [t("payment.method")]: "TOTAL",
-      "Nb transactions": data.sale_count,
-      "Montant (DZD)": data.total_revenue,
+      [t("payment.method")]: t("common.total", "TOTAL"),
+      [t("report.nb_count", "Nb transactions")]: data.payment_breakdown.reduce((s, r) => s + r.count, 0),
+      [t("report.amount", "Montant (DZD)")]: data.total_revenue,
     });
     downloadCSV(rows, `rapport-journalier-${date}.csv`);
   }
@@ -207,7 +204,7 @@ export default function DailyReportPage() {
           <h1 className="text-xl font-bold text-text-primary">{t("nav.daily_report")}</h1>
           <p className="text-sm text-text-muted">{t("report.daily_summary")}</p>
         </div>
-        <button onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date), "210mm", 15)} disabled={!data} className="btn-secondary">
+        <button onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date, t), "210mm", 15)} disabled={!data} className="btn-secondary">
           <Printer size={16} />{t("common.print")}</button>
         <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
           <Download size={16} />{t("common.export_csv")}</button>
@@ -261,10 +258,9 @@ export default function DailyReportPage() {
               value={formatDZD(data.net_revenue) + " DZD"}
               icon={BarChart2}
               color="bg-success"
-              sub="brut − retours"
             />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               label="Articles vendus"
               value={data.items_sold}
@@ -277,6 +273,18 @@ export default function DailyReportPage() {
               value={formatDZD(data.cheque_total) + " DZD"}
               icon={CreditCard}
               color="bg-warning"
+            />
+            <KPICard
+              label="Total des remises"
+              value={formatDZD(data.total_discounts) + " DZD"}
+              icon={Tag}
+              color="bg-indigo-500"
+            />
+            <KPICard
+              label="Timbres fiscaux"
+              value={formatDZD(data.total_stamps) + " DZD"}
+              icon={FileSignature}
+              color="bg-slate-600"
             />
           </div>
 
@@ -298,7 +306,7 @@ export default function DailyReportPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentBreakdown.map((row) => (
+                      {paymentBreakdown.filter(r => r.method !== "account").map((row) => (
                         <tr key={row.method}>
                           <td className="font-medium text-text-primary">
                             {t(`payment_method.${row.method}`, { defaultValue: row.method })}
@@ -310,6 +318,27 @@ export default function DailyReportPage() {
                           </td>
                         </tr>
                       ))}
+                      {paymentBreakdown.some(r => r.method === "account") && (
+                        <>
+                          <tr className="border-t border-border/50">
+                            <td colSpan={3} className="py-2 px-3 text-xs font-semibold text-text-muted uppercase tracking-wider bg-surface-50">
+                              Solde / Crédit Client
+                            </td>
+                          </tr>
+                          {paymentBreakdown.filter(r => r.method === "account").map((row) => (
+                            <tr key={row.method}>
+                              <td className="font-medium text-text-primary">
+                                {t(`payment_method.${row.method}`, { defaultValue: row.method })}
+                              </td>
+                              <td className="text-end text-text-muted">{row.count}</td>
+                              <td className="text-end font-mono font-medium text-indigo-600">
+                                {formatDZD(row.amount)}{" "}
+                                <span className="text-2xs text-text-muted">DZD</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </>
+                      )}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border">
