@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
+import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
@@ -169,6 +170,7 @@ export default function InvoiceBuilderPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { currentBranch } = useBranch();
 
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
@@ -338,6 +340,7 @@ export default function InvoiceBuilderPage() {
   function buildPayload(isConfirm: boolean): Record<string, unknown> {
     const payload: Record<string, unknown> = {
       client_id: client?.id ?? null,
+      branch_id: currentBranch?.id ?? null,
       date,
       due_date: dueDate,
       series_prefix: seriesPrefix,

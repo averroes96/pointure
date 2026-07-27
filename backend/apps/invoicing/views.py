@@ -131,7 +131,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Confirm if requested
             if data.get("confirm"):
-                invoice.confirm()
+                invoice.confirm(user=request.user)
             else:
                 invoice.update_status()
 
@@ -166,10 +166,18 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         data = serializer.validated_data
 
         with transaction.atomic():
-            # Non-draft invoices have stock deducted — restore it before editing
+            old_branch_id = str(invoice.branch_id) if invoice.branch_id else None
+            new_branch_id = str(data.get("branch_id")) if data.get("branch_id") else None
+
+            # Non-draft invoices have stock deducted — check if we can delta update
             had_stock_deducted = invoice.status != InvoiceStatusChoices.DRAFT
-            if had_stock_deducted:
-                invoice._restore_inventory(ref_prefix="Retour avant modification")
+            can_delta_update = had_stock_deducted and (old_branch_id == new_branch_id)
+
+            if had_stock_deducted and not can_delta_update:
+                invoice._restore_inventory(ref_prefix="Retour changement dépôt", user=request.user)
+
+            if can_delta_update:
+                old_lines_data = list(invoice.lines.all())
 
             # Update main invoice fields
             invoice.client_id = data.get("client_id")
@@ -219,12 +227,15 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Handle confirm for drafts → assigns number + changes status
             if data.get("confirm") and invoice.status == InvoiceStatusChoices.DRAFT:
-                invoice.confirm()
+                invoice.confirm(user=request.user)
             else:
                 invoice.update_status()
-                # If invoice is non-draft (was already, or just became), re-deduct new lines
+                # If invoice is non-draft (was already, or just became), update stock
                 if invoice.status != InvoiceStatusChoices.DRAFT:
-                    invoice._deduct_inventory(lines=new_lines)
+                    if can_delta_update:
+                        invoice._update_inventory_delta(old_lines_data, new_lines, user=request.user)
+                    else:
+                        invoice._deduct_inventory(lines=new_lines, user=request.user)
 
             # Re-queue PDF generation
             generate_invoice_pdf.delay(invoice.pk)
@@ -241,7 +252,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"error": {"code": "invalid_state", "message": "Invoice is not a draft."}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        invoice.confirm()
+        invoice.confirm(user=request.user)
         generate_invoice_pdf.delay(invoice.pk)
         return Response(InvoiceSerializer(invoice).data)
 
@@ -275,7 +286,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         # Restore inventory if not a draft (draft hasn't deducted stock)
         if invoice.status != InvoiceStatusChoices.DRAFT:
-            invoice._restore_inventory(ref_prefix="Annulation")
+            invoice._restore_inventory(ref_prefix="Annulation", user=request.user)
 
         invoice.status = InvoiceStatusChoices.CANCELLED
         invoice.save(update_fields=["status"])

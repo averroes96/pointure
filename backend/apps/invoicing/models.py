@@ -157,7 +157,7 @@ class Invoice(TenantScopedModel):
             
         self.total_ttc = base_ttc + self.timbre_fiscal
 
-    def confirm(self):
+    def confirm(self, user=None):
         """Assign invoice number and set status based on payments."""
         if self.status == InvoiceStatusChoices.DRAFT:
             with transaction.atomic():
@@ -166,9 +166,9 @@ class Invoice(TenantScopedModel):
                 self.save(update_fields=["number", "status"])
                 self.update_status()
                 # Deduct inventory immediately for non-draft invoices
-                self._deduct_inventory()
+                self._deduct_inventory(user=user)
 
-    def _deduct_inventory(self, lines=None):
+    def _deduct_inventory(self, lines=None, user=None):
         """Deduct stock for all invoice lines. Called on create/confirm for non-draft invoices."""
         if not self.branch:
             return
@@ -181,14 +181,15 @@ class Invoice(TenantScopedModel):
                     variant=line.variant,
                     reason="sale",
                     quantity_delta=-line.quantity,
-                    reference_id=str(self.pk),
+                    reference_id=self.number or str(self.pk),
                     reference_type="invoice",
+                    user=user or self.created_by,
                     notes=f"Facture {self.number or self.pk}"
                 )
                 line.variant.refresh_stock()
                 line.variant.refresh_stock(branch=self.branch)
 
-    def _restore_inventory(self, lines=None, ref_prefix="CANCEL"):
+    def _restore_inventory(self, lines=None, ref_prefix="CANCEL", user=None):
         """Restore stock for all invoice lines. Called on cancel/edit."""
         if not self.branch:
             return
@@ -201,12 +202,51 @@ class Invoice(TenantScopedModel):
                     variant=line.variant,
                     reason="return",
                     quantity_delta=line.quantity,
-                    reference_id=str(self.pk),
+                    reference_id=self.number or str(self.pk),
                     reference_type="invoice",
+                    user=user or self.created_by,
                     notes=f"{ref_prefix} Facture {self.number or self.pk}"
                 )
                 line.variant.refresh_stock()
                 line.variant.refresh_stock(branch=self.branch)
+
+    def _update_inventory_delta(self, old_lines, new_lines, user=None):
+        """Update stock based on differences between old and new quantities for the same branch."""
+        if not self.branch:
+            return
+        from collections import defaultdict
+        from apps.inventory.models import StockMovement
+        
+        old_qtys = defaultdict(int)
+        for line in old_lines:
+            if line.variant_id:
+                old_qtys[line.variant_id] += line.quantity
+                
+        new_qtys = defaultdict(int)
+        for line in new_lines:
+            if line.variant_id:
+                new_qtys[line.variant_id] += line.quantity
+                
+        variants_to_update = set(old_qtys.keys()) | set(new_qtys.keys())
+        for variant_id in variants_to_update:
+            movement_qty = old_qtys.get(variant_id, 0) - new_qtys.get(variant_id, 0)
+            if movement_qty != 0:
+                reason = "return" if movement_qty > 0 else "sale"
+                StockMovement.objects.create(
+                    tenant=self.tenant,
+                    branch=self.branch,
+                    variant_id=variant_id,
+                    reason=reason,
+                    quantity_delta=movement_qty,
+                    reference_id=self.number or str(self.pk),
+                    reference_type="invoice",
+                    user=user or self.created_by,
+                    notes=f"Modification Facture {self.number or self.pk}"
+                )
+                from apps.inventory.models import Variant
+                variant = Variant.objects.get(pk=variant_id)
+                variant.refresh_stock()
+                variant.refresh_stock(branch=self.branch)
 
     def _sync_client_ledger(self):
         """Create or update a client ledger debit entry for this invoice."""
