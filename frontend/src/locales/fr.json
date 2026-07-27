@@ -847,5 +847,9 @@
     "social_saved": "Intégration sociale enregistrée avec succès !",
     "webhook_url": "URL du Webhook",
     "webhook_url_desc": "Collez cette URL dans votre console Meta Developer comme URL de Callback."
+  },
+  "product": {
+    "pairs_per_carton": "Paires / Carton",
+    "pairs_per_carton_hint": "Le nombre de paires dans chaque carton complet (si applicable)."
   }
 }

@@ -803,5 +803,9 @@
     "api_secret": "API Secret / Key",
     "new_manual_order": "New Manual Order",
     "draft_created": "Manual draft order created successfully!"
+  },
+  "product": {
+    "pairs_per_carton": "Pairs / Carton",
+    "pairs_per_carton_hint": "Number of pairs per full carton (if applicable)."
   }
 }
