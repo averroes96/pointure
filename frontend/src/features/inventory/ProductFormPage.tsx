@@ -548,7 +548,7 @@ export default function ProductFormPage() {
                     className="form-input"
                   />
                 </Field>
-                <Field label="Paires par Carton" hint="Utilisé par défaut lors de la commande ou facturation.">
+                <Field label={t("product.pairs_per_carton")} hint={t("product.pairs_per_carton_hint")}>
                   <input
                     type="number"
                     min="1"

@@ -140,6 +140,7 @@ export function InvoiceProductMatrix({
   onChange: (c: MatrixConfig) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const product = config.product;
 
   // Extract unique colours and sizes from variants
@@ -215,7 +216,7 @@ export function InvoiceProductMatrix({
           {/* Distribution controls */}
           <div className="flex flex-wrap items-end gap-3 p-3 bg-surface border border-border rounded-lg">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Nombre de cartons</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.cartons_count")}</label>
               <input
                 type="number"
                 min="1"
@@ -225,7 +226,7 @@ export function InvoiceProductMatrix({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Paires par carton</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.pairs_per_carton")}</label>
               <input
                 type="number"
                 min="1"
@@ -235,14 +236,14 @@ export function InvoiceProductMatrix({
               />
             </div>
             <div className="px-2 py-1 bg-white border border-border rounded text-sm font-medium">
-              = {config.cartons * config.pairs_per_carton} paires totales
+              {t("invoice.total_pairs_calc", { total: config.cartons * config.pairs_per_carton })}
             </div>
             <button
               type="button"
               onClick={applyEven}
               className="btn btn-outline py-1 text-xs ml-auto"
             >
-              Distribuer les quantités
+              {t("invoice.distribute_quantities")}
             </button>
           </div>
 
