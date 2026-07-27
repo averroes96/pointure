@@ -114,7 +114,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
   });
 
   return (
-    <div className="card">
+    <div className="card p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center">
           <Settings size={18} className="text-primary-500" />
@@ -233,7 +233,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
 
 function Leaderboard({ accounts }: { accounts: LoyaltyAccountSummary[] }) {
   return (
-    <div className="card">
+    <div className="card p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
           <Trophy size={18} className="text-yellow-500" />
@@ -472,7 +472,7 @@ function AccountsPanel() {
   ];
 
   return (
-    <div className="card">
+    <div className="card p-6">
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
@@ -514,7 +514,7 @@ function AccountsPanel() {
           Aucun compte trouvé.
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-5">
+        <div className="overflow-x-auto -mx-6">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
