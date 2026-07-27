@@ -166,25 +166,10 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         data = serializer.validated_data
 
         with transaction.atomic():
-            # If the invoice was already confirmed, return all inventory first
-            was_confirmed = invoice.status != InvoiceStatusChoices.DRAFT
-            old_branch = invoice.branch
-            if was_confirmed and old_branch:
-                from apps.inventory.models import StockMovement
-                for line in invoice.lines.all():
-                    if line.variant:
-                        StockMovement.objects.create(
-                            tenant=request.tenant,
-                            branch=old_branch,
-                            variant=line.variant,
-                            movement_type="RETURN",
-                            quantity_delta=line.quantity,
-                            reference=f"EDIT-RET-{invoice.number or invoice.pk}",
-                            notes=f"Retour avant modification Facture {invoice.number or invoice.pk}"
-                        )
-                        line.variant.refresh_stock()
-                        if old_branch:
-                            line.variant.refresh_stock(branch=old_branch)
+            # Non-draft invoices have stock deducted — restore it before editing
+            had_stock_deducted = invoice.status != InvoiceStatusChoices.DRAFT
+            if had_stock_deducted:
+                invoice._restore_inventory(ref_prefix="Retour avant modification")
 
             # Update main invoice fields
             invoice.client_id = data.get("client_id")
@@ -232,28 +217,14 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     recorded_by=request.user,
                 )
 
-            # Confirm if requested (this will handle deduction if it was draft)
-            if data.get("confirm"):
+            # Handle confirm for drafts → assigns number + changes status
+            if data.get("confirm") and invoice.status == InvoiceStatusChoices.DRAFT:
                 invoice.confirm()
             else:
                 invoice.update_status()
-                # If it was already confirmed, and we didn't call confirm() just now, we need to deduct the new lines
-                if was_confirmed and invoice.branch:
-                    from apps.inventory.models import StockMovement
-                    for line in new_lines:
-                        if line.variant:
-                            StockMovement.objects.create(
-                                tenant=request.tenant,
-                                branch=invoice.branch,
-                                variant=line.variant,
-                                movement_type="SALE",
-                                quantity_delta=-line.quantity,
-                                reference=f"EDIT-SALE-{invoice.number or invoice.pk}",
-                                notes=f"Déduction après modification Facture {invoice.number or invoice.pk}"
-                            )
-                            line.variant.refresh_stock()
-                            if invoice.branch:
-                                line.variant.refresh_stock(branch=invoice.branch)
+                # If invoice is non-draft (was already, or just became), re-deduct new lines
+                if invoice.status != InvoiceStatusChoices.DRAFT:
+                    invoice._deduct_inventory(lines=new_lines)
 
             # Re-queue PDF generation
             generate_invoice_pdf.delay(invoice.pk)
@@ -302,24 +273,9 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from apps.clients.models import ClientLedger
         ClientLedger.objects.filter(reference_type="Invoice", reference_id=str(invoice.pk)).delete()
 
-        # Restore inventory if branch exists and status was sent/overdue/paid (not draft)
-        # Note: If it's a draft, it hasn't deducted stock yet, so only restore if it was confirmed.
-        if invoice.branch and invoice.status != InvoiceStatusChoices.DRAFT:
-            from apps.inventory.models import StockMovement
-            for line in invoice.lines.all():
-                if line.variant:
-                    StockMovement.objects.create(
-                        tenant=request.tenant,
-                        branch=invoice.branch,
-                        variant=line.variant,
-                        movement_type="RETURN",
-                        quantity_delta=line.quantity,  # positive to return stock
-                        reference=f"CANCEL-{invoice.number or invoice.pk}",
-                        notes=f"Annulation Facture {invoice.number or invoice.pk}"
-                    )
-                    line.variant.refresh_stock()
-                    if invoice.branch:
-                        line.variant.refresh_stock(branch=invoice.branch)
+        # Restore inventory if not a draft (draft hasn't deducted stock)
+        if invoice.status != InvoiceStatusChoices.DRAFT:
+            invoice._restore_inventory(ref_prefix="Annulation")
 
         invoice.status = InvoiceStatusChoices.CANCELLED
         invoice.save(update_fields=["status"])

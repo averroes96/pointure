@@ -165,24 +165,48 @@ class Invoice(TenantScopedModel):
                 self.status = InvoiceStatusChoices.SENT
                 self.save(update_fields=["number", "status"])
                 self.update_status()
+                # Deduct inventory immediately for non-draft invoices
+                self._deduct_inventory()
 
-                # Deduct inventory for all lines
-                if self.branch:
-                    from apps.inventory.models import StockMovement
-                    for line in self.lines.all():
-                        if line.variant:
-                            StockMovement.objects.create(
-                                tenant=self.tenant,
-                                branch=self.branch,
-                                variant=line.variant,
-                                movement_type="SALE",
-                                quantity_delta=-line.quantity,
-                                reference=f"INV-{self.number or self.pk}",
-                                notes=f"Facture {self.number or self.pk}"
-                            )
-                            line.variant.refresh_stock()
-                            if self.branch:
-                                line.variant.refresh_stock(branch=self.branch)
+    def _deduct_inventory(self, lines=None):
+        """Deduct stock for all invoice lines. Called on create/confirm for non-draft invoices."""
+        if not self.branch:
+            return
+        from apps.inventory.models import StockMovement
+        for line in (lines or self.lines.all()):
+            if line.variant:
+                StockMovement.objects.create(
+                    tenant=self.tenant,
+                    branch=self.branch,
+                    variant=line.variant,
+                    reason="sale",
+                    quantity_delta=-line.quantity,
+                    reference_id=str(self.pk),
+                    reference_type="invoice",
+                    notes=f"Facture {self.number or self.pk}"
+                )
+                line.variant.refresh_stock()
+                line.variant.refresh_stock(branch=self.branch)
+
+    def _restore_inventory(self, lines=None, ref_prefix="CANCEL"):
+        """Restore stock for all invoice lines. Called on cancel/edit."""
+        if not self.branch:
+            return
+        from apps.inventory.models import StockMovement
+        for line in (lines or self.lines.all()):
+            if line.variant:
+                StockMovement.objects.create(
+                    tenant=self.tenant,
+                    branch=self.branch,
+                    variant=line.variant,
+                    reason="return",
+                    quantity_delta=line.quantity,
+                    reference_id=str(self.pk),
+                    reference_type="invoice",
+                    notes=f"{ref_prefix} Facture {self.number or self.pk}"
+                )
+                line.variant.refresh_stock()
+                line.variant.refresh_stock(branch=self.branch)
 
     def _sync_client_ledger(self):
         """Create or update a client ledger debit entry for this invoice."""
