@@ -10,7 +10,7 @@
  * Payment modal: POST /clients/clients/{id}/payment/
  */
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -33,6 +33,7 @@ import {
   Star,
   Medal,
   TrendingUp,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
@@ -457,18 +458,102 @@ function ClientInfoTab({
 function LedgerTab({ clientId }: { clientId: number }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const search = searchParams.get("search") || "";
+  const type = searchParams.get("type") || "";
+  const fromDate = searchParams.get("from") || "";
+  const toDate = searchParams.get("to") || "";
 
   const { data, isLoading } = useQuery<PaginatedResponse<ClientLedgerEntry>>({
-    queryKey: ["client-ledger", clientId, page],
+    queryKey: ["client-ledger", clientId, page, search, type, fromDate, toDate],
     queryFn: () =>
       api
-        .get(`/clients/${clientId}/ledger/?page=${page}`)
+        .get(`/clients/${clientId}/ledger/`, {
+          params: { page, search, type, from: fromDate, to: toDate }
+        })
         .then((r) => r.data),
   });
 
   const entries = data?.results ?? [];
 
   return (
+    <div className="flex flex-col gap-4">
+      {/* Filters */}
+      <div className="card p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <label className="text-sm font-medium text-text-muted mb-1 block">Recherche</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Description ou référence..."
+              className="form-input pl-9 w-full"
+              value={search}
+              onChange={(e) => {
+                setSearchParams((prev) => {
+                  if (e.target.value) prev.set("search", e.target.value);
+                  else prev.delete("search");
+                  return prev;
+                });
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Type</label>
+          <select
+            className="form-input w-full md:w-auto"
+            value={type}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("type", e.target.value);
+                else prev.delete("type");
+                return prev;
+              });
+              setPage(1);
+            }}
+          >
+            <option value="">Tous</option>
+            <option value="debit">Débits (Factures)</option>
+            <option value="credit">Crédits (Paiements)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Du</label>
+          <input
+            type="date"
+            className="form-input w-full md:w-auto"
+            value={fromDate}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("from", e.target.value);
+                else prev.delete("from");
+                return prev;
+              });
+              setPage(1);
+            }}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Au</label>
+          <input
+            type="date"
+            className="form-input w-full md:w-auto"
+            value={toDate}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("to", e.target.value);
+                else prev.delete("to");
+                return prev;
+              });
+              setPage(1);
+            }}
+          />
+        </div>
+      </div>
+
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="data-table">
@@ -561,6 +646,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { BookOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import { BookOpen, Search } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { ClientLedgerEntry } from "@/types";
@@ -22,12 +22,20 @@ function SkeletonRow({ cols }: { cols: number }) {
 export default function GlobalLedgerPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const search = searchParams.get("search") || "";
+  const type = searchParams.get("type") || "";
+  const fromDate = searchParams.get("from") || "";
+  const toDate = searchParams.get("to") || "";
 
   const { data, isLoading } = useQuery<PaginatedResponse<ClientLedgerEntry & { client_id: string; client_name: string }>>({
-    queryKey: ["global-ledger", page],
+    queryKey: ["global-ledger", page, search, type, fromDate, toDate],
     queryFn: () =>
       api
-        .get(`/clients/ledger/?page=${page}`)
+        .get(`/clients/ledger/`, {
+          params: { page, search, type, from: fromDate, to: toDate }
+        })
         .then((r) => r.data),
   });
 
@@ -45,6 +53,81 @@ export default function GlobalLedgerPage() {
           <p className="text-sm text-text-muted">
             {data?.count ?? 0} {t("common.entries", "écritures")}
           </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card p-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <label className="text-sm font-medium text-text-muted mb-1 block">Recherche</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Client, description, référence..."
+              className="form-input pl-9 w-full"
+              value={search}
+              onChange={(e) => {
+                setSearchParams((prev) => {
+                  if (e.target.value) prev.set("search", e.target.value);
+                  else prev.delete("search");
+                  return prev;
+                });
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Type</label>
+          <select
+            className="form-input w-full md:w-auto"
+            value={type}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("type", e.target.value);
+                else prev.delete("type");
+                return prev;
+              });
+              setPage(1);
+            }}
+          >
+            <option value="">Tous</option>
+            <option value="debit">Débits (Factures)</option>
+            <option value="credit">Crédits (Paiements)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Du</label>
+          <input
+            type="date"
+            className="form-input w-full md:w-auto"
+            value={fromDate}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("from", e.target.value);
+                else prev.delete("from");
+                return prev;
+              });
+              setPage(1);
+            }}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-text-muted mb-1 block">Au</label>
+          <input
+            type="date"
+            className="form-input w-full md:w-auto"
+            value={toDate}
+            onChange={(e) => {
+              setSearchParams((prev) => {
+                if (e.target.value) prev.set("to", e.target.value);
+                else prev.delete("to");
+                return prev;
+              });
+              setPage(1);
+            }}
+          />
         </div>
       </div>
 

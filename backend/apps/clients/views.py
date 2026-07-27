@@ -122,14 +122,36 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def ledger(self, request, pk=None):
         """Client account statement."""
         client = self.get_object()
+        from django.db.models import Q
+        
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
+        entry_type = request.query_params.get("type")
+        search = request.query_params.get("search")
+        min_amount = request.query_params.get("min_amount")
+        max_amount = request.query_params.get("max_amount")
 
         qs = client.ledger_entries.all().order_by("-date", "-created_at")
+        
         if from_date:
             qs = qs.filter(date__gte=from_date)
         if to_date:
             qs = qs.filter(date__lte=to_date)
+            
+        if entry_type:
+            qs = qs.filter(entry_type=entry_type)
+            
+        if search:
+            qs = qs.filter(
+                Q(description__icontains=search) |
+                Q(reference_id__icontains=search) |
+                Q(reference_type__icontains=search)
+            )
+            
+        if min_amount:
+            qs = qs.filter(amount__gte=min_amount)
+        if max_amount:
+            qs = qs.filter(amount__lte=max_amount)
 
         page = self.paginate_queryset(qs)
         if page is not None:
@@ -476,14 +498,38 @@ class ClientLedgerViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         # We must filter by the client's tenant. Since we removed TenantScopedViewSetMixin,
         # we access the tenant via the authenticated user.
+        from django.db.models import Q
         tenant = getattr(self.request.user, "tenant", None)
         qs = super().get_queryset().filter(client__tenant=tenant)
+        
         from_date = self.request.query_params.get("from")
         to_date = self.request.query_params.get("to")
+        entry_type = self.request.query_params.get("type")
+        search = self.request.query_params.get("search")
+        min_amount = self.request.query_params.get("min_amount")
+        max_amount = self.request.query_params.get("max_amount")
+
         if from_date:
             qs = qs.filter(date__gte=from_date)
         if to_date:
             qs = qs.filter(date__lte=to_date)
+            
+        if entry_type:
+            qs = qs.filter(entry_type=entry_type)
+            
+        if search:
+            qs = qs.filter(
+                Q(description__icontains=search) |
+                Q(reference_id__icontains=search) |
+                Q(reference_type__icontains=search) |
+                Q(client__name__icontains=search)
+            )
+            
+        if min_amount:
+            qs = qs.filter(amount__gte=min_amount)
+        if max_amount:
+            qs = qs.filter(amount__lte=max_amount)
+            
         return qs
 
 class ChequeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
