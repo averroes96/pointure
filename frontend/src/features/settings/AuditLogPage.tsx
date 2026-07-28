@@ -35,6 +35,14 @@ const MODEL_LABELS: Record<string, string> = {
   Payment: "Paiement vente",
   StockMovement: "Mouvement stock",
   CreditNote: "Avoir",
+  Return: "Retour",
+  Product: "Produit",
+  Variant: "Variante",
+  Client: "Client",
+  Cheque: "Chèque",
+  StoreSettings: "Paramètres boutique",
+  User: "Utilisateur",
+  Branch: "Succursale",
 };
 
 export default function AuditLogPage() {
@@ -61,7 +69,7 @@ export default function AuditLogPage() {
         <Shield size={22} className="text-primary-500" />
         <div>
           <h1 className="text-xl font-bold text-text-primary">Journal d'activité</h1>
-          <p className="text-sm text-text-muted">Historique de toutes les modifications financières</p>
+          <p className="text-sm text-text-muted">Historique de toutes les modifications du système</p>
         </div>
       </div>
 
@@ -125,13 +133,31 @@ export default function AuditLogPage() {
                       <span className="font-medium">{log.object_repr}</span>
                     </td>
                     <td className="max-w-[300px]">
-                      {log.diff && (
-                        <details className="text-xs">
-                          <summary className="cursor-pointer text-primary-500">Voir diff</summary>
-                          <pre className="mt-1 text-2xs bg-surface rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
-                            {JSON.stringify(log.diff, null, 2)}
-                          </pre>
+                      {log.diff && Object.keys(log.diff).length > 0 ? (
+                        <details className="text-xs group">
+                          <summary className="cursor-pointer text-primary-500 font-medium group-open:mb-2">
+                            Voir détails ({Object.keys(log.diff).length} champ{Object.keys(log.diff).length > 1 ? 's' : ''})
+                          </summary>
+                          <div className="space-y-1.5">
+                            {Object.entries(log.diff).map(([field, changes]: [string, any]) => (
+                              <div key={field} className="bg-surface p-2 rounded border border-border text-2xs">
+                                <span className="font-semibold text-text-primary block mb-1">
+                                  {field}
+                                </span>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <div className="bg-danger/10 text-danger-700 p-1 rounded break-all decoration-danger/50 line-through">
+                                    {String(changes.from ?? "—")}
+                                  </div>
+                                  <div className="bg-success/10 text-success-700 p-1 rounded break-all">
+                                    {String(changes.to ?? "—")}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </details>
+                      ) : (
+                        <span className="text-xs text-text-muted italic">—</span>
                       )}
                     </td>
                   </tr>

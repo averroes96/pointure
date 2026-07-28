@@ -14,8 +14,18 @@ _pre_save_state = threading.local()
 
 # Models to audit (imported lazily to avoid circular imports)
 AUDITED_MODELS = [
+    # Financial & Sales
     "Invoice", "InvoicePayment", "Payment", "Sale",
-    "StockMovement", "CreditNote",
+    "StockMovement", "CreditNote", "Return",
+    
+    # Catalog Integrity
+    "Product", "Variant",
+    
+    # Client Management
+    "Client", "Cheque",
+    
+    # Configuration & Security
+    "StoreSettings", "User", "Branch"
 ]
 
 # Current request user (set by middleware)
@@ -110,10 +120,18 @@ def audit_post_save(sender, instance, created, **kwargs):
 
     action = "create" if created else "update"
     diff = {}
+    after = _model_to_dict(instance)
 
-    if not created:
+    if created:
+        diff = {
+            field: {
+                "from": None,
+                "to": _json_safe(after.get(field)),
+            }
+            for field in after
+        }
+    else:
         before = getattr(_pre_save_state, "state", None) or {}
-        after = _model_to_dict(instance)
         diff = {
             field: {
                 "from": _json_safe(before.get(field)),
@@ -132,7 +150,17 @@ def audit_post_delete(sender, instance, **kwargs):
     """Write a DELETE audit log entry."""
     if not _is_audited(instance):
         return
-    _write_audit(instance, "delete")
+        
+    before = _model_to_dict(instance)
+    diff = {
+        field: {
+            "from": _json_safe(before.get(field)),
+            "to": None,
+        }
+        for field in before
+    }
+    
+    _write_audit(instance, "delete", diff)
 
 import json
 from django.db.models.signals import post_save, post_delete
