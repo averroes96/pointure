@@ -458,7 +458,13 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         ).filter(
             computed_total_stock__lte=F("alert_threshold"), computed_total_stock__gt=0
         ).count()
-        out_of_stock_count = variants.filter(stock_qty=0).count()
+        out_of_stock_count = Product.objects.filter(
+            tenant=tenant, is_active=True
+        ).annotate(
+            computed_total_stock=Coalesce(Sum("variants__stock_qty"), 0)
+        ).filter(
+            computed_total_stock=0
+        ).count()
 
         # Stock value (purchase_price * qty) — only for users who can see costs
         total_stock_value = Decimal("0")
@@ -470,6 +476,15 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 )
             ).aggregate(t=Sum("line_value"))["t"]
             total_stock_value = val or Decimal("0")
+            
+        # Retail value (sale_price * qty) — available to report viewers
+        val_retail = variants.annotate(
+            line_retail=ExpressionWrapper(
+                F("stock_qty") * Coalesce(F("product__sale_price"), Decimal("0")),
+                output_field=DjDecimalField(max_digits=14, decimal_places=2),
+            )
+        ).aggregate(t=Sum("line_retail"))["t"]
+        total_retail_value = val_retail or Decimal("0")
 
         # By category
         by_category = list(
@@ -491,6 +506,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             "total_sku_count": total_sku,
             "total_units": total_units,
             "total_stock_value": total_stock_value,
+            "total_retail_value": total_retail_value,
             "low_stock_count": low_stock_count,
             "out_of_stock_count": out_of_stock_count,
             "by_category": by_category,
@@ -522,7 +538,13 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         ).filter(
             computed_total_stock__lte=F("alert_threshold"), computed_total_stock__gt=0
         ).count()
-        out_of_stock_count = variants.filter(stock_qty=0).count()
+        out_of_stock_count = Product.objects.filter(
+            tenant=tenant, is_active=True
+        ).annotate(
+            computed_total_stock=Coalesce(Sum("variants__stock_qty"), 0)
+        ).filter(
+            computed_total_stock=0
+        ).count()
 
         total_stock_value = Decimal("0")
         if request.user.can_see_costs:
@@ -533,6 +555,14 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 )
             ).aggregate(t=Sum("lv"))["t"]
             total_stock_value = val or Decimal("0")
+            
+        val_retail = variants.annotate(
+            lr=ExpressionWrapper(
+                F("stock_qty") * Coalesce(F("product__sale_price"), Decimal("0")),
+                output_field=DjDecimalField(max_digits=14, decimal_places=2),
+            )
+        ).aggregate(t=Sum("lr"))["t"]
+        total_retail_value = val_retail or Decimal("0")
 
         by_category = list(
             Product.objects.filter(tenant=tenant, is_active=True)
@@ -607,7 +637,8 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 <div class="kpis">
   <div class="kpi"><div class="val">{total_sku}</div><div class="lbl">Références (SKU)</div></div>
   <div class="kpi"><div class="val">{total_units}</div><div class="lbl">Unités en stock</div></div>
-  <div class="kpi"><div class="val">{total_stock_value:,.0f}</div><div class="lbl">Valeur (DZD)</div></div>
+  <div class="kpi"><div class="val">{total_stock_value:,.0f}</div><div class="lbl">Valeur Achat (DZD)</div></div>
+  <div class="kpi"><div class="val">{total_retail_value:,.0f}</div><div class="lbl">Valeur Revente (DZD)</div></div>
   <div class="kpi warn"><div class="val">{low_stock_count}</div><div class="lbl">Stock bas</div></div>
   <div class="kpi danger"><div class="val">{out_of_stock_count}</div><div class="lbl">Ruptures</div></div>
 </div>

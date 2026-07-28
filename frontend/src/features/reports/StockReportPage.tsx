@@ -21,6 +21,7 @@ interface StockReport {
   total_sku_count: number;
   total_units: number;
   total_stock_value: string;
+  total_retail_value: string;
   low_stock_count: number;
   out_of_stock_count: number;
   by_category: StockByCategory[];
@@ -125,7 +126,7 @@ export default function StockReportPage() {
       {data && !isLoading && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <KPICard
               label="Références (SKU)"
               value={data.total_sku_count}
@@ -141,11 +142,18 @@ export default function StockReportPage() {
               sub="en stock"
             />
             <KPICard
-              label="Valeur du stock"
+              label="Valeur Achat"
               value={formatDZD(data.total_stock_value) + " DZD"}
               icon={DollarSign}
-              color="bg-success"
+              color="bg-slate-600"
               sub="prix d'achat × qté"
+            />
+            <KPICard
+              label="Valeur Revente"
+              value={formatDZD(data.total_retail_value) + " DZD"}
+              icon={DollarSign}
+              color="bg-success"
+              sub="prix de vente × qté"
             />
             <KPICard
               label="Stock bas"
