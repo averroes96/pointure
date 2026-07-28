@@ -142,15 +142,25 @@ export function CartonPanel({
   const { colours, quantities, cartons_received } = config;
   const effectiveColours = colours.length > 0 ? colours : [""];
 
-  // Calculate the actual sum of pairs currently configured (Total pairs)
-  const currentTotalPairs = effectiveColours.reduce(
-    (sum, c) => sum + sizes.reduce((s, sz) => s + (quantities[c]?.[sz] ?? 0), 0),
-    0
-  );
+  const getDistributedQty = (cols: string[], szs: number[], cCount: number, ppc: number) => {
+    const activeCols = cols.length > 0 ? cols : [""];
+    if (activeCols.length === 0 || szs.length === 0) return {};
+    const total = cCount * ppc;
+    const perCell = Math.floor(total / (activeCols.length * szs.length));
+    let remainder = total % (activeCols.length * szs.length);
+    const newQty: Record<string, Record<number, number>> = {};
+    activeCols.forEach((c) => {
+      newQty[c] = {};
+      szs.forEach((s) => {
+        let qty = perCell;
+        if (remainder > 0) { qty++; remainder--; }
+        newQty[c][s] = qty;
+      });
+    });
+    return newQty;
+  };
 
-  const [distributeTotal, setDistributeTotal] = useState(currentTotalPairs || 150);
-
-  const grandTotal = currentTotalPairs;
+  const grandTotal = config.cartons_received * config.pairs_per_carton;
   const isOk = grandTotal > 0;
 
   function updateField(field: keyof CartonConfig, value: unknown) {
@@ -169,54 +179,32 @@ export function CartonPanel({
 
   function addColour(colour: string) {
     if (!colour || colours.includes(colour)) return;
-    const row: Record<number, number> = {};
-    sizes.forEach((s) => { row[s] = 1; }); // Default 1
+    const newCols = [...colours, colour];
     onChange({
       ...config,
-      colours: [...colours, colour],
-      quantities: { ...quantities, [colour]: row },
+      colours: newCols,
+      quantities: getDistributedQty(newCols, sizes, config.cartons_received, config.pairs_per_carton),
     });
   }
 
   function removeColour(colour: string) {
-    const { [colour]: _, ...rest } = quantities;
-    onChange({ ...config, colours: colours.filter((c) => c !== colour), quantities: rest });
-  }
-
-  function applyEven() {
-    if (!sizes.length) return;
-    const perCell = Math.floor(distributeTotal / (effectiveColours.length * sizes.length));
-    let remainder = distributeTotal % (effectiveColours.length * sizes.length);
-
-    const newQty: Record<string, Record<number, number>> = {};
-    effectiveColours.forEach((c) => {
-      newQty[c] = {};
-      sizes.forEach((s) => { 
-        let qty = perCell;
-        if (remainder > 0) {
-          qty += 1;
-          remainder -= 1;
-        }
-        newQty[c][s] = qty; 
-      });
+    const newCols = colours.filter((c) => c !== colour);
+    onChange({ 
+      ...config, 
+      colours: newCols, 
+      quantities: getDistributedQty(newCols, sizes, config.cartons_received, config.pairs_per_carton) 
     });
-    onChange({ ...config, quantities: newQty });
   }
 
   function handleCartonCountChange(n: number) {
-    onChange({ ...config, cartons_received: n });
+    onChange({ ...config, cartons_received: n, quantities: getDistributedQty(colours, sizes, n, config.pairs_per_carton) });
   }
 
   function handleRangeChange(field: "size_from" | "size_to", val: number) {
     const newFrom = field === "size_from" ? val : config.size_from;
     const newTo   = field === "size_to"   ? val : config.size_to;
     const newSizes = getSizeRange(newFrom, newTo);
-    const newQty: Record<string, Record<number, number>> = {};
-    effectiveColours.forEach((c) => {
-      newQty[c] = {};
-      newSizes.forEach((s) => { newQty[c][s] = quantities[c]?.[s] ?? 0; });
-    });
-    onChange({ ...config, [field]: val, quantities: newQty });
+    onChange({ ...config, [field]: val, quantities: getDistributedQty(colours, newSizes, config.cartons_received, config.pairs_per_carton) });
   }
 
 
@@ -230,7 +218,33 @@ export function CartonPanel({
       <ProductSearch
         selectedId={config.product_id}
         selectedLabel={config.product_id ? config.product_name : null}
-        onSelect={(p: any) => onChange({ ...config, product_id: p.id, product_name: p.name, brand: p.brand, category: p.category, purchase_price: p.purchase_price, sale_price: p.sale_price })}
+        onSelect={(p: any) => {
+          let newCols = colours;
+          let newFrom = config.size_from;
+          let newTo = config.size_to;
+          if (p.variants && p.variants.length > 0) {
+            newCols = Array.from(new Set(p.variants.map((v: any) => v.colour || "N/A"))) as string[];
+            const szs = p.variants.map((v: any) => v.size_eu);
+            newFrom = Math.min(...szs);
+            newTo = Math.max(...szs);
+          }
+          const newSizes = getSizeRange(newFrom, newTo);
+          const ppc = p.pairs_per_carton ?? 10;
+          onChange({
+             ...config, 
+             product_id: p.id, 
+             product_name: p.name, 
+             brand: p.brand, 
+             category: p.category, 
+             purchase_price: p.purchase_price, 
+             sale_price: p.sale_price,
+             colours: newCols.length ? newCols : colours,
+             size_from: newFrom,
+             size_to: newTo,
+             pairs_per_carton: ppc,
+             quantities: getDistributedQty(newCols.length ? newCols : colours, newSizes, config.cartons_received, ppc)
+          });
+        }}
         onClear={() => onChange({ ...config, product_id: null, product_name: "" })}
       />
 
@@ -261,7 +275,10 @@ export function CartonPanel({
         <div className="flex items-center gap-1.5 ml-2 border-l border-primary-200 pl-4">
           <span className="text-text-muted text-xs">Paires/Carton</span>
           <input type="number" min={1} value={config.pairs_per_carton}
-            onChange={(e) => onChange({ ...config, pairs_per_carton: parseInt(e.target.value) || 1 })}
+            onChange={(e) => {
+              const ppc = parseInt(e.target.value) || 1;
+              onChange({ ...config, pairs_per_carton: ppc, quantities: getDistributedQty(colours, sizes, config.cartons_received, ppc) });
+            }}
             className="form-input py-1 w-16 text-center text-sm font-mono"
           />
         </div>
@@ -278,11 +295,9 @@ export function CartonPanel({
           />
         </div>
         <div className="flex items-center gap-1.5 ml-2 border-l border-primary-200 pl-4">
-          <input type="number" value={distributeTotal} onChange={(e) => setDistributeTotal(parseInt(e.target.value) || 0)} className="form-input py-1 w-16 text-center text-sm font-mono" />
-          <span className="text-xs text-text-muted">paires au total</span>
-          <button type="button" onClick={applyEven} disabled={!sizes.length} className="btn-secondary btn-sm ml-1">
-            Répartir
-          </button>
+          <div className="px-2 py-1 bg-white border border-border rounded text-sm font-medium">
+            = {config.cartons_received * config.pairs_per_carton} paires totales
+          </div>
         </div>
       </div>
 

@@ -161,26 +161,26 @@ export function InvoiceProductMatrix({
     });
   }
 
-  function applyEven() {
-    if (!product || sizes.length === 0 || colours.length === 0) return;
-    const totalPairs = config.cartons * config.pairs_per_carton;
-    const perCell = Math.floor(totalPairs / (colours.length * sizes.length));
-    let remainder = totalPairs % (colours.length * sizes.length);
-
-    const newQty: Record<string, Record<number, number>> = {};
-    colours.forEach((c) => {
-      newQty[c] = {};
-      sizes.forEach((s) => {
+  const getDistributedQty = (p: any, cCount: number, ppc: number) => {
+    if (!p) return {};
+    const c = Array.from(new Set(p.variants.map((v: any) => v.colour || "N/A"))).sort();
+    const s = Array.from(new Set(p.variants.map((v: any) => v.size_eu))).sort((a: any, b: any) => (a as number) - (b as number));
+    if (c.length === 0 || s.length === 0) return {};
+    
+    const total = cCount * ppc;
+    const perCell = Math.floor(total / (c.length * s.length));
+    let remainder = total % (c.length * s.length);
+    const newQty: any = {};
+    c.forEach((col: any) => {
+      newQty[col] = {};
+      s.forEach((sz: any) => {
         let qty = perCell;
-        if (remainder > 0) {
-          qty += 1;
-          remainder -= 1;
-        }
-        newQty[c][s] = qty;
+        if (remainder > 0) { qty++; remainder--; }
+        newQty[col][sz] = qty;
       });
     });
-    onChange({ ...config, quantities: newQty });
-  }
+    return newQty;
+  };
 
   // Calculate sum of pairs currently configured
   const currentTotalPairs = colours.reduce(
@@ -199,14 +199,17 @@ export function InvoiceProductMatrix({
       <div className="w-3/4">
         <ProductSearch
           selectedProduct={product}
-          onSelect={(p) => onChange({
-            ...config,
-            product: p,
-            pairs_per_carton: p.pairs_per_carton ?? 10,
-            quantities: {},
-            unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
-            discount_pct: "0"
-          })}
+          onSelect={(p) => {
+            const ppc = p.pairs_per_carton ?? 10;
+            onChange({
+              ...config,
+              product: p,
+              pairs_per_carton: ppc,
+              quantities: getDistributedQty(p, config.cartons, ppc),
+              unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
+              discount_pct: "0"
+            });
+          }}
           onClear={() => onChange({ ...config, product: null, quantities: {} })}
         />
       </div>
@@ -221,7 +224,10 @@ export function InvoiceProductMatrix({
                 type="number"
                 min="1"
                 value={config.cartons}
-                onChange={(e) => onChange({ ...config, cartons: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const c = parseInt(e.target.value) || 0;
+                  onChange({ ...config, cartons: c, quantities: getDistributedQty(product, c, config.pairs_per_carton) });
+                }}
                 className="form-input text-xs py-1 w-24"
               />
             </div>
@@ -231,20 +237,16 @@ export function InvoiceProductMatrix({
                 type="number"
                 min="1"
                 value={config.pairs_per_carton}
-                onChange={(e) => onChange({ ...config, pairs_per_carton: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const ppc = parseInt(e.target.value) || 0;
+                  onChange({ ...config, pairs_per_carton: ppc, quantities: getDistributedQty(product, config.cartons, ppc) });
+                }}
                 className="form-input text-xs py-1 w-24"
               />
             </div>
             <div className="px-2 py-1 bg-white border border-border rounded text-sm font-medium">
-              {t("invoice.total_pairs_calc", { total: config.cartons * config.pairs_per_carton })}
+              = {config.cartons * config.pairs_per_carton} paires totales
             </div>
-            <button
-              type="button"
-              onClick={applyEven}
-              className="btn btn-outline py-1 text-xs ml-auto"
-            >
-              {t("invoice.distribute_quantities")}
-            </button>
           </div>
 
           {/* Pricing Controls */}
@@ -331,9 +333,9 @@ export function InvoiceProductMatrix({
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-text-primary">
-              Total facturé pour cet article: {currentTotalPairs} paires
-            </div>
+            <div className="mt-4 text-sm font-medium text-text-primary">
+            Total facturé pour cet article: {config.cartons * config.pairs_per_carton} paires
+          </div>
             {/* Show an alert if any cell exceeds stock */}
             {colours.some(c => sizes.some(s => {
               const variant = product.variants.find((v) => (v.colour || "N/A") === c && v.size_eu === s);
