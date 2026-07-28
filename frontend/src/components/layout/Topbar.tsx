@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { applyDirection } from "@/lib/i18n";
@@ -41,7 +41,7 @@ const NOTIF_ACCENT: Record<string, string> = {
   general: "text-blue-500 bg-blue-50",
 };
 
-export default function Topbar() {
+export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { branches, currentBranch, setCurrentBranch } = useBranch();
@@ -91,6 +91,11 @@ export default function Topbar() {
 
   return (
     <header className="layout-topbar">
+      {/* Menu Toggle */}
+      <button onClick={onToggleSidebar} className="p-2 -ml-2 mr-2 text-text-secondary hover:bg-surface rounded-md">
+        <Menu size={20} />
+      </button>
+
       {/* Logo (mobile) */}
       <div className="flex items-center gap-2 flex-1">
         <span className="text-xl hidden xs:block">👟</span>

@@ -52,16 +52,33 @@
     transition: transform 0.2s ease;
   }
 
+  .sidebar-closed .layout-sidebar {
+    transform: translateX(-100%);
+  }
+
   html[dir='rtl'] .layout-sidebar {
     @apply left-auto right-0;
   }
 
+  html[dir='rtl'] .sidebar-closed .layout-sidebar {
+    transform: translateX(100%);
+  }
+
   .layout-main {
     @apply pt-14 ps-60 min-h-screen;
+    transition: padding 0.2s ease;
+  }
+  
+  .sidebar-closed .layout-main {
+    @apply ps-0;
   }
 
   html[dir='rtl'] .layout-main {
     @apply ps-0 pe-60;
+  }
+
+  html[dir='rtl'] .sidebar-closed .layout-main {
+    @apply pe-0;
   }
 
   /* ── Cards ── */
