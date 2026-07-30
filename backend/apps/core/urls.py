@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AuditLogViewSet, BranchViewSet, MeView, StoreSettingsView, 
     TenantSettingsView, UserViewSet, SyncReceiverView,
-    WilayaViewSet, CommuneViewSet
+    WilayaViewSet, CommuneViewSet, LegacyDBFImportView
 )
 
 router = DefaultRouter()
@@ -20,5 +20,6 @@ router.register("communes", CommuneViewSet, basename="commune")
 
 urlpatterns = [
     path("sync/push/", SyncReceiverView.as_view(), name="sync-push"),
+    path("legacy-import/", LegacyDBFImportView.as_view(), name="legacy-import"),
     path("", include(router.urls)),
 ]

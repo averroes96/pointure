@@ -352,3 +352,76 @@ class SyncReceiverView(APIView):
                     processed += 1
                     
         return Response({"status": "ok", "processed": processed})
+
+import tempfile
+import zipfile
+import shutil
+import os
+from apps.core.services.legacy_dbf import LegacyDBFImporter
+from rest_framework.parsers import MultiPartParser
+
+class LegacyDBFImportView(APIView):
+    """
+    Import DBF files via a ZIP upload. (Managers only).
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        from apps.core.models import RoleChoices
+        if request.user.role not in [RoleChoices.OWNER, RoleChoices.MANAGER]:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+            
+        request.tenant = getattr(request.user, "tenant", None)
+        if not request.tenant:
+            return Response({"error": "No tenant associated with this user."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        zip_file = request.FILES.get("zip_file")
+        if not zip_file:
+            return Response({"error": "No ZIP file provided in 'zip_file' field."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        branch_id = request.data.get("branch_id")
+        if branch_id:
+            try:
+                branch = Branch.objects.get(id=int(branch_id), tenant=request.tenant)
+            except (ValueError, Branch.DoesNotExist):
+                return Response({"error": "Invalid branch_id"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            branch = Branch.objects.filter(tenant=request.tenant).first()
+            if not branch:
+                branch = Branch.objects.create(
+                    tenant=request.tenant,
+                    name="Primary Branch",
+                    is_headquarters=True
+                )
+            
+        temp_dir = tempfile.mkdtemp()
+        
+        import json
+        options = {}
+        options_data = request.data.get("options")
+        if options_data:
+            try:
+                options = json.loads(options_data)
+            except Exception:
+                pass
+                
+        try:
+            # Save uploaded zip
+            zip_path = os.path.join(temp_dir, "upload.zip")
+            with open(zip_path, "wb+") as dest:
+                for chunk in zip_file.chunks():
+                    dest.write(chunk)
+                    
+            # Extract
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(temp_dir)
+                
+            importer = LegacyDBFImporter(path=temp_dir, tenant=request.tenant, branch=branch, logger=None, options=options)
+            stats = importer.execute_import()
+            
+            return Response({"message": "Import completed", "stats": stats})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            shutil.rmtree(temp_dir)
