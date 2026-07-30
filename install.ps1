@@ -197,9 +197,9 @@ $displayUrl = if ($frontendMatch) { $frontendMatch.Matches.Groups[1].Value.Trim(
 
 Write-Host ""
 Write-Host "===============================================================" -ForegroundColor Green
-Write-Host "  ✓  ShoeDZ is running!" -ForegroundColor Green
+Write-Host "  *  ShoeDZ is running!" -ForegroundColor Green
 Write-Host "" -ForegroundColor Green
-Write-Host "  👉 NEXT STEP: open your browser and go to:" -ForegroundColor Green
+Write-Host "  -> NEXT STEP: open your browser and go to:" -ForegroundColor Green
 Write-Host "     $displayUrl/setup" -ForegroundColor Green
 Write-Host "" -ForegroundColor Green
 Write-Host "  Stop  : docker compose -f docker-compose.local.yml down" -ForegroundColor Green
