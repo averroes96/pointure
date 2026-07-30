@@ -18,6 +18,12 @@ function Write-Success($msg) { Write-Host "[OK]   $msg" -ForegroundColor Green }
 function Write-Warn($msg)    { Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-ErrorMsg($msg){ Write-Host "[ERR]  $msg" -ForegroundColor Red }
 
+function Exit-WithPause {
+    Write-Host ""
+    Read-Host "Press Enter to exit..."
+    exit 1
+}
+
 function Get-RandomHex($length) {
     $bytes = New-Object byte[] ($length / 2)
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -50,7 +56,7 @@ Write-Info "Checking prerequisites..."
 if (!(Get-Command "docker" -ErrorAction SilentlyContinue)) {
     Write-ErrorMsg "Docker is not installed."
     Write-ErrorMsg "Please download and install Docker Desktop for Windows: https://docs.docker.com/desktop/install/windows-install/"
-    exit 1
+    Exit-WithPause
 }
 
 # Check if docker daemon is running
@@ -59,7 +65,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Daemon not running" }
 } catch {
     Write-ErrorMsg "Docker Desktop is not running. Please launch Docker Desktop from your Start Menu and try again."
-    exit 1
+    Exit-WithPause
 }
 
 Write-Success "Docker Desktop is running."
@@ -150,7 +156,7 @@ while ($waited -lt $maxWait) {
 
 if (-not $dbReady) {
     Write-ErrorMsg "Database did not become ready within 60s. Check: docker compose -f $composeFile logs db"
-    exit 1
+    Exit-WithPause
 }
 Write-Success "Database is ready."
 
@@ -200,3 +206,6 @@ Write-Host "  Stop  : docker compose -f docker-compose.local.yml down" -Foregrou
 Write-Host "  Logs  : docker compose -f docker-compose.local.yml logs -f" -ForegroundColor Green
 Write-Host "===============================================================" -ForegroundColor Green
 Write-Host ""
+
+Write-Host "Press Enter to exit..."
+Read-Host
