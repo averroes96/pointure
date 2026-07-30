@@ -48,13 +48,19 @@ echo ""
 
 
 # ── Download files if running directly via curl ──────────────────────────────
-if [[ ! -f "docker-compose.local.yml" || ! -f ".env.local.example" ]]; then
-    info "Downloading required setup files..."
-    BASE_URL="https://raw.githubusercontent.com/averroes96/pointure/main"
-    curl -sSLO "$BASE_URL/docker-compose.local.yml" || error "Failed to download docker-compose.local.yml"
-    curl -sSLO "$BASE_URL/.env.local.example" || error "Failed to download .env.local.example"
-    mkdir -p nginx && curl -sSL "$BASE_URL/nginx/nginx.local.conf" -o nginx/nginx.local.conf || error "Failed to download nginx.local.conf"
-    success "Setup files downloaded."
+if [[ ! -f "docker-compose.local.yml" || ! -d "backend" || ! -d "frontend" ]]; then
+    info "Downloading ShoeDZ source code..."
+    if command -v git >/dev/null 2>&1; then
+        # Use git to fetch the repository safely without failing if the directory isn't empty
+        git init --initial-branch=main >/dev/null 2>&1 || git init >/dev/null 2>&1
+        git remote add origin https://github.com/averroes96/pointure.git 2>/dev/null || true
+        git fetch --depth 1 origin main --quiet
+        git checkout FETCH_HEAD -f >/dev/null 2>&1
+    else
+        # Fallback to tarball extraction if git is not installed
+        curl -sSL https://github.com/averroes96/pointure/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 || error "Failed to download source code."
+    fi
+    success "Source code downloaded."
 fi
 
 # ── 1. Prerequisites ─────────────────────────────────────────────────────────
@@ -120,6 +126,11 @@ else
     # Fix DATABASE_URL and REDIS_URL substitutions with actual passwords
     sedi "s|DATABASE_URL=postgres://shodz:.*@db|DATABASE_URL=postgres://shodz:${DB_PASSWORD}@db|g" "$ENV_FILE"
     sedi "s|REDIS_URL=redis://:.*@redis|REDIS_URL=redis://:${REDIS_PASSWORD}@redis|g" "$ENV_FILE"
+
+    # Extract domain/IP from FRONTEND_URL for Django ALLOWED_HOSTS
+    FRONTEND_HOST=$(echo "$FRONTEND_URL" | awk -F/ '{print $3}' | cut -d: -f1)
+    sedi "s|^ALLOWED_HOSTS=.*|ALLOWED_HOSTS=localhost,127.0.0.1,${FRONTEND_HOST}|g" "$ENV_FILE"
+    sedi "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=http://localhost,${FRONTEND_URL}|g" "$ENV_FILE"
 
     # Append extra variables
     echo "FRONTEND_URL=${FRONTEND_URL}" >> "$ENV_FILE"
