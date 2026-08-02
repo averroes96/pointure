@@ -8,9 +8,9 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Search, Plus, Trash2 } from "lucide-react";
+import { X, Search, Plus, Trash2, AlertTriangle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
-import type { Sale, SaleItem, Variant, PaymentMethod } from "@/types";
+import type { Sale, SaleItem, Variant, PaymentMethod, DefectReason } from "@/types";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -22,10 +22,24 @@ const PAYMENT_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
   { value: "account", labelKey: "payment.account" },
 ];
 
+const DEFECT_REASONS: { value: DefectReason; labelKey: string }[] = [
+  { value: "unstitched_sole", labelKey: "defects.reason_unstitched_sole" },
+  { value: "broken_strap", labelKey: "defects.reason_broken_strap" },
+  { value: "mismatched_pair", labelKey: "defects.reason_mismatched_pair" },
+  { value: "leather_tear", labelKey: "defects.reason_leather_tear" },
+  { value: "discoloration", labelKey: "defects.reason_discoloration" },
+  { value: "broken_heel", labelKey: "defects.reason_broken_heel" },
+  { value: "missing_insole", labelKey: "defects.reason_missing_insole" },
+  { value: "other", labelKey: "defects.reason_other" },
+];
+
 interface ReturnedItemState {
   item: SaleItem;
   selected: boolean;
   quantity: number;
+  is_defective: boolean;
+  defect_reason: DefectReason;
+  defect_notes: string;
 }
 
 interface NewItemState {
@@ -42,6 +56,7 @@ export default function ExchangeModal({
   sale: Sale;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // ── Returned items state (from original sale) ──────────────────────────────
@@ -50,6 +65,9 @@ export default function ExchangeModal({
       item,
       selected: false,
       quantity: item.quantity,
+      is_defective: false,
+      defect_reason: "unstitched_sole",
+      defect_notes: "",
     }))
   );
 
@@ -120,6 +138,9 @@ export default function ExchangeModal({
         returned_items: selectedReturned.map((s) => ({
           variant_id: s.item.variant,
           quantity: s.quantity,
+          is_defective: s.is_defective,
+          defect_reason: s.is_defective ? s.defect_reason : "",
+          defect_notes: s.is_defective ? s.defect_notes : "",
         })),
         new_items: newItems.map((i) => ({
           variant_id: i.variant_id,
@@ -131,6 +152,8 @@ export default function ExchangeModal({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["defects"] });
+      queryClient.invalidateQueries({ queryKey: ["defect-metrics"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product"] });
       queryClient.invalidateQueries({ queryKey: ["product-branch-stock"] });
@@ -245,24 +268,87 @@ export default function ExchangeModal({
                       </div>
                     </div>
                     {s.selected && (
-                      <div className="mt-2 ms-7 flex items-center gap-2 text-xs">
-                        <span className="text-text-muted">{t("sales.qty_colon")}</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={s.item.quantity}
-                          value={s.quantity}
-                          onChange={(e) =>
-                            updateReturned(i, {
-                              quantity: Math.min(
-                                Math.max(1, parseInt(e.target.value) || 1),
-                                s.item.quantity
-                              ),
-                            })
-                          }
-                          className="w-16 px-2 py-1 border border-border rounded text-center font-mono"
-                        />
-                        <span className="text-text-muted">/ {s.item.quantity}</span>
+                      <div className="mt-3 ms-7 space-y-2.5">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <label className="flex items-center gap-1.5 text-xs">
+                            <span className="text-text-muted">{t("sales.qty_colon")}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={s.item.quantity}
+                              value={s.quantity}
+                              onChange={(e) =>
+                                updateReturned(i, {
+                                  quantity: Math.min(
+                                    Math.max(1, parseInt(e.target.value) || 1),
+                                    s.item.quantity
+                                  ),
+                                })
+                              }
+                              className="w-16 px-2 py-1 border border-border rounded text-center font-mono"
+                            />
+                            <span className="text-text-muted">/ {s.item.quantity}</span>
+                          </label>
+
+                          <label className="flex items-center gap-1.5 text-xs cursor-pointer text-amber-700 font-medium">
+                            <input
+                              type="checkbox"
+                              checked={s.is_defective}
+                              onChange={(e) =>
+                                updateReturned(i, {
+                                  is_defective: e.target.checked,
+                                })
+                              }
+                              className="accent-amber-600"
+                            />
+                            <AlertTriangle size={13} className="text-amber-600" />
+                            <span>{t("sales.is_defective")}</span>
+                          </label>
+                        </div>
+
+                        {s.is_defective && (
+                          <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-amber-800 text-[11px]">
+                              <span>ℹ {t("sales.defect_quarantine_hint")}</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-text-muted text-[11px] mb-1 font-medium">
+                                  {t("sales.defect_reason_label")}
+                                </label>
+                                <select
+                                  value={s.defect_reason}
+                                  onChange={(e) =>
+                                    updateReturned(i, {
+                                      defect_reason: e.target.value as DefectReason,
+                                    })
+                                  }
+                                  className="w-full form-input py-1 px-2 text-xs"
+                                >
+                                  {DEFECT_REASONS.map((r) => (
+                                    <option key={r.value} value={r.value}>
+                                      {t(r.labelKey)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-text-muted text-[11px] mb-1 font-medium">
+                                  {t("sales.defect_notes_label")}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={s.defect_notes}
+                                  onChange={(e) =>
+                                    updateReturned(i, { defect_notes: e.target.value })
+                                  }
+                                  placeholder={t("sales.defect_notes_placeholder")}
+                                  className="w-full form-input py-1 px-2 text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

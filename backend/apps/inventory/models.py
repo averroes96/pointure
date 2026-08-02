@@ -362,10 +362,17 @@ class StockTransfer(TenantScopedModel):
 
 class DefectReasonChoices(models.TextChoices):
     SOLE_UNGLUED = "sole_unglued", _("Semelle décollée")
-    TORN_LEATHER = "torn_leather", _("Cuir / Tissu déchiré ou rayé")
+    UNSTITCHED_SOLE = "unstitched_sole", _("Semelle décollée / décousue")
+    BROKEN_STRAP = "broken_strap", _("Bride / Lanière cassée")
+    MISMATCHED_PAIR = "mismatched_pair", _("Paire dépareillée")
     MISMATCHED_SIZE = "mismatched_size", _("Pointure dépareillée")
-    STITCHING = "stitching", _("Couture défectueuse")
+    TORN_LEATHER = "torn_leather", _("Cuir / Tissu déchiré")
+    LEATHER_TEAR = "leather_tear", _("Déchirure cuir / tissu")
+    DISCOLORATION = "discoloration", _("Décoloration / Teinte")
     STAIN_DISCOLOR = "stain_discolor", _("Tache / Décoloration")
+    BROKEN_HEEL = "broken_heel", _("Talon cassé / défectueux")
+    MISSING_INSOLE = "missing_insole", _("Semelle intérieure manquante")
+    STITCHING = "stitching", _("Couture défectueuse")
     MISSING_ACCESSORY = "missing_accessory", _("Accessoire / Lacet manquant")
     OTHER = "other", _("Autre anomalie")
 
@@ -383,9 +390,11 @@ class DefectItem(TenantScopedModel):
     Quarantined defective shoe pair(s) isolated from available sellable stock.
     """
     variant = models.ForeignKey(Variant, on_delete=models.PROTECT, related_name="defects")
-    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name="defects")
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
     supplier = models.ForeignKey("suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
     purchase_order = models.ForeignKey("suppliers.PurchaseOrder", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
+    sale_return = models.ForeignKey("sales.Return", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
+    sale_exchange = models.ForeignKey("sales.Exchange", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
     return_claim = models.ForeignKey("suppliers.SupplierReturnClaim", on_delete=models.SET_NULL, null=True, blank=True, related_name="items")
 
     quantity = models.PositiveIntegerField(_("Quantity of Pairs"), default=1)

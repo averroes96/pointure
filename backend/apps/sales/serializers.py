@@ -433,6 +433,9 @@ class ReturnItemInput(serializers.Serializer):
     variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
     restock = serializers.BooleanField(default=True)
+    is_defective = serializers.BooleanField(default=False)
+    defect_reason = serializers.CharField(required=False, allow_blank=True, default="")
+    defect_notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class CreateReturnSerializer(serializers.Serializer):
@@ -488,6 +491,7 @@ class CreateReturnSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create_return(self, sale, processed_by):
+        from apps.inventory.models import DefectItem, DefectStatusChoices, DefectReasonChoices
         tenant = sale.tenant
         data = self.validated_data
 
@@ -502,16 +506,41 @@ class CreateReturnSerializer(serializers.Serializer):
 
         for item_data in data["items"]:
             variant = Variant.objects.get(pk=item_data["variant_id"], tenant=tenant)
+            is_defective = item_data.get("is_defective", False)
+            defect_reason = item_data.get("defect_reason", "") or DefectReasonChoices.OTHER
+            defect_notes = item_data.get("defect_notes", "")
+            restock = item_data.get("restock", True) and not is_defective
+
             ReturnItem.objects.create(
                 return_obj=return_obj,
                 variant=variant,
                 quantity=item_data["quantity"],
-                restock=item_data["restock"],
+                restock=restock,
+                is_defective=is_defective,
+                defect_reason=defect_reason if is_defective else "",
+                defect_notes=defect_notes if is_defective else "",
             )
-            if item_data["restock"]:
+            if is_defective:
+                cost_price = variant.product.purchase_price if (variant.product and variant.product.purchase_price is not None) else Decimal("0.00")
+                supplier = getattr(variant.product, "supplier", None) if variant.product else None
+                DefectItem.objects.create(
+                    tenant=tenant,
+                    variant=variant,
+                    branch=sale.branch,
+                    supplier=supplier,
+                    sale_return=return_obj,
+                    quantity=item_data["quantity"],
+                    cost_price=cost_price,
+                    defect_reason=defect_reason,
+                    notes=defect_notes,
+                    status=DefectStatusChoices.QUARANTINED,
+                    logged_by=processed_by,
+                )
+            elif restock:
                 StockMovement.objects.create(
                     tenant=tenant,
                     variant=variant,
+                    branch=sale.branch,
                     quantity_delta=item_data["quantity"],
                     reason=MovementReasonChoices.RETURN,
                     reference_id=str(return_obj.pk),
@@ -677,6 +706,9 @@ class CreateReconciliationSerializer(serializers.Serializer):
 class ExchangeReturnItemInput(serializers.Serializer):
     variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1)
+    is_defective = serializers.BooleanField(default=False)
+    defect_reason = serializers.CharField(required=False, allow_blank=True, default="")
+    defect_notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ExchangeNewItemInput(serializers.Serializer):
@@ -793,6 +825,7 @@ class CreateExchangeSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create_exchange(self, sale, processed_by):
+        from apps.inventory.models import DefectItem, DefectStatusChoices, DefectReasonChoices
         tenant = sale.tenant
         data = self.validated_data
         diff = data["_price_diff"]
@@ -810,25 +843,49 @@ class CreateExchangeSerializer(serializers.Serializer):
             refund_amount=refund_amount,
         )
 
-        # Returned items: restock
+        # Returned items: quarantine if defective, restock if intact
         for item_data in data["returned_items"]:
             variant = Variant.objects.get(pk=item_data["variant_id"], tenant=tenant)
+            is_defective = item_data.get("is_defective", False)
+            defect_reason = item_data.get("defect_reason", "") or DefectReasonChoices.OTHER
+            defect_notes = item_data.get("defect_notes", "")
+
             ExchangeReturnItem.objects.create(
                 exchange=exchange_obj,
                 variant=variant,
                 quantity=item_data["quantity"],
                 unit_price=item_data["_unit_price"],
+                is_defective=is_defective,
+                defect_reason=defect_reason if is_defective else "",
+                defect_notes=defect_notes if is_defective else "",
             )
-            StockMovement.objects.create(
-                tenant=tenant,
-                variant=variant,
-                branch=sale.branch,
-                quantity_delta=item_data["quantity"],
-                reason=MovementReasonChoices.RETURN,
-                reference_id=str(exchange_obj.pk),
-                reference_type="Exchange",
-                user=processed_by,
-            )
+            if is_defective:
+                cost_price = variant.product.purchase_price if (variant.product and variant.product.purchase_price is not None) else Decimal("0.00")
+                supplier = getattr(variant.product, "supplier", None) if variant.product else None
+                DefectItem.objects.create(
+                    tenant=tenant,
+                    variant=variant,
+                    branch=sale.branch,
+                    supplier=supplier,
+                    sale_exchange=exchange_obj,
+                    quantity=item_data["quantity"],
+                    cost_price=cost_price,
+                    defect_reason=defect_reason,
+                    notes=defect_notes,
+                    status=DefectStatusChoices.QUARANTINED,
+                    logged_by=processed_by,
+                )
+            else:
+                StockMovement.objects.create(
+                    tenant=tenant,
+                    variant=variant,
+                    branch=sale.branch,
+                    quantity_delta=item_data["quantity"],
+                    reason=MovementReasonChoices.RETURN,
+                    reference_id=str(exchange_obj.pk),
+                    reference_type="Exchange",
+                    user=processed_by,
+                )
 
         # New items: deduct from stock
         for item_data in data["new_items"]:

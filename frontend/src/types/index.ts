@@ -170,6 +170,9 @@ export interface DefectItem {
   supplier: number | null;
   supplier_name: string | null;
   purchase_order: number | null;
+  sale_return?: number | string | null;
+  sale_exchange?: number | string | null;
+  sale_receipt_number?: string | null;
   return_claim: number | null;
   return_claim_number?: string | null;
   quantity: number;
@@ -265,6 +268,9 @@ export interface ExchangeReturnItem {
   variant_str: string;
   quantity: number;
   unit_price: string;
+  is_defective?: boolean;
+  defect_reason?: string;
+  defect_notes?: string;
 }
 
 export interface ExchangeNewItem {

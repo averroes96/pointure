@@ -155,6 +155,9 @@ class ReturnItem(models.Model):
     )
     quantity = models.PositiveIntegerField(_("Quantity"))
     restock = models.BooleanField(_("Return to Stock"), default=True)
+    is_defective = models.BooleanField(_("Is Defective"), default=False)
+    defect_reason = models.CharField(_("Defect Reason"), max_length=30, blank=True, default="")
+    defect_notes = models.TextField(_("Defect Notes"), blank=True, default="")
 
     class Meta:
         verbose_name = _("Return Item")
@@ -249,6 +252,9 @@ class ExchangeReturnItem(models.Model):
     )
     quantity = models.PositiveIntegerField(_("Quantity"))
     unit_price = models.DecimalField(_("Original Unit Price"), max_digits=12, decimal_places=2)
+    is_defective = models.BooleanField(_("Is Defective"), default=False)
+    defect_reason = models.CharField(_("Defect Reason"), max_length=30, blank=True, default="")
+    defect_notes = models.TextField(_("Defect Notes"), blank=True, default="")
 
     class Meta:
         verbose_name = _("Exchange Return Item")

@@ -5,13 +5,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
 import ExchangeModal from "./ExchangeModal";
-import type { Sale, SaleItem, PaymentMethod, LoyaltyTier } from "@/types";
+import type { Sale, SaleItem, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -29,6 +29,17 @@ const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
   { value: "account", labelKey: "payment.account" },
 ];
 
+const DEFECT_REASONS: { value: DefectReason; labelKey: string }[] = [
+  { value: "unstitched_sole", labelKey: "defects.reason_unstitched_sole" },
+  { value: "broken_strap", labelKey: "defects.reason_broken_strap" },
+  { value: "mismatched_pair", labelKey: "defects.reason_mismatched_pair" },
+  { value: "leather_tear", labelKey: "defects.reason_leather_tear" },
+  { value: "discoloration", labelKey: "defects.reason_discoloration" },
+  { value: "broken_heel", labelKey: "defects.reason_broken_heel" },
+  { value: "missing_insole", labelKey: "defects.reason_missing_insole" },
+  { value: "other", labelKey: "defects.reason_other" },
+];
+
 // ── Return Modal ──────────────────────────────────────────────────────────────
 
 interface ReturnItemState {
@@ -36,6 +47,9 @@ interface ReturnItemState {
   selected: boolean;
   quantity: number;
   restock: boolean;
+  is_defective: boolean;
+  defect_reason: DefectReason;
+  defect_notes: string;
 }
 
 function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
@@ -49,6 +63,9 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
       selected: false,
       quantity: item.quantity,
       restock: true,
+      is_defective: false,
+      defect_reason: "unstitched_sole",
+      defect_notes: "",
     }))
   );
   const [reason, setReason] = useState("");
@@ -65,7 +82,10 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
         items: selectedItems.map((s) => ({
           variant_id: s.item.variant,
           quantity: s.quantity,
-          restock: s.restock,
+          restock: s.is_defective ? false : s.restock,
+          is_defective: s.is_defective,
+          defect_reason: s.is_defective ? s.defect_reason : "",
+          defect_notes: s.is_defective ? s.defect_notes : "",
         })),
         reason,
         refund_amount: refundAmount,
@@ -73,6 +93,10 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["defects"] });
+      queryClient.invalidateQueries({ queryKey: ["defect-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants"] });
       onClose();
     },
     onError: (err) => {
@@ -107,7 +131,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           {/* Item selection */}
           <div>
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-              Articles à retourner
+              {t("sales.items_to_return")}
             </p>
             <div className="space-y-2">
               {itemStates.map((s, i) => (
@@ -134,35 +158,95 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                   </div>
 
                   {s.selected && (
-                    <div className="mt-2 ms-7 flex items-center gap-4 flex-wrap">
-                      <label className="flex items-center gap-1.5 text-xs">
-                        <span className="text-text-muted">{t("sales.qty_returned")}</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={s.item.quantity}
-                          value={s.quantity}
-                          onChange={(e) =>
-                            updateItem(i, {
-                              quantity: Math.min(
-                                Math.max(1, parseInt(e.target.value) || 1),
-                                s.item.quantity
-                              ),
-                            })
-                          }
-                          className="w-16 px-2 py-1 border border-border rounded text-center font-mono text-sm"
-                        />
-                        <span className="text-text-muted">/ {s.item.quantity}</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={s.restock}
-                          onChange={(e) => updateItem(i, { restock: e.target.checked })}
-                          className="accent-primary-600"
-                        />
-                        <span className="text-text-muted">{t("sales.restock")}</span>
-                      </label>
+                    <div className="mt-3 ms-7 space-y-2.5">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <span className="text-text-muted">{t("sales.qty_returned")}</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={s.item.quantity}
+                            value={s.quantity}
+                            onChange={(e) =>
+                              updateItem(i, {
+                                quantity: Math.min(
+                                  Math.max(1, parseInt(e.target.value) || 1),
+                                  s.item.quantity
+                                ),
+                              })
+                            }
+                            className="w-16 px-2 py-1 border border-border rounded text-center font-mono text-sm"
+                          />
+                          <span className="text-text-muted">/ {s.item.quantity}</span>
+                        </label>
+
+                        {!s.is_defective && (
+                          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={s.restock}
+                              onChange={(e) => updateItem(i, { restock: e.target.checked })}
+                              className="accent-primary-600"
+                            />
+                            <span className="text-text-muted">{t("sales.restock")}</span>
+                          </label>
+                        )}
+
+                        <label className="flex items-center gap-1.5 text-xs cursor-pointer text-amber-700 font-medium">
+                          <input
+                            type="checkbox"
+                            checked={s.is_defective}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              updateItem(i, {
+                                is_defective: checked,
+                                restock: checked ? false : s.restock,
+                              });
+                            }}
+                            className="accent-amber-600"
+                          />
+                          <AlertTriangle size={13} className="text-amber-600" />
+                          <span>{t("sales.is_defective")}</span>
+                        </label>
+                      </div>
+
+                      {s.is_defective && (
+                        <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-amber-800 text-[11px]">
+                            <span>ℹ {t("sales.defect_quarantine_hint")}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-text-muted text-[11px] mb-1 font-medium">
+                                {t("sales.defect_reason_label")}
+                              </label>
+                              <select
+                                value={s.defect_reason}
+                                onChange={(e) => updateItem(i, { defect_reason: e.target.value as DefectReason })}
+                                className="w-full form-input py-1 px-2 text-xs"
+                              >
+                                {DEFECT_REASONS.map((r) => (
+                                  <option key={r.value} value={r.value}>
+                                    {t(r.labelKey)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-text-muted text-[11px] mb-1 font-medium">
+                                {t("sales.defect_notes_label")}
+                              </label>
+                              <input
+                                type="text"
+                                value={s.defect_notes}
+                                onChange={(e) => updateItem(i, { defect_notes: e.target.value })}
+                                placeholder={t("sales.defect_notes_placeholder")}
+                                className="w-full form-input py-1 px-2 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
