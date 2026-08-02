@@ -136,6 +136,8 @@ class LegacyDBFImporter:
                 self._import_clients()
             if self.options.get("products", True):
                 self._import_products()
+            if self.options.get("defects", True):
+                self._import_defects()
             if self.options.get("sales", True):
                 self._import_sales()
         return self.stats
@@ -270,6 +272,37 @@ class LegacyDBFImporter:
             legacy_id = safe_str(r.get("ARTICLE"))
             self.product_map[legacy_id] = middle_variant or var
             self.stats["products_imported"] += 1
+
+    def _import_defects(self):
+        self.log("Importing Defective Items from Legacy Purchases...")
+        records = self.get_dbf("ACHATART.DBF") or self.get_dbf("ACHATMVT.DBF")
+        if not records:
+            return
+        from apps.inventory.models import DefectItem, DefectStatusChoices
+        for r in records:
+            qte_defaut = safe_int(r.get("QTE_DEFAUT"))
+            if qte_defaut <= 0:
+                continue
+            legacy_id = safe_str(r.get("ARTICLE"))
+            var = self.product_map.get(legacy_id)
+            if not var:
+                continue
+            pu_defaut = safe_decimal(r.get("PU_DEFAUT"))
+            if pu_defaut <= 0:
+                pu_defaut = var.product.purchase_price
+            reg_defaut = safe_str(r.get("REG_DEFAUT")).upper()
+            status = DefectStatusChoices.RETURNED if reg_defaut in ["O", "1", "TRUE", "VRAI", "YES"] else DefectStatusChoices.QUARANTINED
+            DefectItem.objects.create(
+                tenant=self.tenant,
+                branch=self.branch,
+                variant=var,
+                quantity=qte_defaut,
+                cost_price=pu_defaut,
+                status=status,
+                defect_reason="other",
+                notes=f"Importé depuis les réceptions historiques (Règlement: {reg_defaut or 'Non'})",
+            )
+            self.stats["defects_imported"] = self.stats.get("defects_imported", 0) + qte_defaut
 
     def _import_sales(self):
         self.log("Importing Historical Sales...")
