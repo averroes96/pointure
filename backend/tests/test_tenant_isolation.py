@@ -69,8 +69,8 @@ class TestTenantIsolation:
         assert response.status_code == 200
 
         product_ids = [p["id"] for p in response.data["results"]]
-        assert self.product_a.pk in product_ids, "Tenant A should see their own products"
-        assert self.product_b.pk not in product_ids, "Tenant A must NOT see Tenant B's products"
+        assert str(self.product_a.pk) in product_ids, "Tenant A should see their own products"
+        assert str(self.product_b.pk) not in product_ids, "Tenant A must NOT see Tenant B's products"
 
     def test_tenant_b_cannot_access_tenant_a_product_by_id(self):
         """Tenant B cannot access a specific product from Tenant A by ID."""
@@ -125,8 +125,8 @@ class TestTenantIsolation:
         assert response.status_code == 200
 
         invoice_ids = [i["id"] for i in response.data["results"]]
-        assert inv_a.pk in invoice_ids
-        assert inv_b.pk not in invoice_ids
+        assert str(inv_a.pk) in invoice_ids
+        assert str(inv_b.pk) not in invoice_ids
 
     def test_stock_movements_scoped_to_tenant(self):
         """Stock movements cannot be read cross-tenant."""

@@ -1,0 +1,126 @@
+{% extends "pdf/base.html" %}
+{% load i18n %}
+
+{% block title %}Bon de Retour Fournisseur #{{ claim.claim_number }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="company-name">{{ tenant.name }}</div>
+    <div class="company-details">
+      {% if tenant.address %}{{ tenant.address }}<br>{% endif %}
+      {% if tenant.wilaya %}Wilaya {{ tenant.wilaya }}<br>{% endif %}
+      {% if tenant.nif %}NIF : {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC : {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI : {{ tenant.ai }}{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="doc-title" style="color:#DC2626;">BON DE RETOUR DÉFECTUEUX</div>
+    <div class="doc-meta">
+      <strong>N° {{ claim.claim_number }}</strong><br>
+      Date : {{ claim.created_at|date:"d/m/Y" }}<br>
+      Statut : <span style="font-weight:600;">{{ claim.get_status_display }}</span><br>
+      {% if claim.credit_note_applied %}
+      <span style="color:#16A34A; font-weight:bold;">Avoir appliqué au solde</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Parties -->
+<div class="parties">
+  <div class="party-block">
+    <div class="party-label">Émetteur / المرسل</div>
+    <div class="party-name">{{ tenant.name }}</div>
+    {% if tenant.phone %}<div>{{ tenant.phone }}</div>{% endif %}
+    {% if tenant.nif %}<div>NIF : {{ tenant.nif }}</div>{% endif %}
+  </div>
+  <div class="party-block">
+    <div class="party-label">Fournisseur Destinataire / المورد</div>
+    <div class="party-name">{{ supplier.name }}</div>
+    {% if supplier.contact_name %}<div>Contact : {{ supplier.contact_name }}</div>{% endif %}
+    {% if supplier.phone %}<div>Tél : {{ supplier.phone }}</div>{% endif %}
+    {% if supplier.email %}<div>Email : {{ supplier.email }}</div>{% endif %}
+    {% if supplier.address %}<div>Adresse : {{ supplier.address }}</div>{% endif %}
+  </div>
+</div>
+
+<!-- Defective Items -->
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Article / Modèle</th>
+      <th>Pointure</th>
+      <th>Couleur</th>
+      <th>Motif d'anomalie</th>
+      <th class="num">Qté (Paires)</th>
+      <th class="num">P.U Achat (DZD)</th>
+      <th class="num">Montant Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>
+        <strong>{{ item.variant.product.name }}</strong>
+        {% if item.variant.product.reference %}
+        <br><small style="color:#64748B;">Réf: {{ item.variant.product.reference }}</small>
+        {% endif %}
+      </td>
+      <td>EU {{ item.variant.size_eu }}</td>
+      <td>{{ item.variant.colour|default:"—" }}</td>
+      <td>
+        <span style="color:#DC2626; font-weight:500;">{{ item.get_defect_reason_display }}</span>
+        {% if item.notes %}<br><small style="color:#475569;">{{ item.notes }}</small>{% endif %}
+      </td>
+      <td class="num" style="font-weight:600;">{{ item.quantity }}</td>
+      <td class="num">{{ item.cost_price|floatformat:2 }}</td>
+      <td class="num" style="font-weight:600;">{{ item.quantity|floatformat:2 }} × {{ item.cost_price|floatformat:2 }} DZD</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Total -->
+<div style="display:flex; justify-content:flex-end; margin-bottom:6mm;">
+  <div class="totals-block">
+    <div class="totals-row">
+      <span class="label">Total paires retournées</span>
+      <span class="value">{{ total_pairs }} paires</span>
+    </div>
+    <div class="totals-row grand-total" style="color:#DC2626;">
+      <span class="label">Total Avoir réclamé</span>
+      <span class="value">{{ claim.total_amount|floatformat:2 }} DZD</span>
+    </div>
+  </div>
+</div>
+
+{% if claim.notes %}
+<div class="notes-section">
+  <strong>Remarques :</strong> {{ claim.notes }}
+</div>
+{% endif %}
+
+<div style="margin-top:8mm; font-size:9pt; color:#64748B; border-top:1px solid #E2E8F0; padding-top:4mm;">
+  Ce document atteste de la mise à disposition / restitution des paires défectueuses susmentionnées.
+  Merci de nous établir la note de crédit / avoir correspondante ou de procéder au remplacement des articles.
+</div>
+
+<!-- Signatures -->
+<div style="display:flex; justify-content:space-between; margin-top:12mm;">
+  <div style="width:45%; border-top:1px dashed #94A3B8; padding-top:2mm; text-align:center; font-size:9pt; color:#475569;">
+    Cachet & Signature Magasin
+  </div>
+  <div style="width:45%; border-top:1px dashed #94A3B8; padding-top:2mm; text-align:center; font-size:9pt; color:#475569;">
+    Visa / Réception Fournisseur
+  </div>
+</div>
+
+<div class="footer">
+  {{ tenant.name }} &mdash; {% if tenant.nif %}NIF {{ tenant.nif }} &mdash; {% endif %}Généré par ShoeDZ
+</div>
+{% endblock %}

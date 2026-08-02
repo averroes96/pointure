@@ -354,3 +354,61 @@ class StockTransfer(TenantScopedModel):
             self.received_by = received_by_user
             self.received_at = timezone.now()
             self.save(update_fields=["status", "received_by", "received_at"])
+
+
+# ─────────────────────────────────────────────
+# DefectItem (Quarantined Damaged Pairs)
+# ─────────────────────────────────────────────
+
+class DefectReasonChoices(models.TextChoices):
+    SOLE_UNGLUED = "sole_unglued", _("Semelle décollée")
+    TORN_LEATHER = "torn_leather", _("Cuir / Tissu déchiré ou rayé")
+    MISMATCHED_SIZE = "mismatched_size", _("Pointure dépareillée")
+    STITCHING = "stitching", _("Couture défectueuse")
+    STAIN_DISCOLOR = "stain_discolor", _("Tache / Décoloration")
+    MISSING_ACCESSORY = "missing_accessory", _("Accessoire / Lacet manquant")
+    OTHER = "other", _("Autre anomalie")
+
+
+class DefectStatusChoices(models.TextChoices):
+    QUARANTINED = "quarantined", _("En Quarantaine")
+    CLAIM_PENDING = "claim_pending", _("Réclamation Fournisseur en cours")
+    RETURNED = "returned", _("Retourné au Fournisseur")
+    SOLD_DISCOUNT = "sold_discount", _("Vendu Déclassé (2ème choix)")
+    WRITTEN_OFF = "written_off", _("Rebuté / Perte")
+
+
+class DefectItem(TenantScopedModel):
+    """
+    Quarantined defective shoe pair(s) isolated from available sellable stock.
+    """
+    variant = models.ForeignKey(Variant, on_delete=models.PROTECT, related_name="defects")
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name="defects")
+    supplier = models.ForeignKey("suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
+    purchase_order = models.ForeignKey("suppliers.PurchaseOrder", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects")
+    return_claim = models.ForeignKey("suppliers.SupplierReturnClaim", on_delete=models.SET_NULL, null=True, blank=True, related_name="items")
+
+    quantity = models.PositiveIntegerField(_("Quantity of Pairs"), default=1)
+    cost_price = models.DecimalField(_("Unit Cost Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    defect_reason = models.CharField(
+        _("Defect Reason"), max_length=30, choices=DefectReasonChoices.choices, default=DefectReasonChoices.OTHER
+    )
+    photo = models.ImageField(_("Photo"), upload_to="defects/", blank=True, null=True)
+    status = models.CharField(
+        _("Status"), max_length=20, choices=DefectStatusChoices.choices, default=DefectStatusChoices.QUARANTINED
+    )
+    notes = models.TextField(_("Notes"), blank=True)
+    logged_by = models.ForeignKey("core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects_logged")
+    resolved_by = models.ForeignKey("core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="defects_resolved")
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Defect Item")
+        verbose_name_plural = _("Defect Items")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.variant} × {self.quantity} ({self.get_defect_reason_display()}) [{self.get_status_display()}]"
+

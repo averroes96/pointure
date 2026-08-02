@@ -6,7 +6,16 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
-from .models import POLine, POStatusChoices, PurchaseOrder, Supplier, SupplierInvoice, SupplierPayment
+from .models import (
+    ClaimStatusChoices,
+    POLine,
+    POStatusChoices,
+    PurchaseOrder,
+    Supplier,
+    SupplierInvoice,
+    SupplierPayment,
+    SupplierReturnClaim,
+)
 from .serializers import (
     CreatePurchaseOrderSerializer,
     POLineInputSerializer,
@@ -15,6 +24,7 @@ from .serializers import (
     ReceiveLinesSerializer,
     SupplierInvoiceSerializer,
     SupplierPaymentSerializer,
+    SupplierReturnClaimSerializer,
     SupplierSerializer,
 )
 
@@ -283,26 +293,45 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                             })
 
                     if cs_variant:
-                        StockMovement.objects.create(
-                            tenant=tenant,
-                            variant=cs_variant,
-                            branch=target_branch,
-                            quantity_delta=cs_qty,
-                            reason=MovementReasonChoices.RECEPTION,
-                            reference_id=bl_reference or po.reference or f"PO-{str(po.id)[:8]}",
-                            reference_type="PurchaseOrder",
-                            bl_reference=bl_reference,
-                            notes=f"{notes_base} | EU{cs['size_eu']}",
-                            user=user,
-                        )
-                        movements_created += 1
-                        
-                        pid = cs_variant.product_id
-                        if pid not in product_reception_totals:
-                            from decimal import Decimal
-                            product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
-                        product_reception_totals[pid]["qty"] += cs_qty
-                        product_reception_totals[pid]["value"] += (cs_qty * line.agreed_unit_price)
+                        if cs_qty > 0:
+                            StockMovement.objects.create(
+                                tenant=tenant,
+                                variant=cs_variant,
+                                branch=target_branch,
+                                quantity_delta=cs_qty,
+                                reason=MovementReasonChoices.RECEPTION,
+                                reference_id=bl_reference or po.reference or f"PO-{str(po.id)[:8]}",
+                                reference_type="PurchaseOrder",
+                                bl_reference=bl_reference,
+                                notes=f"{notes_base} | EU{cs['size_eu']}",
+                                user=user,
+                            )
+                            movements_created += 1
+                            
+                            pid = cs_variant.product_id
+                            if pid not in product_reception_totals:
+                                from decimal import Decimal
+                                product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
+                            product_reception_totals[pid]["qty"] += cs_qty
+                            product_reception_totals[pid]["value"] += (cs_qty * line.agreed_unit_price)
+
+                        # Check if any pairs arrived defective
+                        defect_qty = cs.get("defect_quantity", 0)
+                        if defect_qty > 0:
+                            from apps.inventory.models import DefectItem, DefectStatusChoices
+                            DefectItem.objects.create(
+                                tenant=tenant,
+                                variant=cs_variant,
+                                branch=target_branch,
+                                supplier=po.supplier,
+                                purchase_order=po,
+                                quantity=defect_qty,
+                                cost_price=line.agreed_unit_price,
+                                defect_reason=cs.get("defect_reason") or "other",
+                                notes=f"Réception {po_ref}: {cs.get('defect_notes', '')}".strip(),
+                                logged_by=user,
+                                status=DefectStatusChoices.QUARANTINED,
+                            )
 
                 # Accumulate (not replace) so second partial receives are tracked correctly
                 line.quantity_received += total_received
@@ -372,6 +401,23 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
                     product_reception_totals[pid]["qty"] += delta
                     product_reception_totals[pid]["value"] += (delta * line.agreed_unit_price)
+
+                defect_qty = ld.get("defect_quantity", 0)
+                if defect_qty > 0 and line.variant_id:
+                    from apps.inventory.models import DefectItem, DefectStatusChoices
+                    DefectItem.objects.create(
+                        tenant=tenant,
+                        variant_id=line.variant_id,
+                        branch=target_branch,
+                        supplier=po.supplier,
+                        purchase_order=po,
+                        quantity=defect_qty,
+                        cost_price=line.agreed_unit_price,
+                        defect_reason=ld.get("defect_reason") or "other",
+                        notes=f"Réception {po_ref}: {ld.get('defect_notes', '')}".strip(),
+                        logged_by=user,
+                        status=DefectStatusChoices.QUARANTINED,
+                    )
 
         # Re-compute PO status from all lines
         all_lines = list(POLine.objects.filter(order=po))
@@ -759,3 +805,53 @@ class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.tenant, recorded_by=self.request.user)
+
+
+class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = SupplierReturnClaim.objects.select_related("supplier", "created_by").prefetch_related("items__variant__product")
+    serializer_class = SupplierReturnClaimSerializer
+    filterset_fields = ["supplier", "status", "credit_note_applied"]
+    search_fields = ["claim_number", "supplier__name", "notes"]
+    ordering_fields = ["created_at", "total_amount", "status"]
+    ordering = ["-created_at"]
+
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.tenant, created_by=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="apply-credit")
+    def apply_credit(self, request, pk=None):
+        """Approve claim and deduct total_amount from supplier balance as a credit note (Avoir)."""
+        claim = self.get_object()
+        if claim.credit_note_applied:
+            return Response({"detail": "L'avoir a déjà été appliqué sur ce fournisseur."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            claim.credit_note_applied = True
+            claim.status = ClaimStatusChoices.ACCEPTED
+            claim.save(update_fields=["credit_note_applied", "status"])
+            
+            # Update all attached defect items to returned
+            from apps.inventory.models import DefectStatusChoices
+            from django.utils import timezone
+            claim.items.update(
+                status=DefectStatusChoices.RETURNED,
+                resolved_by=request.user,
+                resolved_at=timezone.now(),
+            )
+            claim.supplier.recompute_balance()
+
+        return Response(SupplierReturnClaimSerializer(claim).data)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Download the supplier return claim note as a PDF."""
+        claim = self.get_object()
+        from apps.invoicing.pdf import render_return_claim_pdf
+        lang = request.query_params.get("lang", "fr")
+        pdf_bytes = render_return_claim_pdf(claim, language=lang)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="bon-retour-{claim.claim_number}.pdf"'
+        )
+        return response
+

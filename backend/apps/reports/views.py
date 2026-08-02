@@ -26,7 +26,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     def dashboard(self, request):
         """KPI cards for the home dashboard."""
         tenant = request.tenant
-        today = timezone.now().date()
+        today = timezone.localdate()
         from_day = timezone.now().replace(hour=0, minute=0, second=0)
 
         # Today's revenue

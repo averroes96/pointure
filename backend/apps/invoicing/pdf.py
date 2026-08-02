@@ -146,3 +146,17 @@ def render_supplier_invoice_pdf(supplier_invoice, language: str = "fr") -> bytes
         "balance_due": supplier_invoice.total_amount - amount_paid,
     }
     return render_to_pdf("pdf/supplier_invoice.html", context, language)
+
+
+def render_return_claim_pdf(claim, language: str = "fr") -> bytes:
+    items = list(claim.items.select_related("variant__product"))
+    total_pairs = sum(item.quantity for item in items)
+    context = {
+        "claim": claim,
+        "tenant": claim.tenant,
+        "supplier": claim.supplier,
+        "items": items,
+        "total_pairs": total_pairs,
+    }
+    return render_to_pdf("pdf/return_claim.html", context, language)
+

@@ -4,7 +4,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.core.models import Branch, RoleChoices
-from .models import Product, StockMovement, StockTransfer, Variant
+from .models import DefectItem, Product, StockMovement, StockTransfer, Variant
 
 
 class VariantSerializer(serializers.ModelSerializer):
@@ -250,3 +250,43 @@ class StockTransferSerializer(serializers.ModelSerializer):
             "id", "created_at", "received_at",
             "created_by", "received_by", "status",
         ]
+
+
+# ── DefectItem Serializers ───────────────────────────────────────────────────
+
+class DefectItemSerializer(serializers.ModelSerializer):
+    variant_str = serializers.CharField(source="variant.__str__", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_reference = serializers.CharField(source="variant.product.reference", read_only=True, default="")
+    product_image = serializers.SerializerMethodField()
+    size_eu = serializers.IntegerField(source="variant.size_eu", read_only=True)
+    colour = serializers.CharField(source="variant.colour", read_only=True, default="")
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True, default="")
+    claim_number = serializers.CharField(source="return_claim.claim_number", read_only=True, default="")
+    logged_by_email = serializers.CharField(source="logged_by.email", read_only=True, default="")
+    resolved_by_email = serializers.CharField(source="resolved_by.email", read_only=True, default="")
+    defect_reason_display = serializers.CharField(source="get_defect_reason_display", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = DefectItem
+        fields = [
+            "id",
+            "variant", "variant_str", "product_name", "product_reference", "product_image",
+            "size_eu", "colour", "branch", "branch_name",
+            "supplier", "supplier_name", "purchase_order", "return_claim", "claim_number",
+            "quantity", "cost_price", "defect_reason", "defect_reason_display",
+            "photo", "status", "status_display", "notes",
+            "logged_by", "logged_by_email", "resolved_by", "resolved_by_email", "resolved_at",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = [
+            "id", "created_at", "updated_at", "logged_by", "resolved_by", "resolved_at", "return_claim",
+        ]
+
+    def get_product_image(self, obj) -> str:
+        if obj.variant and obj.variant.product and obj.variant.product.image:
+            return obj.variant.product.image.url
+        return ""
+

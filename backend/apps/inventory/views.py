@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.models import RoleChoices
 from apps.inventory.models import (
+    DefectItem,
+    DefectReasonChoices,
+    DefectStatusChoices,
     MovementReasonChoices,
     Product,
     StockMovement,
@@ -16,6 +19,7 @@ from apps.inventory.models import (
 )
 from apps.inventory.serializers import (
     BulkStockAdjustmentSerializer,
+    DefectItemSerializer,
     GenerateVariantsSerializer,
     ProductCreateSerializer,
     ProductListSerializer,
@@ -832,3 +836,172 @@ class LowStockViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
             alert_threshold__gt=0,
             stock_qty__lte=F("alert_threshold"),
         ).select_related("product")
+
+
+class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = DefectItem.objects.select_related(
+        "variant__product", "branch", "supplier", "purchase_order", "return_claim", "logged_by", "resolved_by"
+    )
+    serializer_class = DefectItemSerializer
+    filterset_fields = ["status", "defect_reason", "branch", "supplier", "return_claim"]
+    search_fields = ["variant__product__name", "variant__product__reference", "variant__barcode", "notes"]
+    ordering_fields = ["created_at", "cost_price", "quantity", "status"]
+    ordering = ["-created_at"]
+
+    def perform_create(self, serializer):
+        from decimal import Decimal
+
+        variant = serializer.validated_data["variant"]
+        quantity = serializer.validated_data.get("quantity", 1)
+        branch = serializer.validated_data.get("branch") or getattr(self.request.user, "branch", None)
+        if not branch:
+            from apps.core.models import Branch
+            branch = Branch.objects.filter(tenant=self.request.tenant, is_active=True).first()
+
+        cost_price = serializer.validated_data.get("cost_price")
+        if not cost_price or cost_price == Decimal("0.00"):
+            cost_price = variant.product.purchase_price
+
+        # Isolate from active stock by generating a negative StockMovement (DAMAGED)
+        with transaction.atomic():
+            defect = serializer.save(
+                tenant=self.request.tenant,
+                branch=branch,
+                cost_price=cost_price,
+                logged_by=self.request.user,
+            )
+            StockMovement.objects.create(
+                tenant=self.request.tenant,
+                variant=variant,
+                branch=branch,
+                quantity_delta=-quantity,
+                reason=MovementReasonChoices.DAMAGED,
+                reference_id=str(defect.id),
+                reference_type="DefectItem",
+                notes=f"Mise en quarantaine défectueux: {defect.get_defect_reason_display()}",
+                user=self.request.user,
+            )
+
+    @action(detail=False, methods=["get"], url_path="metrics")
+    def metrics(self, request):
+        from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+
+        qs = self.get_queryset()
+        branch_id = request.query_params.get("branch_id")
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+
+        quarantined = qs.filter(status=DefectStatusChoices.QUARANTINED)
+        quarantined_count = quarantined.aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+        quarantined_val = quarantined.annotate(
+            val=ExpressionWrapper(F("quantity") * F("cost_price"), output_field=DecimalField())
+        ).aggregate(total=Coalesce(Sum("val"), Decimal("0.00")))["total"]
+
+        pending_claims = qs.filter(status=DefectStatusChoices.CLAIM_PENDING)
+        pending_count = pending_claims.aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+        pending_val = pending_claims.annotate(
+            val=ExpressionWrapper(F("quantity") * F("cost_price"), output_field=DecimalField())
+        ).aggregate(total=Coalesce(Sum("val"), Decimal("0.00")))["total"]
+
+        returned_count = qs.filter(status=DefectStatusChoices.RETURNED).aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+        resolved_count = qs.filter(status__in=[DefectStatusChoices.RETURNED, DefectStatusChoices.SOLD_DISCOUNT, DefectStatusChoices.WRITTEN_OFF]).aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+
+        return Response({
+            "quarantined_pairs": quarantined_count,
+            "quarantined_value": quarantined_val,
+            "pending_claims_pairs": pending_count,
+            "pending_claims_value": pending_val,
+            "returned_pairs": returned_count,
+            "total_resolved_pairs": resolved_count,
+        })
+
+    @action(detail=True, methods=["post"], url_path="resolve-write-off")
+    def resolve_write_off(self, request, pk=None):
+        """Mark quarantined defect as total written-off loss."""
+        from django.utils import timezone
+        defect = self.get_object()
+        defect.status = DefectStatusChoices.WRITTEN_OFF
+        defect.resolved_by = request.user
+        defect.resolved_at = timezone.now()
+        if request.data.get("notes"):
+            defect.notes = f"{defect.notes}\n[Rebut] {request.data.get('notes')}".strip()
+        defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
+        return Response(DefectItemSerializer(defect).data)
+
+    @action(detail=True, methods=["post"], url_path="resolve-discount-sale")
+    def resolve_discount_sale(self, request, pk=None):
+        """Mark defect as sold at discount (2ème choix)."""
+        from django.utils import timezone
+        defect = self.get_object()
+        defect.status = DefectStatusChoices.SOLD_DISCOUNT
+        defect.resolved_by = request.user
+        defect.resolved_at = timezone.now()
+        if request.data.get("notes"):
+            defect.notes = f"{defect.notes}\n[2ème choix] {request.data.get('notes')}".strip()
+        defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
+        return Response(DefectItemSerializer(defect).data)
+
+    @action(detail=False, methods=["post"], url_path="create-supplier-claim")
+    def create_supplier_claim(self, request):
+        """
+        Batch-select multiple defect items to generate a SupplierReturnClaim (Bon de Retour),
+        optionally automatically debiting the supplier balance with an Avoir.
+        """
+        from apps.suppliers.models import ClaimStatusChoices, Supplier, SupplierReturnClaim
+        from django.utils import timezone
+
+        item_ids = request.data.get("item_ids", [])
+        supplier_id = request.data.get("supplier_id")
+        apply_credit = request.data.get("apply_credit", True)
+        notes = request.data.get("notes", "")
+
+        if not item_ids:
+            return Response({"detail": "Aucun article sélectionné."}, status=status.HTTP_400_BAD_REQUEST)
+
+        items = DefectItem.objects.filter(tenant=request.tenant, id__in=item_ids)
+        if not items.exists():
+            return Response({"detail": "Articles introuvables."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not supplier_id:
+            supplier = items.first().supplier
+            if not supplier:
+                return Response({"detail": "Veuillez spécifier le fournisseur."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            supplier = Supplier.objects.filter(tenant=request.tenant, id=supplier_id).first()
+            if not supplier:
+                return Response({"detail": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        total_amount = sum(item.cost_price * item.quantity for item in items)
+
+        with transaction.atomic():
+            claim = SupplierReturnClaim.objects.create(
+                tenant=request.tenant,
+                supplier=supplier,
+                total_amount=total_amount,
+                status=ClaimStatusChoices.ACCEPTED if apply_credit else ClaimStatusChoices.SENT,
+                credit_note_applied=apply_credit,
+                notes=notes,
+                created_by=request.user,
+            )
+
+            # Update items
+            new_status = DefectStatusChoices.RETURNED if apply_credit else DefectStatusChoices.CLAIM_PENDING
+            items.update(
+                supplier=supplier,
+                return_claim=claim,
+                status=new_status,
+                resolved_by=request.user if apply_credit else None,
+                resolved_at=timezone.now() if apply_credit else None,
+            )
+
+            if apply_credit:
+                supplier.recompute_balance()
+
+        from apps.suppliers.serializers import SupplierReturnClaimSerializer
+        return Response({
+            "claim": SupplierReturnClaimSerializer(claim).data,
+            "items_updated": items.count(),
+        }, status=status.HTTP_201_CREATED)
+

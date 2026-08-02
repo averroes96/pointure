@@ -44,8 +44,47 @@ class Supplier(TenantScopedModel):
         from decimal import Decimal
         invoiced = self.invoices.aggregate(t=Coalesce(Sum("total_amount"), Decimal("0")))["t"]
         paid = self.payments.aggregate(t=Coalesce(Sum("amount"), Decimal("0")))["t"]
-        self.outstanding_balance = invoiced - paid
+        claimed = self.return_claims.filter(credit_note_applied=True).aggregate(t=Coalesce(Sum("total_amount"), Decimal("0")))["t"]
+        self.outstanding_balance = invoiced - paid - claimed
         self.save(update_fields=["outstanding_balance"])
+
+
+class ClaimStatusChoices(models.TextChoices):
+    DRAFT = "draft", _("Draft")
+    SENT = "sent", _("Sent to Supplier")
+    ACCEPTED = "accepted", _("Accepted / Credit Applied")
+    REJECTED = "rejected", _("Rejected")
+
+
+class SupplierReturnClaim(TenantScopedModel):
+    """
+    Bon de Retour Défectueux / Demande d'Avoir Fournisseur.
+    Groups quarantined defect items for a supplier and allows generating a return slip and debiting balance.
+    """
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="return_claims")
+    claim_number = models.CharField(max_length=50, blank=True)
+    status = models.CharField(max_length=20, choices=ClaimStatusChoices.choices, default=ClaimStatusChoices.DRAFT)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    credit_note_applied = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey("core.User", on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Supplier Return Claim")
+        verbose_name_plural = _("Supplier Return Claims")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.claim_number or 'Claim'} — {self.supplier.name}"
+
+    def save(self, *args, **kwargs):
+        is_new = not self.pk
+        super().save(*args, **kwargs)
+        if (is_new or not self.claim_number) and self.pk:
+            seq = str(self.pk).replace("-", "")[:8].upper()
+            self.claim_number = f"RET-{seq}"
+            SupplierReturnClaim.objects.filter(pk=self.pk).update(claim_number=self.claim_number)
 
 
 class PurchaseOrder(TenantScopedModel):

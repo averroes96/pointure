@@ -1,6 +1,6 @@
 from decimal import Decimal
 from rest_framework import serializers
-from .models import POLine, PurchaseOrder, Supplier, SupplierInvoice, SupplierPayment
+from .models import POLine, PurchaseOrder, Supplier, SupplierInvoice, SupplierPayment, SupplierReturnClaim
 
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -95,6 +95,10 @@ class CartonSizeInputSerializer(serializers.Serializer):
     """One entry per EU size in a carton-mode receive. quantity is the total pairs for this size."""
     size_eu   = serializers.IntegerField(min_value=15, max_value=60)
     quantity  = serializers.IntegerField(min_value=0)
+    # Defect tracking during reception
+    defect_quantity = serializers.IntegerField(min_value=0, required=False, default=0)
+    defect_reason = serializers.CharField(max_length=30, required=False, default="other")
+    defect_notes = serializers.CharField(required=False, allow_blank=True, default="")
     # Variant resolution — same logic as top-level receive
     variant_id  = serializers.UUIDField(required=False, allow_null=True, default=None)
     new_variant = NewVariantInputSerializer(required=False, allow_null=True, default=None)
@@ -132,6 +136,10 @@ class CreatePurchaseOrderSerializer(serializers.Serializer):
 class ReceiveLineInputSerializer(serializers.Serializer):
     id               = serializers.UUIDField()
     quantity_received = serializers.IntegerField(min_value=0)
+    # Defect tracking for single-variant lines
+    defect_quantity = serializers.IntegerField(min_value=0, required=False, default=0)
+    defect_reason = serializers.CharField(max_length=30, required=False, default="other")
+    defect_notes = serializers.CharField(required=False, allow_blank=True, default="")
     # Resolution for unlinked lines (mutually exclusive — send one or neither)
     variant_id   = serializers.UUIDField(required=False, allow_null=True, default=None)
     new_variant  = NewVariantInputSerializer(required=False, allow_null=True, default=None)
@@ -173,3 +181,22 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
             "due_date", "date", "notes", "recorded_by", "created_at",
         ]
         read_only_fields = ["id", "created_at", "recorded_by"]
+
+
+# ── Supplier Return Claim ──────────────────────────────────────────────────────
+
+class SupplierReturnClaimSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True, default="")
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = SupplierReturnClaim
+        fields = [
+            "id", "claim_number", "supplier", "supplier_name",
+            "status", "status_display", "total_amount", "credit_note_applied",
+            "notes", "items_count", "created_by", "created_by_email", "created_at",
+        ]
+        read_only_fields = ["id", "claim_number", "created_at", "created_by"]
+

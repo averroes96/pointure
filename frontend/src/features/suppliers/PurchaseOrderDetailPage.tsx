@@ -5,14 +5,14 @@
  *   - Receive lines: POST /suppliers/purchase-orders/{id}/receive/
  *   - Update status: PATCH /suppliers/purchase-orders/{id}/update-status/
  */
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, AlertTriangle, X,
   Factory, Calendar, FileText, Truck, ChevronDown,
-  Search, Plus, SkipForward, Download, MessageCircle,
+  Search, Plus, SkipForward, Download, MessageCircle, ShieldAlert,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import ColourPicker from "@/components/ui/ColourPicker";
@@ -268,6 +268,9 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const [defects, setDefects] = useState<
+    Record<number, { open: boolean; quantity: number; reason: string; notes: string }>
+  >({});
 
   // Resolution state for lines that have no catalog variant linked
   const unlinkedLines = po.lines.filter((l) => !l.variant);
@@ -319,20 +322,28 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
           return { id: l.id, quantity_received: total, carton_sizes };
         }
 
+        const defectInfo = defects[l.id];
+        const defectData = defectInfo && defectInfo.quantity > 0 ? {
+          defect_quantity: defectInfo.quantity,
+          defect_reason: defectInfo.reason || "unstitched_sole",
+          defect_notes: defectInfo.notes || "",
+        } : {};
+
         // Standard mode: single variant resolution
         const res = resolutions[l.id];
         if (res?.mode === "link" && res.variantId)
-          return { ...base, variant_id: res.variantId };
+          return { ...base, ...defectData, variant_id: res.variantId };
         if (res?.mode === "create" && res.newVariant)
           return {
             ...base,
+            ...defectData,
             new_variant: {
               ...res.newVariant,
               purchase_price: parseFloat(res.newVariant.purchase_price) || 0,
               sale_price: parseFloat(res.newVariant.sale_price) || 0,
             },
           };
-        return base; // skip
+        return { ...base, ...defectData }; // skip or already linked
       });
       return api.post(`/suppliers/purchase-orders/${po.id}/receive/`, {
         lines,
@@ -448,48 +459,148 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
             {po.lines.map((line) => {
               const qtyReceived = quantities[line.id] ?? line.quantity_received;
               const isDone = qtyReceived >= line.quantity_ordered;
+              const defectInfo = defects[line.id] || { open: false, quantity: 0, reason: "unstitched_sole", notes: "" };
               return (
-                <tr key={line.id}>
-                  <td className="font-medium">{line.description}</td>
-                  <td className="text-center font-mono text-sm">{line.quantity_ordered}</td>
-                  <td className="text-center">
-                    {canReceive ? (
-                      <input
-                        type="number"
-                        value={qtyReceived}
-                        min={0}
-                        max={line.quantity_ordered}
-                        onChange={(e) =>
-                          setQuantities((prev) => ({
-                            ...prev,
-                            [line.id]: Math.min(
-                              parseInt(e.target.value) || 0,
-                              line.quantity_ordered
-                            ),
-                          }))
-                        }
-                        className="form-input py-1 text-sm text-center w-20 mx-auto font-mono"
-                      />
-                    ) : (
-                      <span className="font-mono text-sm">{line.quantity_received}</span>
-                    )}
-                  </td>
-                  <td className="text-end font-mono text-sm text-text-muted">
-                    {formatDZD(line.agreed_unit_price)} DZD
-                  </td>
-                  <td className="text-end font-mono text-sm">
-                    {formatDZD(line.line_total)} DZD
-                  </td>
-                  <td className="text-center">
-                    {isDone ? (
-                      <span className="badge badge-success text-xs">{t("supplier.received")}</span>
-                    ) : qtyReceived > 0 ? (
-                      <span className="badge badge-warning text-xs">Partiel</span>
-                    ) : (
-                      <span className="badge badge-neutral text-xs">En attente</span>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={line.id}>
+                  <tr>
+                    <td className="font-medium">
+                      <div>{line.description}</div>
+                      {canReceive && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDefects((prev) => ({
+                              ...prev,
+                              [line.id]: {
+                                ...defectInfo,
+                                open: !defectInfo.open,
+                                quantity: defectInfo.quantity || 1,
+                              },
+                            }))
+                          }
+                          className="text-[11px] text-warning hover:underline flex items-center gap-1 mt-1 font-normal"
+                        >
+                          <ShieldAlert size={12} />
+                          {defectInfo.open ? "Masquer défectueux" : "+ Signaler défectueux"}
+                        </button>
+                      )}
+                    </td>
+                    <td className="text-center font-mono text-sm">{line.quantity_ordered}</td>
+                    <td className="text-center">
+                      {canReceive ? (
+                        <input
+                          type="number"
+                          value={qtyReceived}
+                          min={0}
+                          max={line.quantity_ordered}
+                          onChange={(e) =>
+                            setQuantities((prev) => ({
+                              ...prev,
+                              [line.id]: Math.min(
+                                parseInt(e.target.value) || 0,
+                                line.quantity_ordered
+                              ),
+                            }))
+                          }
+                          className="form-input py-1 text-sm text-center w-20 mx-auto font-mono"
+                        />
+                      ) : (
+                        <span className="font-mono text-sm">{line.quantity_received}</span>
+                      )}
+                    </td>
+                    <td className="text-end font-mono text-sm text-text-muted">
+                      {formatDZD(line.agreed_unit_price)} DZD
+                    </td>
+                    <td className="text-end font-mono text-sm">
+                      {formatDZD(line.line_total)} DZD
+                    </td>
+                    <td className="text-center">
+                      {isDone ? (
+                        <span className="badge badge-success text-xs">{t("supplier.received")}</span>
+                      ) : qtyReceived > 0 ? (
+                        <span className="badge badge-warning text-xs">Partiel</span>
+                      ) : (
+                        <span className="badge badge-neutral text-xs">En attente</span>
+                      )}
+                    </td>
+                  </tr>
+
+                  {canReceive && defectInfo.open && (
+                    <tr className="bg-warning/5 border-b border-warning/20">
+                      <td colSpan={6} className="p-3">
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
+                          <span className="font-semibold text-warning flex items-center gap-1">
+                            <ShieldAlert size={14} />
+                            Anomalie constatée :
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <span>Qté défectueuse :</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={qtyReceived || line.quantity_ordered}
+                              value={defectInfo.quantity}
+                              onChange={(e) =>
+                                setDefects((prev) => ({
+                                  ...prev,
+                                  [line.id]: {
+                                    ...defectInfo,
+                                    quantity: parseInt(e.target.value) || 0,
+                                  },
+                                }))
+                              }
+                              className="form-input py-0.5 px-2 text-xs w-16 text-center font-mono"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span>Motif :</span>
+                            <select
+                              value={defectInfo.reason}
+                              onChange={(e) =>
+                                setDefects((prev) => ({
+                                  ...prev,
+                                  [line.id]: {
+                                    ...defectInfo,
+                                    reason: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="form-input py-0.5 px-2 text-xs"
+                            >
+                              <option value="unstitched_sole">Semelle décollée / décousue</option>
+                              <option value="broken_strap">Bride / Lanière cassée</option>
+                              <option value="mismatched_pair">Paire dépareillée</option>
+                              <option value="leather_tear">Déchirure cuir / tissu</option>
+                              <option value="discoloration">Décoloration / Teinte</option>
+                              <option value="broken_heel">Talon cassé</option>
+                              <option value="missing_insole">Semelle manquante</option>
+                              <option value="other">Autre défaut</option>
+                            </select>
+                          </div>
+
+                          <div className="flex-1 min-w-[200px]">
+                            <input
+                              type="text"
+                              placeholder="Notes / remarques sur le défaut..."
+                              value={defectInfo.notes}
+                              onChange={(e) =>
+                                setDefects((prev) => ({
+                                  ...prev,
+                                  [line.id]: {
+                                    ...defectInfo,
+                                    notes: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="form-input py-0.5 px-2 text-xs w-full"
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>

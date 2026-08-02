@@ -5,6 +5,7 @@ import {
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart, BookOpen,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -71,6 +72,7 @@ function useNavSections(): NavSection[] {
         { to: "/inventory/products", labelKey: "nav.products", icon: Package },
         { to: "/inventory/movements", labelKey: "nav.stock_movements", icon: BarChart2, managerOnly: true },
         { to: "/inventory/transfers", labelKey: "nav.transfers", icon: ArrowLeftRight, managerOnly: true },
+        { to: "/inventory/defects", labelKey: "nav.defects", icon: ShieldAlert, managerOnly: true },
         { to: "/inventory/low-stock", labelKey: "nav.low_stock", icon: AlertTriangle },
         { to: "/inventory/scanner", labelKey: "nav.barcode_scanner", icon: ScanBarcode },
       ],

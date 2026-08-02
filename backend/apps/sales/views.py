@@ -172,7 +172,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         else:
-            target_date = timezone.now().date()
+            target_date = timezone.localdate()
 
         sales_qs = Sale.objects.filter(
             tenant=request.tenant,

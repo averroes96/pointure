@@ -139,6 +139,65 @@ export interface StockTransfer {
   received_at: string | null;
 }
 
+export type DefectReason =
+  | "unstitched_sole"
+  | "broken_strap"
+  | "mismatched_pair"
+  | "leather_tear"
+  | "discoloration"
+  | "broken_heel"
+  | "missing_insole"
+  | "other";
+
+export type DefectStatus =
+  | "quarantined"
+  | "claim_pending"
+  | "returned"
+  | "sold_discount"
+  | "written_off";
+
+export interface DefectItem {
+  id: number;
+  variant: number;
+  variant_label: string;
+  variant_sku?: string;
+  product_name?: string;
+  product_reference?: string;
+  size_eu?: number;
+  colour?: string;
+  branch: number;
+  branch_name: string;
+  supplier: number | null;
+  supplier_name: string | null;
+  purchase_order: number | null;
+  return_claim: number | null;
+  return_claim_number?: string | null;
+  quantity: number;
+  cost_price: string;
+  total_cost?: string;
+  defect_reason: DefectReason;
+  defect_reason_display: string;
+  status: DefectStatus;
+  status_display: string;
+  photo_url: string | null;
+  notes: string;
+  logged_by: number | null;
+  logged_by_name: string | null;
+  resolved_by: number | null;
+  resolved_by_name: string | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface DefectMetrics {
+  quarantined_pairs: number;
+  quarantined_value: string;
+  pending_claims_pairs: number;
+  pending_claims_value: string;
+  returned_pairs: number;
+  total_resolved_pairs: number;
+}
+
 // ─────────────────────────────────────────────
 // Sales
 // ─────────────────────────────────────────────
@@ -478,6 +537,27 @@ export interface SupplierPayment {
   date: string;
   notes: string;
   recorded_by: number | null;
+  created_at: string;
+}
+
+export type ClaimStatus = "draft" | "sent" | "accepted" | "rejected" | "settled";
+
+export interface SupplierReturnClaim {
+  id: number;
+  supplier: number;
+  supplier_name: string;
+  supplier_phone?: string;
+  supplier_email?: string;
+  claim_number: string;
+  total_amount: string;
+  status: ClaimStatus;
+  status_display: string;
+  credit_note_applied: boolean;
+  notes: string;
+  items?: DefectItem[];
+  item_count?: number;
+  created_by: number | null;
+  created_by_name: string | null;
   created_at: string;
 }
 
