@@ -7,7 +7,9 @@ from dbfread import DBF
 from apps.core.models import Tenant, Branch
 from apps.suppliers.models import Supplier
 from apps.clients.models import Client, ClientLedger
-from apps.inventory.models import Product, Variant, StockMovement, MovementReasonChoices, CategoryChoices
+from apps.inventory.models import (
+    Product, Variant, StockMovement, MovementReasonChoices, CategoryChoices, GenderChoices
+)
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices, PaymentMethodChoices, Payment
 
 def safe_decimal(val):
@@ -30,6 +32,66 @@ def safe_int(val):
         try: return int(val.strip())
         except: pass
     return 0
+
+def get_family_details(cat_name: str):
+    """
+    Infers gender, category, and standard size range based on the legacy FAMILLE name.
+    """
+    cat_lower = cat_name.lower()
+    
+    # 1. Gender & Sizes
+    if any(k in cat_lower for k in ["fillette", "garcon", "garçon", "enfant", "bebe", "bébé"]):
+        gender = GenderChoices.KIDS
+        sizes = [30, 31, 32, 33, 34, 35]
+    elif any(k in cat_lower for k in ["femme", "fille", "soiree", "soirée", "ballerine", "sabot femme", "sandal-femme"]):
+        gender = GenderChoices.WOMEN
+        sizes = [36, 37, 38, 39, 40, 41]
+    elif any(k in cat_lower for k in ["homme", "classique"]):
+        gender = GenderChoices.MEN
+        sizes = [40, 41, 42, 43, 44, 45]
+    else:
+        gender = GenderChoices.UNISEX
+        sizes = [37, 38, 39, 40, 41, 42]
+
+    # 2. Category
+    if any(k in cat_lower for k in ["basket", "sneaker", "skitchers"]):
+        category = CategoryChoices.SNEAKERS
+    elif any(k in cat_lower for k in ["sandal"]):
+        category = CategoryChoices.SANDALS
+    elif any(k in cat_lower for k in ["botte", "bot"]):
+        category = CategoryChoices.BOOTS
+    elif any(k in cat_lower for k in ["pantoufle", "sabot", "babouche", "plastique"]):
+        category = CategoryChoices.SLIPPERS
+    elif any(k in cat_lower for k in ["fillette", "garcon", "garçon"]) and not any(k in cat_lower for k in ["basket", "sandal"]):
+        category = CategoryChoices.KIDS_SHOES
+    elif any(k in cat_lower for k in ["classique", "moccasin", "soiree", "soirée", "ballerine", "chaussure"]):
+        category = CategoryChoices.FORMAL
+    else:
+        category = CategoryChoices.OTHER
+
+    return gender, category, sizes
+
+def distribute_quantity(total_qty: int, sizes: list[int]) -> dict[int, int]:
+    """
+    Distributes total stock quantity across the given list of sizes.
+    Evenly allocates the base amount and assigns remainder pairs to the most popular middle sizes.
+    """
+    if total_qty <= 0 or not sizes:
+        return {s: 0 for s in sizes}
+
+    n = len(sizes)
+    base = total_qty // n
+    rem = total_qty % n
+
+    distribution = {s: base for s in sizes}
+    if rem > 0:
+        center = (n - 1) / 2.0
+        priority_indices = sorted(range(n), key=lambda i: abs(i - center))
+        for i in range(rem):
+            size = sizes[priority_indices[i]]
+            distribution[size] += 1
+
+    return distribution
 
 class LegacyDBFImporter:
     def __init__(self, path, tenant, branch, logger=None, options=None):
@@ -144,7 +206,7 @@ class LegacyDBFImporter:
         fam_records = self.get_dbf("FAMILLE.DBF")
         family_map = {}
         for r in fam_records:
-            family_map[safe_str(r.get("FAMILLE"))] = safe_str(r.get("LIBELLE")).lower()
+            family_map[safe_str(r.get("FAMILLE"))] = safe_str(r.get("LIBELLE"))
 
         records = self.get_dbf("ARTICLEB.DBF")
         
@@ -156,10 +218,12 @@ class LegacyDBFImporter:
             
             fam = safe_str(r.get("FAMILLE"))
             cat_name = family_map.get(fam, "")
-            category = CategoryChoices.OTHER
-            if "chaussure" in cat_name or "sneaker" in cat_name: category = CategoryChoices.SNEAKERS
-            elif "sandal" in cat_name: category = CategoryChoices.SANDALS
-            elif "bot" in cat_name: category = CategoryChoices.BOOTS
+            gender, category, sizes = get_family_details(cat_name)
+            
+            pairs_per_carton = safe_int(r.get("NOMBRE")) or 10
+            wholesale_price = safe_decimal(r.get("BTARIF2"))
+            if wholesale_price <= 0:
+                wholesale_price = safe_decimal(r.get("BTARIF1"))
             
             prod, _ = Product.objects.update_or_create(
                 tenant=self.tenant,
@@ -167,32 +231,44 @@ class LegacyDBFImporter:
                 defaults={
                     "name": name[:200],
                     "category": category,
+                    "gender": gender,
                     "purchase_price": safe_decimal(r.get("PRIX_ACHAT")),
                     "sale_price": safe_decimal(r.get("BTARIF1")),
+                    "wholesale_price": wholesale_price,
+                    "pairs_per_carton": pairs_per_carton,
                 }
             )
             
-            var, _ = Variant.objects.get_or_create(
-                tenant=self.tenant,
-                product=prod,
-                size_eu=38,
-                colour="Standard"
-            )
+            st_bl = safe_int(r.get("ST_BL"))
+            stock_distribution = distribute_quantity(st_bl, sizes)
+            
+            middle_variant = None
+            middle_size = sizes[len(sizes) // 2]
+            
+            for sz in sizes:
+                var, _ = Variant.objects.get_or_create(
+                    tenant=self.tenant,
+                    product=prod,
+                    size_eu=sz,
+                    colour="Standard"
+                )
+                if sz == middle_size:
+                    middle_variant = var
+                
+                qty = stock_distribution.get(sz, 0)
+                if qty > 0:
+                    StockMovement.objects.create(
+                        tenant=self.tenant,
+                        branch=self.branch,
+                        variant=var,
+                        quantity_delta=qty,
+                        reason=MovementReasonChoices.INITIAL,
+                        notes=f"Imported from Legacy ST_BL (Size {sz})"
+                    )
+                    self.stats["stock_units_imported"] += qty
             
             legacy_id = safe_str(r.get("ARTICLE"))
-            self.product_map[legacy_id] = var
-            
-            st_bl = safe_int(r.get("ST_BL"))
-            if st_bl > 0:
-                StockMovement.objects.create(
-                    tenant=self.tenant,
-                    branch=self.branch,
-                    variant=var,
-                    quantity_delta=st_bl,
-                    reason=MovementReasonChoices.INITIAL,
-                    notes="Imported from Legacy ST_BL"
-                )
-                self.stats["stock_units_imported"] += st_bl
+            self.product_map[legacy_id] = middle_variant or var
             self.stats["products_imported"] += 1
 
     def _import_sales(self):
