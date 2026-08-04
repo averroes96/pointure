@@ -372,11 +372,21 @@ export default function ProductDetailPage() {
             {user?.can_see_costs && product.purchase_price && (
               <>
                 <div className="flex items-end justify-between">
-                  <span className="text-xs text-text-muted">Prix d'achat</span>
+                  <span className="text-xs text-text-muted">{t("inventory.last_purchase_price", "Dernier prix d'achat")}</span>
                   <span className="font-mono text-sm text-text-muted">
                     {formatDZD(product.purchase_price)} DZD
                   </span>
                 </div>
+                {product.pamp && parseFloat(product.pamp) > 0 && (
+                  <div className="flex items-end justify-between">
+                    <span className="text-xs text-text-muted" title={t("inventory.pamp_tooltip")}>
+                      {t("inventory.pamp", "PAMP (Coût moyen)")}
+                    </span>
+                    <span className="font-mono text-sm text-accent font-medium">
+                      {formatDZD(product.pamp)} DZD
+                    </span>
+                  </div>
+                )}
                 {product.margin_pct != null && (
                   <div className="flex items-end justify-between border-t border-border pt-2">
                     <span className="text-xs text-text-muted">Marge</span>

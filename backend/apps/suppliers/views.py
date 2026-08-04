@@ -419,6 +419,37 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         status=DefectStatusChoices.QUARANTINED,
                     )
 
+        # ── Recalculate PAMP for all received products ─────────────────────
+        if product_reception_totals:
+            from apps.inventory.models import Product
+            for pid, pdata in product_reception_totals.items():
+                rec_qty = pdata["qty"]
+                rec_val = pdata["value"]
+                if rec_qty <= 0:
+                    continue
+                product = Product.objects.filter(id=pid, tenant=tenant).first()
+                if not product:
+                    continue
+
+                # Total stock across all variants after current movements
+                current_stock = product.total_stock
+                prior_stock = current_stock - rec_qty
+                current_cost_basis = (
+                    product.pamp
+                    if (product.pamp and product.pamp > Decimal("0.00"))
+                    else (product.purchase_price or Decimal("0.00"))
+                )
+
+                if prior_stock <= 0 or current_cost_basis <= Decimal("0.00"):
+                    new_pamp = rec_val / Decimal(rec_qty)
+                else:
+                    prior_val = Decimal(prior_stock) * current_cost_basis
+                    new_pamp = (prior_val + rec_val) / Decimal(current_stock)
+
+                product.pamp = new_pamp.quantize(Decimal("0.01"))
+                product.purchase_price = (rec_val / Decimal(rec_qty)).quantize(Decimal("0.01"))
+                product.save(update_fields=["pamp", "purchase_price"])
+
         # Re-compute PO status from all lines
         all_lines = list(POLine.objects.filter(order=po))
         if all_lines:

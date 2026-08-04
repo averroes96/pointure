@@ -137,7 +137,17 @@ export default function ProductsPage() {
                   </td>
                   {user?.can_see_costs && (
                     <td className="text-end font-mono text-text-muted">
-                      {formatDZD(product.purchase_price)} <span className="text-2xs">DZD</span>
+                      <div>
+                        {formatDZD(product.purchase_price)} <span className="text-2xs">DZD</span>
+                      </div>
+                      {product.pamp && parseFloat(product.pamp) > 0 && product.pamp !== product.purchase_price && (
+                        <div
+                          className="text-2xs text-accent"
+                          title={t("inventory.pamp_tooltip")}
+                        >
+                          PAMP: {formatDZD(product.pamp)}
+                        </div>
+                      )}
                     </td>
                   )}
                   <td className="text-end">

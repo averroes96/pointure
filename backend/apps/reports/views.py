@@ -212,13 +212,20 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=["get"], url_path="stock-valuation")
     def stock_valuation(self, request):
         from apps.inventory.models import Variant
-        from django.db.models import F, ExpressionWrapper, DecimalField
+        from django.db.models import F, ExpressionWrapper, DecimalField, Case, When
+        from django.db.models.functions import Coalesce
+
+        cost_expr = Case(
+            When(product__pamp__gt=0, then=F("product__pamp")),
+            default=Coalesce(F("product__purchase_price"), Decimal("0")),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
 
         qs = Variant.objects.filter(
             tenant=request.tenant, is_active=True, stock_qty__gt=0
         ).annotate(
             cost_value=ExpressionWrapper(
-                F("stock_qty") * F("product__purchase_price"),
+                F("stock_qty") * cost_expr,
                 output_field=DecimalField(max_digits=14, decimal_places=2),
             ),
             sale_value=ExpressionWrapper(
@@ -378,15 +385,21 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             .order_by("p")
         )
 
-        # COGS by period (via SaleItems -> Variant -> Product.purchase_price)
+        # COGS by period (via SaleItems -> Variant -> Product.pamp / purchase_price)
         cogs_by_period = {}
         if can_see_costs:
+            from django.db.models import Case, When
+            item_cost_expr = Case(
+                When(variant__product__pamp__gt=0, then=F("variant__product__pamp")),
+                default=Coalesce(F("variant__product__purchase_price"), Decimal("0")),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            )
             cogs_rows = (
                 SaleItem.objects.filter(sale__in=sale_qs)
                 .annotate(p=trunc_fn("sale__created_at"))
                 .annotate(
                     line_cost=ExpressionWrapper(
-                        F("quantity") * Coalesce(F("variant__product__purchase_price"), Decimal("0")),
+                        F("quantity") * item_cost_expr,
                         output_field=DecimalField(max_digits=14, decimal_places=2),
                     )
                 )
@@ -466,12 +479,18 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             computed_total_stock=0
         ).count()
 
-        # Stock value (purchase_price * qty) — only for users who can see costs
+        # Stock value (pamp / purchase_price * qty) — only for users who can see costs
         total_stock_value = Decimal("0")
         if request.user.can_see_costs:
+            from django.db.models import Case, When
+            cost_expr = Case(
+                When(product__pamp__gt=0, then=F("product__pamp")),
+                default=Coalesce(F("product__purchase_price"), Decimal("0")),
+                output_field=DjDecimalField(max_digits=14, decimal_places=2),
+            )
             val = variants.annotate(
                 line_value=ExpressionWrapper(
-                    F("stock_qty") * Coalesce(F("product__purchase_price"), Decimal("0")),
+                    F("stock_qty") * cost_expr,
                     output_field=DjDecimalField(max_digits=14, decimal_places=2),
                 )
             ).aggregate(t=Sum("line_value"))["t"]
@@ -548,9 +567,15 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         total_stock_value = Decimal("0")
         if request.user.can_see_costs:
+            from django.db.models import Case, When
+            cost_expr = Case(
+                When(product__pamp__gt=0, then=F("product__pamp")),
+                default=Coalesce(F("product__purchase_price"), Decimal("0")),
+                output_field=DjDecimalField(max_digits=14, decimal_places=2),
+            )
             val = variants.annotate(
                 lv=ExpressionWrapper(
-                    F("stock_qty") * Coalesce(F("product__purchase_price"), Decimal("0")),
+                    F("stock_qty") * cost_expr,
                     output_field=DjDecimalField(max_digits=14, decimal_places=2),
                 )
             ).aggregate(t=Sum("lv"))["t"]

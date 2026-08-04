@@ -108,6 +108,20 @@ class Product(TenantScopedModel):
     def __str__(self):
         return f"{self.brand} {self.name}".strip()
 
+    def save(self, *args, **kwargs):
+        try:
+            pp = Decimal(str(self.purchase_price)) if self.purchase_price is not None else Decimal("0.00")
+        except Exception:
+            pp = Decimal("0.00")
+        try:
+            pamp_val = Decimal(str(self.pamp)) if self.pamp is not None else Decimal("0.00")
+        except Exception:
+            pamp_val = Decimal("0.00")
+
+        if pamp_val == Decimal("0.00") and pp > Decimal("0.00"):
+            self.pamp = pp
+        super().save(*args, **kwargs)
+
     @property
     def margin_pct(self):
         cost_basis = self.pamp if self.pamp > 0 else self.purchase_price

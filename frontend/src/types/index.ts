@@ -83,6 +83,7 @@ export interface Product {
   gender: Gender;
   season: Season;
   purchase_price?: string; // Hidden from cashiers
+  pamp?: string; // Weighted Average Purchase Price (Coût Moyen Pondéré)
   sale_price: string;
   wholesale_price?: string;
   margin_pct?: string;
