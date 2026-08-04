@@ -19,8 +19,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # ─────────────────────────────────────────────
 # Fallback for build-time execution (e.g. collectstatic in Docker)
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-build-key-only")
-DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
+ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1,testserver", cast=Csv()))
+if "testserver" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("testserver")
 
 # ─────────────────────────────────────────────
 # Application Definition

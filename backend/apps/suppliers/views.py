@@ -83,8 +83,44 @@ class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering_fields = ["name", "outstanding_balance", "created_at"]
     ordering = ["name"]
 
-    def perform_create(self, serializer):
-        serializer.save(tenant=self.request.tenant)
+    @action(detail=False, methods=["post"], url_path="import")
+    def import_suppliers(self, request):
+        """
+        POST /suppliers/import/
+        Body: multipart/form-data with field 'file' (CSV or XLSX).
+        Query: ?dry_run=true to validate without saving.
+        """
+        from apps.core.services.importer import DataImportEngine, auto_map_columns, parse_file_data
+
+        self.require_manager()
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response({"detail": "Champ 'file' manquant."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dry_run = request.query_params.get("dry_run", "").lower() in ("1", "true", "yes")
+        duplicate_mode = request.query_params.get("duplicate_mode", "skip")
+
+        raw_bytes = file_obj.read()
+        headers, rows, parse_error = parse_file_data(raw_bytes, file_obj.name)
+        if parse_error:
+            return Response({"detail": str(parse_error)}, status=status.HTTP_400_BAD_REQUEST)
+        if not rows:
+            return Response({"detail": "Le fichier est vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        mapping = auto_map_columns(headers, "suppliers")
+        engine = DataImportEngine(
+            tenant=request.tenant,
+            entity_type="suppliers",
+            user=request.user,
+            duplicate_mode=duplicate_mode,
+        )
+
+        if dry_run:
+            preview = engine.validate_and_preview(headers, rows, mapping)
+            return Response(preview)
+
+        result = engine.execute_import(rows, mapping)
+        return Response(result)
 
     @action(detail=False, methods=["get"], url_path="payables-ageing")
     def payables_ageing(self, request):

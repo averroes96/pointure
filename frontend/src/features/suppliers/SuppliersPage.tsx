@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, X, Check, Pencil, Eye } from "lucide-react";
+import { Plus, Search, X, Check, Pencil, Eye, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier } from "@/types";
 import { cn } from "@/lib/utils";
+import ImportModal from "@/components/ui/ImportModal";
 
 interface SupplierFormData {
   name: string;
@@ -261,6 +262,7 @@ export default function SuppliersPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Supplier>>({
@@ -277,14 +279,33 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-4">
+      {showImport && (
+        <ImportModal
+          entity="suppliers"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            setShowImport(false);
+          }}
+          onClose={() => setShowImport(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("supplier.suppliers")}</h1>
           <p className="text-sm text-text-muted">{data?.count ?? 0} fournisseur(s)</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
-          <Plus size={16} />{t("supplier.new")}</button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-secondary">
+            <Upload size={16} />
+            Importer
+          </button>
+          <button onClick={() => setShowModal(true)} className="btn-primary">
+            <Plus size={16} />
+            {t("supplier.new")}
+          </button>
+        </div>
       </div>
 
       {/* Search */}
