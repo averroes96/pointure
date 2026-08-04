@@ -7,7 +7,7 @@ import json
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -58,7 +58,9 @@ class ImportTemplateView(BaseImportView):
     """
     GET /api/v1/core/import/template/?entity=products&format=xlsx&lang=fr
     Download pre-filled, styled template with headers and sample data in French, English, or Arabic.
+    Public/unrestricted as it only provides blank starter templates without tenant data.
     """
+    permission_classes = [AllowAny]
     renderer_classes = [BinaryPassthroughRenderer, JSONRenderer]
 
     def perform_content_negotiation(self, request, force=False):
@@ -66,9 +68,6 @@ class ImportTemplateView(BaseImportView):
         return (renderers[0], renderers[0].media_type)
 
     def get(self, request):
-        perm_err = self.check_manager_permission(request)
-        if perm_err:
-            return perm_err
 
         entity = request.query_params.get("entity", "products").lower()
         if entity not in ["products", "suppliers", "clients"]:
@@ -191,6 +190,8 @@ class ImportPreviewView(BaseImportView):
         )
 
         preview_result = engine.validate_and_preview(headers, rows, mapping)
+        if isinstance(preview_result, dict):
+            preview_result["rows"] = preview_result.get("preview_rows", [])
         return Response(preview_result)
 
 
@@ -256,4 +257,9 @@ class ImportExecuteView(BaseImportView):
         )
 
         result = engine.execute_import(rows, mapping)
+        if isinstance(result, dict):
+            if "created_stock_movements" in result and "created_movements" not in result:
+                result["created_movements"] = result["created_stock_movements"]
+            if "skipped" in result and "skipped_count" not in result:
+                result["skipped_count"] = result["skipped"]
         return Response(result)

@@ -98,22 +98,35 @@ interface ParsedFileData {
   raw_rows: Record<string, any>[];
 }
 
+interface PreviewRow {
+  row_index?: number;
+  row_number?: number;
+  status: "valid" | "warning" | "duplicate" | "error";
+  errors: string[];
+  warnings: string[];
+  raw?: Record<string, any>;
+  mapped?: Record<string, any>;
+  data?: Record<string, any>;
+  is_update?: boolean;
+}
+
 interface PreviewResult {
   summary: {
     total_rows: number;
     valid_rows: number;
+    warning_rows?: number;
     duplicate_rows: number;
     error_rows: number;
-    is_valid: boolean;
+    products_count?: number;
+    variants_count?: number;
+    total_initial_stock?: number;
+    is_valid?: boolean;
   };
-  rows: {
-    row_number: number;
-    status: "valid" | "duplicate" | "error";
-    data: Record<string, any>;
-    errors: string[];
-    warnings: string[];
-    is_update: boolean;
-  }[];
+  headers?: string[];
+  detected_mapping?: Record<string, string>;
+  preview_rows?: PreviewRow[];
+  rows?: PreviewRow[];
+  all_errors?: { row: number; field?: string; message: string }[];
 }
 
 interface ExecutionResult {
@@ -186,16 +199,35 @@ export default function BulkImportWizardModal({
     }
   }, [branches, selectedBranchId]);
 
+  const [downloadingFormat, setDownloadingFormat] = useState<"xlsx" | "csv" | null>(null);
+
   // Step 1: Download pre-filled template
-  const downloadTemplate = (format: "xlsx" | "csv") => {
-    const url = `/api/v1/core/import/template/?entity=${entity}&format=${format}&lang=${templateLang}`;
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadTemplate = async (format: "xlsx" | "csv") => {
+    try {
+      setDownloadingFormat(format);
+      const res = await api.get(
+        `/core/import/template/?entity=${entity}&format=${format}&lang=${templateLang}`,
+        { responseType: "blob" }
+      );
+      const mimeType =
+        format === "xlsx"
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "text/csv;charset=utf-8;";
+      const blob = new Blob([res.data as BlobPart], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const filename = `modele_import_${entity}_${templateLang}.${format}`;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setErrorMessage(getApiError(err));
+    } finally {
+      setDownloadingFormat(null);
+    }
   };
 
   // Step 1: Pick and parse file
@@ -331,10 +363,11 @@ export default function BulkImportWizardModal({
     URL.revokeObjectURL(url);
   };
 
-  // Filter preview rows
-  const filteredRows = (previewData?.rows || []).filter((r) => {
+  // Filter preview rows safely
+  const previewRows: PreviewRow[] = previewData?.preview_rows || previewData?.rows || [];
+  const filteredRows = previewRows.filter((r) => {
     if (previewFilter === "all") return true;
-    if (previewFilter === "valid") return r.status === "valid" && !r.is_update;
+    if (previewFilter === "valid") return r.status === "valid" || r.status === "warning";
     if (previewFilter === "duplicate") return r.is_update || r.status === "duplicate";
     if (previewFilter === "error") return r.status === "error";
     return true;
@@ -515,19 +548,29 @@ export default function BulkImportWizardModal({
 
                   <button
                     type="button"
+                    disabled={downloadingFormat !== null}
                     onClick={() => downloadTemplate("xlsx")}
-                    className="btn-secondary btn-sm flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:border-emerald-500"
+                    className="btn-secondary btn-sm flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:border-emerald-500 disabled:opacity-50"
                   >
-                    <Download size={13} />
+                    {downloadingFormat === "xlsx" ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Download size={13} />
+                    )}
                     {t("import_wizard.template_xlsx")}
                   </button>
 
                   <button
                     type="button"
+                    disabled={downloadingFormat !== null}
                     onClick={() => downloadTemplate("csv")}
-                    className="btn-secondary btn-sm flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:border-blue-500"
+                    className="btn-secondary btn-sm flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:border-blue-500 disabled:opacity-50"
                   >
-                    <Download size={13} />
+                    {downloadingFormat === "csv" ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Download size={13} />
+                    )}
                     {t("import_wizard.template_csv")}
                   </button>
                 </div>
@@ -814,10 +857,10 @@ export default function BulkImportWizardModal({
                             : "text-text-muted hover:bg-surface"
                         )}
                       >
-                        {tab === "all" && `Tous (${previewData.rows.length})`}
-                        {tab === "valid" && `Valides (${previewData.summary.valid_rows})`}
-                        {tab === "duplicate" && `Doublons (${previewData.summary.duplicate_rows})`}
-                        {tab === "error" && `Erreurs (${previewData.summary.error_rows})`}
+                        {tab === "all" && `Tous (${previewRows.length})`}
+                        {tab === "valid" && `Valides (${previewData.summary?.valid_rows ?? 0})`}
+                        {tab === "duplicate" && `Doublons (${previewData.summary?.duplicate_rows ?? 0})`}
+                        {tab === "error" && `Erreurs (${previewData.summary?.error_rows ?? 0})`}
                       </button>
                     ))}
                   </div>
@@ -829,60 +872,64 @@ export default function BulkImportWizardModal({
                       Aucune ligne ne correspond à ce filtre.
                     </div>
                   ) : (
-                    filteredRows.map((r) => (
-                      <div key={r.row_number} className="p-3 text-xs flex items-start gap-3 hover:bg-surface/30">
-                        {/* Status Badge */}
-                        <div className="flex-shrink-0 pt-0.5">
-                          {r.status === "error" ? (
-                            <span className="px-2 py-0.5 rounded font-bold bg-danger/10 text-danger border border-danger/20 flex items-center gap-1">
-                              <XCircle size={12} /> L.{r.row_number}
-                            </span>
-                          ) : r.is_update || r.status === "duplicate" ? (
-                            <span className="px-2 py-0.5 rounded font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
-                              <RefreshCw size={12} /> L.{r.row_number} (Mise à jour)
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                              <CheckCircle2 size={12} /> L.{r.row_number}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Row Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-text-primary truncate">
-                            {r.data.name || r.data.brand || "Ligne de données"}
-                            {r.data.size_eu && (
-                              <span className="ml-2 font-mono text-xs px-1.5 py-0.2 rounded bg-surface border border-border">
-                                Pointure {r.data.size_eu}
+                    filteredRows.map((r, idx) => {
+                      const rowNum = r.row_index ?? r.row_number ?? idx + 1;
+                      const rowData = r.mapped || r.data || r.raw || {};
+                      return (
+                        <div key={rowNum} className="p-3 text-xs flex items-start gap-3 hover:bg-surface/30">
+                          {/* Status Badge */}
+                          <div className="flex-shrink-0 pt-0.5">
+                            {r.status === "error" ? (
+                              <span className="px-2 py-0.5 rounded font-bold bg-danger/10 text-danger border border-danger/20 flex items-center gap-1">
+                                <XCircle size={12} /> L.{rowNum}
                               </span>
-                            )}
-                            {r.data.sale_price && (
-                              <span className="ml-2 font-mono text-emerald-600 dark:text-emerald-400">
-                                {r.data.sale_price} DZD
+                            ) : r.is_update || r.status === "duplicate" ? (
+                              <span className="px-2 py-0.5 rounded font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                                <RefreshCw size={12} /> L.{rowNum} (Mise à jour)
                               </span>
-                            )}
-                            {r.data.phone && (
-                              <span className="ml-2 font-mono text-text-muted">
-                                📞 {r.data.phone}
+                            ) : (
+                              <span className="px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                <CheckCircle2 size={12} /> L.{rowNum}
                               </span>
                             )}
                           </div>
 
-                          {/* Errors/Warnings */}
-                          {r.errors && r.errors.length > 0 && (
-                            <div className="text-danger text-[11px] font-medium mt-1">
-                              {r.errors.join(" • ")}
+                          {/* Row Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-text-primary truncate">
+                              {rowData.name || rowData.brand || Object.values(rowData)[0] || "Ligne de données"}
+                              {rowData.size_eu && (
+                                <span className="ml-2 font-mono text-xs px-1.5 py-0.5 rounded bg-surface border border-border">
+                                  Pointure {rowData.size_eu}
+                                </span>
+                              )}
+                              {rowData.sale_price && (
+                                <span className="ml-2 font-mono text-emerald-600 dark:text-emerald-400">
+                                  {rowData.sale_price} DZD
+                                </span>
+                              )}
+                              {rowData.phone && (
+                                <span className="ml-2 font-mono text-text-muted">
+                                  📞 {rowData.phone}
+                                </span>
+                              )}
                             </div>
-                          )}
-                          {r.warnings && r.warnings.length > 0 && (
-                            <div className="text-warning text-[11px] font-medium mt-0.5">
-                              {r.warnings.join(" • ")}
-                            </div>
-                          )}
+
+                            {/* Errors/Warnings */}
+                            {r.errors && r.errors.length > 0 && (
+                              <div className="text-danger text-[11px] font-medium mt-1">
+                                {r.errors.join(" • ")}
+                              </div>
+                            )}
+                            {r.warnings && r.warnings.length > 0 && (
+                              <div className="text-warning text-[11px] font-medium mt-0.5">
+                                {r.warnings.join(" • ")}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
