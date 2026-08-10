@@ -145,7 +145,7 @@ $waited = 0
 $dbReady = $false
 
 while ($waited -lt $maxWait) {
-    docker compose -f $composeFile exec -T db pg_isready -U shodz *>$null
+    docker compose -f $composeFile exec -T db pg_isready -U shodz | Out-Null
     if ($LASTEXITCODE -eq 0) {
         $dbReady = $true
         break
@@ -165,7 +165,7 @@ Write-Info "Running database migrations..."
 docker compose -f $composeFile exec -T backend python manage.py migrate --noinput
 
 Write-Info "Collecting static files..."
-docker compose -f $composeFile exec -T backend python manage.py collectstatic --noinput --clear *>$null
+docker compose -f $composeFile exec -T backend python manage.py collectstatic --noinput --clear | Out-Null
 Write-Success "Migrations and static files done."
 
 # ── 5. License activation ─────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ if ($licenseMatch) {
     $envLicenseKey = $licenseMatch.Matches.Groups[1].Value.Trim()
     if ($envLicenseKey -and $envLicenseKey -ne "SHDZ-XXXX-XXXX-XXXX") {
         Write-Info "Activating license key..."
-        docker compose -f $composeFile exec -T backend python manage.py activate_license $envLicenseKey *>$null
+        docker compose -f $composeFile exec -T backend python manage.py activate_license $envLicenseKey | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Success "License activated."
         } else {
