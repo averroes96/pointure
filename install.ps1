@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-ShoeDZ / Pointure — Self-Hosted Setup for Windows
+ShoeDZ / Pointure - Self-Hosted Setup for Windows
 
 .DESCRIPTION
 This script mirrors the install.sh functionality for native Windows environments using PowerShell.
@@ -33,11 +33,11 @@ function Get-RandomHex($length) {
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "       ShoeDZ / Pointure — Windows Setup" -ForegroundColor Cyan
+Write-Host "       ShoeDZ / Pointure - Windows Setup" -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Download source code if missing ───────────────────────────────────────────
+# -- Download source code if missing -------------------------------------------
 if (!(Test-Path "docker-compose.local.yml") -or !(Test-Path "backend")) {
     Write-Info "Downloading ShoeDZ source code..."
     $zipPath = "$PWD\main.zip"
@@ -50,7 +50,7 @@ if (!(Test-Path "docker-compose.local.yml") -or !(Test-Path "backend")) {
     Write-Success "Source code downloaded and extracted."
 }
 
-# ── 1. Prerequisites ─────────────────────────────────────────────────────────
+# -- 1. Prerequisites ---------------------------------------------------------
 Write-Info "Checking prerequisites..."
 
 if (!(Get-Command "docker" -ErrorAction SilentlyContinue)) {
@@ -70,12 +70,12 @@ try {
 
 Write-Success "Docker Desktop is running."
 
-# ── 2. Environment file ──────────────────────────────────────────────────────
+# -- 2. Environment file ------------------------------------------------------
 $envFile = ".env.local"
 $composeFile = "docker-compose.local.yml"
 
 if (Test-Path $envFile) {
-    Write-Warn "$envFile already exists — skipping generation. Edit it manually if needed."
+    Write-Warn "$envFile already exists - skipping generation. Edit it manually if needed."
 } else {
     Write-Info "Generating $envFile with secure random secrets..."
 
@@ -85,7 +85,7 @@ if (Test-Path $envFile) {
 
     Write-Host ""
     Write-Host "Enter your ShoeDZ license key (format: SHDZ-XXXX-XXXX-XXXX)." -ForegroundColor Yellow
-    Write-Host "Press Enter to skip — you can activate the license later." -ForegroundColor Yellow
+    Write-Host "Press Enter to skip - you can activate the license later." -ForegroundColor Yellow
     $licenseKey = Read-Host "License key"
     if ([string]::IsNullOrWhiteSpace($licenseKey)) { $licenseKey = "SHDZ-XXXX-XXXX-XXXX" }
 
@@ -131,7 +131,7 @@ if (Test-Path $envFile) {
     Write-Success "$envFile created."
 }
 
-# ── 3. Build and start containers ────────────────────────────────────────────
+# -- 3. Build and start containers --------------------------------------------
 Write-Info "Building Docker images (this may take several minutes on first run)..."
 docker compose -f $composeFile pull --quiet db redis nginx
 docker compose -f $composeFile build --quiet
@@ -160,7 +160,7 @@ if (-not $dbReady) {
 }
 Write-Success "Database is ready."
 
-# ── 4. Migrations & static files ─────────────────────────────────────────────
+# -- 4. Migrations & static files ---------------------------------------------
 Write-Info "Running database migrations..."
 docker compose -f $composeFile exec -T backend python manage.py migrate --noinput
 
@@ -168,7 +168,7 @@ Write-Info "Collecting static files..."
 docker compose -f $composeFile exec -T backend python manage.py collectstatic --noinput --clear | Out-Null
 Write-Success "Migrations and static files done."
 
-# ── 5. License activation ─────────────────────────────────────────────────────
+# -- 5. License activation -----------------------------------------------------
 $licenseMatch = Select-String -Path $envFile -Pattern "^LICENSE_KEY=(.*)"
 if ($licenseMatch) {
     $envLicenseKey = $licenseMatch.Matches.Groups[1].Value.Trim()
@@ -178,12 +178,12 @@ if ($licenseMatch) {
         if ($LASTEXITCODE -eq 0) {
             Write-Success "License activated."
         } else {
-            Write-Warn "License activation failed — you can retry later."
+            Write-Warn "License activation failed - you can retry later."
         }
     }
 }
 
-# ── 6. Django admin superuser ─────────────────────────────────────
+# -- 6. Django admin superuser -------------------------------------
 Write-Host ""
 Write-Host "Create a Django admin account for the /admin/ panel? [y/N]" -ForegroundColor Yellow
 $createSuper = Read-Host "Create Superuser"
@@ -191,7 +191,7 @@ if ($createSuper -match "^y$|^Y$") {
     docker compose -f $composeFile exec backend python manage.py createsuperuser
 }
 
-# ── 7. Done ──────────────────────────────────────────────────────────────────
+# -- 7. Done ------------------------------------------------------------------
 $frontendMatch = Select-String -Path $envFile -Pattern "^FRONTEND_URL=(.*)"
 $displayUrl = if ($frontendMatch) { $frontendMatch.Matches.Groups[1].Value.Trim() } else { "http://localhost" }
 
