@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 from decimal import Decimal
 from django.db import transaction
@@ -32,6 +33,21 @@ def safe_int(val):
         try: return int(val.strip())
         except: pass
     return 0
+
+def parse_pointure_range(val: str, default_sizes: list[int]) -> list[int]:
+    """
+    Parses a size range like '36/41', '36-41' into a list of integers.
+    """
+    val = safe_str(val)
+    if not val: return default_sizes
+    
+    match = re.search(r'(\d{2})[/\-\s]+(\d{2})', val)
+    if match:
+        start = int(match.group(1))
+        end = int(match.group(2))
+        if start <= end and end - start <= 20: # Sanity check for reasonable range
+            return list(range(start, end + 1))
+    return default_sizes
 
 def get_family_details(cat_name: str):
     """
@@ -100,7 +116,9 @@ class LegacyDBFImporter:
         self.branch = branch
         self.logger = logger
         self.options = options or {}
+        self.software_type = self.options.get("software_type", "retail")
         self.product_map = {}
+        self.client_map = {}
         self.stats = {
             "suppliers_imported": 0,
             "clients_imported": 0,
@@ -161,24 +179,38 @@ class LegacyDBFImporter:
 
     def _import_clients(self):
         self.log("Importing Clients...")
-        records = self.get_dbf("CLIENT.DBF")
+        file_name = "CLIENTB.DBF" if self.software_type == "wholesale" else "CLIENT.DBF"
+        records = self.get_dbf(file_name)
         for r in records:
             name = safe_str(r.get("DESIGNAT"))
             if not name: continue
             
             phone = safe_str(r.get("TEL1"))
+            client_type = "wholesale" if self.software_type == "wholesale" else "retail"
+            nif = safe_str(r.get("IFISC"))[:20] if self.software_type == "wholesale" else ""
+            rc = safe_str(r.get("REG_COM"))[:30] if self.software_type == "wholesale" else ""
+            
             client, created = Client.objects.get_or_create(
                 tenant=self.tenant,
                 name=name,
                 defaults={
                     "phone": phone[:20],
-                    "address": safe_str(r.get("ADRESSE"))
+                    "address": safe_str(r.get("ADRESSE")),
+                    "client_type": client_type,
+                    "nif": nif,
+                    "rc": rc,
                 }
             )
             if not created:
                 client.phone = phone[:20]
                 client.address = safe_str(r.get("ADRESSE"))
-                client.save(update_fields=['phone', 'address'])
+                client.client_type = client_type
+                client.nif = nif
+                client.rc = rc
+                client.save(update_fields=['phone', 'address', 'client_type', 'nif', 'rc'])
+
+            legacy_client_id = safe_str(r.get("CLIENT")) or name
+            self.client_map[legacy_client_id] = client
 
             debt = safe_decimal(r.get("MT_RESTE"))
             if debt > 0 and created:
@@ -210,7 +242,8 @@ class LegacyDBFImporter:
         for r in fam_records:
             family_map[safe_str(r.get("FAMILLE"))] = safe_str(r.get("LIBELLE"))
 
-        records = self.get_dbf("ARTICLEB.DBF")
+        file_name = "ARTICLE.DBF" if self.software_type == "wholesale" else "ARTICLEB.DBF"
+        records = self.get_dbf(file_name)
         
         for r in records:
             ref = safe_str(r.get("REFERENCE"))
@@ -220,7 +253,11 @@ class LegacyDBFImporter:
             
             fam = safe_str(r.get("FAMILLE"))
             cat_name = family_map.get(fam, "")
-            gender, category, sizes = get_family_details(cat_name)
+            gender, category, default_sizes = get_family_details(cat_name)
+            
+            sizes = default_sizes
+            if self.software_type == "wholesale":
+                sizes = parse_pointure_range(r.get("POINTURE"), default_sizes)
             
             pairs_per_carton = safe_int(r.get("NOMBRE")) or 10
             wholesale_price = safe_decimal(r.get("BTARIF2"))
@@ -305,7 +342,11 @@ class LegacyDBFImporter:
             self.stats["defects_imported"] = self.stats.get("defects_imported", 0) + qte_defaut
 
     def _import_sales(self):
-        self.log("Importing Historical Sales...")
+        if self.software_type == "wholesale":
+            self._import_invoices()
+            return
+
+        self.log("Importing Historical Sales (Retail)...")
         sales_files = [f"VENTED{str(i).zfill(2)}.DBF" for i in range(1, 13)]
         
         for file in sales_files:
@@ -385,3 +426,78 @@ class LegacyDBFImporter:
                     self.stats["refunds_imported"] += 1
                 else:
                     self.stats["sales_imported"] += 1
+
+    def _import_invoices(self):
+        self.log("Importing Historical Invoices (Wholesale)...")
+        from apps.invoicing.models import Invoice, InvoiceLine, InvoiceStatusChoices
+        sales_files = ["VENTEMVT.DBF", "VENTMVTX.DBF"]
+        
+        for file in sales_files:
+            records = self.get_dbf(file)
+            if not records: continue
+            
+            invoice_group = {}
+            for r in records:
+                num = safe_str(r.get("FACTURE"))
+                date_fact = r.get("DATE_FACT")
+                if not date_fact: date_fact = datetime.date.today()
+                
+                key = f"{num}_{date_fact}"
+                if key not in invoice_group:
+                    invoice_group[key] = {"date": date_fact, "num": num, "client": safe_str(r.get("CLIENT")), "items": []}
+                invoice_group[key]["items"].append(r)
+                
+            for key, data in invoice_group.items():
+                items = data["items"]
+                # In wholesale, refunds are usually handled in a different table, or represented as negative invoices.
+                
+                total_amount = Decimal("0.00")
+                invoice_lines_data = []
+                
+                for x in items:
+                    qte = safe_decimal(x.get("QUANTITE"))
+                    pv = safe_decimal(x.get("PRIX_VENTE"))
+                    legacy_id = safe_str(x.get("ARTICLE"))
+                    
+                    if qte == 0: continue
+                    if legacy_id not in self.product_map: continue
+                    
+                    var = self.product_map[legacy_id]
+                    subtotal = qte * pv
+                    total_amount += subtotal
+                    
+                    invoice_lines_data.append({
+                        "variant": var,
+                        "quantity": qte,
+                        "unit_price": pv,
+                    })
+                    
+                if not invoice_lines_data: continue
+                
+                client = self.client_map.get(data["client"])
+                
+                invoice = Invoice.objects.create(
+                    tenant=self.tenant,
+                    branch=self.branch,
+                    client=client,
+                    number=data["num"][:30],
+                    date=data["date"],
+                    due_date=data["date"],
+                    status=InvoiceStatusChoices.PAID,
+                    total_ht=total_amount,
+                    tva_amount=Decimal("0.00"),
+                    total_ttc=total_amount,
+                    is_formal=False,
+                )
+                
+                for sid in invoice_lines_data:
+                    InvoiceLine.objects.create(
+                        invoice=invoice,
+                        variant=sid["variant"],
+                        quantity=sid["quantity"],
+                        unit_price=sid["unit_price"],
+                        description=f"{sid['variant'].product.name} - Size {sid['variant'].size_eu}",
+                    )
+                    
+                self.stats["sales_imported"] += 1
+

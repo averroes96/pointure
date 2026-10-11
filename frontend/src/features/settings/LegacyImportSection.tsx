@@ -31,6 +31,7 @@ export const LegacyImportSection: React.FC = () => {
     clients: true,
     products: true,
     sales: true,
+    software_type: 'retail', // 'retail' or 'wholesale'
   });
 
   const handleDirectorySelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,7 +56,7 @@ export const LegacyImportSection: React.FC = () => {
       }
 
       if (dbfCount === 0) {
-        throw new Error('No .DBF files found in the selected folder. Please select the /LEGACY/ folder.');
+        throw new Error('No .DBF files found. Please select a folder containing your .DBF files.');
       }
 
       setProgress(50);
@@ -183,6 +184,20 @@ export const LegacyImportSection: React.FC = () => {
             <p className="text-xs text-amber-600/90 dark:text-amber-400/90 mt-1">
               {t("settings.warning_desc")}
             </p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Software Version</h3>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="radio" checked={options.software_type === 'retail'} onChange={() => setOptions({...options, software_type: 'retail'})} disabled={isZipping || isUploading} className="border-border text-primary-600 focus:ring-primary-500" name="software_type" value="retail" />
+              <span className="text-xs font-medium text-text-primary">Retail (Standard)</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="radio" checked={options.software_type === 'wholesale'} onChange={() => setOptions({...options, software_type: 'wholesale'})} disabled={isZipping || isUploading} className="border-border text-primary-600 focus:ring-primary-500" name="software_type" value="wholesale" />
+              <span className="text-xs font-medium text-text-primary">Wholesale</span>
+            </label>
           </div>
         </div>
 

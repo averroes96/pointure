@@ -6,7 +6,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from celery.schedules import crontab
+
 from decouple import config, Csv
 
 # ─────────────────────────────────────────────
@@ -268,44 +268,7 @@ CELERY_TASK_ROUTES = {
 # Periodic tasks — all times interpreted in CELERY_TIMEZONE (Africa/Algiers).
 # With DatabaseScheduler these are seeded into the DB on first startup and can
 # be overridden later via Django admin without a redeploy.
-CELERY_BEAT_SCHEDULE = {
-    # Flag invoices past their due date as "overdue" — must run before business opens.
-    "flag-overdue-invoices": {
-        "task": "apps.notifications.tasks.flag_overdue_invoices",
-        "schedule": crontab(hour=7, minute=0),          # 07:00 daily
-        "options": {"queue": "notifications"},
-    },
-    # Notify owners of cheques maturing within 3 days.
-    "check-cheque-due-dates": {
-        "task": "apps.notifications.tasks.check_cheque_due_dates",
-        "schedule": crontab(hour=8, minute=0),          # 08:00 daily
-        "options": {"queue": "notifications"},
-    },
-    # Low-stock sweep — runs four times a day; task deduplicates within 24 h.
-    "check-low-stock": {
-        "task": "apps.notifications.tasks.check_low_stock",
-        "schedule": timedelta(hours=6),                  # every 6 hours
-        "options": {"queue": "notifications"},
-    },
-    # License heartbeat — self-hosted mode only; no-op in cloud mode.
-    "license-heartbeat": {
-        "task": "licensing.heartbeat",
-        "schedule": timedelta(minutes=30),               # every 30 minutes
-        "options": {"queue": "default"},
-    },
-    # Database backup — only runs when BACKUP_ENABLED=true.
-    "database-backup": {
-        "task": "apps.core.tasks.backup_database",
-        "schedule": crontab(hour=2, minute=0),           # 02:00 daily
-        "options": {"queue": "default"},
-    },
-    # Webhook outbox — flush pending/retryable deliveries every 60 seconds.
-    "flush-webhook-outbox": {
-        "task": "apps.webhooks.tasks.flush_webhook_outbox",
-        "schedule": timedelta(seconds=60),
-        "options": {"queue": "default"},
-    },
-}
+CELERY_BEAT_SCHEDULE = {}
 
 # ─────────────────────────────────────────────
 # Cache

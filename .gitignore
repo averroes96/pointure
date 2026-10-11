@@ -273,3 +273,12 @@ backend/staticfiles/
 # The Python lib/ rule above would swallow frontend/src/lib/ — un-ignore it.
 !frontend/src/lib/
 !frontend/src/lib/**
+
+/LEGACY/
+
+*dist/
+
+*.rar
+
+2025
+2026
