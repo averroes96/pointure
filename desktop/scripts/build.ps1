@@ -74,9 +74,19 @@ $DestShodz = "$PythonDist\shodz_desktop"
 if (Test-Path $DestShodz) { Remove-Item $DestShodz -Recurse -Force }
 Copy-Item -Path "$DesktopDir\python\shodz_desktop" -Destination $DestShodz -Recurse -Force
 
-# ── 3. Bytecode Compilation ───────────────────────────────────────────
-Write-Host "`n[3/4] Pre-compiling Python bytecode..." -ForegroundColor Yellow
-& "$PythonDist\python.exe" -m compileall -b "$BackendDir\apps" "$BackendDir\config"
+# ── 3. Bytecode Compilation & Backend Preparation ────────────────────
+Write-Host "`n[3/4] Pre-compiling Python bytecode and preparing backend distribution..." -ForegroundColor Yellow
+$BackendDist = "$DesktopDir\backend-dist"
+if (Test-Path $BackendDist) { Remove-Item $BackendDist -Recurse -Force }
+New-Item -ItemType Directory -Path $BackendDist | Out-Null
+
+Copy-Item -Path "$BackendDir\*" -Destination $BackendDist -Recurse -Force
+Remove-Item -Path "$BackendDist\venv" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$BackendDist\tests" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$BackendDist\media" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$BackendDist\data" -Recurse -Force -ErrorAction SilentlyContinue
+
+& "$PythonDist\python.exe" -m compileall -b "$BackendDist\apps" "$BackendDist\config"
 
 # ── 4. Package NSIS Installer with electron-builder ───────────────────
 Write-Host "`n[4/4] Packaging Electron Desktop Installer..." -ForegroundColor Yellow

@@ -283,6 +283,7 @@ backend/staticfiles/
 # Desktop build & runtime artifacts
 backend/data/
 desktop/python-dist/
+desktop/backend-dist/
 desktop/dist/
 desktop/python-*.zip
 !desktop/installer.nsh

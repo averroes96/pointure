@@ -49,15 +49,8 @@
         "to": "python"
       },
       {
-        "from": "backend/",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!**/venv/**",
-          "!**/__pycache__/**",
-          "!**/tests/**",
-          "!**/media/**"
-        ]
+        "from": "backend-dist/",
+        "to": "backend"
       }
     ]
   }
