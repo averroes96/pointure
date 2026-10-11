@@ -82,11 +82,15 @@ Write-Host "`n[3/4] Pre-compiling Python bytecode..." -ForegroundColor Yellow
 Write-Host "`n[4/4] Packaging Electron Desktop Installer..." -ForegroundColor Yellow
 Push-Location $DesktopDir
 try {
-    if (-not (Test-Path "node_modules")) {
+    if (-not (Test-Path "package-lock.json")) {
+        npm install
+    } else {
         npm ci
     }
+    if ($LASTEXITCODE -ne 0) { throw "npm dependencies installation failed in desktop directory" }
+
     npm run build
-    if ($LASTEXITCODE -ne 0) { throw "electron-builder failed" }
+    if ($LASTEXITCODE -ne 0) { throw "electron-builder packaging failed" }
 } finally {
     Pop-Location
 }
