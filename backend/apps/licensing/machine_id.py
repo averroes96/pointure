@@ -31,6 +31,29 @@ def _get_or_create(path: Path) -> str:
 
 def get_machine_id() -> str:
     """Return the persistent machine UUID, creating it if necessary."""
+    import sys
+    if sys.platform == "win32":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography") as key:
+                guid, _ = winreg.QueryValueEx(key, "MachineGuid")
+                if guid:
+                    return str(guid).strip()
+        except Exception:
+            pass
+
+    # Check desktop DATA_DIR if configured
+    try:
+        from django.conf import settings
+        data_dir = getattr(settings, "DATA_DIR", None)
+        if data_dir:
+            desktop_path = Path(data_dir) / "machine_id"
+            val = _get_or_create(desktop_path)
+            if val:
+                return val
+    except Exception:
+        pass
+
     value = _get_or_create(_PRIMARY_PATH)
     if value:
         return value

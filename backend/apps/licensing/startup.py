@@ -53,5 +53,9 @@ def check_license_on_startup() -> None:
             )
 
     except Exception as exc:
+        # Before migrations are run, table does not exist yet
+        if "no such table" in str(exc):
+            logger.debug("License table not created yet (pre-migration).")
+            return
         # Never block startup — just warn
         logger.warning("License startup check failed: %s", exc)

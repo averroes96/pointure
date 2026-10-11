@@ -1,0 +1,64 @@
+{
+  "name": "shoedz-desktop",
+  "version": "1.0.0",
+  "description": "ShoeDZ / Pointure - Desktop Edition for Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis --x64"
+  },
+  "keywords": [
+    "shoedz",
+    "pointure",
+    "pos",
+    "retail",
+    "inventory"
+  ],
+  "author": "ShoeDZ Team",
+  "license": "Proprietary",
+  "dependencies": {
+    "electron-log": "^5.2.0",
+    "get-port": "^7.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "devDependencies": {
+    "electron": "^32.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.shoedz.desktop",
+    "productName": "ShoeDZ",
+    "copyright": "Copyright © 2026 ShoeDZ",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "include": "build/installer.nsh"
+    },
+    "extraResources": [
+      {
+        "from": "python-dist/",
+        "to": "python"
+      },
+      {
+        "from": "backend/",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/venv/**",
+          "!**/__pycache__/**",
+          "!**/tests/**",
+          "!**/media/**"
+        ]
+      }
+    ]
+  }
+}

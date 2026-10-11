@@ -1,0 +1,39 @@
+# Core Django
+Django==5.0.6
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+django-filter==24.2
+
+# Task Queue (Eager in-process execution)
+celery==5.4.0
+
+# Authentication & Security
+djangorestframework-simplejwt==5.3.1
+
+# Config Management
+python-decouple==3.8
+
+# API Documentation
+drf-spectacular==0.27.2
+
+# Image Processing
+Pillow==10.4.0
+
+# Utilities
+django-extensions==3.2.3
+python-dateutil==2.9.0
+babel==2.15.0
+openpyxl==3.1.5
+dbfread==2.0.7
+
+# Admin
+django-unfold==0.40.0
+django-colorfield==0.11.0
+
+# Production Desktop WSGI Server & Static Files
+waitress==3.0.0
+whitenoise[brotli]==6.7.0
+pypdf2==3.0.1
+
+# HTTP client (for licensing, desktop PDF bridge, etc.)
+requests==2.32.3

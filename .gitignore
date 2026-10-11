@@ -276,9 +276,12 @@ backend/staticfiles/
 
 /LEGACY/
 
-*dist/
-
 *.rar
-
 2025
 2026
+
+# Desktop build & runtime artifacts
+backend/data/
+desktop/python-dist/
+desktop/dist/
+desktop/python-*.zip

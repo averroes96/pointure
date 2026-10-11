@@ -76,5 +76,24 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-    import debug_toolbar
-    urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+    try:
+        import debug_toolbar
+        urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+    except ImportError:
+        pass
+
+if getattr(settings, "DESKTOP_MODE", False):
+    from django.urls import re_path
+    from apps.core.desktop.views import (
+        health_check,
+        desktop_meta,
+        desktop_shutdown,
+        spa_index,
+    )
+    urlpatterns += [
+        path("api/v1/health/", health_check, name="desktop-health"),
+        path("api/v1/desktop/meta/", desktop_meta, name="desktop-meta"),
+        path("api/v1/desktop/shutdown/", desktop_shutdown, name="desktop-shutdown"),
+        *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+        re_path(r"^(?!api/|admin/|static/|media/).*$", spa_index, name="spa-catchall"),
+    ]

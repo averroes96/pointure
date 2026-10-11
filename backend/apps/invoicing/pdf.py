@@ -17,29 +17,26 @@ logger = logging.getLogger(__name__)
 
 def render_to_pdf(template_name: str, context: dict, language: str = "fr") -> bytes:
     """
-    Render a Django template to PDF bytes using WeasyPrint.
-    Activates the given language for template rendering.
+    Render a Django template to PDF bytes.
+    In desktop mode, uses Chromium printToPDF bridge. Otherwise uses WeasyPrint.
     """
-    try:
-        from weasyprint import HTML
-    except ImportError:
-        logger.warning("WeasyPrint not installed — returning empty PDF placeholder.")
-        return b"%PDF-1.0 placeholder"
-
     # Activate language for this render
     with translation.override(language):
         context["lang"] = language
         context["dir"] = "rtl" if language == "ar" else "ltr"
         html_string = render_to_string(template_name, context)
 
-    # base_url="." lets WeasyPrint resolve any relative URLs in the template
-    # (e.g. static file paths).  No custom FontConfiguration is needed here
-    # because we are not loading external font files — the container uses
-    # whatever system fonts are available (DejaVu / Liberation / Helvetica).
-    # Previously we had @font-face rules for Noto Naskh Arabic / Noto Sans
-    # with src: local(...) but those fonts are NOT installed in the slim
-    # Docker image, which produced "Font-face cannot be loaded" warnings on
-    # every request.
+    from django.conf import settings
+    if getattr(settings, "DESKTOP_MODE", False):
+        from apps.core.desktop.pdf_client import render_html_to_pdf
+        return render_html_to_pdf(html_string)
+
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        logger.warning("WeasyPrint not installed — returning empty PDF placeholder.")
+        return b"%PDF-1.0 placeholder"
+
     html = HTML(string=html_string, base_url=".")
     pdf_bytes = html.write_pdf()
     return pdf_bytes

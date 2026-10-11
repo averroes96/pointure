@@ -401,10 +401,15 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         )
 
         try:
-            from weasyprint import HTML as WeasyHTML
-            pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
+            from django.conf import settings
+            if getattr(settings, "DESKTOP_MODE", False):
+                from apps.core.desktop.pdf_client import render_html_to_pdf
+                pdf_bytes = render_html_to_pdf(html_string)
+            else:
+                from weasyprint import HTML as WeasyHTML
+                pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
         except Exception as exc:
-            # WeasyPrint unavailable or rendering error — surface the message
+            # Rendering error — surface the message
             return HttpResponse(
                 f"PDF generation failed: {exc}",
                 content_type="text/plain",
@@ -660,8 +665,13 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         )
 
         try:
-            from weasyprint import HTML as WeasyHTML
-            pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
+            from django.conf import settings
+            if getattr(settings, "DESKTOP_MODE", False):
+                from apps.core.desktop.pdf_client import render_html_to_pdf
+                pdf_bytes = render_html_to_pdf(html_string)
+            else:
+                from weasyprint import HTML as WeasyHTML
+                pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
         except Exception as exc:
             return HttpResponse(
                 f"PDF generation failed: {exc}",
