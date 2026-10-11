@@ -285,3 +285,6 @@ backend/data/
 desktop/python-dist/
 desktop/dist/
 desktop/python-*.zip
+!desktop/installer.nsh
+!desktop/build/
+!desktop/build/**
