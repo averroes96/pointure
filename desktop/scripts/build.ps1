@@ -37,11 +37,13 @@ $PythonDist = "$DesktopDir\python-dist"
 $PythonZipUrl = "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-amd64.zip"
 $PythonZipPath = "$DesktopDir\python-3.12.7-embed-amd64.zip"
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 if (-not (Test-Path $PythonDist)) {
     New-Item -ItemType Directory -Path $PythonDist | Out-Null
     if (-not (Test-Path $PythonZipPath)) {
         Write-Host "Downloading Python 3.12 embedded runtime..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri $PythonZipUrl -OutFile $PythonZipPath
+        Invoke-WebRequest -Uri $PythonZipUrl -OutFile $PythonZipPath -UseBasicParsing
     }
     Write-Host "Extracting Python runtime..." -ForegroundColor Cyan
     Expand-Archive -Path $PythonZipPath -DestinationPath $PythonDist -Force
