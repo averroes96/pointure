@@ -26,13 +26,13 @@ from apps.core.serializers import (
 class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Wilaya.objects.all()
     serializer_class = WilayaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     pagination_class = None
 
 class CommuneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Commune.objects.all()
     serializer_class = CommuneSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filterset_fields = ["wilaya"]
     pagination_class = None
 

@@ -62,7 +62,8 @@ api.interceptors.response.use(
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           localStorage.removeItem("user");
-          if (window.location.pathname !== "/login") {
+          const publicRoutes = ["/login", "/setup", "/forgot-password", "/reset-password"];
+          if (!publicRoutes.includes(window.location.pathname)) {
             window.location.href = "/login";
           }
         }
@@ -70,7 +71,8 @@ api.interceptors.response.use(
         // No refresh token — clear stale access token so we don't loop
         localStorage.removeItem("access_token");
         localStorage.removeItem("user");
-        if (window.location.pathname !== "/login") {
+        const publicRoutes = ["/login", "/setup", "/forgot-password", "/reset-password"];
+        if (!publicRoutes.includes(window.location.pathname)) {
           window.location.href = "/login";
         }
       }

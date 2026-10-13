@@ -15,6 +15,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useAuth } from "./AuthContext";
 import api from "@/lib/api";
 import type { Branch } from "@/types";
 
@@ -31,11 +32,20 @@ const BranchContext = createContext<BranchContextValue | null>(null);
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [currentBranch, setCurrentBranchState] = useState<Branch | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setBranches([]);
+      setCurrentBranchState(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
     api
       .get<{ results: Branch[] }>("/core/branches/?is_active=true&page_size=100")
       .then((r) => {
@@ -58,7 +68,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
         // No branches or network error — continue without branch context
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [isAuthenticated]);
 
   const setCurrentBranch = useCallback((branch: Branch) => {
     setCurrentBranchState(branch);
