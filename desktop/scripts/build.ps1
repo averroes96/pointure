@@ -1,5 +1,10 @@
-# ShoeDZ Desktop Distribution Build Script (Windows 10/11 x64)
+# ShoeDZ Desktop Distribution Build Script (Windows 10/11 x64 / ia32)
 # Automates frontend compilation, embedded Python bundling, and NSIS installer generation.
+
+param(
+    [ValidateSet("x64", "ia32")]
+    [string]$Arch = "x64"
+)
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -9,7 +14,7 @@ $BackendDir = "$ProjectRoot\backend"
 $FrontendDir = "$ProjectRoot\frontend"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "    ShoeDZ Desktop Distribution Builder (x64 NSIS)        " -ForegroundColor Cyan
+Write-Host "    ShoeDZ Desktop Distribution Builder ($Arch NSIS)       " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # ── 1. Build React Frontend ───────────────────────────────────────────
@@ -32,17 +37,25 @@ try {
 }
 
 # ── 2. Bundle Embedded Python 3.12 ───────────────────────────────────
-Write-Host "`n[2/4] Setting up Embedded Python 3.12..." -ForegroundColor Yellow
+Write-Host "`n[2/4] Setting up Embedded Python 3.12 ($Arch)..." -ForegroundColor Yellow
 $PythonDist = "$DesktopDir\python-dist"
-$PythonZipUrl = "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-amd64.zip"
-$PythonZipPath = "$DesktopDir\python-3.12.7-embed-amd64.zip"
+$PythonArchMarker = "$PythonDist\.arch-$Arch"
+
+if ($Arch -eq "ia32") {
+    $PyArch = "win32"
+} else {
+    $PyArch = "amd64"
+}
+$PythonZipUrl = "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-$PyArch.zip"
+$PythonZipPath = "$DesktopDir\python-3.12.7-embed-$PyArch.zip"
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-if (-not (Test-Path $PythonDist)) {
+if (-not (Test-Path $PythonArchMarker)) {
+    if (Test-Path $PythonDist) { Remove-Item $PythonDist -Recurse -Force }
     New-Item -ItemType Directory -Path $PythonDist | Out-Null
     if (-not (Test-Path $PythonZipPath)) {
-        Write-Host "Downloading Python 3.12 embedded runtime..." -ForegroundColor Cyan
+        Write-Host "Downloading Python 3.12 ($PyArch) embedded runtime..." -ForegroundColor Cyan
         Invoke-WebRequest -Uri $PythonZipUrl -OutFile $PythonZipPath -UseBasicParsing
     }
     Write-Host "Extracting Python runtime..." -ForegroundColor Cyan
@@ -67,6 +80,8 @@ if (-not (Test-Path $PythonDist)) {
     Remove-Item $GetPipPath -Force
 
     & "$PythonDist\python.exe" -m pip install --no-warn-script-location -r "$BackendDir\requirements-desktop.txt"
+
+    New-Item -ItemType File -Path $PythonArchMarker | Out-Null
 }
 
 # Copy shodz_desktop package into Python dist
@@ -89,7 +104,7 @@ Remove-Item -Path "$BackendDist\data" -Recurse -Force -ErrorAction SilentlyConti
 & "$PythonDist\python.exe" -m compileall -b "$BackendDist\apps" "$BackendDist\config"
 
 # ── 4. Package NSIS Installer with electron-builder ───────────────────
-Write-Host "`n[4/4] Packaging Electron Desktop Installer..." -ForegroundColor Yellow
+Write-Host "`n[4/4] Packaging Electron Desktop Installer ($Arch)..." -ForegroundColor Yellow
 Push-Location $DesktopDir
 try {
     if (-not (Test-Path "package-lock.json")) {
@@ -99,13 +114,13 @@ try {
     }
     if ($LASTEXITCODE -ne 0) { throw "npm dependencies installation failed in desktop directory" }
 
-    npm run build
+    npx electron-builder --win nsis --$Arch
     if ($LASTEXITCODE -ne 0) { throw "electron-builder packaging failed" }
 } finally {
     Pop-Location
 }
 
 Write-Host "`n==========================================================" -ForegroundColor Green
-Write-Host " Build Complete!" -ForegroundColor Green
-Write-Host " Installer generated in: desktop\dist\ShoeDZ-Setup-*.exe" -ForegroundColor Green
+Write-Host " Build Complete ($Arch)!" -ForegroundColor Green
+Write-Host " Installer generated in: desktop\dist\ShoeDZ-Setup-*-$Arch.exe" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green

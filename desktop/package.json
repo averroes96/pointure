@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win nsis --x64"
+    "build": "electron-builder --win nsis"
   },
   "keywords": [
     "shoedz",
@@ -29,7 +29,7 @@
     "appId": "com.shoedz.desktop",
     "productName": "ShoeDZ",
     "copyright": "Copyright © 2026 ShoeDZ",
-    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
     "win": {
       "target": [
         "nsis"
@@ -43,7 +43,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "include": "installer.nsh",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
     "extraResources": [
       {
