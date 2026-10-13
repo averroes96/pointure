@@ -80,8 +80,14 @@
     #status {
       font-size: 12px;
       color: #64748b;
-      min-height: 18px;
+      min-height: 36px;
       line-height: 18px;
+      max-width: 100%;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
     }
     #error-box {
       display: none;
@@ -93,9 +99,34 @@
       font-size: 11px;
       color: #991b1b;
       text-align: left;
-      max-height: 90px;
+      max-height: 110px;
+      width: 100%;
       overflow-y: auto;
-      word-break: break-all;
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: text;
+    }
+    #actions {
+      display: none;
+      gap: 8px;
+      margin-top: 12px;
+      width: 100%;
+    }
+    #actions button {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #0f172a;
+    }
+    #actions button.primary {
+      background: #4f46e5;
+      border-color: #4f46e5;
+      color: #fff;
     }
   </style>
 </head>
@@ -110,12 +141,18 @@
     </div>
     <div id="status">Chargement de l'application...</div>
     <div id="error-box"></div>
+    <div id="actions">
+      <button id="btn-logs" class="primary">Ouvrir les journaux</button>
+      <button id="btn-quit">Quitter</button>
+    </div>
   </div>
 
   <script>
     if (window.electronAPI) {
       window.electronAPI.onStatus((status) => {
-        document.getElementById('status').innerText = status;
+        // Show only the last line so multi-line output never overflows the card
+        const lines = String(status).split(/\r?\n/).filter(Boolean);
+        document.getElementById('status').innerText = lines[lines.length - 1] || '';
       });
       window.electronAPI.onError((err) => {
         document.getElementById('progress-container').style.display = 'none';
@@ -124,7 +161,10 @@
         const errBox = document.getElementById('error-box');
         errBox.style.display = 'block';
         errBox.innerText = err;
+        document.getElementById('actions').style.display = 'flex';
       });
+      document.getElementById('btn-logs').onclick = () => window.electronAPI.openLogsFolder();
+      document.getElementById('btn-quit').onclick = () => window.electronAPI.quitApp();
     }
   </script>
 </body>

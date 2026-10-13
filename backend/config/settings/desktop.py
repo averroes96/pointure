@@ -211,6 +211,17 @@ SPA_DIR = BASE_DIR / "static" / "spa"
 if SPA_DIR.exists():
     STATICFILES_DIRS.append(SPA_DIR)
 
+# Vite emits index.html referencing root-relative assets (/assets/index-*.js,
+# /favicon.ico, ...). WHITENOISE_ROOT serves every file in the SPA build at the
+# site root so those requests are not swallowed by the SPA catch-all view.
+WHITENOISE_ROOT = SPA_DIR if SPA_DIR.exists() else None
+# No collectstatic step in the desktop build: let WhiteNoise resolve /static/*
+# (Django admin, DRF) straight from app static dirs via the finders.
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = False
+# Hashed Vite assets are immutable → cache aggressively.
+WHITENOISE_IMMUTABLE_FILE_TEST = r"^.+[.-][0-9a-zA-Z_-]{8,}\.[A-Za-z0-9]+$"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = DATA_DIR / "media"
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
@@ -362,26 +373,37 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[{asctime}] {levelname} {name} {message}",
+            "format": "[{asctime}] {levelname} {name} [{threadName}] {message}",
             "style": "{",
         },
     },
     "handlers": {
+        # stderr is captured by Electron into desktop.log; keep it to warnings+
+        # to avoid duplicating everything already in shodz.log.
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+            "level": "WARNING",
         },
         "file": {
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": str(LOG_DIR / "shodz.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
             "formatter": "verbose",
             "encoding": "utf-8",
+            "delay": True,
         },
     },
     "root": {"handlers": ["console", "file"], "level": "INFO"},
     "loggers": {
         "django": {"handlers": ["console", "file"], "level": "WARNING", "propagate": False},
+        # 4xx/5xx with tracebacks for 500s
+        "django.request": {"handlers": ["console", "file"], "level": "WARNING", "propagate": False},
+        "django.db.backends": {"handlers": ["file"], "level": "WARNING", "propagate": False},
+        "waitress": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
         "apps": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
+        "shodz": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
     },
 }
 

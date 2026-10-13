@@ -84,6 +84,7 @@ if settings.DEBUG:
 
 if getattr(settings, "DESKTOP_MODE", False):
     from django.urls import re_path
+    from django.views.static import serve as serve_media
     from apps.core.desktop.views import (
         health_check,
         desktop_meta,
@@ -94,6 +95,9 @@ if getattr(settings, "DESKTOP_MODE", False):
         path("api/v1/health/", health_check, name="desktop-health"),
         path("api/v1/desktop/meta/", desktop_meta, name="desktop-meta"),
         path("api/v1/desktop/shutdown/", desktop_shutdown, name="desktop-shutdown"),
-        *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
-        re_path(r"^(?!api/|admin/|static/|media/).*$", spa_index, name="spa-catchall"),
+        # static() is a no-op when DEBUG=False, so serve local media explicitly.
+        re_path(r"^media/(?P<path>.*)$", serve_media, {"document_root": settings.MEDIA_ROOT}),
+        # Client-side routes only: never answer API/static/asset requests or
+        # file-like paths (*.js, *.css, *.png ...) with index.html.
+        re_path(r"^(?!api/|admin/|static/|media/|assets/)(?!.*\.[A-Za-z0-9]{1,8}$).*$", spa_index, name="spa-catchall"),
     ]
