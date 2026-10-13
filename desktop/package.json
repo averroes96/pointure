@@ -29,6 +29,7 @@
     "appId": "com.shoedz.desktop",
     "productName": "ShoeDZ",
     "copyright": "Copyright © 2026 ShoeDZ",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "win": {
       "target": [
         "nsis"
@@ -41,7 +42,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "include": "installer.nsh"
+      "include": "installer.nsh",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "extraResources": [
       {
