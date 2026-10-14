@@ -184,6 +184,7 @@ export function useGlobalShortcuts() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isFKey = /^F([1-9]|1[0-2])$/.test(e.key);
       const isAltShortcut = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
+      const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
 
       // Never ignore Function keys or Alt+number, even when typing inside an input or textarea!
       if (!isFKey && !isAltShortcut && e.key !== "Escape") {
@@ -197,6 +198,8 @@ export function useGlobalShortcuts() {
         executeShortcut(e.key, e);
       } else if (isAltShortcut) {
         executeShortcut(`Alt+${e.key}`, e);
+      } else if (isPoint) {
+        executeShortcut("F10", e);
       } else if (e.key === "Escape") {
         executeShortcut("Escape", e);
       }

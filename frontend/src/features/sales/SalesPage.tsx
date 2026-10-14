@@ -485,12 +485,28 @@ export default function SalesPage() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
+
       if (e.key === "F2") {
         e.preventDefault();
         onSearch();
       } else if (e.key === "F10") {
         e.preventDefault();
         onConfirm();
+      } else if (isPoint) {
+        const target = e.target as HTMLElement;
+        const isSearch = target === searchRef.current;
+        const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
+        // Allow '.' or NumpadDecimal to confirm sale if:
+        // 1. Focus is outside any input field (cart, table, buttons)
+        // 2. OR focus is inside the search box and search is empty (common right after barcode scan)
+        if (!isOtherInput || (isSearch && search.trim() === "")) {
+          if (cart.length > 0 || receipt) {
+            e.preventDefault();
+            onConfirm();
+          }
+        }
       } else if (e.key === "Escape") {
         if (search) {
           setSearch("");
@@ -688,6 +704,8 @@ export default function SalesPage() {
             <span>·</span>
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F10</kbd>
+              <span className="text-2xs text-text-muted">/</span>
+              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">.</kbd>
               <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
             </span>
             <span>·</span>
@@ -1106,13 +1124,13 @@ export default function SalesPage() {
                 <>
                   <Check size={18} />
                   <span>{t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}</span>
-                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10</kbd>
+                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10 / .</kbd>
                 </>
               ) : (
                 <>
                   <Check size={18} />
                   <span>{t("sales.confirm_sale")} — {formatDZD(total)} DZD</span>
-                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10</kbd>
+                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10 / .</kbd>
                 </>
               )}
             </button>
