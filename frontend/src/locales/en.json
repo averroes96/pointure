@@ -424,6 +424,10 @@
     "points_redeemed_text": "{{pts}} points redeemed (−{{dzd}} DZD)",
     "points_earned_text": "+{{pts}} loyalty points earned",
     "pos_shortcuts": "F2 = search · F10 = confirm · scan barcode anywhere",
+    "shortcut_search": "Search",
+    "shortcut_confirm": "Confirm",
+    "shortcut_fullscreen": "Fullscreen",
+    "shortcut_scanner": "Scan barcode anywhere",
     "pos_added": "Added",
     "pos_not_found": "Not found",
     "in_stock": "in stock",
@@ -950,5 +954,26 @@
     "summary_updated_suppliers": "Suppliers updated:",
     "download_error_log": "Download error report",
     "btn_finish": "Finish and view data"
+  },
+  "shortcuts": {
+    "title": "Windows Keyboard Shortcuts",
+    "subtitle": "Fast actions for retail cashiers and store management",
+    "button_title": "Keyboard shortcuts (F12)",
+    "section_pos": "POS & Direct Sales",
+    "section_management": "Store & Documents",
+    "section_general": "General & System",
+    "new_sale": "New sale / POS checkout",
+    "search": "Search product or scan barcode",
+    "confirm_sale": "Confirm & Record sale",
+    "fullscreen": "Fullscreen (Store POS kiosk)",
+    "invoices": "Invoices",
+    "clients": "Clients",
+    "delivery_notes": "Delivery notes / Vouchers",
+    "daily_report": "Daily report & Register close",
+    "products": "Stock catalog & Products",
+    "new_product": "Create new product",
+    "escape": "Cancel, clear search or close dialog",
+    "help": "Open shortcuts guide",
+    "store_note": "These function keys work seamlessly on Windows, even while typing inside search, quantity, or barcode input fields."
   }
 }

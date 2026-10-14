@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { cn } from "@/lib/utils";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import ShortcutsModal from "@/components/ui/ShortcutsModal";
 
 export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -19,6 +20,7 @@ export default function DashboardLayout() {
           <Outlet />
         </div>
       </main>
+      <ShortcutsModal />
     </div>
   );
 }

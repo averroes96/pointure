@@ -290,15 +290,6 @@ export default function SalesPage() {
   useEffect(() => { currentBranchRef.current = currentBranch; }, [currentBranch]);
   const hasLoyalty = canAccess("pro_retail");
 
-  // F2 / F10 keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "F2") { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === "F10") { e.preventDefault(); handleConfirmSale(); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  });
 
   const branchQs = currentBranch ? `&branch_id=${currentBranch.id}` : "";
 
@@ -469,6 +460,57 @@ export default function SalesPage() {
     saleMutation.mutate();
   }
 
+  // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale)
+  useEffect(() => {
+    const onSearch = () => {
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+
+    const onConfirm = () => {
+      if (receipt) {
+        setReceipt(null);
+        searchRef.current?.focus();
+        return;
+      }
+      handleConfirmSale();
+    };
+
+    const onNewSale = () => {
+      if (receipt) {
+        setReceipt(null);
+      }
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        onSearch();
+      } else if (e.key === "F10") {
+        e.preventDefault();
+        onConfirm();
+      } else if (e.key === "Escape") {
+        if (search) {
+          setSearch("");
+        }
+      }
+    };
+
+    window.addEventListener("app-shortcut-search", onSearch);
+    window.addEventListener("app-shortcut-confirm", onConfirm);
+    window.addEventListener("app-shortcut-new-sale", onNewSale);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("app-shortcut-search", onSearch);
+      window.removeEventListener("app-shortcut-confirm", onConfirm);
+      window.removeEventListener("app-shortcut-new-sale", onNewSale);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [receipt, cart.length, saleMutation.isPending, search]);
+
   // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
     if (barcodeResult?.results?.length === 1) {
@@ -638,21 +680,43 @@ export default function SalesPage() {
       <div className="w-full lg:w-1/2 xl:w-3/5 flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{t("nav.new_sale")}</h1>
-          <p className="text-xs text-text-muted">{t("sales.pos_shortcuts")}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-text-muted">
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F2</kbd>
+              <span>{t("sales.shortcut_search", "Rechercher")}</span>
+            </span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F10</kbd>
+              <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
+            </span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F11</kbd>
+              <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
+            </span>
+            <span>·</span>
+            <span className="text-text-muted">{t("sales.shortcut_scanner", "Scanner code-barres partout")}</span>
+          </div>
         </div>
 
         <div className="relative">
           <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             ref={searchRef}
+            data-shortcut-search="true"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="form-input ps-9 text-base"
+            className="form-input ps-9 pe-12 text-base"
             placeholder={t("sales.search_product")}
             autoFocus
           />
-          {scanStatus !== "idle" && (
+          {scanStatus === "idle" ? (
+            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+              F2
+            </kbd>
+          ) : (
             <div
               className={cn(
                 "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full pointer-events-none",
@@ -1041,12 +1105,14 @@ export default function SalesPage() {
               {saleMutation.isPending ? t("common.processing") : isVersement ? (
                 <>
                   <Check size={18} />
-                  {t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}
+                  <span>{t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}</span>
+                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10</kbd>
                 </>
               ) : (
                 <>
                   <Check size={18} />
-                  {t("sales.confirm_sale")} — {formatDZD(total)} DZD
+                  <span>{t("sales.confirm_sale")} — {formatDZD(total)} DZD</span>
+                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10</kbd>
                 </>
               )}
             </button>

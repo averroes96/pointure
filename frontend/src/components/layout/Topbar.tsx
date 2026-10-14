@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, Keyboard, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { applyDirection } from "@/lib/i18n";
@@ -142,6 +142,17 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
 
       {/* Right Actions */}
       <div className="flex items-center gap-1">
+        {/* Keyboard shortcuts trigger */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("app-toggle-shortcuts-modal"))}
+          className="btn-ghost btn-sm flex items-center gap-1 text-text-secondary"
+          title={t("shortcuts.button_title", "Raccourcis clavier (F12)")}
+        >
+          <Keyboard size={15} />
+          <span className="hidden md:inline text-2xs font-mono bg-surface border border-border px-1 py-0.5 rounded text-text-muted">
+            F12
+          </span>
+        </button>
 
         {/* Language selector */}
         <div className="relative">

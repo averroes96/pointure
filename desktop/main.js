@@ -164,12 +164,74 @@ function createMainWindow(port) {
     minWidth: 1024,
     minHeight: 700,
     show: false,
+    autoHideMenuBar: true,
     icon: path.join(__dirname, 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
+  });
+
+  // Strip native menu so Windows Chromium doesn't intercept F10 or Alt for menu navigation
+  mainWindow.setMenu(null);
+  if (typeof mainWindow.removeMenu === 'function') {
+    mainWindow.removeMenu();
+  }
+
+  // Intercept keyboard events at the lowest Chromium level before Windows menu bar or browser defaults swallow them
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+
+    const key = input.key;
+
+    // Handle F1 through F12
+    if (/^F([1-9]|1[0-2])$/.test(key)) {
+      // F11: Fullscreen toggle
+      if (key === 'F11') {
+        event.preventDefault();
+        const nextFs = !mainWindow.isFullScreen();
+        mainWindow.setFullScreen(nextFs);
+        mainWindow.webContents.send('keyboard-shortcut', {
+          key: 'F11',
+          fullscreen: nextFs,
+          altKey: input.alt,
+          ctrlKey: input.control,
+          shiftKey: input.shift,
+        });
+        return;
+      }
+
+      // F5: Prevent accidental un-modified reload in POS store environment
+      if (key === 'F5' && !input.control) {
+        event.preventDefault();
+        log.info('[Shortcuts] Suppressed accidental un-modified F5 reload');
+        return;
+      }
+
+      // F10, F2, F1, etc.: Prevent Windows default menu/help actions and notify renderer
+      event.preventDefault();
+      mainWindow.webContents.send('keyboard-shortcut', {
+        key: key,
+        code: input.code,
+        altKey: input.alt,
+        ctrlKey: input.control,
+        shiftKey: input.shift,
+      });
+      return;
+    }
+
+    // Handle Alt + 1..9 quick combinations without letting Windows hijack Alt for menu mnemonics
+    if (input.alt && !input.control && /^[1-9]$/.test(key)) {
+      event.preventDefault();
+      mainWindow.webContents.send('keyboard-shortcut', {
+        key: `Alt+${key}`,
+        altKey: true,
+        ctrlKey: false,
+        shiftKey: input.shift,
+      });
+      return;
+    }
   });
 
   attachDiagnostics(mainWindow, 'MainWindow');
@@ -381,6 +443,15 @@ ipcMain.handle('get-version', () => app.getVersion());
 ipcMain.handle('open-backups-folder', () => shell.openPath(path.join(dataDir, 'backups')));
 ipcMain.handle('open-logs-folder', () => shell.openPath(logsDir));
 ipcMain.handle('quit-app', () => app.quit());
+ipcMain.handle('toggle-fullscreen', () => {
+  if (mainWindow) {
+    const next = !mainWindow.isFullScreen();
+    mainWindow.setFullScreen(next);
+    return next;
+  }
+  return false;
+});
+ipcMain.handle('is-fullscreen', () => (mainWindow ? mainWindow.isFullScreen() : false));
 
 app.on('second-instance', () => {
   const win = mainWindow || splashWindow;
@@ -393,6 +464,9 @@ app.on('second-instance', () => {
 
 // ── Startup ─────────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+  // Completely disable Electron default application menu so Windows never intercepts F10 or Alt
+  Menu.setApplicationMenu(null);
+
   log.info('='.repeat(70));
   log.info(`[Startup] ShoeDZ ${app.getVersion()} | Electron ${process.versions.electron} | ` +
     `${os.type()} ${os.release()} ${os.arch()} | packaged=${app.isPackaged}`);

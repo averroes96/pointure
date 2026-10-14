@@ -424,6 +424,10 @@
     "points_redeemed_text": "تم استبدال {{pts}} نقطة (−{{dzd}} دج)",
     "points_earned_text": "+{{pts}} نقطة ولاء مكتسبة",
     "pos_shortcuts": "F2 = بحث · F10 = تأكيد · مسح الباركود في أي مكان",
+    "shortcut_search": "بحث",
+    "shortcut_confirm": "تأكيد",
+    "shortcut_fullscreen": "شاشة كاملة",
+    "shortcut_scanner": "مسح الباركود في أي مكان",
     "pos_added": "تمت الإضافة",
     "pos_not_found": "غير موجود",
     "in_stock": "في المخزون",
@@ -946,5 +950,26 @@
     "summary_updated_suppliers": "الموردون المحدثون:",
     "download_error_log": "تحميل سجل الأخطاء",
     "btn_finish": "إنهاء وعرض البيانات"
+  },
+  "shortcuts": {
+    "title": "اختصارات لوحة المفاتيح Windows",
+    "subtitle": "إجراءات سريعة للصندوق وإدارة المتجر",
+    "button_title": "اختصارات لوحة المفاتيح (F12)",
+    "section_pos": "الصندوق والبيع المباشر",
+    "section_management": "الإدارة والمستندات",
+    "section_general": "عام والنظام",
+    "new_sale": "بيع جديد / صندوق البيع POS",
+    "search": "بحث عن منتج / مسح الباركود",
+    "confirm_sale": "تأكيد وتسجيل البيع",
+    "fullscreen": "ملء الشاشة (وضع الصندوق)",
+    "invoices": "الفواتير",
+    "clients": "الزبائن",
+    "delivery_notes": "وصولات التسليم / الفاوتشر",
+    "daily_report": "التقرير اليومي وإغلاق الصندوق",
+    "products": "كتالوج المخزون والمنتجات",
+    "new_product": "إنشاء منتج جديد",
+    "escape": "إلغاء، مسح البحث أو إغلاق النافذة",
+    "help": "فتح دليل الاختصارات",
+    "store_note": "مفاتيح الوظائف هذه تعمل بشكل دائم في Windows، حتى أثناء الكتابة داخل حقول البحث أو الكمية أو الباركود."
   }
 }

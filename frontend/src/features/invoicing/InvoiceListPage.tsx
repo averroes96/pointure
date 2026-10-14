@@ -111,12 +111,16 @@ export default function InvoiceListPage() {
         <div className="relative flex-1 max-w-xs">
           <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
+            data-shortcut-search="true"
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9"
+            className="form-input ps-9 pe-10"
             placeholder={t("invoice.search_placeholder")}
           />
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+            F2
+          </kbd>
         </div>
         <select
           value={status}

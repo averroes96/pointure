@@ -453,6 +453,10 @@
     "points_redeemed_text": "{{pts}} points rachetés (−{{dzd}} DZD)",
     "points_earned_text": "+{{pts}} points de fidélité gagnés",
     "pos_shortcuts": "F2 = rechercher · F10 = confirmer · scanner code-barres partout",
+    "shortcut_search": "Rechercher",
+    "shortcut_confirm": "Confirmer",
+    "shortcut_fullscreen": "Plein écran",
+    "shortcut_scanner": "Scanner code-barres partout",
     "pos_added": "Ajouté",
     "pos_not_found": "Introuvable",
     "in_stock": "en stock",
@@ -994,5 +998,26 @@
     "summary_updated_suppliers": "Fournisseurs mis à jour :",
     "download_error_log": "Télécharger le journal des erreurs",
     "btn_finish": "Terminer et voir les données"
+  },
+  "shortcuts": {
+    "title": "Raccourcis Clavier Windows",
+    "subtitle": "Actions rapides pour caisses et gestion en boutique",
+    "button_title": "Raccourcis clavier (F12)",
+    "section_pos": "Caisse & Vente directe",
+    "section_management": "Gestion & Documents",
+    "section_general": "Général & Système",
+    "new_sale": "Nouvelle vente / Caisse POS",
+    "search": "Rechercher un produit / scanner",
+    "confirm_sale": "Confirmer & Encaisser la vente",
+    "fullscreen": "Plein écran (Mode caisse magasin)",
+    "invoices": "Factures",
+    "clients": "Clients",
+    "delivery_notes": "Bons de livraison / Vouchers",
+    "daily_report": "Rapport journalier & Clôture de caisse",
+    "products": "Catalogue stock & Produits",
+    "new_product": "Créer un nouveau produit",
+    "escape": "Annuler, effacer recherche ou fermer modale",
+    "help": "Ouvrir ce guide des raccourcis",
+    "store_note": "Ces touches de fonction sont actives en permanence sous Windows, même lorsque votre curseur est positionné à l'intérieur d'un champ de saisie (recherche, quantité ou code-barres)."
   }
 }
