@@ -349,6 +349,8 @@ export default function SalesPage() {
     
   const total = totalAfterCartDisc + timbreFiscal;
   const paymentTotal = payments.reduce((s, p) => s + p.amount, 0);
+  const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+  const [showOptions, setShowOptions] = useState(false);
 
   const applyPromo = useCallback(async (variantId: number, qty: number) => {
     try {
@@ -691,162 +693,215 @@ export default function SalesPage() {
     loyaltyAccount.points_balance >= (loyaltyProgram?.min_redemption_points ?? 999999);
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-120px)]">
-      {/* Left: Product Search */}
-      <div className="w-full lg:w-1/2 xl:w-3/5 flex flex-col gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("nav.new_sale")}</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-text-muted">
-            <span className="inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F2</kbd>
-              <span>{t("sales.shortcut_search", "Rechercher")}</span>
-            </span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F10</kbd>
-              <span className="text-2xs text-text-muted">/</span>
-              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">.</kbd>
-              <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
-            </span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F11</kbd>
-              <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
-            </span>
-            <span>·</span>
-            <span className="text-text-muted">{t("sales.shortcut_scanner", "Scanner code-barres partout")}</span>
+    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[calc(100vh-100px)]">
+      {/* ── Left: Product Search & Selection ── */}
+      <div className="w-full lg:w-7/12 flex flex-col gap-3">
+        {/* POS Header & Shortcuts */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">{t("nav.new_sale")}</h1>
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-text-muted">
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F2</kbd>
+                <span>{t("sales.shortcut_search", "Rechercher")}</span>
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F10</kbd>
+                <span className="text-2xs text-text-muted">/</span>
+                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">.</kbd>
+                <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F11</kbd>
+                <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* Search Bar */}
         <div className="relative">
-          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={18} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             ref={searchRef}
             data-shortcut-search="true"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="form-input ps-9 pe-12 text-base"
+            className="form-input ps-10 pe-12 py-3 text-base shadow-xs rounded-xl border-border focus:border-primary-500"
             placeholder={t("sales.search_product")}
             autoFocus
           />
           {scanStatus === "idle" ? (
-            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-2 py-1 rounded shadow-xs pointer-events-none">
               F2
             </kbd>
           ) : (
             <div
               className={cn(
-                "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full pointer-events-none",
+                "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full pointer-events-none shadow-xs",
                 scanStatus === "found" && "bg-success-light text-success",
                 scanStatus === "not_found" && "bg-danger-light text-danger",
               )}
             >
               {scanStatus === "found" ? (
-                <><Check size={11} /> {t("sales.pos_added")}</>
+                <><Check size={12} /> {t("sales.pos_added")}</>
               ) : (
-                <><X size={11} /> {t("sales.pos_not_found")}</>
+                <><X size={12} /> {t("sales.pos_not_found")}</>
               )}
             </div>
           )}
         </div>
 
-        {/* Search results */}
-        {search.length >= 2 && productResults && (
-          <div className="card overflow-auto flex-1">
-            {productResults.results.map((product) => (
-              <div key={product.id} className="border-b border-border last:border-0">
-                <div
-                  className="px-4 py-3 hover:bg-surface cursor-pointer"
-                  onClick={() => setSelectedProduct(
-                    selectedProduct?.id === product.id ? null : product
-                  )}
-                >
-                  <div className="flex items-center justify-between">
+        {/* Search results or Empty State */}
+        {search.length >= 2 && productResults ? (
+          <div className="card overflow-auto flex-1 divide-y divide-border rounded-xl shadow-xs">
+            {productResults.results.length === 0 ? (
+              <div className="p-8 text-center text-text-muted">
+                <p className="font-semibold text-sm">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
+                <p className="text-xs text-text-muted mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
+              </div>
+            ) : (
+              productResults.results.map((product) => (
+                <div key={product.id} className="transition-colors">
+                  <div
+                    className="px-4 py-3 hover:bg-surface cursor-pointer flex items-center justify-between"
+                    onClick={() => setSelectedProduct(
+                      selectedProduct?.id === product.id ? null : product
+                    )}
+                  >
                     <div>
-                      <div className="font-medium text-text-primary">
+                      <div className="font-bold text-text-primary text-base">
                         {product.brand} {product.name}
                       </div>
-                      <div className="text-sm text-text-muted">
-                        {product.total_stock} {t("sales.in_stock")} · {formatDZD(product.sale_price)} DZD
+                      <div className="text-xs text-text-muted mt-0.5 flex items-center gap-2">
+                        <span className="font-semibold font-mono text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                          {formatDZD(product.sale_price)} DZD
+                        </span>
+                        <span>·</span>
+                        <span>{product.total_stock} {t("sales.in_stock")}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-primary-500">{t("sales.view_sizes")}</span>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2.5 py-1 rounded-lg hover:bg-primary-100 transition-colors">
+                      {selectedProduct?.id === product.id ? "Masquer pointures ↑" : t("sales.view_sizes")}
+                    </span>
                   </div>
-                </div>
 
-                {selectedProduct?.id === product.id && (
-                  <div className="px-4 pb-3 bg-primary-50">
-                    <div className="text-xs text-text-muted mb-2">{t("sales.choose_size_color")}</div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {product.variants.map((variant) => (
-                        <button
-                          key={variant.id}
-                          disabled={variant.stock_qty <= 0}
-                          onClick={() => addToCart(variant, product)}
-                          className={cn(
-                            "px-2 py-1.5 text-xs rounded border font-medium transition-colors",
-                            variant.stock_qty <= 0
-                              ? "border-border bg-surface text-text-muted cursor-not-allowed"
-                              : variant.is_low_stock
-                              ? "border-warning bg-warning-light text-warning hover:bg-warning hover:text-white"
-                              : "border-primary-200 bg-white text-primary-600 hover:bg-primary-500 hover:text-white hover:border-primary-500"
-                          )}
-                        >
-                          EU{variant.size_eu}<br />
-                          <span className="text-2xs">{variant.colour === "N/A" ? t("common.na") : variant.colour}</span><br />
-                          <span className="text-2xs opacity-70">×{variant.stock_qty}</span>
-                        </button>
-                      ))}
+                  {selectedProduct?.id === product.id && (
+                    <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-border/60">
+                      <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+                        {t("sales.choose_size_color")}
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                        {product.variants.map((variant) => (
+                          <button
+                            key={variant.id}
+                            disabled={variant.stock_qty <= 0}
+                            onClick={() => addToCart(variant, product)}
+                            className={cn(
+                              "p-2 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-0.5",
+                              variant.stock_qty <= 0
+                                ? "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
+                                : variant.is_low_stock
+                                ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 shadow-2xs"
+                                : "border-border bg-white text-text-primary hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
+                            )}
+                          >
+                            <span className="font-black text-sm font-mono">T.{variant.size_eu}</span>
+                            <span className="text-2xs text-text-muted truncate max-w-full">
+                              {variant.colour === "N/A" ? t("common.na") : variant.colour}
+                            </span>
+                            <span className={cn(
+                              "text-2xs font-mono font-semibold px-1 rounded",
+                              variant.stock_qty <= 2 ? "text-amber-700 bg-amber-100/60" : "text-text-muted"
+                            )}>
+                              Qté: {variant.stock_qty}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="card p-6 flex flex-col items-center justify-center text-center flex-1 border-dashed border-2 border-border/80 bg-surface/30 rounded-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center mb-3 shadow-xs">
+              <Search size={22} />
+            </div>
+            <h3 className="font-bold text-text-primary text-sm">Prêt pour la vente</h3>
+            <p className="text-xs text-text-muted mt-1 max-w-sm">
+              Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.
+            </p>
+            <div className="flex gap-2 mt-4 text-2xs text-text-secondary">
+              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F2 = Rechercher</span>
+              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F10 / . = Confirmer</span>
+              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F11 = Plein écran</span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Right: Cart */}
-      <div className="lg:w-1/2 xl:w-2/5 flex flex-col gap-3">
-        <div className="card flex flex-col flex-1 overflow-hidden">
-          <div className="card-header">
-            <h2 className="font-semibold flex items-center gap-2">
-              <ShoppingBag size={16} />
-              {t("sales.cart")}
+      {/* ── Right: Cashier Cart & Prominent Total ── */}
+      <div className="w-full lg:w-5/12 flex flex-col gap-3">
+        <div className="card flex flex-col flex-1 overflow-hidden rounded-2xl shadow-sm border border-border bg-white">
+          {/* Cart Header */}
+          <div className="card-header bg-surface-subtle py-3 px-4 flex items-center justify-between border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center shadow-xs">
+                <ShoppingBag size={15} />
+              </div>
+              <h2 className="font-bold text-text-primary text-base">
+                {t("sales.cart")}
+              </h2>
               {cart.length > 0 && (
-                <span className="badge badge-info">{cart.length}</span>
+                <span className="px-2.5 py-0.5 text-xs font-black font-mono rounded-full bg-primary-100 text-primary-800 border border-primary-200">
+                  {totalItems} {totalItems > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")}
+                </span>
               )}
-            </h2>
+            </div>
+            {cart.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Voulez-vous vider le panier en cours ?")) {
+                    setCart([]);
+                    setCartDiscount(0);
+                    setRedeemPoints(0);
+                  }
+                }}
+                className="text-xs text-text-muted hover:text-danger flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-danger-light transition-colors font-medium"
+                title="Vider tout le panier"
+              >
+                <X size={13} />
+                <span>{t("sales.clear_cart", "Vider")}</span>
+              </button>
+            )}
           </div>
 
-          {/* Client selector */}
-          <div className="px-4 py-3 border-b border-border">
+          {/* Client selector (compact) */}
+          <div className="px-4 py-2.5 border-b border-border bg-white">
             <ClientSelector
               selected={selectedClient}
               onSelect={(c) => { setSelectedClient(c); setRedeemPoints(0); }}
               onClear={() => { setSelectedClient(null); setRedeemPoints(0); }}
             />
 
-            {/* Loyalty account info */}
+            {/* Loyalty points banner if client has loyalty */}
             {loyaltyAccount && loyaltyProgram?.is_active && (
-              <div className="mt-2.5 flex items-center gap-2">
-                {(() => {
-                  const TierIcon = TIER_ICON[loyaltyAccount.tier];
-                  return (
-                    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold", TIER_COLOUR[loyaltyAccount.tier])}>
-                      <TierIcon size={11} />
-                      {loyaltyAccount.tier_display}
-                    </span>
-                  );
-                })()}
-                <span className="text-xs text-text-muted">
-                  <strong className="text-text-primary">{loyaltyAccount.points_balance.toLocaleString()}</strong> pts disponibles
-                </span>
-
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs bg-primary-50/60 border border-primary-100 rounded-lg px-2.5 py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-primary-800 font-bold font-mono">
+                    {loyaltyAccount.points_balance.toLocaleString()}
+                  </span>
+                  <span className="text-text-muted text-2xs">pts fidélité</span>
+                </div>
                 {canRedeem && (
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <Gift size={13} className="text-primary-500" />
+                  <div className="flex items-center gap-1.5">
+                    <Gift size={12} className="text-primary-600" />
                     <input
                       type="number"
                       value={redeemPoints || ""}
@@ -861,11 +916,11 @@ export default function SalesPage() {
                       max={loyaltyAccount.points_balance}
                       step={loyaltyProgram.min_redemption_points}
                       placeholder="Pts"
-                      className="w-20 px-2 py-1 text-xs border border-border rounded text-center font-mono"
+                      className="w-16 px-1.5 py-0.5 text-xs border border-border rounded text-center font-mono"
                     />
                     {redeemPoints > 0 && (
-                      <span className="text-xs text-primary-600 font-medium whitespace-nowrap">
-                        = −{redemptionDzd} DZD
+                      <span className="text-2xs text-primary-700 font-bold">
+                        −{formatDZD(redemptionDzd)} DZD
                       </span>
                     )}
                   </div>
@@ -874,217 +929,241 @@ export default function SalesPage() {
             )}
           </div>
 
-          {/* Cart items */}
-          <div className="flex-1 overflow-auto divide-y divide-border">
-            {cart.length === 0 && (
-              <div className="py-12 text-center text-text-muted text-sm">
-                {t("sales.empty_cart")}
+          {/* Cart items list (prominent cards with large Pointure tag) */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
+            {cart.length === 0 ? (
+              <div className="py-16 text-center flex flex-col items-center justify-center text-text-muted">
+                <div className="w-14 h-14 rounded-2xl bg-white border border-border flex items-center justify-center mb-3 text-text-muted shadow-xs">
+                  <ShoppingBag size={26} className="opacity-40 text-text-muted" />
+                </div>
+                <p className="font-bold text-text-primary text-sm">{t("sales.empty_cart")}</p>
+                <p className="text-xs text-text-muted mt-1 max-w-xs">
+                  Scannez un code-barres ou recherchez un modèle (F2) pour commencer la vente.
+                </p>
               </div>
-            )}
-            {cart.map((item) => (
-              <div key={item.variant.id} className="px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {item.product.brand} {item.product.name}
-                    </div>
-                    <div className="text-xs text-text-muted">
-                      EU{item.variant.size_eu} · {item.variant.colour === "N/A" ? t("common.na") : item.variant.colour}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) =>
-                          setCart((prev) =>
-                            prev.map((i) =>
-                              i.variant.id === item.variant.id
-                                ? { ...i, unit_price: parseFloat(e.target.value) || 0 }
-                                : i
-                            )
-                          )
-                        }
-                        className="w-24 px-2 py-1 text-xs border border-border rounded font-mono"
-                        step="100"
-                      />
-                      <span className="text-xs text-text-muted">DZD</span>
-                      {item.promoName && (
-                        <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
-                          <Tag size={9} />
-                          {item.promoName}
+            ) : (
+              cart.map((item) => (
+                <div
+                  key={item.variant.id}
+                  className="p-3 bg-white rounded-xl border border-border/80 hover:border-primary-300 transition-all shadow-xs"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* High-visibility Pointure / Size Badge */}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200">
+                          EU {item.variant.size_eu}
                         </span>
+                        <span className="font-bold text-text-primary text-sm truncate">
+                          {item.product.brand} {item.product.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-text-muted flex-wrap">
+                        {item.variant.colour !== "N/A" && (
+                          <span className="px-1.5 py-0.5 bg-surface rounded border border-border text-2xs font-medium">
+                            {item.variant.colour}
+                          </span>
+                        )}
+                        {item.promoName && (
+                          <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
+                            <Tag size={10} />
+                            {item.promoName}
+                          </span>
+                        )}
+                        <span className="font-mono text-2xs text-text-muted">
+                          {formatDZD(item.unit_price)} DZD / u
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Line Total */}
+                    <div className="text-end shrink-0">
+                      <div className="text-base font-black font-mono text-text-primary">
+                        {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
+                      </div>
+                      {item.discount > 0 && (
+                        <div className="text-2xs text-text-muted line-through font-mono">
+                          {formatDZD(item.unit_price * item.quantity)} DZD
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateQuantity(item.variant.id, -1)}
-                      className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-surface"
-                    >
-                      <Minus size={10} />
-                    </button>
-                    <span className="w-8 text-center text-sm font-mono">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.variant.id, 1)}
-                      className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-surface"
-                    >
-                      <Plus size={10} />
-                    </button>
+
+                  {/* Quantity & Actions row */}
+                  <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/60">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => updateQuantity(item.variant.id, -1)}
+                        className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                        title="Diminuer la quantité"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-8 text-center text-sm font-black font-mono text-text-primary">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.variant.id, 1)}
+                        className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                        title="Augmenter la quantité"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => removeItem(item.variant.id)}
-                      className="w-6 h-6 rounded text-danger hover:bg-danger-light flex items-center justify-center ms-1"
+                      className="text-xs text-text-muted hover:text-danger hover:bg-danger-light px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                      title="Supprimer du panier"
                     >
-                      <X size={10} />
+                      <X size={12} />
+                      <span>{t("common.delete", "Supprimer")}</span>
                     </button>
                   </div>
                 </div>
-                <div className="text-end text-sm font-mono font-medium mt-1">
-                  {item.discount > 0 && (
-                    <span className="line-through text-text-muted text-xs me-1">
-                      {formatDZD(item.unit_price * item.quantity)}
-                    </span>
-                  )}
-                  = {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
-          {/* Totals + payment */}
-          <div className="border-t border-border p-4 space-y-3">
-            {/* Cart discount */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-muted flex-1">{t("sales.cart_discount")}</span>
-              <input
-                type="number"
-                value={cartDiscount}
-                onChange={(e) => setCartDiscount(parseFloat(e.target.value) || 0)}
-                className="w-24 px-2 py-1 text-sm border border-border rounded font-mono text-end"
-                min="0"
-              />
-              <span className="text-xs">DZD</span>
-            </div>
-
-            {/* Redemption row */}
-            {redemptionDzd > 0 && (
-              <div className="flex items-center gap-2 text-primary-600">
-                <Gift size={13} />
-                <span className="text-sm flex-1">{t("sales.loyalty_discount", { pts: redeemPoints })}</span>
-                <span className="text-sm font-mono font-medium">−{formatDZD(redemptionDzd)} DZD</span>
-              </div>
-            )}
-
-            {/* Total */}
-            <div className="flex flex-col py-2 border-t border-border gap-1">
-              {timbreFiscal > 0 && (
-                <div className="flex justify-between items-center text-sm font-medium text-amber-700">
-                  <span>Timbre Fiscal (+1%)</span>
-                  <span className="font-mono">
-                    {formatDZD(timbreFiscal)} DZD
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">{t("sales.total")}</span>
-                <span className="text-xl font-bold font-mono text-primary-500">
-                  {formatDZD(total)} DZD
-                </span>
-              </div>
-            </div>
-
-            {/* Mode Réel toggle */}
-            <div className="flex items-center justify-between py-1.5 border rounded-lg px-3 bg-surface">
-              <div>
-                <p className="text-sm font-medium text-text-primary">{t("sales.formal_mode")}</p>
-                <p className="text-xs text-text-muted">{t("sales.formal_mode_desc")}</p>
-              </div>
-              <label className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
-                <input
-                  type="checkbox"
-                  checked={isFormal}
-                  onChange={(e) => setIsFormal(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={cn("block h-5 w-10 rounded-full transition-colors", isFormal ? "bg-primary-500" : "bg-border")}></div>
-                <div className={cn("absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform", isFormal ? "translate-x-5" : "translate-x-0")}></div>
-              </label>
-            </div>
-
-            {/* Versement toggle */}
-            <div className={cn(
-              "flex items-center justify-between py-1.5 border rounded-lg px-3",
-              storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
-            )}>
-              <div>
-                <p className="text-sm font-medium text-text-primary">{t("sales.versement_acompte")}</p>
-                <p className="text-xs text-text-muted">
-                  {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
-                </p>
-              </div>
+          {/* ── Cart Footer (Pinned: Grand Total & Confirm) ── */}
+          <div className="border-t border-border p-3.5 bg-white space-y-3">
+            {/* Quick options toolbar */}
+            <div className="flex items-center justify-between gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => {
-                  if (storeSettings?.versement_requires_client && !selectedClient) return;
-                  const next = !isVersement;
-                  setIsVersement(next);
-                  if (next) {
-                    const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
-                    setPayments([{ method: "cash", amount: minAmt }]);
-                  } else {
-                    setPayments([{ method: "cash", amount: total }]);
-                  }
-                }}
+                onClick={() => setShowOptions(!showOptions)}
                 className={cn(
-                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                  isVersement ? "bg-warning" : "bg-border",
-                  storeSettings?.versement_requires_client && !selectedClient ? "cursor-not-allowed" : ""
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors font-medium",
+                  showOptions || cartDiscount > 0 || isFormal || isVersement
+                    ? "bg-primary-50 border-primary-200 text-primary-700 font-semibold"
+                    : "bg-surface border-border text-text-secondary hover:bg-slate-100"
                 )}
-                role="switch"
-                aria-checked={isVersement}
-                title={storeSettings?.versement_requires_client && !selectedClient ? t("sales.select_client_versement") : ""}
               >
-                <span className={cn(
-                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform",
-                  isVersement ? "translate-x-5" : "translate-x-0"
-                )} />
+                <span>⚙️ Options de vente</span>
+                {(cartDiscount > 0 || isFormal || isVersement) && (
+                  <span className="w-2 h-2 rounded-full bg-primary-600"></span>
+                )}
               </button>
-            </div>
 
-            {/* Payment methods */}
-            <div className="space-y-2">
-              {payments.map((payment, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <select
-                    value={payment.method}
-                    onChange={(e) =>
-                      setPayments((prev) =>
-                        prev.map((p, idx) =>
-                          idx === i ? { ...p, method: e.target.value as PaymentLine["method"] } : p
-                        )
-                      )
-                    }
-                    className="form-input text-sm py-1.5 flex-1"
-                  >
-                    {PAYMENT_METHOD_KEYS.map((key) => (
-                      <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
-                    ))}
-                  </select>
+              <div className="flex items-center gap-2">
+                {/* Remise input */}
+                <div className="flex items-center gap-1 text-2xs text-text-muted">
+                  <span>Remise:</span>
                   <input
                     type="number"
-                    value={payment.amount || ""}
-                    onChange={(e) =>
-                      setPayments((prev) =>
-                        prev.map((p, idx) =>
-                          idx === i ? { ...p, amount: parseFloat(e.target.value) || 0 } : p
-                        )
-                      )
-                    }
-                    className="w-28 px-2 py-1.5 text-sm border border-border rounded font-mono text-end"
-                    placeholder={formatDZD(total)}
+                    value={cartDiscount || ""}
+                    onChange={(e) => setCartDiscount(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-16 px-1.5 py-1 text-xs border border-border rounded font-mono text-end"
+                    min="0"
                   />
+                  <span>DZD</span>
                 </div>
-              ))}
+              </div>
             </div>
+
+            {/* Expandable Options Drawer */}
+            {showOptions && (
+              <div className="p-3 bg-surface rounded-xl border border-border space-y-2.5 animate-in fade-in duration-100">
+                {/* Mode Réel switch */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary">{t("sales.formal_mode")}</p>
+                    <p className="text-2xs text-text-muted">{t("sales.formal_mode_desc")}</p>
+                  </div>
+                  <label className="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isFormal}
+                      onChange={(e) => setIsFormal(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={cn("block h-4 w-8 rounded-full transition-colors", isFormal ? "bg-primary-500" : "bg-border")}></div>
+                    <div className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", isFormal ? "translate-x-4" : "translate-x-0")}></div>
+                  </label>
+                </div>
+
+                {/* Versement (Acompte) switch */}
+                <div className={cn(
+                  "flex items-center justify-between pt-2 border-t border-border/60",
+                  storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
+                )}>
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary">{t("sales.versement_acompte")}</p>
+                    <p className="text-2xs text-text-muted">
+                      {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (storeSettings?.versement_requires_client && !selectedClient) return;
+                      const next = !isVersement;
+                      setIsVersement(next);
+                      if (next) {
+                        const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
+                        setPayments([{ method: "cash", amount: minAmt }]);
+                      } else {
+                        setPayments([{ method: "cash", amount: total }]);
+                      }
+                    }}
+                    className={cn(
+                      "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                      isVersement ? "bg-warning" : "bg-border",
+                      storeSettings?.versement_requires_client && !selectedClient ? "cursor-not-allowed" : ""
+                    )}
+                    role="switch"
+                    aria-checked={isVersement}
+                  >
+                    <span className={cn(
+                      "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform",
+                      isVersement ? "translate-x-4" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* Multiple payment methods */}
+                <div className="pt-2 border-t border-border/60 space-y-1.5">
+                  <div className="text-2xs font-semibold text-text-muted uppercase tracking-wider">
+                    Mode de règlement
+                  </div>
+                  {payments.map((payment, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <select
+                        value={payment.method}
+                        onChange={(e) =>
+                          setPayments((prev) =>
+                            prev.map((p, idx) =>
+                              idx === i ? { ...p, method: e.target.value as PaymentLine["method"] } : p
+                            )
+                          )
+                        }
+                        className="form-input text-xs py-1 flex-1"
+                      >
+                        {PAYMENT_METHOD_KEYS.map((key) => (
+                          <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={payment.amount || ""}
+                        onChange={(e) =>
+                          setPayments((prev) =>
+                            prev.map((p, idx) =>
+                              idx === i ? { ...p, amount: parseFloat(e.target.value) || 0 } : p
+                            )
+                          )
+                        }
+                        className="w-24 px-2 py-1 text-xs border border-border rounded font-mono text-end"
+                        placeholder={formatDZD(total)}
+                      />
+                      <span className="text-2xs text-text-muted">DZD</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Versement minimum warning */}
             {isVersement && (() => {
@@ -1093,24 +1172,59 @@ export default function SalesPage() {
               const belowMin = paymentTotal < minAmt;
               return (
                 <div className={cn(
-                  "text-xs px-2 py-1.5 rounded",
-                  belowMin ? "bg-danger-light text-danger" : "bg-success/10 text-success"
+                  "text-xs px-2.5 py-1.5 rounded-lg border font-medium flex items-center justify-between",
+                  belowMin ? "bg-danger-light text-danger border-danger/20" : "bg-success/10 text-success border-success/20"
                 )}>
-                  {belowMin
-                    ? t("sales.min_versement_warning", { amount: formatDZD(Math.ceil(minAmt)) })
-                    : `Solde restant: ${formatDZD(total - paymentTotal)} DZD`
-                  }
+                  <span>Acompte minimum ({minPct}%): {formatDZD(Math.ceil(minAmt))} DZD</span>
+                  <span>Solde: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
                 </div>
               );
             })()}
 
-            {/* Confirm */}
+            {/* ── HIGH VISIBILITY GRAND TOTAL DISPLAY ── */}
+            <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {t("sales.total_to_pay", "Total à payer")}
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-mono text-2xs">
+                  {totalItems} {totalItems > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")}
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-2 my-1">
+                <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">
+                  {formatDZD(total)}
+                </div>
+                <div className="text-lg font-bold font-mono text-primary-400">
+                  DZD
+                </div>
+              </div>
+
+              {(cartDiscount > 0 || redemptionDzd > 0 || timbreFiscal > 0) && (
+                <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-x-4 gap-y-1 text-2xs font-mono text-slate-300">
+                  {cartDiscount > 0 && (
+                    <span className="text-emerald-400">Remise: −{formatDZD(cartDiscount)} DZD</span>
+                  )}
+                  {redemptionDzd > 0 && (
+                    <span className="text-sky-400">Fidélité: −{formatDZD(redemptionDzd)} DZD</span>
+                  )}
+                  {timbreFiscal > 0 && (
+                    <span className="text-amber-300">Timbre (+1%): +{formatDZD(timbreFiscal)} DZD</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Error banner */}
             {saleMutation.isError && (
-              <div className="text-xs text-danger bg-danger-light px-2 py-1.5 rounded">
+              <div className="text-xs text-danger bg-danger-light px-3 py-2 rounded-lg border border-danger/20 font-medium">
                 {getApiError(saleMutation.error)}
               </div>
             )}
 
+            {/* ── Big Confirm Sale Button ── */}
             <button
               onClick={handleConfirmSale}
               disabled={
@@ -1118,19 +1232,31 @@ export default function SalesPage() {
                 saleMutation.isPending ||
                 (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100)
               }
-              className="btn-primary w-full justify-center py-3 text-base"
+              className={cn(
+                "w-full py-3.5 px-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]",
+                cart.length === 0
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
+                  : "btn-primary hover:shadow-lg"
+              )}
             >
-              {saleMutation.isPending ? t("common.processing") : isVersement ? (
+              {saleMutation.isPending ? (
+                <span>{t("common.processing")}</span>
+              ) : isVersement ? (
                 <>
-                  <Check size={18} />
+                  <Check size={20} className="stroke-[2.5]" />
                   <span>{t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}</span>
-                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10 / .</kbd>
+                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded bg-white/20 text-white border border-white/30">
+                    F10 / .
+                  </kbd>
                 </>
               ) : (
                 <>
-                  <Check size={18} />
-                  <span>{t("sales.confirm_sale")} — {formatDZD(total)} DZD</span>
-                  <kbd className="ms-2 px-1.5 py-0.5 text-2xs font-mono rounded bg-white/20 text-white border border-white/30">F10 / .</kbd>
+                  <Check size={20} className="stroke-[2.5]" />
+                  <span>{t("sales.confirm_sale")}</span>
+                  <span className="font-mono text-white/90">— {formatDZD(total)} DZD</span>
+                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded bg-white/20 text-white border border-white/30">
+                    F10 / .
+                  </kbd>
                 </>
               )}
             </button>

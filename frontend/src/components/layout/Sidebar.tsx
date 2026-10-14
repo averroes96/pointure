@@ -119,7 +119,11 @@ function useNavSections(): NavSection[] {
   ];
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  onItemClick?: () => void;
+}
+
+export default function Sidebar({ onItemClick }: SidebarProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
@@ -129,7 +133,11 @@ export default function Sidebar() {
   return (
     <nav className="layout-sidebar">
       {/* Brand */}
-      <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
+      <NavLink
+        to="/"
+        onClick={onItemClick}
+        className="px-4 py-4 border-b border-white/10 flex items-center gap-3 hover:bg-white/5 transition-colors"
+      >
         <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
           <span className="text-lg">👟</span>
         </div>
@@ -139,7 +147,7 @@ export default function Sidebar() {
             {user?.tenant?.name ?? ""}
           </div>
         </div>
-      </div>
+      </NavLink>
 
       {/* Nav sections */}
       <div className="flex-1 py-2 overflow-y-auto">
@@ -177,6 +185,7 @@ export default function Sidebar() {
                     key={item.to}
                     to={item.to}
                     end={item.to === "/"}
+                    onClick={onItemClick}
                     className={({ isActive }) =>
                       cn("nav-item", isActive && "active")
                     }
