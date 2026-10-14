@@ -144,6 +144,11 @@ class Product(TenantScopedModel):
     def is_total_low_stock(self):
         return self.total_stock <= self.alert_threshold and self.alert_threshold > 0
 
+    @property
+    def default_variant(self):
+        """Return the primary/default variant (used in simple mode)."""
+        return self.variants.filter(is_active=True).first()
+
 class ProductLocation(TenantScopedModel):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="product_locations")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="branch_locations")
@@ -200,10 +205,11 @@ class Variant(TenantScopedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     size_eu = models.IntegerField(
         _("EU Size"),
-        validators=[MinValueValidator(15), MaxValueValidator(60)],
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(60)],
     )
-    colour = models.CharField(_("Colour"), max_length=50, blank=True, default="N/A")
-    barcode = models.CharField(_("Barcode"), max_length=14, blank=True, db_index=True)
+    colour = models.CharField(_("Colour"), max_length=50, blank=True, default="Standard")
+    barcode = models.CharField(_("Barcode"), max_length=64, blank=True, db_index=True)
     stock_qty = models.IntegerField(_("Stock Qty"), default=0)
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=3)
     is_active = models.BooleanField(_("Active"), default=True)
@@ -215,9 +221,12 @@ class Variant(TenantScopedModel):
         ordering = ["product", "size_eu", "colour"]
 
     def __str__(self):
-        if self.colour and self.colour != "N/A":
-            return f"{self.product} | EU{self.size_eu} | {self.colour}"
-        return f"{self.product} | EU{self.size_eu}"
+        parts = [str(self.product)]
+        if self.size_eu and self.size_eu > 0:
+            parts.append(f"EU{self.size_eu}")
+        if self.colour and self.colour not in ("N/A", "Standard", "Unique", ""):
+            parts.append(self.colour)
+        return " | ".join(parts)
 
     def save(self, *args, **kwargs):
         # Auto-generate barcode if not set (can only be done after pk is assigned)

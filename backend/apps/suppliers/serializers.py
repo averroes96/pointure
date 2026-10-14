@@ -31,9 +31,13 @@ class POLineSerializer(serializers.ModelSerializer):
         if not obj.variant_id:
             return None
         v = obj.variant
-        if v.colour and v.colour != "N/A":
-            return f"{v.product.name} · EU{v.size_eu} · {v.colour}"
-        return f"{v.product.name} · EU{v.size_eu}"
+        if v.size_eu and v.size_eu > 0:
+            if v.colour and v.colour not in ("N/A", "Standard", "Unique", ""):
+                return f"{v.product.name} · EU{v.size_eu} · {v.colour}"
+            return f"{v.product.name} · EU{v.size_eu}"
+        if v.colour and v.colour not in ("N/A", "Standard", "Unique", ""):
+            return f"{v.product.name} · {v.colour}"
+        return v.product.name
 
 
 # ── Purchase Order (list / detail) ─────────────────────────────────────────────

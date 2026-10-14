@@ -94,7 +94,10 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class StoreSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreSettings
-        fields = ["id", "min_versement_pct", "versement_due_days", "versement_requires_client"]
+        fields = [
+            "id", "min_versement_pct", "versement_due_days",
+            "versement_requires_client", "enable_variants",
+        ]
         read_only_fields = ["id"]
 
 

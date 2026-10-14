@@ -81,10 +81,11 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         location = request.data.get("location")
+        barcode = request.data.get("barcode")
         response = super().update(request, *args, **kwargs)
+        product = self.get_object()
         branch_id = request.data.get('branch_id')
         if location is not None and getattr(request.tenant, "plan", "free") != "free" and branch_id and branch_id != "null":
-            product = self.get_object()
             from apps.inventory.models import ProductLocation
             ProductLocation.objects.update_or_create(
                 tenant=request.tenant,
@@ -92,18 +93,31 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 product=product,
                 defaults={"location": location}
             )
+        if barcode is not None and str(barcode).strip():
+            variant = product.variants.first()
+            if variant and variant.barcode != str(barcode).strip():
+                variant.barcode = str(barcode).strip()
+                variant.save(update_fields=["barcode"])
         return response
 
     def create(self, request, *args, **kwargs):
         """
-        Override create to handle the optional nested `variants` field.
-        When provided, product + all size×colour variants are created atomically.
+        Override create to handle optional nested `variants` field.
+        If `variants` with sizes is provided, creates the size×colour combinations.
+        If not provided (Simple Mode), creates a default variant (size_eu=0, colour='Standard')
+        with custom/auto-generated barcode and initial stock movement if requested.
         """
         create_serializer = ProductCreateSerializer(data=request.data)
         create_serializer.is_valid(raise_exception=True)
 
         variants_data = create_serializer.validated_data.pop("variants", None)
         location_data = create_serializer.validated_data.pop("location", None)
+        barcode_data = create_serializer.validated_data.pop("barcode", None) or (request.data.get("barcode") or "").strip() or None
+        initial_stock = create_serializer.validated_data.pop("initial_stock", 0) or 0
+        try:
+            initial_stock = int(request.data.get("initial_stock", initial_stock) or 0)
+        except (ValueError, TypeError):
+            initial_stock = 0
 
         # Check quota before creating
         from apps.core.plan_permissions import check_quota
@@ -127,10 +141,10 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 )
 
             # Generate variants if sizes/colours were provided
-            if variants_data:
+            if variants_data and variants_data.get("sizes"):
                 sizes = variants_data.get("sizes", [])
                 colours = variants_data.get("colours") or ["N/A"]
-                threshold = variants_data.get("alert_threshold", 3)
+                threshold = variants_data.get("alert_threshold", product.alert_threshold or 3)
                 for size in sizes:
                     for colour in colours:
                         Variant.objects.get_or_create(
@@ -140,6 +154,41 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                             colour=colour,
                             defaults={"alert_threshold": threshold},
                         )
+            else:
+                # Mode Simple / Default Variant
+                variant, _ = Variant.objects.get_or_create(
+                    tenant=request.tenant,
+                    product=product,
+                    size_eu=0,
+                    colour="Standard",
+                    defaults={
+                        "alert_threshold": product.alert_threshold or 3,
+                        "barcode": barcode_data or "",
+                    },
+                )
+                if barcode_data and variant.barcode != barcode_data:
+                    variant.barcode = barcode_data
+                    variant.save(update_fields=["barcode"])
+
+                # Handle initial stock movement if specified
+                if initial_stock > 0:
+                    branch = None
+                    if branch_id and branch_id != "null":
+                        branch = Branch.objects.filter(tenant=request.tenant, id=branch_id).first()
+                    if not branch and getattr(request, "branch", None):
+                        branch = request.branch
+                    if not branch:
+                        branch = Branch.objects.filter(tenant=request.tenant, is_active=True).first()
+
+                    StockMovement.objects.create(
+                        tenant=request.tenant,
+                        variant=variant,
+                        branch=branch,
+                        quantity_delta=initial_stock,
+                        reason=MovementReasonChoices.INITIAL,
+                        user=request.user,
+                        notes="Stock initial à la création du produit",
+                    )
 
         # Refresh and return using the detail serializer
         product.refresh_from_db()
@@ -175,7 +224,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if not rows:
             return Response({"detail": "Le fichier est vide."}, status=status.HTTP_400_BAD_REQUEST)
 
-        REQUIRED = {"name", "sale_price", "size_eu", "colour"}
+        REQUIRED = {"name", "sale_price"}
         VALID_CATEGORIES = {c[0] for c in Product._meta.get_field("category").choices}
         VALID_GENDERS = {g[0] for g in Product._meta.get_field("gender").choices}
 
@@ -209,18 +258,21 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 except InvalidOperation:
                     purchase_price = Decimal("0")
 
-                try:
-                    size_eu = int(row["size_eu"])
-                    if not (28 <= size_eu <= 47):
-                        raise ValueError
-                except (ValueError, KeyError):
-                    errors.append({"row": i, "message": f"size_eu invalide (28–47) : {row.get('size_eu')}"})
-                    continue
+                # Optional size (default 0 for simple mode)
+                size_str = str(row.get("size_eu", "") or row.get("size", "") or "").strip()
+                if size_str:
+                    try:
+                        size_eu = int(float(size_str))
+                        if not (0 <= size_eu <= 60):
+                            raise ValueError
+                    except (ValueError, KeyError):
+                        errors.append({"row": i, "message": f"size_eu invalide (0–60) : {size_str}"})
+                        continue
+                else:
+                    size_eu = 0
 
-                colour = row.get("colour", "").strip()
-                if not colour:
-                    errors.append({"row": i, "message": "La couleur ne peut pas être vide."})
-                    continue
+                # Optional colour (default Standard)
+                colour = str(row.get("colour", "") or row.get("color", "") or "").strip() or "Standard"
 
                 try:
                     alert_threshold = int(row.get("alert_threshold", "3") or "3")
@@ -254,7 +306,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 if product_created:
                     created_products += 1
 
-                _, variant_created = Variant.objects.get_or_create(
+                variant, variant_created = Variant.objects.get_or_create(
                     tenant=tenant,
                     product=product,
                     size_eu=size_eu,
@@ -266,6 +318,27 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 )
                 if variant_created:
                     created_variants += 1
+                    # Support initial stock on import
+                    init_stock = 0
+                    for stock_col in ("initial_stock", "quantity", "stock", "qte"):
+                        val = row.get(stock_col)
+                        if val is not None and str(val).strip():
+                            try:
+                                init_stock = int(float(str(val).replace(",", ".")))
+                                break
+                            except (ValueError, TypeError):
+                                pass
+                    if init_stock > 0:
+                        branch = getattr(request, "branch", None) or Branch.objects.filter(tenant=tenant, is_active=True).first()
+                        StockMovement.objects.create(
+                            tenant=tenant,
+                            variant=variant,
+                            branch=branch,
+                            quantity_delta=init_stock,
+                            reason=MovementReasonChoices.INITIAL,
+                            user=request.user,
+                            notes="Import de stock initial",
+                        )
                 else:
                     skipped += 1
 

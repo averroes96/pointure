@@ -293,6 +293,11 @@ class StoreSettings(TenantScopedModel):
     versement_requires_client = models.BooleanField(
         _("Versement requires a linked client"), default=True,
     )
+    enable_variants = models.BooleanField(
+        _("Activer les variantes (Pointures & Couleurs)"),
+        default=False,
+        help_text="Désactivé (défaut) : mode simple 1-clic sans tailles. Activé : gestion avancée par pointures et couleurs.",
+    )
 
     class Meta:
         verbose_name = _("Store Settings")

@@ -38,7 +38,7 @@ class VariantSerializer(serializers.ModelSerializer):
             "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]
-        read_only_fields = ["id", "barcode"]
+        read_only_fields = ["id"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -48,16 +48,27 @@ class ProductSerializer(serializers.ModelSerializer):
     is_total_low_stock = serializers.BooleanField(read_only=True)
     margin_pct = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     location = serializers.SerializerMethodField()
+    barcode = serializers.SerializerMethodField()
+    default_variant_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
             "purchase_price", "sale_price", "margin_pct", "image", "description",
-            "is_active", "alert_threshold", "pairs_per_carton", "total_stock", "has_low_stock", "is_total_low_stock", "variants", "created_at",
-            "location",
+            "is_active", "alert_threshold", "pairs_per_carton", "total_stock",
+            "has_low_stock", "is_total_low_stock", "variants", "created_at",
+            "location", "barcode", "default_variant_id",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def get_barcode(self, obj):
+        v = obj.variants.first()
+        return v.barcode if v else ""
+
+    def get_default_variant_id(self, obj):
+        v = obj.variants.first()
+        return v.id if v else None
 
     def get_location(self, obj):
         request = self.context.get("request")
@@ -96,6 +107,16 @@ class ProductListSerializer(serializers.ModelSerializer):
     is_total_low_stock = serializers.BooleanField(read_only=True)
     variants = VariantSerializer(many=True, read_only=True)
     location = serializers.SerializerMethodField()
+    barcode = serializers.SerializerMethodField()
+    default_variant_id = serializers.SerializerMethodField()
+
+    def get_barcode(self, obj):
+        v = obj.variants.first()
+        return v.barcode if v else ""
+
+    def get_default_variant_id(self, obj):
+        v = obj.variants.first()
+        return v.id if v else None
 
     def get_location(self, obj):
         request = self.context.get("request")
@@ -123,8 +144,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
-            "sale_price", "wholesale_price", "purchase_price", "pamp", "total_stock", "has_low_stock", "is_total_low_stock",
-            "alert_threshold", "pairs_per_carton", "image", "is_active", "wholesale_price", "variants", "location",
+            "sale_price", "wholesale_price", "purchase_price", "pamp", "total_stock",
+            "has_low_stock", "is_total_low_stock", "alert_threshold", "pairs_per_carton",
+            "image", "is_active", "variants", "location", "barcode", "default_variant_id",
         ]
 
     def to_representation(self, instance):
@@ -157,12 +179,15 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     """
     variants = GenerateVariantsSerializer(required=False, write_only=True)
     location = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    barcode = serializers.CharField(max_length=64, required=False, allow_blank=True, write_only=True)
+    initial_stock = serializers.IntegerField(required=False, default=0, min_value=0, write_only=True)
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
-            "purchase_price", "sale_price", "image", "description", "is_active", "alert_threshold", "variants", "location",
+            "purchase_price", "sale_price", "image", "description", "is_active",
+            "alert_threshold", "variants", "location", "barcode", "initial_stock",
         ]
         read_only_fields = ["id"]
 

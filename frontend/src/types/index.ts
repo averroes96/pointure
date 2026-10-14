@@ -96,6 +96,8 @@ export interface Product {
   is_total_low_stock: boolean;
   variants: Variant[];
   location?: string;
+  barcode?: string;
+  default_variant_id?: number;
   created_at: string;
 }
 
@@ -257,6 +259,7 @@ export interface StoreSettings {
   min_versement_pct: number;
   versement_due_days: number;
   versement_requires_client: boolean;
+  enable_variants: boolean;
 }
 
 // ─────────────────────────────────────────────
