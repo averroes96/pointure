@@ -36,6 +36,9 @@ jobs:
 
       - name: Execute Windows Desktop Build Pipeline (${{ matrix.arch }})
         shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           powershell -ExecutionPolicy Bypass -File desktop\scripts\build.ps1 -Arch ${{ matrix.arch }}
 

@@ -114,7 +114,7 @@ try {
     }
     if ($LASTEXITCODE -ne 0) { throw "npm dependencies installation failed in desktop directory" }
 
-    npx electron-builder --win nsis --$Arch
+    npx electron-builder --win nsis --$Arch --publish never
     if ($LASTEXITCODE -ne 0) { throw "electron-builder packaging failed" }
 } finally {
     Pop-Location
