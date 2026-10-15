@@ -96,7 +96,7 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
         model = StoreSettings
         fields = [
             "id", "min_versement_pct", "versement_due_days",
-            "versement_requires_client", "enable_variants",
+            "versement_requires_client", "enable_variants", "allow_negative_stock",
         ]
         read_only_fields = ["id"]
 

@@ -107,8 +107,12 @@ class CreateSaleSerializer(serializers.Serializer):
 
         # Validate all variants exist and have sufficient stock
         from django.db.models import Sum as DjSum
+        from apps.core.models import StoreSettings
 
         tenant = self.context["request"].tenant
+        store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+        allow_negative_stock = store_settings.allow_negative_stock if store_settings else False
+
         branch_id = data.get("branch_id")
         item_errors = []
         for i, item_data in enumerate(data["items"]):
@@ -116,21 +120,22 @@ class CreateSaleSerializer(serializers.Serializer):
                 variant = Variant.objects.get(pk=item_data["variant_id"], tenant=tenant)
                 item_data["variant"] = variant
 
-                if branch_id:
-                    # Check stock available at the specific branch
-                    available = variant.movements.filter(
-                        branch_id=branch_id,
-                    ).aggregate(total=DjSum("quantity_delta"))["total"] or 0
-                    location = f"agence #{branch_id}"
-                else:
-                    available = variant.stock_qty
-                    location = "stock global"
+                if not allow_negative_stock:
+                    if branch_id:
+                        # Check stock available at the specific branch
+                        available = variant.movements.filter(
+                            branch_id=branch_id,
+                        ).aggregate(total=DjSum("quantity_delta"))["total"] or 0
+                        location = f"agence #{branch_id}"
+                    else:
+                        available = variant.stock_qty
+                        location = "stock global"
 
-                if available < item_data["quantity"]:
-                    item_errors.append(
-                        f"Item {i+1}: Stock insuffisant pour {variant} "
-                        f"({location} : {available} disponible(s), {item_data['quantity']} demandé(s))"
-                    )
+                    if available < item_data["quantity"]:
+                        item_errors.append(
+                            f"Item {i+1}: Stock insuffisant pour {variant} "
+                            f"({location} : {available} disponible(s), {item_data['quantity']} demandé(s))"
+                        )
             except Variant.DoesNotExist:
                 item_errors.append(f"Item {i+1}: Variante {item_data['variant_id']} introuvable.")
 
@@ -787,12 +792,16 @@ class CreateExchangeSerializer(serializers.Serializer):
             item["_unit_price"] = sold_price.get(vid, Decimal("0"))
 
         # Validate new items exist and have sufficient stock
+        from apps.core.models import StoreSettings
+        store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+        allow_negative_stock = store_settings.allow_negative_stock if store_settings else False
+
         for item in data["new_items"]:
             vid = item["variant_id"]
             try:
                 variant = Variant.objects.get(pk=vid, tenant=tenant)
                 item["_variant"] = variant
-                if variant.stock_qty < item["quantity"]:
+                if not allow_negative_stock and variant.stock_qty < item["quantity"]:
                     errors.append(
                         f"Stock insuffisant pour la variante {vid} "
                         f"(disponible : {variant.stock_qty}, demandé : {item['quantity']})."

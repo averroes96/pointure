@@ -300,6 +300,11 @@ class StoreSettings(TenantScopedModel):
         default=False,
         help_text="Désactivé (défaut) : mode simple 1-clic sans tailles. Activé : gestion avancée par pointures et couleurs.",
     )
+    allow_negative_stock = models.BooleanField(
+        _("Autoriser le stock négatif"),
+        default=False,
+        help_text="Permet de valider une vente même si la quantité en stock est insuffisante ou négative (avec confirmation).",
+    )
 
     class Meta:
         verbose_name = _("Store Settings")

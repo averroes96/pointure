@@ -742,6 +742,7 @@ interface VersementsFormData {
   min_versement_pct: number;
   versement_due_days: number;
   versement_requires_client: boolean;
+  allow_negative_stock: boolean;
 }
 
 function VersementsTab() {
@@ -760,15 +761,21 @@ function VersementsTab() {
           min_versement_pct: settings.min_versement_pct,
           versement_due_days: settings.versement_due_days,
           versement_requires_client: settings.versement_requires_client,
+          allow_negative_stock: settings.allow_negative_stock ?? false,
         }
-      : { min_versement_pct: 30, versement_due_days: 90, versement_requires_client: true },
+      : {
+          min_versement_pct: 30,
+          versement_due_days: 90,
+          versement_requires_client: true,
+          allow_negative_stock: false,
+        },
   });
 
   const mutation = useMutation({
     mutationFn: (data: VersementsFormData) =>
       api.patch("/core/store-settings/update_settings/", data).then((r) => r.data),
     onSuccess: () => {
-      setToast({ msg: "Parametres de versement mis a jour.", type: "success" });
+      setToast({ msg: "Paramètres enregistrés avec succès.", type: "success" });
       queryClient.invalidateQueries({ queryKey: ["store-settings"] });
     },
     onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
@@ -780,6 +787,7 @@ function VersementsTab() {
       ...data,
       min_versement_pct: Number(data.min_versement_pct),
       versement_due_days: Number(data.versement_due_days),
+      allow_negative_stock: Boolean(data.allow_negative_stock),
     });
   }
 
@@ -789,43 +797,71 @@ function VersementsTab() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
-      <div>
-        <label className="form-label">Acompte minimum (%)</label>
-        <input
-          type="number"
-          min={1}
-          max={100}
-          {...register("min_versement_pct", { required: "Obligatoire", min: 1, max: 100 })}
-          className="form-input"
-        />
-        <p className="text-xs text-text-muted mt-1">
-          Pourcentage du total de la vente requis comme premier paiement.
-        </p>
+      {/* Stock Policy */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-text-primary">Politique de Stock & Caisse</h3>
+        <div className="p-3.5 rounded-xl border border-border bg-surface-subtle">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="allow_negative_stock"
+              {...register("allow_negative_stock")}
+              className="w-4 h-4 mt-0.5 accent-primary-600 rounded"
+            />
+            <div>
+              <label htmlFor="allow_negative_stock" className="text-sm font-medium text-text-primary cursor-pointer">
+                Autoriser les ventes en stock négatif
+              </label>
+              <p className="text-xs text-text-muted mt-0.5">
+                Permet d'effectuer des ventes même si la quantité en stock est insuffisante ou épuisée. Une alerte de confirmation sera affichée au caissier avant de valider la vente.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label className="form-label">Delai de paiement (jours)</label>
-        <input
-          type="number"
-          min={1}
-          {...register("versement_due_days", { required: "Obligatoire", min: 1 })}
-          className="form-input"
-        />
-        <p className="text-xs text-text-muted mt-1">
-          Nombre de jours avant qu'un versement soit considere en retard.
-        </p>
-      </div>
+      {/* Versements Policy */}
+      <div className="pt-4 border-t border-border space-y-4">
+        <h3 className="text-sm font-semibold text-text-primary">Paramètres de Versement (Crédit)</h3>
 
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="versement_requires_client"
-          {...register("versement_requires_client")}
-          className="w-4 h-4 accent-primary-600"
-        />
-        <label htmlFor="versement_requires_client" className="text-sm text-text-primary cursor-pointer">
-          Exiger un client pour les versements
-        </label>
+        <div>
+          <label className="form-label">Acompte minimum (%)</label>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            {...register("min_versement_pct", { required: "Obligatoire", min: 1, max: 100 })}
+            className="form-input"
+          />
+          <p className="text-xs text-text-muted mt-1">
+            Pourcentage du total de la vente requis comme premier paiement.
+          </p>
+        </div>
+
+        <div>
+          <label className="form-label">Délai de paiement (jours)</label>
+          <input
+            type="number"
+            min={1}
+            {...register("versement_due_days", { required: "Obligatoire", min: 1 })}
+            className="form-input"
+          />
+          <p className="text-xs text-text-muted mt-1">
+            Nombre de jours avant qu'un versement soit considéré en retard.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="versement_requires_client"
+            {...register("versement_requires_client")}
+            className="w-4 h-4 accent-primary-600 rounded"
+          />
+          <label htmlFor="versement_requires_client" className="text-sm text-text-primary cursor-pointer">
+            Exiger un client pour les versements
+          </label>
+        </div>
       </div>
 
       <div className="flex items-center justify-end pt-2">
@@ -858,7 +894,7 @@ const TABS: Tab[] = [
   { key: "securite", label: "Securite", icon: Shield },
   { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
   { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
-  { key: "versements", label: "Versements", icon: Banknote, roles: ["owner"] },
+  { key: "versements", label: "Ventes & Versements", icon: Banknote, roles: ["owner"] },
   { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
   { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
   { key: "desktop", label: "Application & Mises à jour", icon: Monitor, roles: ["owner", "manager"] },

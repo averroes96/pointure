@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
@@ -275,6 +275,10 @@ export default function SalesPage() {
   const [isVersement, setIsVersement] = useState(false);
   const [isFormal, setIsFormal] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "found" | "not_found">("idle");
+  const [negativeStockAlert, setNegativeStockAlert] = useState<{
+    items: Array<{ item: CartItem; deficit: number; newStock: number }>;
+    quickMode: boolean;
+  } | null>(null);
 
   // Keep a ref so addToCart (useCallback) can read current cart without stale closure
   const cartRef = useRef<CartItem[]>([]);
@@ -393,6 +397,7 @@ export default function SalesPage() {
   }, [applyPromo]);
 
   const enableVariants = storeSettings?.enable_variants ?? false;
+  const allowNegativeStock = storeSettings?.allow_negative_stock ?? false;
 
   const handleAddProduct = useCallback((product: Product) => {
     if (!product.variants || product.variants.length === 0) return;
@@ -551,11 +556,39 @@ export default function SalesPage() {
     },
   });
 
-  function handleConfirmSale(quickMode = false) {
+  function executeSaleSubmission(quickMode = false) {
     if (cart.length === 0 || saleMutation.isPending || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     isQuickModeRef.current = quickMode;
     saleMutation.mutate();
+  }
+
+  function handleConfirmSale(quickMode = false) {
+    if (cart.length === 0 || saleMutation.isPending || isSubmittingRef.current) return;
+
+    // Check for items that will result in negative stock
+    const negativeItems = cart
+      .filter((item) => item.quantity > (item.variant.stock_qty ?? 0))
+      .map((item) => ({
+        item,
+        deficit: item.quantity - (item.variant.stock_qty ?? 0),
+        newStock: (item.variant.stock_qty ?? 0) - item.quantity,
+      }));
+
+    if (negativeItems.length > 0) {
+      if (allowNegativeStock) {
+        // Show confirmation alert modal before validating
+        setNegativeStockAlert({ items: negativeItems, quickMode });
+        return;
+      } else {
+        alert(
+          "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres (Ventes & Versements)."
+        );
+        return;
+      }
+    }
+
+    executeSaleSubmission(quickMode);
   }
 
   // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale)
@@ -569,6 +602,12 @@ export default function SalesPage() {
       if (receipt) {
         setReceipt(null);
         searchRef.current?.focus();
+        return;
+      }
+      if (negativeStockAlert) {
+        const qm = negativeStockAlert.quickMode;
+        setNegativeStockAlert(null);
+        executeSaleSubmission(qm);
         return;
       }
       handleConfirmSale(false);
@@ -601,12 +640,25 @@ export default function SalesPage() {
               searchRef.current?.focus();
               return;
             }
+            if (negativeStockAlert) {
+              const qm = negativeStockAlert.quickMode;
+              setNegativeStockAlert(null);
+              executeSaleSubmission(qm);
+              return;
+            }
             // Dot (.) triggers quick sale mode directly!
             handleConfirmSale(true);
           }
         }
+      } else if (e.key === "Enter" && negativeStockAlert) {
+        e.preventDefault();
+        const qm = negativeStockAlert.quickMode;
+        setNegativeStockAlert(null);
+        executeSaleSubmission(qm);
       } else if (e.key === "Escape") {
-        if (search) {
+        if (negativeStockAlert) {
+          setNegativeStockAlert(null);
+        } else if (search) {
           setSearch("");
         }
       }
@@ -624,7 +676,7 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-new-sale", onNewSale);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [receipt, cart.length, saleMutation.isPending, search]);
+  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock]);
 
   // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
@@ -976,12 +1028,14 @@ export default function SalesPage() {
                           {product.variants.map((variant) => (
                             <button
                               key={variant.id}
-                              disabled={variant.stock_qty <= 0}
+                              disabled={!allowNegativeStock && variant.stock_qty <= 0}
                               onClick={() => addToCart(variant, product)}
                               className={cn(
                                 "p-2 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-0.5",
                                 variant.stock_qty <= 0
-                                  ? "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
+                                  ? allowNegativeStock
+                                    ? "border-amber-300 bg-amber-50/70 text-amber-900 hover:bg-amber-100 hover:border-amber-400 active:scale-95 shadow-2xs"
+                                    : "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
                                   : variant.is_low_stock
                                   ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 shadow-2xs"
                                   : "border-border bg-white text-text-primary hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
@@ -993,7 +1047,13 @@ export default function SalesPage() {
                               </span>
                               <span className={cn(
                                 "text-2xs font-mono font-semibold px-1 rounded",
-                                variant.stock_qty <= 2 ? "text-amber-700 bg-amber-100/60" : "text-text-muted"
+                                variant.stock_qty <= 0
+                                  ? allowNegativeStock
+                                    ? "text-rose-700 bg-rose-100/80 font-bold"
+                                    : "text-text-muted"
+                                  : variant.stock_qty <= 2
+                                  ? "text-amber-700 bg-amber-100/60"
+                                  : "text-text-muted"
                               )}>
                                 Qté: {variant.stock_qty}
                               </span>
@@ -1169,6 +1229,15 @@ export default function SalesPage() {
                             {formatDZD(item.unit_price)} DZD / u
                           </span>
                         </div>
+
+                        {item.quantity > (item.variant.stock_qty ?? 0) && (
+                          <div className="flex items-center gap-1.5 mt-2 text-2xs font-semibold text-amber-900 bg-amber-50 border border-amber-300/80 px-2.5 py-1 rounded-md">
+                            <AlertTriangle size={12} className="shrink-0 text-amber-600" />
+                            <span>
+                              Stock insuffisant : {item.variant.stock_qty ?? 0} dispo ({item.quantity - (item.variant.stock_qty ?? 0)} en rupture)
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Line Total */}
@@ -1458,6 +1527,100 @@ export default function SalesPage() {
           </div>
         </div>
       </div>
+
+      {/* Negative Stock Warning Modal */}
+      {negativeStockAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-amber-200">
+            <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 border-b border-amber-200/80">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <AlertTriangle size={22} className="stroke-[2.5]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-text-primary text-base">
+                  Vente en stock négatif
+                </h3>
+                <p className="text-xs text-amber-900">
+                  Certains articles dépassent le stock actuellement disponible en rayon.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNegativeStockAlert(null)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-white/60 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Voulez-vous autoriser la validation de cette vente ? Les stocks suivants passeront en négatif dans l'inventaire :
+              </p>
+
+              <div className="max-h-60 overflow-y-auto space-y-2 border border-border/80 rounded-xl p-2.5 bg-slate-50">
+                {negativeStockAlert.items.map(({ item, newStock }) => {
+                  const sizeLabel = item.variant.size_eu && item.variant.size_eu > 0 ? `T.${item.variant.size_eu}` : null;
+                  const colorLabel = item.variant.colour && item.variant.colour !== "N/A" ? item.variant.colour : null;
+                  return (
+                    <div
+                      key={item.variant.id}
+                      className="flex items-center justify-between gap-3 p-2 rounded-lg bg-white border border-border/60 text-xs shadow-2xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-text-primary truncate">
+                          {item.product.name}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-2xs text-text-muted mt-0.5">
+                          {sizeLabel && (
+                            <span className="font-mono font-bold px-1 rounded bg-slate-100 text-slate-700">
+                              {sizeLabel}
+                            </span>
+                          )}
+                          {colorLabel && <span>{colorLabel}</span>}
+                          <span>• Qté demandée: <strong className="text-text-primary font-mono">{item.quantity}</strong></span>
+                        </div>
+                      </div>
+                      <div className="text-end shrink-0">
+                        <div className="text-2xs text-text-muted">
+                          Stock actuel : <span className="font-mono font-medium">{item.variant.stock_qty ?? 0}</span>
+                        </div>
+                        <div className="text-xs font-black font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 mt-0.5">
+                          Nouveau: {newStock}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setNegativeStockAlert(null)}
+                  className="btn-secondary px-4 py-2.5 text-xs font-semibold rounded-xl"
+                >
+                  Annuler <span className="opacity-60 text-2xs">(Échap)</span>
+                </button>
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => {
+                    const qm = negativeStockAlert.quickMode;
+                    setNegativeStockAlert(null);
+                    executeSaleSubmission(qm);
+                  }}
+                  className="btn-primary bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  <Check size={15} className="stroke-[2.5]" />
+                  <span>Confirmer la vente</span>
+                  <span className="opacity-80 text-2xs font-mono">(Entrée / .)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

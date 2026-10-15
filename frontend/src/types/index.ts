@@ -260,6 +260,7 @@ export interface StoreSettings {
   versement_due_days: number;
   versement_requires_client: boolean;
   enable_variants: boolean;
+  allow_negative_stock: boolean;
 }
 
 // ─────────────────────────────────────────────
