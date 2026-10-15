@@ -42,7 +42,7 @@ interface SystemFieldDef {
 const SYSTEM_FIELDS: Record<ImportEntityType, SystemFieldDef[]> = {
   products: [
     { key: "name", label: "Nom du produit", required: true, type: "text", description: "Nom ou modèle (ex: Air Max 90)" },
-    { key: "size_eu", label: "Pointure (EU)", required: true, type: "number", description: "Taille / Pointure (ex: 42, 38.5)" },
+    { key: "size_eu", label: "Pointure (EU)", required: false, type: "number", description: "Taille / Pointure (laisser vide pour Mode Simple)" },
     { key: "sale_price", label: "Prix de vente", required: true, type: "currency", description: "Prix TTC en DZD" },
     { key: "purchase_price", label: "Prix d'achat", required: false, type: "currency", description: "Prix d'achat unitaire en DZD" },
     { key: "wholesale_price", label: "Prix de gros", required: false, type: "currency", description: "Tarif de gros en DZD" },
@@ -898,7 +898,7 @@ export default function BulkImportWizardModal({
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-text-primary truncate">
                               {rowData.name || rowData.brand || Object.values(rowData)[0] || "Ligne de données"}
-                              {rowData.size_eu && (
+                              {rowData.size_eu && Number(rowData.size_eu) > 0 && (
                                 <span className="ml-2 font-mono text-xs px-1.5 py-0.5 rounded bg-surface border border-border">
                                   Pointure {rowData.size_eu}
                                 </span>

@@ -10,10 +10,9 @@ import { useAuth } from "@/features/auth/AuthContext";
 import ImportModal from "@/components/ui/ImportModal";
 
 const PRODUCT_TEMPLATE = `brand,name,category,gender,sale_price,purchase_price,size_eu,colour,alert_threshold
-Nike,Air Max 90,sneakers,M,8500,5000,40,Noir,3
-Nike,Air Max 90,sneakers,M,8500,5000,41,Noir,3
-Nike,Air Max 90,sneakers,M,8500,5000,42,Blanc,3
-Adidas,Stan Smith,sneakers,U,7500,4500,39,Blanc,3
+Nike,Air Max 90,sneakers,M,8500,5000,42,Noir,3
+Cuir Dz,Sacoche Bandoulière,accessories,U,3500,2000,,,3
+Adidas,Stan Smith,sneakers,U,7500,4500,,,3
 `;
 
 export default function ProductsPage() {

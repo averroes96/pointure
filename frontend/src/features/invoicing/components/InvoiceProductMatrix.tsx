@@ -281,10 +281,12 @@ export function InvoiceProductMatrix({
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="border border-border p-2 bg-surface text-text-muted text-xs font-medium text-left">Couleur \ Taille</th>
+                  <th className="border border-border p-2 bg-surface text-text-muted text-xs font-medium text-left">
+                    {sizes.length === 1 && sizes[0] <= 0 ? "Article" : "Couleur \\ Taille"}
+                  </th>
                   {sizes.map((s) => (
                     <th key={s} className="border border-border p-2 bg-surface text-text-muted text-xs font-medium w-24 text-center">
-                      EU {s}
+                      {s > 0 ? `EU ${s}` : "Quantité"}
                     </th>
                   ))}
                 </tr>
@@ -293,7 +295,7 @@ export function InvoiceProductMatrix({
                 {colours.map((c) => (
                   <tr key={c}>
                     <td className="border border-border p-2 font-medium text-xs bg-surface/30">
-                      {c === "N/A" ? "Sans couleur" : c}
+                      {c === "N/A" || c === "Standard" ? (sizes.length === 1 && sizes[0] <= 0 ? "Standard" : "Sans couleur") : c}
                     </td>
                     {sizes.map((s) => {
                       const variant = product.variants.find((v) => (v.colour || "N/A") === c && v.size_eu === s);

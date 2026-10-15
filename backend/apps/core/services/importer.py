@@ -570,15 +570,19 @@ class DataImportEngine:
 
             brand = str(mapped.get("brand") or "").strip()
             reference = str(mapped.get("reference") or "").strip()
-            colour = str(mapped.get("colour") or "").strip() or "N/A"
-
+            colour_val = str(mapped.get("colour") or "").strip()
             size_val = mapped.get("size_eu")
-            size_num, size_err = parse_integer_safe(size_val, default=0, min_val=15, max_val=60)
-            if size_err or size_num == 0:
-                row_errors.append(
-                    str(_("Pointure EU invalide (doit être comprise entre 15 et 60, reçu: ")) + str(size_val) + ")"
-                )
+            if size_val is not None and str(size_val).strip() != "":
+                size_num, size_err = parse_integer_safe(size_val, default=0, min_val=0, max_val=60)
+                if size_err:
+                    row_errors.append(
+                        str(_("Pointure EU invalide (doit être comprise entre 0 et 60, reçu: ")) + str(size_val) + ")"
+                    )
+            else:
+                size_num = 0
             mapped["size_eu"] = size_num
+            colour = colour_val or ("Standard" if size_num == 0 else "N/A")
+            mapped["colour"] = colour
 
             sale_price, sp_err = parse_decimal_safe(mapped.get("sale_price"), Decimal("0.00"))
             if sp_err or sale_price <= Decimal("0.00"):
@@ -937,12 +941,16 @@ class DataImportEngine:
 
                 brand = str(mapped.get("brand") or "").strip()
                 reference = str(mapped.get("reference") or "").strip()
-                colour = str(mapped.get("colour") or "").strip() or "N/A"
+                size_val = mapped.get("size_eu")
+                if size_val is not None and str(size_val).strip() != "":
+                    size_num, size_err = parse_integer_safe(size_val, default=0, min_val=0, max_val=60)
+                    if size_err:
+                        errors.append({"row": idx, "message": f"{_('Pointure invalide')}: {size_val}"})
+                        continue
+                else:
+                    size_num = 0
 
-                size_num, size_err = parse_integer_safe(mapped.get("size_eu"), default=0, min_val=15, max_val=60)
-                if size_err or size_num == 0:
-                    errors.append({"row": idx, "message": f"{_('Pointure invalide')}: {mapped.get('size_eu')}"})
-                    continue
+                colour = str(mapped.get("colour") or "").strip() or ("Standard" if size_num == 0 else "N/A")
 
                 sale_price, _sp_err = parse_decimal_safe(mapped.get("sale_price"), Decimal("0.00"))
                 purchase_price, _pp_err = parse_decimal_safe(mapped.get("purchase_price"), Decimal("0.00"))
@@ -1213,7 +1221,7 @@ class DataImportEngine:
         templates_config = {
             "products": {
                 "fr": {
-                    "headers": ["Nom *", "Marque", "Référence", "Catégorie", "Genre", "Pointure *", "Couleur", "Prix Achat (DZD)", "Prix Vente (DZD) *", "Prix Gros (DZD)", "Stock Initial", "Code-barres", "Paires par Carton", "Seuil Alerte", "Description"],
+                    "headers": ["Nom *", "Marque", "Référence", "Catégorie", "Genre", "Pointure", "Couleur", "Prix Achat (DZD)", "Prix Vente (DZD) *", "Prix Gros (DZD)", "Stock Initial", "Code-barres", "Paires par Carton", "Seuil Alerte", "Description"],
                     "samples": [
                         ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Noir", "4500", "6500", "5500", "12", "", "10", "3", "Modèle running homme confortable"],
                         ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Noir", "4500", "6500", "5500", "15", "", "10", "3", "Modèle running homme confortable"],
@@ -1223,7 +1231,7 @@ class DataImportEngine:
                     "filename": "modele_import_produits_shoedz",
                 },
                 "en": {
-                    "headers": ["Product Name *", "Brand", "Reference / SKU", "Category", "Gender", "EU Size *", "Colour", "Purchase Price (DZD)", "Sale Price (DZD) *", "Wholesale Price (DZD)", "Initial Stock", "Barcode", "Pairs per Box", "Alert Threshold", "Description"],
+                    "headers": ["Product Name *", "Brand", "Reference / SKU", "Category", "Gender", "EU Size", "Colour", "Purchase Price (DZD)", "Sale Price (DZD) *", "Wholesale Price (DZD)", "Initial Stock", "Barcode", "Pairs per Box", "Alert Threshold", "Description"],
                     "samples": [
                         ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Black", "4500", "6500", "5500", "12", "", "10", "3", "Comfortable men running shoes"],
                         ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Black", "4500", "6500", "5500", "15", "", "10", "3", "Comfortable men running shoes"],
@@ -1233,7 +1241,7 @@ class DataImportEngine:
                     "filename": "products_import_template_shoedz",
                 },
                 "ar": {
-                    "headers": ["اسم المنتج *", "الماركة", "المرجع", "التصنيف", "الفئة", "المقاس *", "اللون", "سعر الشراء (دج)", "سعر البيع (دج) *", "سعر الجملة (دج)", "المخزون الأولي", "الباركود", "أزواج الكرتون", "حد التنبيه", "الوصف"],
+                    "headers": ["اسم المنتج *", "الماركة", "المرجع", "التصنيف", "الفئة", "المقاس", "اللون", "سعر الشراء (دج)", "سعر البيع (دج) *", "سعر الجملة (دج)", "المخزون الأولي", "الباركود", "أزواج الكرتون", "حد التنبيه", "الوصف"],
                     "samples": [
                         ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "42", "أسود", "4500", "6500", "5500", "12", "", "10", "3", "حذاء رياضي مريح للرجال"],
                         ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "43", "أسود", "4500", "6500", "5500", "15", "", "10", "3", "حذاء رياضي مريح للرجال"],

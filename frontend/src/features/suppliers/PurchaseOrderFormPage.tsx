@@ -177,7 +177,11 @@ function VariantSearchInput({
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-text-primary">{v.product_name || `Variant #${v.id}`}</div>
                 <div className="text-xs text-text-muted">
-                  EU{v.size_eu} {v.colour ? `· ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""} · En stock: {v.stock_qty}
+                  {v.size_eu > 0 ? (
+                    `EU${v.size_eu} ${v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? `· ${v.colour}` : ""} · En stock: ${v.stock_qty}`
+                  ) : (
+                    `${v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? `${v.colour} · ` : ""}${v.barcode ? `Code: ${v.barcode} · ` : ""}En stock: ${v.stock_qty}`
+                  )}
                 </div>
               </div>
             </button>
@@ -628,7 +632,10 @@ export default function PurchaseOrderFormPage() {
                               ) : (
                                 <VariantSearchInput onSelect={(v) => {
                                   updateLine(line._id, "variant_id", String(v.id));
-                                  updateLine(line._id, "description", `${v.product_name} - EU${v.size_eu}${v.colour ? ` ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`);
+                                  const desc = v.size_eu > 0
+                                    ? `${v.product_name} - EU${v.size_eu}${v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? ` ${v.colour}` : ""}`
+                                    : (v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? `${v.product_name} (${v.colour})` : v.product_name);
+                                  updateLine(line._id, "description", desc);
                                   if (!line.agreed_unit_price && v.purchase_price) updateLine(line._id, "agreed_unit_price", v.purchase_price);
                                 }} />
                               )

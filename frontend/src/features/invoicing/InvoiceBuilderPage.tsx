@@ -231,9 +231,9 @@ export default function InvoiceBuilderPage() {
             productMap.set(line.product_id, matrix);
           }
 
-          const colour = line.colour || "N/A";
+          const colour = line.colour || "Standard";
           const size = parseInt(line.size_eu);
-          if (size && !isNaN(size)) {
+          if (!isNaN(size)) {
             if (!matrix.quantities[colour]) {
               matrix.quantities[colour] = {};
             }
@@ -318,10 +318,14 @@ export default function InvoiceBuilderPage() {
         for (const s in m.quantities[c]) {
           const qty = m.quantities[c][s];
           if (qty > 0) {
-            const variant = m.product.variants.find(v => (v.colour || "N/A") === c && v.size_eu.toString() === s);
+            const variant = m.product.variants.find(
+              v => ((v.colour || "Standard") === c || (v.colour || "N/A") === c) && v.size_eu.toString() === s
+            );
             if (variant) {
+              const descSize = s !== "0" && Number(s) > 0 ? ` EU${s}` : "";
+              const descCol = c && c !== "N/A" && c !== "Standard" ? ` ${c}` : "";
               flatLines.push({
-                description: `${m.product.name} EU${s} ${c === "N/A" ? "" : c}`.trim(),
+                description: `${m.product.name}${descSize}${descCol}`.trim(),
                 variant: variant.id,
                 quantity: qty.toString(),
                 unit_price: m.unit_price || "0",
@@ -432,7 +436,9 @@ export default function InvoiceBuilderPage() {
         for (const s in m.quantities[c]) {
           const qty = m.quantities[c][s];
           if (qty > 0) {
-            const variant = m.product.variants.find(v => (v.colour || "N/A") === c && v.size_eu.toString() === s);
+            const variant = m.product.variants.find(
+              v => ((v.colour || "Standard") === c || (v.colour || "N/A") === c) && v.size_eu.toString() === s
+            );
             if (variant && qty > variant.stock_qty) {
               setFormError(t("invoice.error_stock_exceeded"));
               return;

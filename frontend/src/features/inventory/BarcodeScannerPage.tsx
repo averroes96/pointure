@@ -356,9 +356,13 @@ export default function BarcodeScannerPage() {
                 <div className="font-mono text-sm text-text-primary break-all">{v.barcode}</div>
               </div>
               <div className="rounded-lg bg-surface border border-border p-3">
-                <div className="text-xs text-text-muted mb-1">Pointure / Couleur</div>
+                <div className="text-xs text-text-muted mb-1">{v.size_eu > 0 ? "Pointure / Couleur" : "Déclinaison"}</div>
                 <div className="text-sm text-text-primary font-medium">
-                  EU {v.size_eu}{v.colour ? ` · ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}
+                  {v.size_eu > 0
+                    ? `EU ${v.size_eu}${v.colour ? ` · ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`
+                    : v.colour && v.colour !== "N/A" && v.colour !== "Standard"
+                    ? v.colour
+                    : "Standard"}
                 </div>
               </div>
               <div className="rounded-lg bg-surface border border-border p-3">
@@ -436,7 +440,9 @@ export default function BarcodeScannerPage() {
               to="/purchase-orders/new"
               state={{
                 lines: [{
-                  description: `${p.name} — EU${v.size_eu}${v.colour ? ` / ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`,
+                  description: v.size_eu > 0
+                    ? `${p.name} — EU${v.size_eu}${v.colour && v.colour !== "N/A" && v.colour !== "Standard" ? ` / ${v.colour}` : ""}`
+                    : (v.colour && v.colour !== "N/A" && v.colour !== "Standard" ? `${p.name} (${v.colour})` : p.name),
                   quantity_ordered: String(Math.max(1, v.alert_threshold - v.stock_qty)),
                   agreed_unit_price: "",
                 }],

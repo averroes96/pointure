@@ -145,7 +145,9 @@ function VariantSearch({
             <div className="p-3 text-xs text-text-muted">Aucun résultat pour « {query} »</div>
           )}
           {results.map((v) => {
-            const label = `${v.product_name} · EU${v.size_eu}${v.colour ? ` · ${v.colour === "N/A" ? t("common.na") : v.colour}` : ""}`;
+            const label = Number(v.size_eu) > 0
+              ? `${v.product_name} · EU${v.size_eu}${v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? ` · ${v.colour}` : ""}`
+              : (v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? `${v.product_name} (${v.colour})` : v.product_name);
             return (
               <button
                 key={v.id}

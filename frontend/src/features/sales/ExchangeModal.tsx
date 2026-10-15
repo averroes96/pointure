@@ -188,7 +188,9 @@ export default function ExchangeModal({
       ...prev,
       {
         variant_id: variant.id,
-        variant_str: `${variant.product_name} — EU ${variant.size_eu}${variant.colour ? ` ${variant.colour === "N/A" ? t("common.na") : variant.colour}` : ""}`,
+        variant_str: variant.size_eu > 0
+          ? `${variant.product_name} — EU ${variant.size_eu}${variant.colour && variant.colour !== "N/A" && variant.colour !== "Standard" ? ` ${variant.colour}` : ""}`
+          : variant.product_name,
         quantity: 1,
         unit_price: variant.product_sale_price,
       },
@@ -399,8 +401,8 @@ export default function ExchangeModal({
                           {v.product_name}
                         </div>
                         <div className="text-xs text-text-muted flex items-center gap-2">
-                          <span>EU {v.size_eu}</span>
-                          {v.colour && <span>{v.colour === "N/A" ? t("common.na") : v.colour}</span>}
+                          {v.size_eu > 0 && <span>EU {v.size_eu}</span>}
+                          {v.colour && v.colour !== "N/A" && v.colour !== "Standard" && <span>{v.colour}</span>}
                           <span
                             className={cn(
                               "font-mono",

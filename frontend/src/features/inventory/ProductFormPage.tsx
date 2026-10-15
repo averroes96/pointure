@@ -22,9 +22,10 @@ import {
   CheckCircle,
   Grid3X3,
   Plus,
+  Barcode,
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
-import type { Product, Category, Gender, Season } from "@/types";
+import type { Product, Category, Gender, Season, StoreSettings } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,8 @@ interface FormState {
   name: string;
   brand: string;
   reference: string;
+  barcode: string;
+  initial_stock: string;
   description: string;
   category: Category;
   gender: Gender;
@@ -70,6 +73,8 @@ const EMPTY_FORM: FormState = {
   name: "",
   brand: "",
   reference: "",
+  barcode: "",
+  initial_stock: "",
   description: "",
   category: "other",
   gender: "U",
@@ -128,6 +133,16 @@ export default function ProductFormPage() {
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Store settings (Simple Mode vs Variants Mode) ────────────────────────
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const enableVariants = storeSettings?.enable_variants ?? false;
+  const [showAdvancedVariants, setShowAdvancedVariants] = useState(false);
+  const isVariantsSectionOpen = enableVariants || showAdvancedVariants;
+
   // ── Variant generator state (creation only) ──────────────────────────────
   const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
   const [selectedColours, setSelectedColours] = useState<string[]>([]);
@@ -137,8 +152,8 @@ export default function ProductFormPage() {
   const [colourSearch, setColourSearch] = useState("");
 
   const variantCount = useMemo(
-    () => selectedSizes.length * Math.max(1, selectedColours.length),
-    [selectedSizes, selectedColours]
+    () => (isVariantsSectionOpen ? selectedSizes.length * Math.max(1, selectedColours.length) : 0),
+    [isVariantsSectionOpen, selectedSizes, selectedColours]
   );
 
   // Filtered colours for the dropdown
@@ -162,10 +177,14 @@ export default function ProductFormPage() {
   // Populate form once the product data loads (only run when product id changes)
   useEffect(() => {
     if (!existingProduct) return;
+    const defaultVariant = existingProduct.variants?.find((v) => v.size_eu <= 0) || existingProduct.variants?.[0];
+    const initialBarcode = existingProduct.barcode || defaultVariant?.barcode || "";
     setForm({
       name: existingProduct.name,
       brand: existingProduct.brand ?? "",
       reference: existingProduct.reference ?? "",
+      barcode: initialBarcode,
+      initial_stock: "",
       location: existingProduct.location ?? "",
       description: existingProduct.description ?? "",
       category: existingProduct.category,
@@ -259,10 +278,18 @@ export default function ProductFormPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (isEditing) {
-        // ── Edit mode: same as before ──
+        // ── Edit mode ──
         if (imageFile) {
           const fd = new FormData();
-          Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+          Object.entries(form).forEach(([k, v]) => {
+            if (k !== "initial_stock") {
+              if (k === "barcode") {
+                fd.append("barcode", String(v).trim());
+              } else {
+                fd.append(k, String(v));
+              }
+            }
+          });
           if (currentBranch) fd.append("branch_id", String(currentBranch.id));
           fd.append("image", imageFile);
           return api.patch(`/inventory/products/${id}/`, fd, {
@@ -270,28 +297,36 @@ export default function ProductFormPage() {
           });
         }
         const payload: Record<string, unknown> = { ...form };
+        delete payload.initial_stock;
+        if (payload.barcode !== undefined) payload.barcode = String(payload.barcode).trim();
         if (currentBranch) payload.branch_id = currentBranch.id;
         if (clearImage) payload.image = null;
         return api.patch(`/inventory/products/${id}/`, payload);
       }
 
-      // ── Creation mode: include variants ──
-      const hasVariants = selectedSizes.length > 0;
+      // ── Creation mode: include variants if selected ──
+      const hasVariants = isVariantsSectionOpen && selectedSizes.length > 0;
 
       if (imageFile) {
         const fd = new FormData();
-        Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+        Object.entries(form).forEach(([k, v]) => {
+          if (v !== "" && v !== null && v !== undefined) {
+            if (k === "initial_stock") {
+              const num = parseInt(String(v), 10);
+              if (!isNaN(num) && num > 0) fd.append(k, String(num));
+            } else if (k === "barcode") {
+              if (String(v).trim()) fd.append("barcode", String(v).trim());
+            } else {
+              fd.append(k, String(v));
+            }
+          }
+        });
         if (currentBranch) fd.append("branch_id", String(currentBranch.id));
         fd.append("image", imageFile);
         if (hasVariants) {
-          // FormData can't natively handle nested JSON, so we serialize variants as a JSON string
-          // and the backend will parse it from request.data (DRF's JSONParser handles this via
-          // the ProductCreateSerializer, but for multipart we need to structure it differently).
-          // Instead, we'll do a two-step: create product with image via multipart, then generate variants.
           const res = await api.post("/inventory/products/", fd, {
             headers: { "Content-Type": "multipart/form-data" },
           });
-          // Now generate variants
           await api.post(`/inventory/products/${res.data.id}/generate-variants/`, {
             sizes: selectedSizes,
             colours: selectedColours,
@@ -305,8 +340,20 @@ export default function ProductFormPage() {
         });
       }
 
-      // JSON payload with inline variants
+      // JSON payload with inline variants or simple mode
       const payload: Record<string, unknown> = { ...form };
+      if (payload.initial_stock) {
+        const num = parseInt(String(payload.initial_stock), 10);
+        if (!isNaN(num) && num > 0) payload.initial_stock = num;
+        else delete payload.initial_stock;
+      } else {
+        delete payload.initial_stock;
+      }
+      if (payload.barcode && String(payload.barcode).trim()) {
+        payload.barcode = String(payload.barcode).trim();
+      } else {
+        delete payload.barcode;
+      }
       if (currentBranch) payload.branch_id = currentBranch.id;
       if (hasVariants) {
         payload.variants = {
@@ -429,6 +476,44 @@ export default function ProductFormPage() {
                   placeholder="Ex: AM90-BLK"
                 />
               </Field>
+            </div>
+
+            {/* Code-barres & Stock initial */}
+            <div className={cn("grid gap-3", !isEditing ? "grid-cols-2" : "grid-cols-1")}>
+              <Field
+                label="Code-barres"
+                hint="Scannable par douchette ou généré automatiquement si vide"
+              >
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={form.barcode}
+                    onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))}
+                    className="form-input font-mono ps-9 text-xs"
+                    placeholder="Ex: 6130001234567"
+                  />
+                  <Barcode
+                    size={16}
+                    className="absolute start-2.5 top-1/2 -translate-y-1/2 text-text-muted"
+                  />
+                </div>
+              </Field>
+
+              {!isEditing && (
+                <Field
+                  label="Stock initial"
+                  hint="Quantité en magasin disponible immédiatement"
+                >
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.initial_stock}
+                    onChange={(e) => setForm((f) => ({ ...f, initial_stock: e.target.value }))}
+                    className="form-input font-mono text-xs"
+                    placeholder="0"
+                  />
+                </Field>
+              )}
             </div>
 
             <Field label="Rayonnage / Emplacement" hint={canUseLocation ? "Lieu de stockage pour l'agence actuelle" : "Disponible à partir du plan PRO"}>
@@ -691,17 +776,62 @@ export default function ProductFormPage() {
         </div>
 
         {/* ── Variant Generator (creation only) ──────────────────────────────── */}
-        {!isEditing && (
-          <div className="card p-5 space-y-5">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
-              <Grid3X3 size={16} className="text-primary-500" />
-              <h2 className="text-sm font-semibold text-text-primary">
-                Variantes (Taille × Couleur)
-              </h2>
-              {variantCount > 0 && (
-                <span className="badge badge-info ms-auto font-mono">
-                  {variantCount} variante{variantCount > 1 ? "s" : ""}
-                </span>
+        {!isEditing && !isVariantsSectionOpen && (
+          <div className="card p-4 border border-dashed border-border bg-surface/50 hover:bg-surface/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                <Grid3X3 size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-text-primary">
+                    Déclinaisons (Pointures & Couleurs)
+                  </h3>
+                  <span className="badge badge-neutral text-2xs">Optionnel</span>
+                </div>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Mode Simple actif : cet article sera créé sans déclinaisons de pointures (1 article = 1 stock direct).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedVariants(true)}
+              className="btn-secondary btn-sm flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <Plus size={13} />
+              Ajouter pointures & couleurs
+            </button>
+          </div>
+        )}
+
+        {!isEditing && isVariantsSectionOpen && (
+          <div className="card p-5 space-y-5 border border-primary-200">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center gap-2">
+                <Grid3X3 size={16} className="text-primary-500" />
+                <h2 className="text-sm font-semibold text-text-primary">
+                  Variantes (Taille × Couleur)
+                </h2>
+                {variantCount > 0 && (
+                  <span className="badge badge-info ms-auto font-mono">
+                    {variantCount} variante{variantCount > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              {!enableVariants && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdvancedVariants(false);
+                    setSelectedSizes([]);
+                    setSelectedColours([]);
+                  }}
+                  className="text-xs text-text-muted hover:text-danger transition-colors flex items-center gap-1"
+                >
+                  <X size={13} />
+                  Annuler les déclinaisons (Mode Simple)
+                </button>
               )}
             </div>
 
@@ -957,7 +1087,7 @@ export default function ProductFormPage() {
             {variantCount === 0 && (
               <p className="text-xs text-text-muted">
                 Sélectionnez au moins une pointure pour générer les variantes.
-                Vous pouvez aussi les ajouter plus tard depuis la fiche produit.
+                Si aucune pointure n'est sélectionnée, le produit sera créé avec un article standard unique (Mode Simple).
               </p>
             )}
           </div>

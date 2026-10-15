@@ -5,6 +5,19 @@ import api from "@/lib/api";
 import type { Variant } from "@/types";
 import { cn } from "@/lib/utils";
 
+function formatVariantLabel(v: Variant | null): string {
+  if (!v) return "";
+  const name = v.product_name || "";
+  if (v.size_eu > 0) {
+    const col = v.colour && v.colour !== "N/A" && v.colour !== "Standard" ? ` ${v.colour}` : "";
+    return `${name} — T${v.size_eu}${col}`;
+  }
+  if (v.colour && v.colour !== "Standard" && v.colour !== "N/A") {
+    return `${name} (${v.colour})`;
+  }
+  return name;
+}
+
 export function VariantSearchInput({
   value,
   onSelect,
@@ -13,14 +26,14 @@ export function VariantSearchInput({
   onSelect: (v: Variant) => void;
 }) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState(value ? `${value.product_name} — T${value.size_eu} ${value.colour}` : "");
+  const [query, setQuery] = useState(formatVariantLabel(value));
   const [results, setResults] = useState<Variant[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (value) setQuery(`${value.product_name} — T${value.size_eu} ${value.colour}`);
+    if (value) setQuery(formatVariantLabel(value));
   }, [value?.id]);
 
   function search(q: string) {
@@ -40,7 +53,7 @@ export function VariantSearchInput({
   }
 
   function pick(v: Variant) {
-    setQuery(`${v.product_name} — T${v.size_eu} ${v.colour === "N/A" ? t("common.na") : v.colour}`);
+    setQuery(formatVariantLabel(v));
     setResults([]);
     setOpen(false);
     onSelect(v);
@@ -60,7 +73,7 @@ export function VariantSearchInput({
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="form-input ps-9"
-          placeholder="Produit, pointure, couleur..."
+          placeholder="Produit, référence, code-barres..."
         />
       </div>
       {open && results.length > 0 && (
@@ -75,7 +88,15 @@ export function VariantSearchInput({
               <div className="min-w-0">
                 <div className="font-medium text-sm text-text-primary truncate">{v.product_name}</div>
                 <div className="text-xs text-text-muted">
-                  Pointure {v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}
+                  {v.size_eu > 0 ? (
+                    `Pointure ${v.size_eu}${v.colour && v.colour !== "N/A" && v.colour !== "Standard" ? ` · ${v.colour}` : ""}`
+                  ) : (
+                    v.colour && v.colour !== "Standard" && v.colour !== "N/A"
+                      ? v.colour
+                      : v.barcode
+                      ? `Code: ${v.barcode}`
+                      : "Article standard"
+                  )}
                 </div>
               </div>
               <span className={cn(

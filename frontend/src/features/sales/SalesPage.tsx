@@ -392,6 +392,55 @@ export default function SalesPage() {
     applyPromo(variant.id, newQty);
   }, [applyPromo]);
 
+  const enableVariants = storeSettings?.enable_variants ?? false;
+
+  const handleAddProduct = useCallback((product: Product) => {
+    if (!product.variants || product.variants.length === 0) return;
+    const inStock = product.variants.find((v) => v.stock_qty > 0);
+    const variant = inStock || product.variants[0];
+    addToCart(variant, product);
+    setScanStatus("found");
+    setTimeout(() => setScanStatus("idle"), 1200);
+  }, [addToCart]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!productResults?.results?.length) return;
+
+      const trimmed = search.trim().toLowerCase();
+      // Match exact barcode, reference, or product name
+      const exactMatch = productResults.results.find(
+        (p) =>
+          (p.barcode && p.barcode.toLowerCase() === trimmed) ||
+          (p.reference && p.reference.toLowerCase() === trimmed) ||
+          p.name.toLowerCase() === trimmed ||
+          p.variants?.some((v) => v.barcode && v.barcode.toLowerCase() === trimmed)
+      );
+
+      const target = exactMatch || (productResults.results.length === 1 ? productResults.results[0] : null);
+
+      if (target) {
+        if (!enableVariants || !target.variants || target.variants.length <= 1) {
+          handleAddProduct(target);
+          setSearch("");
+          searchRef.current?.focus();
+        } else {
+          setSelectedProduct(target);
+        }
+      } else if (productResults.results.length > 0) {
+        const top = productResults.results[0];
+        if (!enableVariants || !top.variants || top.variants.length <= 1) {
+          handleAddProduct(top);
+          setSearch("");
+          searchRef.current?.focus();
+        } else {
+          setSelectedProduct(top);
+        }
+      }
+    }
+  };
+
   const updateQuantity = (variantId: number, delta: number) => {
     const existing = cart.find((i) => i.variant.id === variantId);
     if (!existing) return;
@@ -730,6 +779,7 @@ export default function SalesPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
             className="form-input ps-10 pe-12 py-3 text-base shadow-xs rounded-xl border-border focus:border-primary-500"
             placeholder={t("sales.search_product")}
             autoFocus
@@ -764,68 +814,115 @@ export default function SalesPage() {
                 <p className="text-xs text-text-muted mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
               </div>
             ) : (
-              productResults.results.map((product) => (
-                <div key={product.id} className="transition-colors">
-                  <div
-                    className="px-4 py-3 hover:bg-surface cursor-pointer flex items-center justify-between"
-                    onClick={() => setSelectedProduct(
-                      selectedProduct?.id === product.id ? null : product
-                    )}
-                  >
-                    <div>
-                      <div className="font-bold text-text-primary text-base">
-                        {product.brand} {product.name}
-                      </div>
-                      <div className="text-xs text-text-muted mt-0.5 flex items-center gap-2">
-                        <span className="font-semibold font-mono text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
-                          {formatDZD(product.sale_price)} DZD
-                        </span>
-                        <span>·</span>
-                        <span>{product.total_stock} {t("sales.in_stock")}</span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2.5 py-1 rounded-lg hover:bg-primary-100 transition-colors">
-                      {selectedProduct?.id === product.id ? "Masquer pointures ↑" : t("sales.view_sizes")}
-                    </span>
-                  </div>
+              productResults.results.map((product) => {
+                const isMultiVariant = enableVariants && product.variants && product.variants.length > 1;
+                const isExpanded = selectedProduct?.id === product.id;
 
-                  {selectedProduct?.id === product.id && (
-                    <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-border/60">
-                      <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted mb-2">
-                        {t("sales.choose_size_color")}
-                      </div>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                        {product.variants.map((variant) => (
-                          <button
-                            key={variant.id}
-                            disabled={variant.stock_qty <= 0}
-                            onClick={() => addToCart(variant, product)}
-                            className={cn(
-                              "p-2 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-0.5",
-                              variant.stock_qty <= 0
-                                ? "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
-                                : variant.is_low_stock
-                                ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 shadow-2xs"
-                                : "border-border bg-white text-text-primary hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
+                return (
+                  <div key={product.id} className="transition-colors hover:bg-surface/50">
+                    <div
+                      className="px-4 py-3 flex items-center justify-between gap-3 cursor-pointer select-none"
+                      onClick={() => {
+                        if (isMultiVariant) {
+                          setSelectedProduct(isExpanded ? null : product);
+                        } else {
+                          handleAddProduct(product);
+                        }
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="font-bold text-text-primary text-base truncate">
+                            {product.brand && (
+                              <span className="text-text-muted font-medium me-1">{product.brand}</span>
                             )}
-                          >
-                            <span className="font-black text-sm font-mono">T.{variant.size_eu}</span>
-                            <span className="text-2xs text-text-muted truncate max-w-full">
-                              {variant.colour === "N/A" ? t("common.na") : variant.colour}
+                            {product.name}
+                          </div>
+                          {product.barcode && (
+                            <span className="font-mono text-2xs text-text-muted bg-surface px-1.5 py-0.5 rounded border border-border/60">
+                              {product.barcode}
                             </span>
-                            <span className={cn(
-                              "text-2xs font-mono font-semibold px-1 rounded",
-                              variant.stock_qty <= 2 ? "text-amber-700 bg-amber-100/60" : "text-text-muted"
-                            )}>
-                              Qté: {variant.stock_qty}
-                            </span>
-                          </button>
-                        ))}
+                          )}
+                        </div>
+                        <div className="text-xs text-text-muted mt-0.5 flex items-center gap-2">
+                          <span className="font-semibold font-mono text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                            {formatDZD(product.sale_price)} DZD
+                          </span>
+                          <span>·</span>
+                          <span className={cn(
+                            "font-mono font-medium",
+                            product.total_stock <= 0 ? "text-danger" : product.has_low_stock ? "text-amber-600" : "text-text-muted"
+                          )}>
+                            {product.total_stock} {t("sales.in_stock")}
+                          </span>
+                        </div>
                       </div>
+
+                      {/* Action: direct 1-click addition or view sizes */}
+                      {isMultiVariant ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(isExpanded ? null : product);
+                          }}
+                          className="text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                        >
+                          <span>{isExpanded ? "Masquer pointures ↑" : t("sales.view_sizes")}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddProduct(product);
+                          }}
+                          className="btn-primary text-xs font-bold py-1.5 px-3 rounded-lg shadow-2xs hover:shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0"
+                        >
+                          <Plus size={14} className="stroke-[2.5]" />
+                          <span>{t("common.add", "Ajouter")}</span>
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {isMultiVariant && isExpanded && (
+                      <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-border/60">
+                        <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+                          {t("sales.choose_size_color")}
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                          {product.variants.map((variant) => (
+                            <button
+                              key={variant.id}
+                              disabled={variant.stock_qty <= 0}
+                              onClick={() => addToCart(variant, product)}
+                              className={cn(
+                                "p-2 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-0.5",
+                                variant.stock_qty <= 0
+                                  ? "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
+                                  : variant.is_low_stock
+                                  ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 shadow-2xs"
+                                  : "border-border bg-white text-text-primary hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
+                              )}
+                            >
+                              <span className="font-black text-sm font-mono">T.{variant.size_eu}</span>
+                              <span className="text-2xs text-text-muted truncate max-w-full">
+                                {variant.colour === "N/A" ? t("common.na") : variant.colour}
+                              </span>
+                              <span className={cn(
+                                "text-2xs font-mono font-semibold px-1 rounded",
+                                variant.stock_qty <= 2 ? "text-amber-700 bg-amber-100/60" : "text-text-muted"
+                              )}>
+                                Qté: {variant.stock_qty}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         ) : (
@@ -837,8 +934,9 @@ export default function SalesPage() {
             <p className="text-xs text-text-muted mt-1 max-w-sm">
               Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.
             </p>
-            <div className="flex gap-2 mt-4 text-2xs text-text-secondary">
+            <div className="flex gap-2 mt-4 text-2xs text-text-secondary flex-wrap justify-center">
               <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F2 = Rechercher</span>
+              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">Entrée = Ajouter au panier</span>
               <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F10 / . = Confirmer</span>
               <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F11 = Plein écran</span>
             </div>
@@ -942,87 +1040,102 @@ export default function SalesPage() {
                 </p>
               </div>
             ) : (
-              cart.map((item) => (
-                <div
-                  key={item.variant.id}
-                  className="p-3 bg-white rounded-xl border border-border/80 hover:border-primary-300 transition-all shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* High-visibility Pointure / Size Badge */}
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200">
-                          EU {item.variant.size_eu}
-                        </span>
-                        <span className="font-bold text-text-primary text-sm truncate">
-                          {item.product.brand} {item.product.name}
-                        </span>
-                      </div>
+              cart.map((item) => {
+                const isSimpleProduct = !item.variant.size_eu || item.variant.size_eu <= 0;
+                const hasCustomColour = item.variant.colour && item.variant.colour !== "N/A" && item.variant.colour !== "Standard" && item.variant.colour !== "Unique";
 
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-text-muted flex-wrap">
-                        {item.variant.colour !== "N/A" && (
-                          <span className="px-1.5 py-0.5 bg-surface rounded border border-border text-2xs font-medium">
-                            {item.variant.colour}
+                return (
+                  <div
+                    key={item.variant.id}
+                    className="p-3 bg-white rounded-xl border border-border/80 hover:border-primary-300 transition-all shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* High-visibility Pointure / Size Badge only for sized products */}
+                          {!isSimpleProduct && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200">
+                              EU {item.variant.size_eu}
+                            </span>
+                          )}
+                          <span className="font-bold text-text-primary text-sm truncate">
+                            {item.product.brand && (
+                              <span className="text-text-muted font-medium me-1">{item.product.brand}</span>
+                            )}
+                            {item.product.name}
                           </span>
-                        )}
-                        {item.promoName && (
-                          <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
-                            <Tag size={10} />
-                            {item.promoName}
-                          </span>
-                        )}
-                        <span className="font-mono text-2xs text-text-muted">
-                          {formatDZD(item.unit_price)} DZD / u
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Line Total */}
-                    <div className="text-end shrink-0">
-                      <div className="text-base font-black font-mono text-text-primary">
-                        {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
-                      </div>
-                      {item.discount > 0 && (
-                        <div className="text-2xs text-text-muted line-through font-mono">
-                          {formatDZD(item.unit_price * item.quantity)} DZD
                         </div>
-                      )}
+
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-text-muted flex-wrap">
+                          {hasCustomColour && (
+                            <span className="px-1.5 py-0.5 bg-surface rounded border border-border text-2xs font-medium">
+                              {item.variant.colour}
+                            </span>
+                          )}
+                          {item.variant.barcode && (
+                            <span className="font-mono text-2xs text-text-muted bg-surface px-1.5 py-0.5 rounded border border-border/50">
+                              {item.variant.barcode}
+                            </span>
+                          )}
+                          {item.promoName && (
+                            <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
+                              <Tag size={10} />
+                              {item.promoName}
+                            </span>
+                          )}
+                          <span className="font-mono text-2xs text-text-muted">
+                            {formatDZD(item.unit_price)} DZD / u
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Line Total */}
+                      <div className="text-end shrink-0">
+                        <div className="text-base font-black font-mono text-text-primary">
+                          {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
+                        </div>
+                        {item.discount > 0 && (
+                          <div className="text-2xs text-text-muted line-through font-mono">
+                            {formatDZD(item.unit_price * item.quantity)} DZD
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quantity & Actions row */}
+                    <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/60">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => updateQuantity(item.variant.id, -1)}
+                          className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                          title="Diminuer la quantité"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="w-8 text-center text-sm font-black font-mono text-text-primary">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.variant.id, 1)}
+                          className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                          title="Augmenter la quantité"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => removeItem(item.variant.id)}
+                        className="text-xs text-text-muted hover:text-danger hover:bg-danger-light px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                        title="Supprimer du panier"
+                      >
+                        <X size={12} />
+                        <span>{t("common.delete", "Supprimer")}</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Quantity & Actions row */}
-                  <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/60">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => updateQuantity(item.variant.id, -1)}
-                        className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
-                        title="Diminuer la quantité"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="w-8 text-center text-sm font-black font-mono text-text-primary">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.variant.id, 1)}
-                        className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
-                        title="Augmenter la quantité"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => removeItem(item.variant.id)}
-                      className="text-xs text-text-muted hover:text-danger hover:bg-danger-light px-2 py-1 rounded-md transition-colors flex items-center gap-1"
-                      title="Supprimer du panier"
-                    >
-                      <X size={12} />
-                      <span>{t("common.delete", "Supprimer")}</span>
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

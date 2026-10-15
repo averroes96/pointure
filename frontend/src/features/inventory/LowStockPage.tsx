@@ -50,8 +50,12 @@ function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
                   <span className="font-medium text-text-primary">{variant.product_name}</span>
                 </div>
               </td>
-              <td className="font-mono text-text-muted">{variant.size_eu}</td>
-              <td className="text-text-muted">{variant.colour === "N/A" ? t("common.na") : variant.colour}</td>
+              <td className="font-mono text-text-muted">{variant.size_eu > 0 ? variant.size_eu : "—"}</td>
+              <td className="text-text-muted">
+                {variant.colour === "N/A" || variant.colour === "Standard"
+                  ? (variant.size_eu > 0 ? t("common.na") : "—")
+                  : variant.colour}
+              </td>
               <td className="text-end">
                 <span
                   className={cn(
@@ -172,7 +176,11 @@ export default function LowStockPage() {
 
   function handleOrderVariant(variant: Variant) {
     const needed = Math.max(1, (variant.alert_threshold ?? 0) - variant.stock_qty);
-    const parts = [variant.product_name, variant.size_eu, variant.colour].filter(Boolean);
+    const parts = [
+      variant.product_name,
+      variant.size_eu > 0 ? `T${variant.size_eu}` : null,
+      variant.colour && variant.colour !== "N/A" && variant.colour !== "Standard" ? variant.colour : null,
+    ].filter(Boolean);
     const description = parts.join(" — ");
     navigate("/purchase-orders/new", {
       state: {

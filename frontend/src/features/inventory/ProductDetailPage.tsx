@@ -36,7 +36,7 @@ import {
   Check,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
-import type { Product } from "@/types";
+import type { Product, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
@@ -126,6 +126,15 @@ export default function ProductDetailPage() {
     deltas: {},
   });
   const [adjustError, setAdjustError] = useState<string | null>(null);
+
+  // ── Store settings (Simple Mode vs Variants Mode) ────────────────────────
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const enableVariants = storeSettings?.enable_variants ?? false;
+  const [showMatrixOverride, setShowMatrixOverride] = useState(false);
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
@@ -240,6 +249,10 @@ export default function ProductDetailPage() {
 
   const activeVariants = product.variants.filter((v) => v.is_active);
   const outOfStock = product.total_stock === 0;
+  const defaultVariant = product.variants.find((v) => v.size_eu <= 0) || product.variants[0];
+  const hasMultipleVariants = product.variants.length > 1;
+  const hasRealSizes = product.variants.some((v) => v.size_eu > 0);
+  const isSimpleProduct = !enableVariants ? (!hasRealSizes || !hasMultipleVariants) : (!hasRealSizes && !hasMultipleVariants);
 
   return (
     <div className="space-y-5">
@@ -464,19 +477,231 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ── SKU Matrix ──────────────────────────────────────────────────────── */}
-      <div className="card p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Tag size={16} className="text-primary-500" />
-          <h2 className="text-sm font-semibold text-text-primary">Variantes (Taille × Couleur)</h2>
+      {/* ── Single-Product Stock & Barcode Card (Simple Mode) ──────────────── */}
+      {isSimpleProduct && !showMatrixOverride ? (
+        <div className="card p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+                <Package size={17} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-text-primary">Stock & Code-barres</h2>
+                  <span className="badge badge-neutral text-2xs">Article Unique</span>
+                </div>
+                <p className="text-xs text-text-muted">Gestion directe du stock et étiquette pour cet article</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {defaultVariant?.barcode && (
+                <button
+                  type="button"
+                  onClick={() => printLabels(defaultVariant.id, 1)}
+                  className="btn-secondary btn-sm flex items-center gap-1.5"
+                  title="Imprimer une étiquette"
+                >
+                  <Printer size={13} />
+                  Imprimer étiquette
+                </button>
+              )}
+              {isManager && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (defaultVariant) {
+                      setAdjustForm({
+                        reason: "adjustment",
+                        notes: "",
+                        deltas: { [defaultVariant.id]: "" },
+                      });
+                    }
+                    setAdjustOpen(true);
+                  }}
+                  className="btn-secondary btn-sm flex items-center gap-1.5"
+                >
+                  <BarChart3 size={13} />
+                  Ajuster stock
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowMatrixOverride(true)}
+                className="text-xs text-text-muted hover:text-primary-600 transition-colors ms-1"
+              >
+                Passer en vue détaillée
+              </button>
+            </div>
+          </div>
+
+          {/* 3-column overview grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            {/* 1. Stock quantity & quick adjust */}
+            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                  Quantité en rayon
+                </span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span
+                    className={cn(
+                      "text-3xl font-mono font-bold",
+                      outOfStock ? "text-danger" : product.is_total_low_stock ? "text-warning" : "text-success"
+                    )}
+                  >
+                    {defaultVariant?.stock_qty ?? product.total_stock}
+                  </span>
+                  <span className="text-xs text-text-muted">unités</span>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="text-xs text-text-muted">Seuil d'alerte : {product.alert_threshold || 3}</span>
+                {isManager && defaultVariant && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustForm({
+                          reason: "adjustment",
+                          notes: "Ajustement rapide -1",
+                          deltas: { [defaultVariant.id]: "-1" },
+                        });
+                        setAdjustOpen(true);
+                      }}
+                      className="w-7 h-7 rounded border border-border bg-white hover:bg-surface flex items-center justify-center text-text-muted hover:text-danger text-xs font-bold"
+                      title="-1 unité"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustForm({
+                          reason: "reception",
+                          notes: "Réception rapide +1",
+                          deltas: { [defaultVariant.id]: "1" },
+                        });
+                        setAdjustOpen(true);
+                      }}
+                      className="w-7 h-7 rounded border border-border bg-white hover:bg-surface flex items-center justify-center text-text-muted hover:text-success text-xs font-bold"
+                      title="+1 unité"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Barcode & Live SVG */}
+            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                  Code-barres de l'article
+                </span>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="font-mono text-sm font-semibold text-text-primary">
+                    {defaultVariant?.barcode || product.barcode || "Non généré"}
+                  </span>
+                  {defaultVariant?.barcode && (
+                    <button
+                      type="button"
+                      onClick={() => copyBarcode(defaultVariant.id, defaultVariant.barcode!)}
+                      className="btn-ghost btn-sm p-1 text-text-muted hover:text-primary-600"
+                      title="Copier le code-barres"
+                    >
+                      {copiedId === defaultVariant.id ? (
+                        <Check size={14} className="text-success" />
+                      ) : (
+                        <Copy size={14} />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-center min-h-[48px]">
+                {defaultVariant?.barcode ? (
+                  <BarcodeSvg
+                    value={defaultVariant.barcode}
+                    height={38}
+                    showText={false}
+                    className="max-w-full"
+                  />
+                ) : (
+                  <span className="text-xs text-text-muted">Aucun code-barres assigné</span>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Emplacement & Informations carton */}
+            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                  Stockage & Emplacement
+                </span>
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-muted">Emplacement :</span>
+                    <span className="font-medium text-text-primary">
+                      {product.location ? (
+                        <span className="inline-flex items-center gap-1 text-primary">
+                          <MapPin size={11} /> {product.location}
+                        </span>
+                      ) : (
+                        "Non renseigné"
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-muted">{t("product.pairs_per_carton", "Pièces par carton")} :</span>
+                    <span className="font-mono font-medium text-text-primary">
+                      {product.pairs_per_carton ?? 10}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-muted">Référence SKU :</span>
+                    <span className="font-mono text-text-primary">
+                      {product.reference || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-2xs text-text-muted">
+                <span>Créé le {new Date(product.created_at).toLocaleDateString("fr-FR")}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <SkuMatrix
-          productId={product.id}
-          variants={product.variants}
-          onSave={() => queryClient.invalidateQueries({ queryKey: ["product", id] })}
-          readOnly={!isManager}
-        />
-      </div>
+      ) : (
+        /* ── SKU Matrix (Multi-variants or override) ────────────────────────── */
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag size={16} className="text-primary-500" />
+              <h2 className="text-sm font-semibold text-text-primary">Variantes (Taille × Couleur)</h2>
+            </div>
+            {isSimpleProduct && showMatrixOverride && (
+              <button
+                type="button"
+                onClick={() => setShowMatrixOverride(false)}
+                className="text-xs text-text-muted hover:text-primary-600 transition-colors"
+              >
+                Revenir à la vue simple
+              </button>
+            )}
+          </div>
+          <SkuMatrix
+            productId={product.id}
+            variants={product.variants}
+            onSave={() => queryClient.invalidateQueries({ queryKey: ["product", id] })}
+            readOnly={!isManager}
+          />
+        </div>
+      )}
 
       {/* ── Stock by Branch (collapsible) ────────────────────────────────────── */}
       <div className="card overflow-hidden">
@@ -499,6 +724,36 @@ export default function ProductDetailPage() {
               </div>
             ) : !branchStock || branchStock.length === 0 ? (
               <p className="text-sm text-text-muted text-center py-4">Aucune succursale configurée.</p>
+            ) : isSimpleProduct ? (
+              <div className="overflow-x-auto">
+                <table className="data-table text-xs">
+                  <thead>
+                    <tr>
+                      <th>Succursale</th>
+                      <th className="text-end">Stock disponible</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {branchStock.map((branch) => {
+                      const branchTotal = branch.variants.reduce((s, v) => s + v.stock, 0);
+                      return (
+                        <tr key={branch.branch_id}>
+                          <td className="font-medium">{branch.branch_name}</td>
+                          <td className="text-end font-mono font-bold">
+                            <span
+                              className={cn(
+                                branchTotal === 0 ? "text-danger" : branchTotal > 0 ? "text-success" : "text-text-muted"
+                              )}
+                            >
+                              {branchTotal}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="data-table text-xs">
@@ -561,98 +816,102 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      {/* ── Codes-barres (collapsible) ──────────────────────────────────────── */}
-      <div className="card overflow-hidden">
-        <button
-          onClick={() => setBarcodesOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-text-primary hover:bg-surface/60 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Barcode size={15} className="text-primary-500" />
-            Codes-barres des variantes
-            <span className="text-xs font-normal text-text-muted">
-              ({product.variants.filter((v) => v.barcode).length} codes)
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {barcodesOpen && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handlePrintLabels(); }}
-                disabled={printLoading}
-                className="btn-secondary btn-sm"
-                title="Imprimer les étiquettes"
-              >
-                {printLoading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <Printer size={13} />}
-                Imprimer étiquettes
-              </button>
-            )}
-            {barcodesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </div>
-        </button>
-
-        {barcodesOpen && (
-          <div className="border-t border-border px-5 py-4">
-            <div className="overflow-x-auto">
-              <table className="data-table text-sm">
-                <thead>
-                  <tr>
-                    <th>{t("inventory.size")}</th>
-                    <th>{t("inventory.colour")}</th>
-                    <th>{t("inventory.barcode")}</th>
-                    <th className="text-center">Aperçu</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.variants
-                    .filter((v) => v.is_active)
-                    .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
-                    .map((v) => (
-                      <tr key={v.id}>
-                        <td className="font-mono font-semibold">EU {v.size_eu}</td>
-                        <td>{v.colour === "N/A" ? t("common.na") : v.colour}</td>
-                        <td>
-                          {v.barcode ? (
-                            <span className="font-mono text-text-primary">{v.barcode}</span>
-                          ) : (
-                            <span className="text-text-muted text-xs">Non généré</span>
-                          )}
-                        </td>
-                        <td className="text-center py-2">
-                          {v.barcode && (
-                            <BarcodeSvg
-                              value={v.barcode}
-                              height={36}
-                              showText={false}
-                              className="inline-block text-text-primary"
-                            />
-                          )}
-                        </td>
-                        <td>
-                          {v.barcode && (
-                            <button
-                              onClick={() => copyBarcode(v.id, v.barcode!)}
-                              className="btn-ghost btn-sm text-text-muted hover:text-primary-500"
-                              title="Copier"
-                            >
-                              {copiedId === v.id ? (
-                                <Check size={14} className="text-success" />
-                              ) : (
-                                <Copy size={14} />
-                              )}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+      {/* ── Codes-barres (collapsible for multi-variants) ───────────────────── */}
+      {(!isSimpleProduct || showMatrixOverride) && (
+        <div className="card overflow-hidden">
+          <button
+            onClick={() => setBarcodesOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-text-primary hover:bg-surface/60 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Barcode size={15} className="text-primary-500" />
+              Codes-barres des variantes
+              <span className="text-xs font-normal text-text-muted">
+                ({product.variants.filter((v) => v.barcode).length} codes)
+              </span>
             </div>
-          </div>
-        )}
-      </div>
+            <div className="flex items-center gap-3">
+              {barcodesOpen && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePrintLabels(); }}
+                  disabled={printLoading}
+                  className="btn-secondary btn-sm"
+                  title="Imprimer les étiquettes"
+                >
+                  {printLoading
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <Printer size={13} />}
+                  Imprimer étiquettes
+                </button>
+              )}
+              {barcodesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
+          </button>
+
+          {barcodesOpen && (
+            <div className="border-t border-border px-5 py-4">
+              <div className="overflow-x-auto">
+                <table className="data-table text-sm">
+                  <thead>
+                    <tr>
+                      <th>{t("inventory.size")}</th>
+                      <th>{t("inventory.colour")}</th>
+                      <th>{t("inventory.barcode")}</th>
+                      <th className="text-center">Aperçu</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.variants
+                      .filter((v) => v.is_active)
+                      .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
+                      .map((v) => (
+                        <tr key={v.id}>
+                          <td className="font-mono font-semibold">
+                            {v.size_eu > 0 ? `EU ${v.size_eu}` : "Standard"}
+                          </td>
+                          <td>{v.colour === "N/A" ? t("common.na") : v.colour}</td>
+                          <td>
+                            {v.barcode ? (
+                              <span className="font-mono text-text-primary">{v.barcode}</span>
+                            ) : (
+                              <span className="text-text-muted text-xs">Non généré</span>
+                            )}
+                          </td>
+                          <td className="text-center py-2">
+                            {v.barcode && (
+                              <BarcodeSvg
+                                value={v.barcode}
+                                height={36}
+                                showText={false}
+                                className="inline-block text-text-primary"
+                              />
+                            )}
+                          </td>
+                          <td>
+                            {v.barcode && (
+                              <button
+                                onClick={() => copyBarcode(v.id, v.barcode!)}
+                                className="btn-ghost btn-sm text-text-muted hover:text-primary-500"
+                                title="Copier"
+                              >
+                                {copiedId === v.id ? (
+                                  <Check size={14} className="text-success" />
+                                ) : (
+                                  <Copy size={14} />
+                                )}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Stock Adjustment Modal ────────────────────────────────────────────── */}
       {adjustOpen && (
@@ -724,7 +983,7 @@ export default function ProductDetailPage() {
                 <table className="data-table text-sm w-full">
                   <thead className="bg-surface sticky top-0 z-10">
                     <tr>
-                      <th className="w-1/3">Variante</th>
+                      <th className="w-1/3">{isSimpleProduct ? "Article" : "Variante"}</th>
                       <th className="w-1/4 text-center">Stock actuel</th>
                       <th className="w-5/12 text-center">Ajustement (±)</th>
                     </tr>
@@ -738,10 +997,16 @@ export default function ProductDetailPage() {
                         const deltaVal = parseInt(deltaStr) || 0;
                         const newStock = v.stock_qty + deltaVal;
 
+                        const variantLabel = v.size_eu > 0
+                          ? `EU${v.size_eu} · ${v.colour === "N/A" ? t("common.na") : v.colour}`
+                          : (v.colour && v.colour !== "Standard" && v.colour !== "N/A"
+                              ? `${product.name} (${v.colour})`
+                              : product.name);
+
                         return (
                           <tr key={v.id}>
                             <td className="font-medium text-text-primary">
-                              EU{v.size_eu} · {v.colour === "N/A" ? t("common.na") : v.colour}
+                              {variantLabel}
                             </td>
                             <td className="text-center font-mono text-text-muted">
                               {v.stock_qty}

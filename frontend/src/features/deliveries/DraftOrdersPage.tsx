@@ -253,7 +253,11 @@ export default function DraftOrdersPage() {
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-medium text-text-primary">{item.variant.product_name}</div>
                         <div className="text-xs text-text-muted truncate">
-                          T{item.variant.size_eu} · {item.variant.colour === "N/A" ? "N/A" : item.variant.colour}
+                          {item.variant.size_eu > 0
+                            ? `T${item.variant.size_eu} · ${item.variant.colour === "N/A" ? "N/A" : item.variant.colour}`
+                            : (item.variant.colour && item.variant.colour !== "Standard" && item.variant.colour !== "N/A"
+                                ? item.variant.colour
+                                : "Article standard")}
                         </div>
                       </div>
                       <input 
