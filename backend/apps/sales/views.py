@@ -1,5 +1,6 @@
 """Sales API views."""
 import datetime
+import logging
 from decimal import Decimal
 
 from django.db import transaction
@@ -15,6 +16,8 @@ from .serializers import (
     AddPaymentSerializer, CashReconciliationSerializer, CreateExchangeSerializer,
     CreateReconciliationSerializer, CreateReturnSerializer, CreateSaleSerializer, SaleSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -38,7 +41,9 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = CreateSaleSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            logger.warning("Create sale validation failed: %s | payload: %s", serializer.errors, request.data)
+            serializer.is_valid(raise_exception=True)
         sale = serializer.create_sale(
             serializer.validated_data,
             tenant=request.tenant,

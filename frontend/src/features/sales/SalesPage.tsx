@@ -466,9 +466,16 @@ export default function SalesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total, isVersement]);
 
+  const isSubmittingRef = useRef(false);
+
   // Sale mutation
   const saleMutation = useMutation({
     mutationFn: () => {
+      const currentCart = cartRef.current;
+      if (!currentCart || currentCart.length === 0) {
+        throw new Error("Le panier est vide.");
+      }
+
       const effectivePayments = payments.filter((p: PaymentLine) => p.amount > 0);
       const paymentLines: PaymentLine[] = effectivePayments.length > 0
         ? effectivePayments
@@ -478,17 +485,17 @@ export default function SalesPage() {
         branch_id: currentBranch?.id ?? null,
         client_id: selectedClient?.id ?? null,
         redeem_points: redeemPoints,
-        items: cart.map((i) => ({
+        items: currentCart.map((i) => ({
           variant_id: i.variant.id,
           quantity: i.quantity,
-          unit_price: i.unit_price.toFixed(2),
-          discount_amount: i.discount.toFixed(2),
+          unit_price: Number(i.unit_price).toFixed(2),
+          discount_amount: Number(i.discount || 0).toFixed(2),
         })),
         payments: paymentLines.map((p: PaymentLine) => ({
           method: p.method,
           amount: Number(p.amount).toFixed(2),
         })),
-        cart_discount: cartDiscount.toFixed(2),
+        cart_discount: Number(cartDiscount || 0).toFixed(2),
         is_formal: isFormal,
         is_versement: isVersement,
       }).then((r) => r.data);
@@ -504,10 +511,14 @@ export default function SalesPage() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
     },
+    onSettled: () => {
+      isSubmittingRef.current = false;
+    },
   });
 
   function handleConfirmSale() {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || saleMutation.isPending || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     saleMutation.mutate();
   }
 
@@ -538,13 +549,7 @@ export default function SalesPage() {
     const onKeyDown = (e: KeyboardEvent) => {
       const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
 
-      if (e.key === "F2") {
-        e.preventDefault();
-        onSearch();
-      } else if (e.key === "F10") {
-        e.preventDefault();
-        onConfirm();
-      } else if (isPoint) {
+      if (isPoint) {
         const target = e.target as HTMLElement;
         const isSearch = target === searchRef.current;
         const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
@@ -565,6 +570,7 @@ export default function SalesPage() {
       }
     };
 
+    // Note: F1, F2, F10 are handled globally by useGlobalShortcuts and dispatched as custom events below.
     window.addEventListener("app-shortcut-search", onSearch);
     window.addEventListener("app-shortcut-confirm", onConfirm);
     window.addEventListener("app-shortcut-new-sale", onNewSale);

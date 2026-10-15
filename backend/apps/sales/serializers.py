@@ -80,7 +80,7 @@ class CreateSaleItemInput(serializers.Serializer):
 
 
 class CreatePaymentInput(serializers.Serializer):
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
     method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
