@@ -31,7 +31,11 @@ const dataDir = isWindows && process.env.PROGRAMDATA
   ? path.join(process.env.PROGRAMDATA, 'ShoeDZ')
   : path.join(app.getPath('appData'), 'ShoeDZ');
 const logsDir = path.join(dataDir, 'logs');
-fs.mkdirSync(logsDir, { recursive: true });
+try {
+  fs.mkdirSync(logsDir, { recursive: true });
+} catch (err) {
+  // Directory might already exist or handled by installer permissions
+}
 
 // ── Logging ─────────────────────────────────────────────────────────────────
 // desktop.log  : Electron main process, backend stdout/stderr, renderer console,

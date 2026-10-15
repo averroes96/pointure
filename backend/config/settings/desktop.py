@@ -35,7 +35,10 @@ elif _appdata:
 else:
     DATA_DIR = BASE_DIR / "data"
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # ─────────────────────────────────────────────
 # Desktop mode flags
@@ -203,8 +206,11 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 # Static & Media files
 # ─────────────────────────────────────────────
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+STATIC_ROOT = DATA_DIR / "staticfiles"
+try:
+    STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Add built SPA directory if bundled
@@ -225,7 +231,10 @@ WHITENOISE_IMMUTABLE_FILE_TEST = r"^.+[.-][0-9a-zA-Z_-]{8,}\.[A-Za-z0-9]+$"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = DATA_DIR / "media"
-MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+try:
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -367,7 +376,10 @@ PDF_BRIDGE_TOKEN = config("PDF_BRIDGE_TOKEN", default="")
 # Logging
 # ─────────────────────────────────────────────
 LOG_DIR = DATA_DIR / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 LOGGING = {
     "version": 1,

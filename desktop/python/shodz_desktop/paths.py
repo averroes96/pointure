@@ -22,7 +22,10 @@ def get_data_dir() -> Path:
         # Dev fallback inside repo
         p = Path(__file__).resolve().parent.parent.parent.parent / "backend" / "data"
 
-    p.mkdir(parents=True, exist_ok=True)
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
     return p
 
 
@@ -36,5 +39,8 @@ def get_db_path() -> Path:
 
 def get_logs_dir() -> Path:
     p = get_data_dir() / "logs"
-    p.mkdir(parents=True, exist_ok=True)
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
     return p

@@ -7,6 +7,7 @@
   CreateDirectory "$APPDATA\ShoeDZ\backups"
   CreateDirectory "$APPDATA\ShoeDZ\media"
   CreateDirectory "$APPDATA\ShoeDZ\logs"
+  CreateDirectory "$APPDATA\ShoeDZ\staticfiles"
 
   ; Grant full modify permissions to local Users using built-in icacls
   ; S-1-5-32-545 is the universal language-independent SID for Built-in Users
