@@ -467,6 +467,21 @@ export default function SalesPage() {
   }, [total, isVersement]);
 
   const isSubmittingRef = useRef(false);
+  const isQuickModeRef = useRef(false);
+  const quickSaleToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [quickSaleToast, setQuickSaleToast] = useState<{
+    receiptNumber: string;
+    total: number;
+    itemsCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (quickSaleToastTimerRef.current) {
+        clearTimeout(quickSaleToastTimerRef.current);
+      }
+    };
+  }, []);
 
   // Sale mutation
   const saleMutation = useMutation({
@@ -501,7 +516,27 @@ export default function SalesPage() {
       }).then((r) => r.data);
     },
     onSuccess: (data) => {
-      setReceipt(data);
+      const wasQuickMode = isQuickModeRef.current;
+      if (wasQuickMode) {
+        // Dot (.) quick sale: don't render receipt modal, show confirmation toast
+        setReceipt(null);
+        if (quickSaleToastTimerRef.current) {
+          clearTimeout(quickSaleToastTimerRef.current);
+        }
+        setQuickSaleToast({
+          receiptNumber: data.receipt_number || "",
+          total: Number(data.total_amount) || 0,
+          itemsCount: data.items?.length || 0,
+        });
+        quickSaleToastTimerRef.current = setTimeout(() => {
+          setQuickSaleToast(null);
+        }, 4000);
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      } else {
+        setReceipt(data);
+      }
+
       setCart([]);
       setCartDiscount(0);
       setRedeemPoints(0);
@@ -516,9 +551,10 @@ export default function SalesPage() {
     },
   });
 
-  function handleConfirmSale() {
+  function handleConfirmSale(quickMode = false) {
     if (cart.length === 0 || saleMutation.isPending || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
+    isQuickModeRef.current = quickMode;
     saleMutation.mutate();
   }
 
@@ -535,7 +571,7 @@ export default function SalesPage() {
         searchRef.current?.focus();
         return;
       }
-      handleConfirmSale();
+      handleConfirmSale(false);
     };
 
     const onNewSale = () => {
@@ -560,7 +596,13 @@ export default function SalesPage() {
         if (!isOtherInput || (isSearch && search.trim() === "")) {
           if (cart.length > 0 || receipt) {
             e.preventDefault();
-            onConfirm();
+            if (receipt) {
+              setReceipt(null);
+              searchRef.current?.focus();
+              return;
+            }
+            // Dot (.) triggers quick sale mode directly!
+            handleConfirmSale(true);
           }
         }
       } else if (e.key === "Escape") {
@@ -748,7 +790,41 @@ export default function SalesPage() {
     loyaltyAccount.points_balance >= (loyaltyProgram?.min_redemption_points ?? 999999);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[calc(100vh-100px)]">
+    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[calc(100vh-100px)] relative">
+      {/* ── Quick Sale Confirmation Toast ── */}
+      {quickSaleToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 right-5 z-50 flex items-center gap-3.5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md animate-in fade-in slide-in-from-top-3 duration-200 max-w-md"
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+            <Check size={20} className="stroke-[2.5]" />
+          </div>
+          <div className="flex-1 min-w-0 pr-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-white">{t("sales.sale_confirmed", "Vente validée")}</span>
+              {quickSaleToast.receiptNumber && (
+                <span className="font-mono text-2xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-800/60 px-1.5 py-0.5 rounded">
+                  {quickSaleToast.receiptNumber}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5 truncate">
+              {quickSaleToast.itemsCount} {quickSaleToast.itemsCount > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")} ·{" "}
+              <strong className="text-white font-mono">{formatDZD(quickSaleToast.total)} DZD</strong>
+            </p>
+          </div>
+          <button
+            onClick={() => setQuickSaleToast(null)}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Fermer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* ── Left: Product Search & Selection ── */}
       <div className="w-full lg:w-7/12 flex flex-col gap-3">
         {/* POS Header & Shortcuts */}
@@ -1345,7 +1421,7 @@ export default function SalesPage() {
 
             {/* ── Big Confirm Sale Button ── */}
             <button
-              onClick={handleConfirmSale}
+              onClick={() => handleConfirmSale(false)}
               disabled={
                 cart.length === 0 ||
                 saleMutation.isPending ||
