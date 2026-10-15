@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, Keyboard, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, Keyboard, Download, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { applyDirection } from "@/lib/i18n";
@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { PaginatedResponse } from "@/lib/api";
 import type { Notification } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const LANGUAGES = [
@@ -49,7 +49,18 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showBranchMenu, setShowBranchMenu] = useState(false);
+  const [updateDownloaded, setUpdateDownloaded] = useState<{ version?: string } | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!window.electronAPI?.onUpdateStatus) return;
+    const cleanup = window.electronAPI.onUpdateStatus((data) => {
+      if (data.status === "downloaded") {
+        setUpdateDownloaded({ version: data.version });
+      }
+    });
+    return cleanup;
+  }, []);
 
   const { data: unreadCount } = useQuery({
     queryKey: ["notifications", "unread"],
@@ -150,6 +161,19 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
 
       {/* Right Actions */}
       <div className="flex items-center gap-1">
+        {/* Desktop App Update Ready */}
+        {updateDownloaded && (
+          <button
+            onClick={() => window.electronAPI?.installUpdate?.()}
+            className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white text-xs flex items-center gap-1.5 shadow-sm animate-pulse mr-1"
+            title="Cliquez pour redémarrer et appliquer la mise à jour ShoeDZ"
+          >
+            <Download size={13} />
+            <span className="font-semibold hidden sm:inline">Mise à jour v{updateDownloaded.version} prête · Redémarrer</span>
+            <span className="font-semibold sm:hidden">v{updateDownloaded.version}</span>
+          </button>
+        )}
+
         {/* Keyboard shortcuts trigger */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("app-toggle-shortcuts-modal"))}

@@ -15,6 +15,7 @@ const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const crypto = require('crypto');
 const log = require('electron-log');
+const { autoUpdater } = require('electron-updater');
 const { startPdfBridge, stopPdfBridge } = require('./pdf-bridge');
 
 // ── Single instance ─────────────────────────────────────────────────────────
@@ -427,6 +428,81 @@ function killBackend() {
   }
 }
 
+// ── Auto Updater Configuration ──────────────────────────────────────────────
+autoUpdater.logger = log;
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = false;
+
+function sendUpdateStatus(status, data = {}) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status, ...data });
+  }
+}
+
+autoUpdater.on('checking-for-update', () => {
+  log.info('[Updater] Checking for updates...');
+  sendUpdateStatus('checking');
+});
+
+autoUpdater.on('update-available', (info) => {
+  log.info(`[Updater] Update available: v${info.version}`);
+  sendUpdateStatus('available', {
+    version: info.version,
+    releaseDate: info.releaseDate,
+    releaseNotes: info.releaseNotes,
+  });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  log.info(`[Updater] Up to date (v${app.getVersion()})`);
+  sendUpdateStatus('not-available', { currentVersion: app.getVersion() });
+});
+
+autoUpdater.on('error', (err) => {
+  log.warn('[Updater] Error:', err.message);
+  sendUpdateStatus('error', { message: err.message });
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  sendUpdateStatus('downloading', {
+    percent: Math.round(progressObj.percent),
+    bytesPerSecond: progressObj.bytesPerSecond,
+    transferred: progressObj.transferred,
+    total: progressObj.total,
+  });
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  log.info(`[Updater] Update downloaded: v${info.version}`);
+  sendUpdateStatus('downloaded', { version: info.version });
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Mise à jour prête',
+      message: `La mise à jour ShoeDZ ${info.version} a été téléchargée.`,
+      detail: 'Souhaitez-vous redémarrer maintenant pour l\'installer ? Vos magasins et données sont conservés.',
+      buttons: ['Redémarrer maintenant', 'Plus tard'],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) {
+        quitAndInstallUpdate();
+      }
+    });
+  }
+});
+
+function quitAndInstallUpdate() {
+  log.info('[Updater] Terminating services & launching installer...');
+  isQuitting = true;
+  stopPdfBridge();
+  killBackend();
+  setTimeout(() => {
+    autoUpdater.quitAndInstall(false, true);
+  }, 500);
+}
+
 // ── Tray ────────────────────────────────────────────────────────────────────
 function createTray() {
   const iconPath = path.join(__dirname, 'icon.ico');
@@ -434,6 +510,20 @@ function createTray() {
   tray = new Tray(iconPath);
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Ouvrir ShoeDZ', click: () => { if (mainWindow) mainWindow.show(); } },
+    {
+      label: 'Vérifier les mises à jour',
+      click: () => {
+        if (app.isPackaged) {
+          autoUpdater.checkForUpdates();
+        } else {
+          dialog.showMessageBox({
+            type: 'info',
+            title: 'Mode développement',
+            message: 'La mise à jour automatique est active uniquement dans l\'application installée.',
+          });
+        }
+      },
+    },
     { label: 'Ouvrir dossier des sauvegardes', click: () => shell.openPath(path.join(dataDir, 'backups')) },
     { label: 'Ouvrir dossier des journaux', click: () => shell.openPath(logsDir) },
     { type: 'separator' },
@@ -458,6 +548,27 @@ ipcMain.handle('toggle-fullscreen', () => {
   return false;
 });
 ipcMain.handle('is-fullscreen', () => (mainWindow ? mainWindow.isFullScreen() : false));
+
+ipcMain.handle('check-for-updates', async () => {
+  if (!app.isPackaged) {
+    return { status: 'dev-mode', message: 'Mises à jour actives uniquement dans l\'application installée.' };
+  }
+  try {
+    const res = await autoUpdater.checkForUpdates();
+    return { status: 'ok', updateInfo: res?.updateInfo };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  if (!app.isPackaged) return;
+  return await autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('install-update', () => {
+  quitAndInstallUpdate();
+});
 
 app.on('second-instance', () => {
   const win = mainWindow || splashWindow;
@@ -506,6 +617,16 @@ app.whenReady().then(async () => {
 
     splashStatus("Ouverture de l'application...");
     createMainWindow(backendPort);
+
+    // Check for updates in the background after startup
+    if (app.isPackaged) {
+      setTimeout(() => {
+        log.info('[Startup] Initiating background update check...');
+        autoUpdater.checkForUpdates().catch((err) => {
+          log.warn('[Updater] Background check failed:', err.message);
+        });
+      }, 5000);
+    }
   } catch (err) {
     log.error('[Startup] Failure:', err);
     splashError(`${err.message}\n\nJournaux : ${logsDir}`);

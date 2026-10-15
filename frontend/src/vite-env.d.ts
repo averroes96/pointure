@@ -9,6 +9,19 @@ export interface KeyboardShortcutData {
   fullscreen?: boolean;
 }
 
+export interface UpdateStatusData {
+  status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  releaseDate?: string;
+  releaseNotes?: string;
+  currentVersion?: string;
+  percent?: number;
+  bytesPerSecond?: number;
+  transferred?: number;
+  total?: number;
+  message?: string;
+}
+
 export interface ElectronAPI {
   getVersion: () => Promise<string>;
   openBackupsFolder: () => Promise<void>;
@@ -16,6 +29,10 @@ export interface ElectronAPI {
   quitApp: () => Promise<void>;
   toggleFullscreen: () => Promise<boolean>;
   isFullscreen: () => Promise<boolean>;
+  checkForUpdates: () => Promise<{ status: string; updateInfo?: any; message?: string }>;
+  downloadUpdate: () => Promise<any>;
+  installUpdate: () => Promise<void>;
+  onUpdateStatus: (callback: (data: UpdateStatusData) => void) => () => void;
   onStatus: (callback: (msg: string) => void) => () => void;
   onError: (callback: (msg: string) => void) => () => void;
   onShortcut: (callback: (data: KeyboardShortcutData) => void) => () => void;

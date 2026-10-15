@@ -18,6 +18,7 @@
   "license": "Proprietary",
   "dependencies": {
     "electron-log": "^5.2.0",
+    "electron-updater": "^6.8.9",
     "get-port": "^7.1.0",
     "wait-on": "^7.2.0"
   },
@@ -30,6 +31,12 @@
     "productName": "ShoeDZ",
     "copyright": "Copyright © 2026 ShoeDZ",
     "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "averroes96",
+      "repo": "pointure",
+      "releaseType": "release"
+    },
     "win": {
       "target": [
         "nsis"
