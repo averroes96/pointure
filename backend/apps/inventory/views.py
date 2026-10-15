@@ -683,7 +683,7 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Variant.objects.select_related("product")
     serializer_class = VariantSerializer
     filterset_fields = ["product", "size_eu", "colour", "is_active"]
-    search_fields = ["barcode", "colour", "product__name", "product__brand"]
+    search_fields = ["barcode", "colour", "product__name", "product__brand", "product__reference"]
 
     def get_queryset(self):
         from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value

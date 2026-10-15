@@ -5,11 +5,12 @@ from decimal import Decimal
 from django.db import transaction
 from dbfread import DBF
 
-from apps.core.models import Tenant, Branch
-from apps.suppliers.models import Supplier
+from apps.core.models import Tenant, Branch, StoreSettings
+from apps.suppliers.models import Supplier, PurchaseOrder, POLine, POStatusChoices
 from apps.clients.models import Client, ClientLedger
 from apps.inventory.models import (
-    Product, Variant, StockMovement, MovementReasonChoices, CategoryChoices, GenderChoices
+    Product, Variant, StockMovement, MovementReasonChoices, CategoryChoices, GenderChoices,
+    DefectItem, DefectStatusChoices
 )
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices, PaymentMethodChoices, Payment
 
@@ -117,15 +118,29 @@ class LegacyDBFImporter:
         self.logger = logger
         self.options = options or {}
         self.software_type = self.options.get("software_type", "retail")
+        
+        # Easy Mode is True by default for Algerian shoe retail shops
+        # (1 product = 1 default variant with size_eu=0, exact physical ST_BL stock, no artificial size splits).
+        if "easy_mode" in self.options:
+            self.easy_mode = bool(self.options["easy_mode"])
+        elif "expand_sizes" in self.options:
+            self.easy_mode = not bool(self.options["expand_sizes"])
+        else:
+            self.easy_mode = True
+
         self.product_map = {}
+        self.supplier_map = {}
         self.client_map = {}
         self.stats = {
             "suppliers_imported": 0,
             "clients_imported": 0,
             "products_imported": 0,
             "stock_units_imported": 0,
+            "purchase_orders_imported": 0,
             "sales_imported": 0,
             "refunds_imported": 0,
+            "defects_imported": 0,
+            "store_settings_updated": False,
             "warnings": []
         }
 
@@ -148,25 +163,57 @@ class LegacyDBFImporter:
 
     def execute_import(self):
         with transaction.atomic():
+            self._import_store_settings()
             if self.options.get("suppliers", True):
                 self._import_suppliers()
             if self.options.get("clients", True):
                 self._import_clients()
             if self.options.get("products", True):
                 self._import_products()
+            if self.options.get("purchases", True):
+                self._import_purchases()
             if self.options.get("defects", True):
                 self._import_defects()
             if self.options.get("sales", True):
                 self._import_sales()
         return self.stats
 
+    def _import_store_settings(self):
+        """
+        Configure StoreSettings (Easy Mode / enable_variants) and import business identity from GCPARAM.DBF.
+        """
+        self.log("Configuring Store Settings...")
+        try:
+            settings_obj, _ = StoreSettings.objects.get_or_create(tenant=self.tenant)
+            settings_obj.enable_variants = not self.easy_mode
+            settings_obj.save(update_fields=["enable_variants"])
+            self.stats["store_settings_updated"] = True
+        except Exception as e:
+            self.stats["warnings"].append(f"Could not update StoreSettings: {e}")
+
+        # Check GCPARAM.DBF for company name, phone, NIF, and receipt footer
+        gc_records = self.get_dbf("GCPARAM.DBF")
+        for r in gc_records:
+            societe = safe_str(r.get("SOCIETE"))
+            if societe and (self.tenant.name == "Primary Branch" or "DEMO" in self.tenant.name.upper() or not self.tenant.name):
+                self.tenant.name = societe[:200]
+            phone = safe_str(r.get("TELFAX"))
+            if phone and not self.tenant.phone:
+                self.tenant.phone = phone[:20]
+            ifisc = safe_str(r.get("IFISC"))
+            if ifisc and not self.tenant.nif:
+                self.tenant.nif = ifisc[:20]
+            self.tenant.save()
+            break
+
     def _import_suppliers(self):
         self.log("Importing Suppliers...")
+        # 1. From FOURNISS.DBF
         records = self.get_dbf("FOURNISS.DBF")
         for r in records:
             name = safe_str(r.get("RAISON"))
             if not name: continue
-            Supplier.objects.update_or_create(
+            supp, _ = Supplier.objects.update_or_create(
                 tenant=self.tenant,
                 name=name,
                 defaults={
@@ -175,7 +222,47 @@ class LegacyDBFImporter:
                     "outstanding_balance": safe_decimal(r.get("MT_RESTE"))
                 }
             )
+            code = safe_str(r.get("CODE_FOURN"))
+            if code:
+                self.supplier_map[code] = supp
+            self.supplier_map[name] = supp
             self.stats["suppliers_imported"] += 1
+
+        # 2. In Algerian retail dBase systems, wholesale vendors/importers are recorded in CLIENT.DBF
+        # (e.g. CHINA, GHOLEM GROS)
+        client_records = self.get_dbf("CLIENT.DBF")
+        for r in client_records:
+            cid = safe_str(r.get("CLIENT"))
+            name = safe_str(r.get("DESIGNAT"))
+            if not name or "DETAIL" in name.upper() or "COMPTOIR" in name.upper():
+                continue
+            supp, created = Supplier.objects.get_or_create(
+                tenant=self.tenant,
+                name=name,
+                defaults={
+                    "phone": safe_str(r.get("TEL1")),
+                    "address": safe_str(r.get("ADRESSE")),
+                }
+            )
+            self.supplier_map[cid] = supp
+            self.supplier_map[name] = supp
+            if created:
+                self.stats["suppliers_imported"] += 1
+
+        # 3. Utility / General Expense Suppliers from FOURND.DBF (PTT, Sonelgaz, etc.)
+        fournd_records = self.get_dbf("FOURND.DBF")
+        for r in fournd_records:
+            fid = safe_str(r.get("FOURND"))
+            lib = safe_str(r.get("LIBELLE"))
+            if not lib: continue
+            supp, created = Supplier.objects.get_or_create(
+                tenant=self.tenant,
+                name=lib,
+                defaults={"notes": f"Fournisseur de charges/dépenses (FOURND #{fid})"}
+            )
+            self.supplier_map[f"FOURND_{fid}"] = supp
+            if created:
+                self.stats["suppliers_imported"] += 1
 
     def _import_clients(self):
         self.log("Importing Clients...")
@@ -244,78 +331,248 @@ class LegacyDBFImporter:
 
         file_name = "ARTICLE.DBF" if self.software_type == "wholesale" else "ARTICLEB.DBF"
         records = self.get_dbf(file_name)
-        
+
+        # Pre-cache existing products by reference for maximum performance
+        existing_products = {
+            p.reference: p
+            for p in Product.objects.filter(tenant=self.tenant).exclude(reference="")
+        }
+
+        # Pre-cache existing variants
+        existing_variants = {}
+        for v in Variant.objects.filter(tenant=self.tenant):
+            existing_variants[(v.product_id, v.size_eu, v.colour)] = v
+
         for r in records:
             ref = safe_str(r.get("REFERENCE"))
-            name = safe_str(r.get("LIBELLE"))
-            if not name: name = ref
-            if not name: continue
+            label = safe_str(r.get("LIBELLE"))
+            
+            # In Algerian shoe stores, Reference is the keyword used to search for products.
+            # Label is only used for description.
+            name = ref if ref else label
+            if not name:
+                name = f"Article {r.get('ARTICLE')}"
             
             fam = safe_str(r.get("FAMILLE"))
             cat_name = family_map.get(fam, "")
             gender, category, default_sizes = get_family_details(cat_name)
             
-            sizes = default_sizes
-            if self.software_type == "wholesale":
-                sizes = parse_pointure_range(r.get("POINTURE"), default_sizes)
-            
+            description = label if label else cat_name
             pairs_per_carton = safe_int(r.get("NOMBRE")) or 10
+            
             wholesale_price = safe_decimal(r.get("BTARIF2"))
             if wholesale_price <= 0:
                 wholesale_price = safe_decimal(r.get("BTARIF1"))
             
-            prod, _ = Product.objects.update_or_create(
-                tenant=self.tenant,
-                reference=ref,
-                defaults={
-                    "name": name[:200],
-                    "category": category,
-                    "gender": gender,
-                    "purchase_price": safe_decimal(r.get("PRIX_ACHAT")),
-                    "sale_price": safe_decimal(r.get("BTARIF1")),
-                    "wholesale_price": wholesale_price,
-                    "pairs_per_carton": pairs_per_carton,
-                }
-            )
+            purchase_price = safe_decimal(r.get("PRIX_ACHAT"))
+            if purchase_price <= 0:
+                purchase_price = safe_decimal(r.get("PU_ACHATBL"))
+
+            sale_price = safe_decimal(r.get("BTARIF1"))
+            if sale_price <= 0:
+                sale_price = safe_decimal(r.get("PV_TARIF1"))
+
+            prod = existing_products.get(ref)
+            if not prod:
+                prod = Product.objects.create(
+                    tenant=self.tenant,
+                    reference=ref,
+                    name=name[:200],
+                    description=description,
+                    category=category,
+                    gender=gender,
+                    purchase_price=purchase_price,
+                    sale_price=sale_price,
+                    wholesale_price=wholesale_price,
+                    pairs_per_carton=pairs_per_carton,
+                )
+                if ref:
+                    existing_products[ref] = prod
+            else:
+                prod.name = name[:200]
+                prod.description = description
+                prod.purchase_price = purchase_price
+                prod.sale_price = sale_price
+                prod.wholesale_price = wholesale_price
+                prod.save(update_fields=["name", "description", "purchase_price", "sale_price", "wholesale_price"])
             
             st_bl = safe_int(r.get("ST_BL"))
-            stock_distribution = distribute_quantity(st_bl, sizes)
-            
-            middle_variant = None
-            middle_size = sizes[len(sizes) // 2]
-            
-            for sz in sizes:
-                var, _ = Variant.objects.get_or_create(
-                    tenant=self.tenant,
-                    product=prod,
-                    size_eu=sz,
-                    colour="Standard"
-                )
-                if sz == middle_size:
-                    middle_variant = var
-                
-                qty = stock_distribution.get(sz, 0)
-                if qty > 0:
+            if st_bl <= 0:
+                st_bl = safe_int(r.get("ST_ACTUEL"))
+
+            legacy_id = safe_str(r.get("ARTICLE"))
+
+            if self.easy_mode:
+                # ── Easy Mode: Exactly 1 default variant per product (size_eu=0, colour='Standard') ──
+                var_key = (prod.id, 0, "Standard")
+                var = existing_variants.get(var_key)
+                if not var:
+                    var = Variant.objects.create(
+                        tenant=self.tenant,
+                        product=prod,
+                        size_eu=0,
+                        colour="Standard",
+                    )
+                    existing_variants[var_key] = var
+
+                if st_bl > 0:
                     StockMovement.objects.create(
                         tenant=self.tenant,
                         branch=self.branch,
                         variant=var,
-                        quantity_delta=qty,
+                        quantity_delta=st_bl,
                         reason=MovementReasonChoices.INITIAL,
-                        notes=f"Imported from Legacy ST_BL (Size {sz})"
+                        notes=f"Stock initial importé de l'ancienne base ({st_bl} paires)"
                     )
-                    self.stats["stock_units_imported"] += qty
-            
-            legacy_id = safe_str(r.get("ARTICLE"))
-            self.product_map[legacy_id] = middle_variant or var
-            self.stats["products_imported"] += 1
+                    self.stats["stock_units_imported"] += st_bl
+
+                self.product_map[legacy_id] = var
+                self.stats["products_imported"] += 1
+            else:
+                # ── Matrix Mode: Distribute stock across size range ──
+                sizes = default_sizes
+                if self.software_type == "wholesale":
+                    sizes = parse_pointure_range(r.get("POINTURE"), default_sizes)
+
+                stock_distribution = distribute_quantity(st_bl, sizes)
+                middle_variant = None
+                middle_size = sizes[len(sizes) // 2]
+                
+                for sz in sizes:
+                    var_key = (prod.id, sz, "Standard")
+                    var = existing_variants.get(var_key)
+                    if not var:
+                        var = Variant.objects.create(
+                            tenant=self.tenant,
+                            product=prod,
+                            size_eu=sz,
+                            colour="Standard"
+                        )
+                        existing_variants[var_key] = var
+
+                    if sz == middle_size:
+                        middle_variant = var
+                    
+                    qty = stock_distribution.get(sz, 0)
+                    if qty > 0:
+                        StockMovement.objects.create(
+                            tenant=self.tenant,
+                            branch=self.branch,
+                            variant=var,
+                            quantity_delta=qty,
+                            reason=MovementReasonChoices.INITIAL,
+                            notes=f"Imported from Legacy ST_BL (Size {sz})"
+                        )
+                        self.stats["stock_units_imported"] += qty
+                
+                self.product_map[legacy_id] = middle_variant or var
+                self.stats["products_imported"] += 1
+
+    def _import_purchases(self):
+        """
+        Imports historical purchase delivery invoices from ACHATART.DBF & ACHATMVT.DBF.
+        """
+        self.log("Importing Purchase Invoices & Orders (ACHAT)...")
+        mvt_records = self.get_dbf("ACHATMVT.DBF")
+        if not mvt_records:
+            return
+
+        header_records = self.get_dbf("ACHATART.DBF")
+        headers_by_facture = {}
+        for h in header_records:
+            f_num = safe_str(h.get("FACTURE"))
+            if f_num:
+                headers_by_facture[f_num] = h
+
+        # Group lines by FACTURE
+        mvts_by_facture = {}
+        for m in mvt_records:
+            f_num = safe_str(m.get("FACTURE"))
+            if not f_num:
+                continue
+            if f_num not in mvts_by_facture:
+                mvts_by_facture[f_num] = []
+            mvts_by_facture[f_num].append(m)
+
+        for f_num, lines in mvts_by_facture.items():
+            header = headers_by_facture.get(f_num, {})
+            client_id = safe_str(header.get("CLIENT") or lines[0].get("CLIENT"))
+            supplier = self.supplier_map.get(client_id)
+            if not supplier:
+                supplier = Supplier.objects.filter(tenant=self.tenant).first()
+            if not supplier:
+                supplier = Supplier.objects.create(
+                    tenant=self.tenant,
+                    name=f"Fournisseur Facture #{f_num}"
+                )
+                self.supplier_map[client_id] = supplier
+
+            date_fact = header.get("DATE_FACT") or lines[0].get("DATE_FACT")
+            if not date_fact:
+                date_fact = datetime.date.today()
+
+            total_amount = safe_decimal(header.get("MT_HT"))
+            calculated_total = Decimal("0.00")
+            po_lines_data = []
+
+            for line in lines:
+                legacy_art = safe_str(line.get("ARTICLE"))
+                var = self.product_map.get(legacy_art)
+                qty = safe_int(line.get("QUANTITE")) or 1
+                cartons = safe_int(line.get("NOMBRE")) or 1
+                pu = safe_decimal(line.get("PRIX_ACHAT"))
+                if pu <= 0 and var:
+                    pu = var.product.purchase_price
+                if pu <= 0:
+                    pu = safe_decimal(line.get("PRIX_VENTE"))
+
+                calculated_total += qty * pu
+                desc = var.product.name if var else f"Article {legacy_art}"
+                po_lines_data.append({
+                    "variant": var,
+                    "description": desc,
+                    "quantity_ordered": qty,
+                    "quantity_received": qty,
+                    "cartons": cartons,
+                    "pairs_per_carton": var.product.pairs_per_carton if var else 10,
+                    "agreed_unit_price": pu,
+                })
+
+            if total_amount <= 0:
+                total_amount = calculated_total
+
+            po = PurchaseOrder.objects.create(
+                tenant=self.tenant,
+                supplier=supplier,
+                status=POStatusChoices.RECEIVED,
+                reference=f"ACHAT-{f_num}",
+                total_amount=total_amount,
+                notes=f"Facture d'achat importée N° {f_num}",
+                expected_date=date_fact,
+            )
+            if isinstance(date_fact, datetime.date):
+                po.created_at = datetime.datetime.combine(date_fact, datetime.time(12, 0))
+                po.save(update_fields=["created_at"])
+
+            for pld in po_lines_data:
+                POLine.objects.create(
+                    order=po,
+                    variant=pld["variant"],
+                    description=pld["description"],
+                    quantity_ordered=pld["quantity_ordered"],
+                    quantity_received=pld["quantity_received"],
+                    cartons=pld["cartons"],
+                    pairs_per_carton=pld["pairs_per_carton"],
+                    agreed_unit_price=pld["agreed_unit_price"],
+                )
+
+            self.stats["purchase_orders_imported"] = self.stats.get("purchase_orders_imported", 0) + 1
 
     def _import_defects(self):
         self.log("Importing Defective Items from Legacy Purchases...")
         records = self.get_dbf("ACHATART.DBF") or self.get_dbf("ACHATMVT.DBF")
         if not records:
             return
-        from apps.inventory.models import DefectItem, DefectStatusChoices
         for r in records:
             qte_defaut = safe_int(r.get("QTE_DEFAUT"))
             if qte_defaut <= 0:
@@ -371,6 +628,14 @@ class LegacyDBFImporter:
                 
                 total_amount = Decimal("0.00")
                 sale_items_data = []
+
+                # Exact hour of the sale from OUAKTE if present (e.g. '14', '18')
+                hour = 12
+                ouakte = safe_str(items[0].get("OUAKTE"))
+                if ouakte and ouakte.isdigit():
+                    h = int(ouakte)
+                    if 0 <= h <= 23:
+                        hour = h
                 
                 for x in items:
                     qte = safe_int(x.get("QUANTITE"))
@@ -411,7 +676,7 @@ class LegacyDBFImporter:
                     )
                 
                 if isinstance(data["date"], datetime.date):
-                    sale.created_at = datetime.datetime.combine(data["date"], datetime.time(12, 0))
+                    sale.created_at = datetime.datetime.combine(data["date"], datetime.time(hour, 0))
                     sale.save(update_fields=['created_at'])
                 
                 for sid in sale_items_data:
@@ -449,8 +714,6 @@ class LegacyDBFImporter:
                 
             for key, data in invoice_group.items():
                 items = data["items"]
-                # In wholesale, refunds are usually handled in a different table, or represented as negative invoices.
-                
                 total_amount = Decimal("0.00")
                 invoice_lines_data = []
                 
@@ -491,13 +754,13 @@ class LegacyDBFImporter:
                 )
                 
                 for sid in invoice_lines_data:
+                    desc_size = f" - Size {sid['variant'].size_eu}" if sid['variant'].size_eu > 0 else ""
                     InvoiceLine.objects.create(
                         invoice=invoice,
                         variant=sid["variant"],
                         quantity=sid["quantity"],
                         unit_price=sid["unit_price"],
-                        description=f"{sid['variant'].product.name} - Size {sid['variant'].size_eu}",
+                        description=f"{sid['variant'].product.name}{desc_size}",
                     )
                     
                 self.stats["sales_imported"] += 1
-

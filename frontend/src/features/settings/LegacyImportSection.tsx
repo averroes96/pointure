@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import BulkImportWizardModal, { ImportEntityType } from '@/components/import/BulkImportWizardModal';
+import { cn } from '@/lib/utils';
 
 export const LegacyImportSection: React.FC = () => {
   const { t } = useTranslation();
@@ -30,8 +31,10 @@ export const LegacyImportSection: React.FC = () => {
     suppliers: true,
     clients: true,
     products: true,
+    purchases: true,
     sales: true,
     software_type: 'retail', // 'retail' or 'wholesale'
+    easy_mode: true, // true = Easy Mode (1 product = 1 SKU with real stock), false = expand sizes
   });
 
   const handleDirectorySelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,6 +190,57 @@ export const LegacyImportSection: React.FC = () => {
           </div>
         </div>
 
+        {/* Inventory Management Mode */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Mode de gestion du stock (Articles)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className={cn(
+              "p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3",
+              options.easy_mode ? "border-primary-500 bg-primary-500/5 ring-1 ring-primary-500/20" : "border-border hover:border-border-hover bg-surface/50"
+            )}>
+              <input
+                type="radio"
+                name="easy_mode"
+                checked={options.easy_mode}
+                onChange={() => setOptions({ ...options, easy_mode: true })}
+                disabled={isZipping || isUploading}
+                className="mt-0.5 border-border text-primary-600 focus:ring-primary-500"
+              />
+              <div>
+                <div className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                  Mode Simple (Recommandé)
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">Par défaut</span>
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  1 article = 1 référence directe avec son stock réel exact. Encaissement 1-clic rapide au POS sans sélection de pointures.
+                </p>
+              </div>
+            </label>
+
+            <label className={cn(
+              "p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3",
+              !options.easy_mode ? "border-primary-500 bg-primary-500/5 ring-1 ring-primary-500/20" : "border-border hover:border-border-hover bg-surface/50"
+            )}>
+              <input
+                type="radio"
+                name="easy_mode"
+                checked={!options.easy_mode}
+                onChange={() => setOptions({ ...options, easy_mode: false })}
+                disabled={isZipping || isUploading}
+                className="mt-0.5 border-border text-primary-600 focus:ring-primary-500"
+              />
+              <div>
+                <div className="text-xs font-bold text-text-primary">
+                  Mode Variantes (Découper par tailles)
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  Génère une grille de pointures (36–41 / 40–45) et répartit le stock estimé sur chaque taille.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Software Version</h3>
           <div className="flex flex-wrap gap-4">
@@ -215,6 +269,10 @@ export const LegacyImportSection: React.FC = () => {
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.products} onChange={(e) => setOptions({...options, products: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
               <span className="text-xs font-medium text-text-primary">{t("settings.legacy_products")}</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" checked={options.purchases} onChange={(e) => setOptions({...options, purchases: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-text-primary">Bons d'Achat & Réceptions (ACHAT)</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.sales} onChange={(e) => setOptions({...options, sales: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
@@ -269,8 +327,14 @@ export const LegacyImportSection: React.FC = () => {
               <li>{t("settings.stock_imported")} <strong>{result.stock_units_imported}</strong></li>
               <li>{t("settings.new_suppliers")} <strong>{result.suppliers_imported}</strong></li>
               <li>{t("settings.new_clients")} <strong>{result.clients_imported}</strong></li>
+              {result.purchase_orders_imported > 0 && (
+                <li>Bons d'achat / réceptions importés : <strong>{result.purchase_orders_imported}</strong></li>
+              )}
               <li>{t("settings.sales_imported")} <strong>{result.sales_imported}</strong></li>
               <li>{t("settings.refunds_imported")} <strong>{result.refunds_imported}</strong></li>
+              {result.defects_imported > 0 && (
+                <li>Articles défectueux isolés : <strong>{result.defects_imported}</strong></li>
+              )}
             </ul>
           </div>
         )}
