@@ -8,7 +8,7 @@ import {
   ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan, PLAN_LABELS } from "@/hooks/usePlan";
@@ -129,9 +129,86 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
   const { canAccess } = usePlan();
   const navSections = useNavSections();
   const isCashier = user?.role === "cashier";
+  const navRef = useRef<HTMLElement>(null);
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const handleFocusSidebar = () => {
+      // Remember where focus was before entering sidebar
+      if (document.activeElement && !navRef.current?.contains(document.activeElement)) {
+        lastFocusedElementRef.current = document.activeElement as HTMLElement;
+      }
+
+      requestAnimationFrame(() => {
+        if (!navRef.current) return;
+        const links = Array.from(navRef.current.querySelectorAll<HTMLAnchorElement>("a.nav-item"));
+        if (!links.length) return;
+        // Prioritize active link, otherwise first link
+        const activeLink = navRef.current.querySelector<HTMLAnchorElement>("a.nav-item.active") || links[0];
+        activeLink?.focus();
+        activeLink?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    };
+
+    const handleEscape = () => {
+      if (navRef.current && navRef.current.contains(document.activeElement)) {
+        window.dispatchEvent(new CustomEvent("app-close-sidebar"));
+        if (lastFocusedElementRef.current && typeof lastFocusedElementRef.current.focus === "function") {
+          lastFocusedElementRef.current.focus();
+        }
+      }
+    };
+
+    window.addEventListener("app-focus-sidebar", handleFocusSidebar);
+    window.addEventListener("app-shortcut-escape", handleEscape);
+
+    return () => {
+      window.removeEventListener("app-focus-sidebar", handleFocusSidebar);
+      window.removeEventListener("app-shortcut-escape", handleEscape);
+    };
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const links = Array.from(navRef.current?.querySelectorAll<HTMLAnchorElement>("a.nav-item") ?? []);
+      if (!links.length) return;
+      const currentIndex = links.indexOf(document.activeElement as HTMLAnchorElement);
+      let nextIndex = 0;
+      if (e.key === "ArrowDown") {
+        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % links.length;
+      } else {
+        nextIndex = currentIndex === -1 ? links.length - 1 : (currentIndex - 1 + links.length) % links.length;
+      }
+      links[nextIndex]?.focus();
+      links[nextIndex]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      const links = Array.from(navRef.current?.querySelectorAll<HTMLAnchorElement>("a.nav-item") ?? []);
+      links[0]?.focus();
+      links[0]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "End") {
+      e.preventDefault();
+      const links = Array.from(navRef.current?.querySelectorAll<HTMLAnchorElement>("a.nav-item") ?? []);
+      links[links.length - 1]?.focus();
+      links[links.length - 1]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent("app-close-sidebar"));
+      if (lastFocusedElementRef.current && typeof lastFocusedElementRef.current.focus === "function") {
+        lastFocusedElementRef.current.focus();
+      }
+    }
+  };
 
   return (
-    <nav className="layout-sidebar">
+    <nav
+      ref={navRef}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+      aria-label={t("nav.main_menu", "Menu de navigation")}
+      className="layout-sidebar outline-none"
+    >
       {/* Brand */}
       <NavLink
         to="/"
@@ -200,8 +277,15 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-4 py-3 text-2xs text-white/30 text-center">
-        ShoeDZ v1.0 — MVP
+      <div className="border-t border-white/10 px-3 py-2.5 text-center select-none">
+        <div className="text-2xs text-white/40 font-medium">ShoeDZ v1.0 — POS</div>
+        <div className="text-2xs text-white/50 flex items-center justify-center gap-1.5 mt-1 font-mono">
+          <span className="bg-white/10 px-1 py-0.5 rounded text-white/70">F5</span>
+          <span>·</span>
+          <span>↑ ↓ Naviguer</span>
+          <span>·</span>
+          <span>↵ Ouvrir</span>
+        </div>
       </div>
     </nav>
   );

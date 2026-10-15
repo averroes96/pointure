@@ -202,10 +202,16 @@ function createMainWindow(port) {
         return;
       }
 
-      // F5: Prevent accidental un-modified reload in POS store environment
+      // F5: Toggle side navigation menu (suppress accidental un-modified reload)
       if (key === 'F5' && !input.control) {
         event.preventDefault();
-        log.info('[Shortcuts] Suppressed accidental un-modified F5 reload');
+        mainWindow.webContents.send('keyboard-shortcut', {
+          key: 'F5',
+          code: input.code,
+          altKey: input.alt,
+          ctrlKey: input.control,
+          shiftKey: input.shift,
+        });
         return;
       }
 

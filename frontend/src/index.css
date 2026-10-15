@@ -188,11 +188,16 @@
   /* ── Sidebar Nav ── */
   .nav-item {
     @apply flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 rounded-md mx-2
-           hover:bg-white/10 hover:text-white transition-colors cursor-pointer;
+           hover:bg-white/10 hover:text-white transition-colors cursor-pointer outline-none;
   }
 
   .nav-item.active {
     @apply bg-white/15 text-white font-medium;
+  }
+
+  .nav-item:focus-visible,
+  .nav-item:focus {
+    @apply ring-2 ring-white/90 bg-white/20 text-white shadow-sm font-medium;
   }
 
   .nav-section-title {

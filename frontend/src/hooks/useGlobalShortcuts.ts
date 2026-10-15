@@ -80,6 +80,16 @@ export function useGlobalShortcuts() {
           break;
         }
 
+        // F5 or Alt+5 or Alt+M: Ouvrir / Basculer le menu latéral
+        case "F5":
+        case "Alt+5":
+        case "Alt+m":
+        case "Alt+M": {
+          e?.preventDefault?.();
+          window.dispatchEvent(new CustomEvent("app-toggle-sidebar"));
+          break;
+        }
+
         // F6 or Alt+6: Bons de livraison / Vouchers (Shift+F6: Nouveau bon)
         case "F6":
         case "Alt+6": {
@@ -183,11 +193,11 @@ export function useGlobalShortcuts() {
     // 2. DOM keydown listener (fallback for web / when Electron before-input-event did not intercept)
     const handleKeyDown = (e: KeyboardEvent) => {
       const isFKey = /^F([1-9]|1[0-2])$/.test(e.key);
-      const isAltShortcut = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
-      const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
+      const isAltNumber = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
+      const isAltM = e.altKey && !e.ctrlKey && (e.key === "m" || e.key === "M");
 
-      // Never ignore Function keys or Alt+number, even when typing inside an input or textarea!
-      if (!isFKey && !isAltShortcut && e.key !== "Escape") {
+      // Never ignore Function keys or Alt shortcuts or Escape, even when typing inside an input or textarea!
+      if (!isFKey && !isAltNumber && !isAltM && e.key !== "Escape") {
         const target = e.target as HTMLElement;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
@@ -196,10 +206,10 @@ export function useGlobalShortcuts() {
 
       if (isFKey) {
         executeShortcut(e.key, e);
-      } else if (isAltShortcut) {
+      } else if (isAltNumber) {
         executeShortcut(`Alt+${e.key}`, e);
-      } else if (isPoint) {
-        executeShortcut("F10", e);
+      } else if (isAltM) {
+        executeShortcut("Alt+M", e);
       } else if (e.key === "Escape") {
         executeShortcut("Escape", e);
       }

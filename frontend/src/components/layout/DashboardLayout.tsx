@@ -22,6 +22,43 @@ export default function DashboardLayout() {
 
   const closeSidebar = () => setIsSidebarOpen(false);
 
+  useEffect(() => {
+    const handleToggle = () => {
+      const sidebarEl = document.querySelector(".layout-sidebar");
+      const isFocusedInSidebar = !!(sidebarEl && sidebarEl.contains(document.activeElement));
+
+      if (isSidebarOpen && isFocusedInSidebar) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("app-focus-sidebar"));
+        }, 50);
+      }
+    };
+
+    const handleOpen = () => {
+      setIsSidebarOpen(true);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("app-focus-sidebar"));
+      }, 50);
+    };
+
+    const handleClose = () => {
+      setIsSidebarOpen(false);
+    };
+
+    window.addEventListener("app-toggle-sidebar", handleToggle);
+    window.addEventListener("app-open-sidebar", handleOpen);
+    window.addEventListener("app-close-sidebar", handleClose);
+
+    return () => {
+      window.removeEventListener("app-toggle-sidebar", handleToggle);
+      window.removeEventListener("app-open-sidebar", handleOpen);
+      window.removeEventListener("app-close-sidebar", handleClose);
+    };
+  }, [isSidebarOpen]);
+
   return (
     <div className={cn("dashboard-wrapper", isSidebarOpen ? "sidebar-open" : "sidebar-closed")}>
       <Topbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />

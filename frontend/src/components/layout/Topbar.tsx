@@ -92,8 +92,16 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   return (
     <header className="layout-topbar">
       {/* Menu Toggle */}
-      <button onClick={onToggleSidebar} className="p-2 -ml-2 mr-2 text-text-secondary hover:bg-surface rounded-md">
+      <button
+        onClick={onToggleSidebar}
+        title={`${t("nav.menu", "Menu")} (F5)`}
+        aria-label="Toggle navigation menu"
+        className="p-1.5 -ml-2 mr-2 text-text-secondary hover:bg-surface rounded-md flex items-center gap-1.5 transition-colors"
+      >
         <Menu size={20} />
+        <span className="hidden sm:inline-block text-2xs font-mono font-semibold px-1 py-0.5 rounded bg-surface border border-border text-text-muted">
+          F5
+        </span>
       </button>
 
       {/* Logo (mobile) */}
