@@ -42,15 +42,14 @@ def perform_database_backup() -> Path:
 
     logger.info("Starting online backup of %s to %s", db_path, backup_file)
 
+    source_conn = None
+    dest_conn = None
     try:
-        source_conn = sqlite3.connect(str(db_path))
-        dest_conn = sqlite3.connect(str(backup_file))
+        source_conn = sqlite3.connect(str(db_path), timeout=60)
+        dest_conn = sqlite3.connect(str(backup_file), timeout=60)
 
         with dest_conn:
             source_conn.backup(dest_conn, pages=100, sleep=0.01)
-
-        dest_conn.close()
-        source_conn.close()
 
         logger.info("Database backup created successfully: %s", backup_file)
         rotate_backups(backups_dir)
@@ -58,6 +57,17 @@ def perform_database_backup() -> Path:
     except Exception:
         logger.exception("Failed to create database backup")
         return None
+    finally:
+        if dest_conn:
+            try:
+                dest_conn.close()
+            except Exception:
+                pass
+        if source_conn:
+            try:
+                source_conn.close()
+            except Exception:
+                pass
 
 
 def rotate_backups(backups_dir: Path, keep: int = MAX_BACKUP_COPIES) -> None:

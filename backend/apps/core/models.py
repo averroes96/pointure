@@ -173,6 +173,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = _("User")
         verbose_name_plural = _("Users")
+        ordering = ["email"]
 
     def __str__(self):
         return self.email
@@ -211,6 +212,7 @@ class Branch(models.Model):
         verbose_name = _("Branch")
         verbose_name_plural = _("Branches")
         unique_together = [["tenant", "name"]]
+        ordering = ["name"]
 
     def __str__(self):
         return f"{self.tenant.name} — {self.name}"

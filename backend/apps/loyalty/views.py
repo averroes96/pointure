@@ -34,6 +34,7 @@ class LoyaltyProgramViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     queryset = LoyaltyProgram.objects.all()
     serializer_class = LoyaltyProgramSerializer
+    ordering = ["-created_at"]
     permission_classes = [IsAuthenticated, PlanRequired(_LOYALTY_PLAN)]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 

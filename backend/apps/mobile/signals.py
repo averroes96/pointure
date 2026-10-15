@@ -13,15 +13,24 @@ def on_notification_created(sender, instance, created, **kwargs):
     if not created:
         return
 
-    from apps.mobile.tasks import send_push_to_user
+    from django.conf import settings
+    if getattr(settings, "DESKTOP_MODE", False):
+        return
 
-    send_push_to_user.delay(
-        instance.user_id,
-        instance.title,
-        instance.body,
-        {
-            "type": instance.type,
-            "object_type": instance.related_object_type or "",
-            "object_id": instance.related_object_id or "",
-        },
-    )
+    try:
+        from apps.mobile.tasks import send_push_to_user
+
+        send_push_to_user.delay(
+            instance.user_id,
+            instance.title,
+            instance.body,
+            {
+                "type": instance.type,
+                "object_type": instance.related_object_type or "",
+                "object_id": instance.related_object_id or "",
+            },
+        )
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Failed to enqueue push notification", exc_info=True)
+

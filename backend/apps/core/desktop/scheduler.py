@@ -19,6 +19,14 @@ _stop_event = threading.Event()
 
 def _run_scheduler_loop():
     logger.info("ShoeDZ Desktop scheduler thread started.")
+    
+    # Allow the main application and initial requests to settle before running background tasks
+    for _ in range(30):
+        if _stop_event.is_set():
+            logger.info("ShoeDZ Desktop scheduler thread stopped early.")
+            return
+        time.sleep(1)
+
     last_license_check = datetime.min
     last_daily_tasks = datetime.min
 
@@ -27,33 +35,49 @@ def _run_scheduler_loop():
 
         # 1. License heartbeat — every 30 minutes
         if now - last_license_check > timedelta(minutes=30):
+            last_license_check = now
             try:
                 from apps.licensing.tasks import license_heartbeat
                 logger.debug("Executing scheduled license heartbeat...")
                 license_heartbeat()
-                last_license_check = now
             except Exception:
                 logger.warning("Scheduled license heartbeat failed", exc_info=True)
 
         # 2. Daily tasks (cheques, overdue invoices, low stock alerts, DB backup)
         if now - last_daily_tasks > timedelta(hours=24):
+            last_daily_tasks = now
+            logger.info("Running daily desktop maintenance tasks...")
+            
             try:
-                logger.info("Running daily desktop maintenance tasks...")
-                from apps.notifications.tasks import (
-                    check_cheque_due_dates,
-                    flag_overdue_invoices,
-                    check_low_stock,
-                )
-                from apps.core.desktop.backup import perform_database_backup
-
+                from apps.notifications.tasks import check_cheque_due_dates
                 check_cheque_due_dates()
-                flag_overdue_invoices()
-                check_low_stock()
-                perform_database_backup()
-
-                last_daily_tasks = now
             except Exception:
-                logger.warning("Daily desktop tasks failed", exc_info=True)
+                logger.warning("Scheduled check_cheque_due_dates failed", exc_info=True)
+
+            try:
+                from apps.notifications.tasks import flag_overdue_invoices
+                flag_overdue_invoices()
+            except Exception:
+                logger.warning("Scheduled flag_overdue_invoices failed", exc_info=True)
+
+            try:
+                from apps.notifications.tasks import check_low_stock
+                check_low_stock()
+            except Exception:
+                logger.warning("Scheduled check_low_stock failed", exc_info=True)
+
+            try:
+                from apps.core.desktop.backup import perform_database_backup
+                perform_database_backup()
+            except Exception:
+                logger.warning("Scheduled perform_database_backup failed", exc_info=True)
+
+        # Always close thread-local DB connections to prevent holding SQLite locks
+        try:
+            from django.db import connections
+            connections.close_all()
+        except Exception:
+            pass
 
         # Sleep in small increments to allow rapid clean shutdown
         for _ in range(60):

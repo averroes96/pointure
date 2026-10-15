@@ -1,4 +1,5 @@
-"""Client serializers."""
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from .models import Cheque, Client, ClientLedger
@@ -32,7 +33,7 @@ class ClientLedgerSerializer(serializers.ModelSerializer):
 
 class RecordPaymentSerializer(serializers.Serializer):
     """Input for recording a client payment."""
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     method = serializers.ChoiceField(choices=["cash", "cheque", "ccp", "virement"])
     date = serializers.DateField()
     notes = serializers.CharField(required=False, allow_blank=True)

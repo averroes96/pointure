@@ -85,6 +85,7 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """User management (Owner and Manager only)."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    ordering = ["email"]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -104,9 +105,10 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         temp_password = self.request.data.get("password", "")
         user = serializer.save(tenant=self.request.tenant)
         if temp_password:
+            from apps.core.utils.task_runner import run_task
             from apps.core.tasks import send_welcome_email
             tenant_name = getattr(self.request.tenant, "name", "ShoeDZ")
-            send_welcome_email.delay(user.pk, temp_password, tenant_name)
+            run_task(send_welcome_email, user.pk, temp_password, tenant_name)
 
     def perform_update(self, serializer):
         self.require_manager()
@@ -121,6 +123,7 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Branch management."""
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
+    ordering = ["name"]
 
     def get_queryset(self):
         if self.request.user.is_superuser:

@@ -88,6 +88,7 @@ class LoyaltyProgram(TenantScopedModel):
     class Meta:
         verbose_name = _("Loyalty Program")
         verbose_name_plural = _("Loyalty Programs")
+        ordering = ["-created_at"]
 
     def __str__(self) -> str:
         return f"Programme fidélité — {self.tenant}"

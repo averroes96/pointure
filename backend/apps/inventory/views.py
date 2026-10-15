@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
-from apps.core.models import RoleChoices
+from apps.core.models import Branch, RoleChoices
 from apps.inventory.models import (
     DefectItem,
     DefectReasonChoices,

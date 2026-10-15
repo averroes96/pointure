@@ -151,7 +151,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATA_DIR / "db.sqlite3",
         "OPTIONS": {
-            "timeout": 30,
+            "timeout": 60,
         },
     }
 }
@@ -165,7 +165,7 @@ def _configure_sqlite_wal(sender, connection, **kwargs):
         with connection.cursor() as cursor:
             cursor.execute("PRAGMA journal_mode = WAL;")
             cursor.execute("PRAGMA synchronous = NORMAL;")
-            cursor.execute("PRAGMA busy_timeout = 30000;")
+            cursor.execute("PRAGMA busy_timeout = 60000;")
 
 
 connection_created.connect(_configure_sqlite_wal)
@@ -204,6 +204,7 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 # ─────────────────────────────────────────────
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Add built SPA directory if bundled

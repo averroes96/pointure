@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class ProviderConfigViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage delivery API credentials (dzship configs)."""
     serializer_class = ProviderConfigSerializer
+    ordering = ["provider"]
     permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
 
     def get_queryset(self):
@@ -224,6 +225,7 @@ class WebhookReceiverView(views.APIView):
 class SocialIntegrationViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage social media integrations (Facebook Messenger, Instagram DM)."""
     serializer_class = SocialIntegrationSerializer
+    ordering = ["platform", "-created_at"]
     permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
 
     def get_queryset(self):

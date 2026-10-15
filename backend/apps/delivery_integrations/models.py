@@ -49,6 +49,7 @@ class ProviderConfig(TenantScopedModel):
         verbose_name = _("Delivery Provider Config")
         verbose_name_plural = _("Delivery Provider Configs")
         unique_together = [["tenant", "provider"]]
+        ordering = ["provider"]
 
     def __str__(self):
         return f"{self.get_provider_display()} ({self.tenant.name})"
@@ -148,6 +149,7 @@ class SocialIntegration(TenantScopedModel):
         verbose_name = _("Social Integration")
         verbose_name_plural = _("Social Integrations")
         unique_together = [["tenant", "platform", "page_id"]]
+        ordering = ["platform", "-created_at"]
 
     def __str__(self):
         return f"{self.get_platform_display()} — {self.page_name or self.page_id} ({self.tenant.name})"
