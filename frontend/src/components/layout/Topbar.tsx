@@ -102,55 +102,65 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
 
   return (
     <header className="layout-topbar">
-      {/* Menu Toggle */}
+      {/* Menu Toggle (F5) */}
       <button
         onClick={onToggleSidebar}
         title={`${t("nav.menu", "Menu")} (F5)`}
         aria-label="Toggle navigation menu"
-        className="p-1.5 -ml-2 mr-2 text-text-secondary hover:bg-surface rounded-md flex items-center gap-1.5 transition-colors"
+        className="p-2 -ms-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
       >
-        <Menu size={20} />
-        <span className="hidden sm:inline-block text-2xs font-mono font-semibold px-1 py-0.5 rounded bg-surface border border-border text-text-muted">
+        <Menu size={19} />
+        <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 shadow-2xs">
           F5
-        </span>
+        </kbd>
       </button>
 
-      {/* Logo (mobile) */}
-      <div className="flex items-center gap-2 flex-1">
-        <span className="text-xl hidden xs:block">👟</span>
-        <span className="font-bold text-primary-500 hidden xs:block">ShoeDZ</span>
+      {/* Brand logo (visible on mobile / when sidebar is closed) */}
+      <div className="flex items-center gap-2.5 me-auto">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center text-white shadow-xs">
+          <span className="text-base">👟</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-extrabold text-base tracking-tight text-slate-900">ShoeDZ</span>
+          {currentBranch && (
+            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <span className="text-slate-300">/</span>
+              <span className="truncate max-w-[150px] text-slate-700 font-semibold">{currentBranch.name}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Branch selector — only visible when tenant has multiple branches */}
       {branches.length > 1 && (
-        <div className="relative mx-2">
+        <div className="relative mx-1">
           <button
             onClick={() => setShowBranchMenu(!showBranchMenu)}
-            className="btn-ghost btn-sm flex items-center gap-1.5 text-text-secondary"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all active:scale-98 shadow-xs cursor-pointer"
           >
-            <Building2 size={14} />
-            <span className="hidden sm:inline text-xs font-medium max-w-[120px] truncate">
+            <Building2 size={14} className="text-primary-600" />
+            <span className="hidden sm:inline max-w-[120px] truncate">
               {currentBranch?.name ?? "—"}
             </span>
-            <ChevronDown size={12} />
+            <ChevronDown size={13} className="text-slate-400" />
           </button>
           {showBranchMenu && (
-            <div className="absolute start-0 top-full mt-1 bg-white border border-border rounded-md shadow-lg z-50 min-w-[180px]">
-              <div className="px-3 py-1.5 border-b border-border">
-                <span className="text-xs text-text-muted font-medium">{t("topbar.active_branch")}</span>
+            <div className="absolute start-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 min-w-[200px] p-1.5 animate-slide-up">
+              <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t("topbar.active_branch")}</span>
               </div>
               {branches.map((b) => (
                 <button
                   key={b.id}
                   onClick={() => { setCurrentBranch(b); setShowBranchMenu(false); }}
                   className={cn(
-                    "w-full text-start px-3 py-2 text-sm hover:bg-surface flex items-center justify-between gap-2",
-                    currentBranch?.id === b.id && "font-semibold text-primary-500"
+                    "w-full text-start px-3 py-2 text-xs rounded-xl hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors cursor-pointer",
+                    currentBranch?.id === b.id ? "font-bold text-primary-600 bg-primary-50/80" : "text-slate-700"
                   )}
                 >
                   <span className="truncate">{b.name}</span>
                   {b.is_headquarters && (
-                    <span className="text-2xs text-text-muted shrink-0">HQ</span>
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full shrink-0">HQ</span>
                   )}
                 </button>
               ))}
@@ -160,12 +170,12 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
       )}
 
       {/* Right Actions */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {/* Desktop App Update Ready */}
         {updateDownloaded && (
           <button
             onClick={() => window.electronAPI?.installUpdate?.()}
-            className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white text-xs flex items-center gap-1.5 shadow-sm animate-pulse mr-1"
+            className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white text-xs flex items-center gap-1.5 shadow-xs animate-pulse me-1 rounded-xl cursor-pointer"
             title="Cliquez pour redémarrer et appliquer la mise à jour ShoeDZ"
           >
             <Download size={13} />
@@ -177,37 +187,41 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         {/* Keyboard shortcuts trigger */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("app-toggle-shortcuts-modal"))}
-          className="btn-ghost btn-sm flex items-center gap-1 text-text-secondary"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
           title={t("shortcuts.button_title", "Raccourcis clavier (F12)")}
         >
-          <Keyboard size={15} />
-          <span className="hidden md:inline text-2xs font-mono bg-surface border border-border px-1 py-0.5 rounded text-text-muted">
+          <Keyboard size={16} />
+          <kbd className="hidden md:inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 shadow-2xs">
             F12
-          </span>
+          </kbd>
         </button>
 
         {/* Language selector */}
         <div className="relative">
           <button
             onClick={() => setShowLangMenu(!showLangMenu)}
-            className="btn-ghost btn-sm flex items-center gap-1"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-700 hover:bg-slate-100 font-semibold text-xs transition-all cursor-pointer"
           >
-            <Globe size={15} />
-            <span className="hidden sm:inline text-xs uppercase">{i18n.language}</span>
+            <Globe size={15} className="text-slate-500" />
+            <span className="hidden sm:inline uppercase">{i18n.language}</span>
+            <ChevronDown size={12} className="text-slate-400" />
           </button>
           {showLangMenu && (
-            <div className="absolute end-0 top-full mt-1 bg-white border border-border rounded-md shadow-lg z-50 min-w-[140px]">
+            <div className="absolute end-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 min-w-[150px] p-1.5 animate-slide-up">
               {LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
                   onClick={() => changeLanguage(lang.code)}
                   className={cn(
-                    "w-full text-start px-3 py-2 text-sm hover:bg-surface flex items-center gap-2",
-                    i18n.language === lang.code && "font-semibold text-primary-500"
+                    "w-full text-start px-3 py-2 text-xs rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer",
+                    i18n.language === lang.code ? "font-bold text-primary-600 bg-primary-50/80" : "text-slate-700"
                   )}
                 >
-                  <span>{lang.flag}</span>
-                  {lang.label}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </div>
+                  {i18n.language === lang.code && <span className="w-1.5 h-1.5 rounded-full bg-primary-600" />}
                 </button>
               ))}
             </div>
@@ -218,25 +232,33 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         <div className="relative">
           <button
             onClick={() => setShowNotifPanel(!showNotifPanel)}
-            className="btn-ghost btn-sm relative"
+            className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 relative transition-all cursor-pointer"
+            title={t("notification.title")}
           >
             <Bell size={18} />
             {(unreadCount ?? 0) > 0 && (
-              <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-danger rounded-full text-white text-2xs flex items-center justify-center font-bold">
+              <span className="absolute top-1 end-1 min-w-[18px] h-[18px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white shadow-xs">
                 {(unreadCount ?? 0) > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
 
           {showNotifPanel && (
-            <div className="absolute end-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-white border border-border rounded-lg shadow-xl z-50">
+            <div className="absolute end-0 top-full mt-2 w-84 max-h-[420px] overflow-hidden flex flex-col bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 animate-slide-up">
               {/* Panel header */}
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border sticky top-0 bg-white">
-                <span className="text-sm font-semibold text-text-primary">{t("notification.title")}</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/70">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">{t("notification.title")}</span>
+                  {(unreadCount ?? 0) > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary-100 text-primary-700">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => markAllReadMutation.mutate()}
                   disabled={markAllReadMutation.isPending}
-                  className="text-xs text-primary-500 hover:text-primary-700 font-medium"
+                  className="text-xs font-semibold text-primary-600 hover:text-primary-700 disabled:opacity-50 cursor-pointer"
                 >
                   {t("notification.mark_all_read")}
                 </button>
@@ -244,11 +266,12 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
 
               {/* Notification list */}
               {notifications.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-text-muted">
-                  {t("notification.empty")}
+                <div className="px-4 py-10 text-center text-sm text-slate-400 flex flex-col items-center gap-2">
+                  <Bell size={24} className="text-slate-300" />
+                  <span>{t("notification.empty")}</span>
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-slate-100 overflow-y-auto">
                   {notifications.map((notif) => {
                     const Icon = NOTIF_ICON[notif.type] ?? Bell;
                     const accent = NOTIF_ACCENT[notif.type] ?? "text-blue-500 bg-blue-50";
@@ -256,18 +279,18 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                       <button
                         key={notif.id}
                         onClick={() => markReadMutation.mutate(notif.id)}
-                        className="w-full text-start px-3 py-3 hover:bg-surface flex items-start gap-3 transition-colors"
+                        className="w-full text-start px-4 py-3 hover:bg-slate-50/80 flex items-start gap-3 transition-colors cursor-pointer"
                       >
-                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5", accent)}>
-                          <Icon size={14} />
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5", accent)}>
+                          <Icon size={15} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-text-primary truncate">{notif.title}</p>
-                          <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{notif.body}</p>
-                          <p className="text-xs text-text-muted mt-1">{relativeTime(notif.created_at, t)}</p>
+                          <p className="text-sm font-semibold text-slate-900 truncate">{notif.title}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{notif.body}</p>
+                          <p className="text-[11px] font-medium text-slate-400 mt-1 font-mono">{relativeTime(notif.created_at, t)}</p>
                         </div>
                         {!notif.read && (
-                          <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />
+                          <span className="w-2 h-2 rounded-full bg-primary-600 shrink-0 mt-2" />
                         )}
                       </button>
                     );
@@ -282,27 +305,36 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="btn-ghost btn-sm flex items-center gap-2 ps-2"
+            className="flex items-center gap-2 p-1.5 ps-2 rounded-xl hover:bg-slate-100 transition-all cursor-pointer"
           >
-            <div className="w-7 h-7 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xs font-semibold">
-              {user?.first_name?.[0] ?? user?.email?.[0] ?? "?"}
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs ring-2 ring-primary-500/10">
+              {user?.first_name?.[0] ?? user?.email?.[0] ?? "U"}
             </div>
-            <span className="hidden sm:inline text-sm font-medium text-text-primary">
-              {user?.first_name || user?.email?.split("@")[0]}
-            </span>
-            <ChevronDown size={14} />
+            <div className="hidden sm:flex flex-col text-start">
+              <span className="text-xs font-bold text-slate-800 leading-tight">
+                {user?.first_name || user?.email?.split("@")[0]}
+              </span>
+              <span className="text-[10px] font-medium text-slate-400 capitalize leading-tight">
+                {user?.role === "cashier" ? "Caissier" : user?.role === "manager" ? "Manager" : user?.role}
+              </span>
+            </div>
+            <ChevronDown size={13} className="text-slate-400" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute end-0 top-full mt-1 bg-white border border-border rounded-md shadow-lg z-50 min-w-[180px]">
-              <div className="px-3 py-2 border-b border-border">
-                <div className="text-sm font-medium text-text-primary">{user?.full_name}</div>
-                <div className="text-xs text-text-muted">{user?.email}</div>
-                <div className="text-xs text-accent font-medium mt-0.5 capitalize">{user?.role}</div>
+            <div className="absolute end-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 min-w-[200px] p-2 animate-slide-up">
+              <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                <div className="text-xs font-bold text-slate-900">{user?.full_name || user?.first_name}</div>
+                <div className="text-[11px] text-slate-400 truncate mt-0.5">{user?.email}</div>
+                <div className="mt-1.5 inline-block">
+                  <span className="badge badge-neutral text-[10px]">
+                    {user?.role === "cashier" ? "Caissier" : user?.role === "manager" ? "Manager" : user?.role}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={logout}
-                className="w-full text-start px-3 py-2 text-sm text-danger hover:bg-danger-light flex items-center gap-2"
+                className="w-full text-start px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <LogOut size={14} />
                 {t("auth.logout")}

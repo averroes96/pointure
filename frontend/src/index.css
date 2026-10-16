@@ -64,7 +64,7 @@
   }
 
   .layout-sidebar {
-    @apply fixed top-14 bottom-0 w-60 bg-slate-900 border-r border-slate-800 flex flex-col z-30 overflow-y-auto text-slate-300;
+    @apply fixed top-14 bottom-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-30 overflow-y-auto text-slate-300;
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -81,7 +81,7 @@
   }
 
   .layout-main {
-    @apply pt-14 ps-60 min-h-screen bg-slate-50/70;
+    @apply pt-14 ps-64 min-h-screen bg-slate-50/70;
     transition: padding 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -90,7 +90,7 @@
   }
 
   html[dir="rtl"] .layout-main {
-    @apply ps-0 pe-60;
+    @apply ps-0 pe-64;
   }
 
   html[dir="rtl"] .sidebar-closed .layout-main {

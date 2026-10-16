@@ -71,7 +71,7 @@ export default function DashboardLayout() {
       )}
       <Sidebar onItemClick={closeSidebar} />
       <main className="layout-main transition-all duration-300">
-        <div className="p-4 md:p-5 max-w-screen-2xl mx-auto">
+        <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
           <Outlet />
         </div>
       </main>

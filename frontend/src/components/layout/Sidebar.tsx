@@ -213,25 +213,32 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
       <NavLink
         to="/"
         onClick={onItemClick}
-        className="px-4 py-4 border-b border-white/10 flex items-center gap-3 hover:bg-white/5 transition-colors"
+        className="px-4 py-3.5 border-b border-slate-800/80 flex items-center gap-3 hover:bg-slate-800/50 transition-colors group"
       >
-        <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-          <span className="text-lg">👟</span>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/20 flex items-center justify-center text-white text-base transition-transform group-hover:scale-105 shrink-0">
+          <span>👟</span>
         </div>
-        <div>
-          <div className="text-white font-bold text-sm leading-tight">ShoeDZ</div>
-          <div className="text-white/50 text-2xs leading-tight truncate max-w-[150px]">
-            {user?.tenant?.name ?? ""}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-white font-extrabold text-sm tracking-tight leading-tight">ShoeDZ</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30 leading-none">
+              POS
+            </span>
+          </div>
+          <div className="text-slate-400 text-xs leading-tight truncate mt-0.5 font-medium">
+            {user?.tenant?.name || "Boutique"}
           </div>
         </div>
       </NavLink>
 
       {/* Nav sections */}
-      <div className="flex-1 py-2 overflow-y-auto">
+      <div className="flex-1 py-3 overflow-y-auto space-y-1">
         {navSections.map((section) => (
-          <div key={section.key}>
+          <div key={section.key} className="space-y-0.5">
             {section.label && (
-              <div className="nav-section-title">{section.label}</div>
+              <div className="px-4 pt-3.5 pb-1 text-[11px] uppercase tracking-wider text-slate-500 font-bold select-none">
+                {section.label}
+              </div>
             )}
             {section.items
               .filter((item) => !isCashier || !item.managerOnly)
@@ -243,14 +250,14 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
                   return (
                     <div
                       key={item.to}
-                      className="nav-item opacity-40 cursor-not-allowed"
+                      className="nav-item opacity-40 cursor-not-allowed select-none"
                       title={`${t("nav.plan_locked")} ${PLAN_LABELS[item.minPlan!]}`}
                     >
-                      <item.icon size={16} />
-                      <span className="text-sm flex-1">
+                      <item.icon size={17} className="shrink-0 text-slate-500" />
+                      <span className="text-sm font-medium flex-1 truncate">
                         {item.labelKey ? t(item.labelKey) : item.label}
                       </span>
-                      <span className="text-2xs bg-white/10 px-1.5 py-0.5 rounded-full leading-none">
+                      <span className="text-[10px] font-semibold bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full border border-slate-700 leading-none">
                         {PLAN_LABELS[item.minPlan!]}
                       </span>
                     </div>
@@ -264,11 +271,13 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
                     end={item.to === "/"}
                     onClick={onItemClick}
                     className={({ isActive }) =>
-                      cn("nav-item", isActive && "active")
+                      cn("nav-item group", isActive && "active")
                     }
                   >
-                    <item.icon size={16} />
-                    <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>
+                    <item.icon size={17} className="shrink-0 transition-transform group-hover:scale-110" />
+                    <span className="text-sm font-medium truncate">
+                      {item.labelKey ? t(item.labelKey) : item.label}
+                    </span>
                   </NavLink>
                 );
               })}
@@ -277,14 +286,20 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-3 py-2.5 text-center select-none">
-        <div className="text-2xs text-white/40 font-medium">ShoeDZ v1.0 — POS</div>
-        <div className="text-2xs text-white/50 flex items-center justify-center gap-1.5 mt-1 font-mono">
-          <span className="bg-white/10 px-1 py-0.5 rounded text-white/70">F5</span>
-          <span>·</span>
+      <div className="border-t border-slate-800/80 px-4 py-3 text-center select-none bg-slate-950/40">
+        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            ShoeDZ Desktop
+          </span>
+          <span className="text-[10px] font-mono text-slate-500 font-semibold">v1.0.2</span>
+        </div>
+        <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 mt-2 font-mono">
+          <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[10px] shadow-xs">F5</kbd>
+          <span className="text-slate-600">·</span>
           <span>↑ ↓ Naviguer</span>
-          <span>·</span>
-          <span>↵ Ouvrir</span>
+          <span className="text-slate-600">·</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[10px] shadow-xs">↵</kbd>
         </div>
       </div>
     </nav>
