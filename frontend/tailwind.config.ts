@@ -6,52 +6,72 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ShoeDZ Brand Colors
+        // ShoeDZ Brand Colors - Modern Retail Cobalt & Obsidian
         primary: {
-          DEFAULT: "#1A4A8A",
-          50: "#EBF0FA",
-          100: "#C2D3F0",
-          200: "#99B6E6",
-          300: "#7099DC",
-          400: "#4770C8",
-          500: "#1A4A8A",
-          600: "#153C72",
-          700: "#102D5A",
-          800: "#0B1F42",
-          900: "#06102A",
+          DEFAULT: "#2563EB",
+          50: "#EFF6FF",
+          100: "#DBEAFE",
+          200: "#BFDBFE",
+          300: "#93C5FD",
+          400: "#60A5FA",
+          500: "#2563EB",
+          600: "#1D4ED8",
+          700: "#1E40AF",
+          800: "#1E3A8A",
+          900: "#0F172A",
+          950: "#0A0F1D",
         },
-        secondary: "#2E6FBF",
+        secondary: {
+          DEFAULT: "#0284C7",
+          light: "#E0F2FE",
+          dark: "#0369A1",
+        },
         accent: {
-          DEFAULT: "#E8700A",
-          light: "#FFF3E0",
+          DEFAULT: "#F97316",
+          light: "#FFF7ED",
+          dark: "#EA580C",
         },
         success: {
-          DEFAULT: "#1B5E20",
-          light: "#E8F5E9",
+          DEFAULT: "#059669",
+          light: "#ECFDF5",
         },
         danger: {
-          DEFAULT: "#CC0000",
-          light: "#FFEBEE",
+          DEFAULT: "#DC2626",
+          light: "#FEF2F2",
         },
         warning: {
-          DEFAULT: "#E65100",
-          light: "#FFF8E1",
+          DEFAULT: "#D97706",
+          light: "#FFFBEB",
         },
-        surface: "#F8F9FC",
+        surface: "#F8FAFC",
         card: "#FFFFFF",
         border: "#E2E8F0",
-        "text-primary": "#1A202C",
+        "text-primary": "#0F172A",
+        "text-secondary": "#475569",
         "text-muted": "#64748B",
       },
       fontFamily: {
         sans: [
-          "IBM Plex Sans Arabic",
-          "IBM Plex Sans",
+          '"Plus Jakarta Sans"',
+          '"Readex Pro"',
           "system-ui",
           "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
           "sans-serif",
         ],
-        mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
+        arabic: ['"Readex Pro"', "system-ui", "sans-serif"],
+        mono: [
+          '"JetBrains Mono"',
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "monospace",
+        ],
+        display: ['"Plus Jakarta Sans"', '"Readex Pro"', "sans-serif"],
       },
       fontSize: {
         "2xs": "0.625rem",
@@ -59,6 +79,11 @@ const config: Config = {
       spacing: {
         18: "4.5rem",
         22: "5.5rem",
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        card: "0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)",
+        elevated: "0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05)",
       },
       screens: {
         xs: "480px",
@@ -83,3 +108,4 @@ const config: Config = {
 };
 
 export default config;
+
