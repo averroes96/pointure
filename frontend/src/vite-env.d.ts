@@ -22,6 +22,22 @@ export interface UpdateStatusData {
   message?: string;
 }
 
+export interface PrinterInfo {
+  name: string;
+  displayName?: string;
+  description?: string;
+  status?: number;
+  isDefault?: boolean;
+}
+
+export interface PrintHtmlOptions {
+  html: string;
+  deviceName?: string;
+  silent?: boolean;
+  pageSize?: any;
+  copies?: number;
+}
+
 export interface ElectronAPI {
   getVersion: () => Promise<string>;
   openBackupsFolder: () => Promise<void>;
@@ -36,6 +52,8 @@ export interface ElectronAPI {
   onStatus: (callback: (msg: string) => void) => () => void;
   onError: (callback: (msg: string) => void) => () => void;
   onShortcut: (callback: (data: KeyboardShortcutData) => void) => () => void;
+  getPrinters?: () => Promise<PrinterInfo[]>;
+  printHtml?: (options: PrintHtmlOptions) => Promise<{ success: boolean; failureReason?: string }>;
   isDesktop?: boolean;
 }
 

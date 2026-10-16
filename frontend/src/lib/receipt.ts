@@ -6,7 +6,7 @@
  * targets the receipt alone — not the full SPA layout.
  */
 import { formatDate } from "@/lib/api";
-import { openPrintPopup } from "@/lib/printPopup";
+import { printTicket, getPrinterConfig } from "@/lib/printerConfig";
 import type { Sale } from "@/types";
 
 const METHOD_LABELS: Record<string, string> = {
@@ -216,5 +216,6 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
 </body>
 </html>`;
 
-  openPrintPopup(html, "80mm");
+  const cfg = getPrinterConfig();
+  printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }

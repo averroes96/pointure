@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('keyboard-shortcut', handler);
     return () => ipcRenderer.removeListener('keyboard-shortcut', handler);
   },
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  printHtml: (options) => ipcRenderer.invoke('print-html', options),
   isDesktop: true,
 });
 

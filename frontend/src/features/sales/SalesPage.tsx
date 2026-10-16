@@ -11,6 +11,7 @@ import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal,
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
+import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram } from "@/types";
 import { cn } from "@/lib/utils";
@@ -540,6 +541,16 @@ export default function SalesPage() {
         searchRef.current?.select();
       } else {
         setReceipt(data);
+      }
+
+      // Auto-print receipt if enabled in printer preferences
+      try {
+        const printerCfg = getPrinterConfig();
+        if (printerCfg.ticket.autoPrint) {
+          printReceipt(data, user?.tenant?.name ?? "ShoeDZ");
+        }
+      } catch (err) {
+        console.warn("Auto-print ticket failed:", err);
       }
 
       setCart([]);

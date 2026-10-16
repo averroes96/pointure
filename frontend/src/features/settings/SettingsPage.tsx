@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Building2, Shield, Users, MapPin, Upload, Banknote, Truck, Database, Monitor, type LucideIcon } from "lucide-react";
+import { User, Building2, Shield, Users, MapPin, Upload, Banknote, Truck, Database, Monitor, Printer, type LucideIcon } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
 import DeliverySettingsTab from "@/features/deliveries/DeliverySettingsPage";
 import { LegacyImportSection } from "./LegacyImportSection";
 import DesktopTab from "./DesktopTab";
+import PrintersTab from "./PrintersTab";
 import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -879,7 +880,7 @@ function VersementsTab() {
 
 // ─── Main SettingsPage ───────────────────────────────────────────────────
 
-type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences" | "versements" | "deliveries" | "migration" | "desktop";
+type TabKey = "profil" | "boutique" | "securite" | "utilisateurs" | "agences" | "versements" | "deliveries" | "imprimantes" | "migration" | "desktop";
 
 interface Tab {
   key: TabKey;
@@ -896,6 +897,7 @@ const TABS: Tab[] = [
   { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
   { key: "versements", label: "Ventes & Versements", icon: Banknote, roles: ["owner"] },
   { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
+  { key: "imprimantes", label: "Imprimantes", icon: Printer, roles: ["owner", "manager"] },
   { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
   { key: "desktop", label: "Application & Mises à jour", icon: Monitor, roles: ["owner", "manager"] },
 ];
@@ -982,6 +984,8 @@ export default function SettingsPage() {
             {activeTab === "versements" && <VersementsTab />}
 
             {activeTab === "deliveries" && <DeliverySettingsTab />}
+
+            {activeTab === "imprimantes" && <PrintersTab />}
 
             {activeTab === "migration" && <LegacyImportSection />}
 

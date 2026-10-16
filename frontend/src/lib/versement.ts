@@ -3,7 +3,7 @@
  * Printed when a sale is created with partial payment (versement/lay-away).
  */
 import type { Sale } from "@/types";
-import { openPrintPopup } from "@/lib/printPopup";
+import { printTicket, getPrinterConfig } from "@/lib/printerConfig";
 import { formatDate } from "@/lib/api";
 
 const METHOD_LABELS: Record<string, string> = {
@@ -164,5 +164,6 @@ export function printBonVersement(sale: Sale, storeName: string): void {
 </body>
 </html>`;
 
-  openPrintPopup(html, "80mm");
+  const cfg = getPrinterConfig();
+  printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }

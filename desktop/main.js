@@ -291,13 +291,26 @@ function createMainWindow(port) {
 
   mainWindow.loadURL(appUrl);
 
-  // Block external navigation from leaving loopback
+  // Block external navigation from leaving loopback, but allow internal blob: URLs & about:blank inside Electron
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (!url.startsWith(`http://127.0.0.1:${port}`)) {
-      shell.openExternal(url);
-      return { action: 'deny' };
+    if (url.startsWith('blob:') || url.startsWith('about:') || url.startsWith(`http://127.0.0.1:${port}`)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          autoHideMenuBar: true,
+          webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: true,
+            plugins: true,
+          },
+        },
+      };
     }
-    return { action: 'allow' };
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
   });
 
   mainWindow.on('closed', () => { mainWindow = null; });
@@ -552,6 +565,64 @@ ipcMain.handle('toggle-fullscreen', () => {
   return false;
 });
 ipcMain.handle('is-fullscreen', () => (mainWindow ? mainWindow.isFullScreen() : false));
+
+// ── Native Printing IPC ──────────────────────────────────────────────────
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) return [];
+  try {
+    const printers = await mainWindow.webContents.getPrintersAsync();
+    return printers;
+  } catch (err) {
+    log.error('[Printers] Failed to query system printers:', err);
+    return [];
+  }
+});
+
+ipcMain.handle('print-html', async (_event, options) => {
+  const { html, deviceName, silent, pageSize, copies } = options || {};
+  return new Promise((resolve) => {
+    try {
+      const printWin = new BrowserWindow({
+        show: false,
+        width: 800,
+        height: 600,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: true,
+        },
+      });
+
+      printWin.webContents.on('did-finish-load', () => {
+        const printOptions = {
+          silent: !!silent,
+          printBackground: true,
+          deviceName: deviceName || '',
+          copies: copies || 1,
+        };
+        if (pageSize) {
+          printOptions.pageSize = pageSize;
+        }
+
+        printWin.webContents.print(printOptions, (success, failureReason) => {
+          printWin.destroy();
+          resolve({ success, failureReason });
+        });
+      });
+
+      printWin.webContents.on('did-fail-load', (_e, code, desc) => {
+        printWin.destroy();
+        resolve({ success: false, failureReason: `${desc} (${code})` });
+      });
+
+      const encoded = Buffer.from(html || '', 'utf8').toString('base64');
+      printWin.loadURL(`data:text/html;charset=utf-8;base64,${encoded}`);
+    } catch (err) {
+      log.error('[Printers] print-html error:', err);
+      resolve({ success: false, failureReason: err.message });
+    }
+  });
+});
 
 ipcMain.handle('check-for-updates', async () => {
   if (!app.isPackaged) {
