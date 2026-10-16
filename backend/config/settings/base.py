@@ -80,7 +80,7 @@ DEPLOYMENT_MODE = config("DEPLOYMENT_MODE", default="cloud")
 LICENSE_KEY = config("LICENSE_KEY", default="")
 LICENSE_SERVER_URL = config("LICENSE_SERVER_URL", default="https://licenses.shodz.app")
 LICENSE_GRACE_DAYS = 7   # Days the app can run without reaching the license server
-APP_VERSION = config("APP_VERSION", default="1.0.0")
+APP_VERSION = config("APP_VERSION", default="1.1.0")
 
 # ─────────────────────────────────────────────
 # Mobile / Push notifications (cloud mode only)
@@ -238,7 +238,7 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "ShoeDZ API",
     "DESCRIPTION": "Shoe Retail & Wholesale Management Platform — Algeria",
-    "VERSION": "1.0.0",
+    "VERSION": "1.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/v1",
