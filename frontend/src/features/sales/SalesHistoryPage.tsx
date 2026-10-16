@@ -495,51 +495,71 @@ export default function SalesHistoryPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("nav.sales")}</h1>
-          <p className="text-sm text-text-muted">
-            {data?.count ?? 0} {t("sales.sale", { count: data?.count ?? 0, defaultValue: "ventes" })}
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t("nav.sales")}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {data?.count ?? 0} {t("sales.sale", { count: data?.count ?? 0, defaultValue: "ventes" })} enregistrées
           </p>
         </div>
-        <Link to="/sales/new" className="btn-primary">
-          <Plus size={16} />
-          Nouvelle vente
+        <Link to="/sales/new" className="btn-primary shadow-xs">
+          <Plus size={16} className="stroke-[2.5]" />
+          <span>Nouvelle vente</span>
         </Link>
       </div>
 
       {/* KPI strip */}
       {!isLoading && sales.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-success/10 rounded-lg border border-success/20">
-            <TrendingUp size={16} className="text-success" />
-            <span className="text-sm text-text-muted">{t("sales.page_revenue")}</span>
-            <span className="font-mono font-semibold text-success">{formatDZD(pageTotalRevenue)} DZD</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+              <TrendingUp size={18} />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.page_revenue")}</div>
+              <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
+                {formatDZD(pageTotalRevenue)} <span className="text-xs text-slate-400 font-bold">DZD</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-lg border border-primary-200">
-            <ShoppingBag size={16} className="text-primary-500" />
-            <span className="text-sm text-text-muted">{t("sales.page_sales")}</span>
-            <span className="font-mono font-semibold text-primary-600">{sales.filter((s) => s.status === "completed").length}</span>
+
+          <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shrink-0">
+              <ShoppingBag size={18} />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.page_sales")}</div>
+              <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
+                {sales.filter((s) => s.status === "completed").length}
+              </div>
+            </div>
           </div>
+
           {partiallyPaidCount > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-warning-light rounded-lg border border-warning/30">
-              <Receipt size={16} className="text-warning" />
-              <span className="text-sm text-text-muted">{t("sales.in_installment")}</span>
-              <span className="font-mono font-semibold text-warning">{partiallyPaidCount}</span>
+            <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+                <Receipt size={18} />
+              </div>
+              <div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.in_installment")}</div>
+                <div className="font-mono font-extrabold text-lg text-amber-700 tracking-tight">
+                  {partiallyPaidCount}
+                </div>
+              </div>
             </div>
           )}
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+      <div className="flex flex-wrap gap-2.5 items-end bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9"
+            className="form-input ps-9 py-2 rounded-xl text-xs"
             placeholder={t("sales.search_receipt_cashier")}
           />
         </div>
@@ -547,7 +567,7 @@ export default function SalesHistoryPage() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="form-input max-w-[160px]"
+          className="form-input max-w-[160px] py-2 rounded-xl text-xs font-medium"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
@@ -555,26 +575,26 @@ export default function SalesHistoryPage() {
         </select>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-text-muted whitespace-nowrap">{t("common.from")}</label>
+          <label className="text-xs text-slate-500 font-semibold whitespace-nowrap">{t("common.from")}</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="form-input text-sm py-1.5"
+            className="form-input text-xs py-2 rounded-xl font-medium"
           />
-          <label className="text-xs text-text-muted">{t("common.to")}</label>
+          <label className="text-xs text-slate-500 font-semibold">{t("common.to")}</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="form-input text-sm py-1.5"
+            className="form-input text-xs py-2 rounded-xl font-medium"
           />
         </div>
 
         {(search || status || dateFrom || dateTo) && (
           <button
             onClick={() => { setSearch(""); setStatus(""); setDateFrom(""); setDateTo(""); setPage(1); }}
-            className="btn-ghost btn-sm text-text-muted"
+            className="btn-ghost btn-sm text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
           >
             Réinitialiser
           </button>
@@ -582,7 +602,7 @@ export default function SalesHistoryPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden rounded-2xl border border-slate-200/80 shadow-xs bg-white">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
@@ -601,14 +621,14 @@ export default function SalesHistoryPage() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-text-muted">
+                  <td colSpan={9} className="text-center py-12 text-slate-400 font-medium">
                     {t("common.loading")}
                   </td>
                 </tr>
               )}
               {!isLoading && sales.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-text-muted">
+                  <td colSpan={9} className="text-center py-12 text-slate-400 font-medium">
                     {t("common.no_data")}
                   </td>
                 </tr>
@@ -619,7 +639,7 @@ export default function SalesHistoryPage() {
                   <tr
                     key={sale.id}
                     className={cn(
-                      "cursor-pointer",
+                      "cursor-pointer transition-colors",
                       sale.status === "cancelled" && "opacity-60",
                       expandedId === sale.id && "bg-primary-50/40"
                     )}
@@ -627,24 +647,24 @@ export default function SalesHistoryPage() {
                   >
                     <td>
                       <div className="flex items-center gap-2">
-                        <Receipt size={14} className="text-text-muted flex-shrink-0" />
-                        <span className="font-mono font-medium">{sale.receipt_number || `#${sale.id}`}</span>
+                        <Receipt size={14} className="text-slate-400 shrink-0" />
+                        <span className="font-mono font-bold text-slate-900">{sale.receipt_number || `#${sale.id}`}</span>
                       </div>
                     </td>
-                    <td className="text-text-muted text-sm">{formatDate(sale.created_at)}</td>
-                    <td className="text-sm">{sale.cashier_name || "—"}</td>
-                    <td className="text-sm">
+                    <td className="text-slate-500 text-xs font-medium">{formatDate(sale.created_at)}</td>
+                    <td className="text-xs font-semibold text-slate-700">{sale.cashier_name || "—"}</td>
+                    <td className="text-xs">
                       <div className="flex flex-col gap-0.5">
-                        <span>{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-text-muted italic">{t("sales.walk_in")}</span>)}</span>
+                        <span className="font-semibold text-slate-800">{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-slate-400 italic font-normal">{t("sales.walk_in")}</span>)}</span>
                         {sale.loyalty_tier && (() => {
                           const { label, className, Icon } = TIER_CONFIG[sale.loyalty_tier];
                           return (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 mt-0.5">
                               <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-semibold ${className}`}>
                                 <Icon size={9} />
                                 {label}
                               </span>
-                              <span className="text-2xs text-text-muted font-mono">
+                              <span className="text-2xs text-slate-400 font-mono">
                                 {(sale.loyalty_points ?? 0).toLocaleString()} pts
                               </span>
                             </span>
@@ -671,22 +691,22 @@ export default function SalesHistoryPage() {
                         return (
                           <p className={cn(
                             "text-2xs mt-0.5 font-mono",
-                            dueDays < 0 ? "text-danger font-semibold" : dueDays < 7 ? "text-warning" : "text-text-muted"
+                            dueDays < 0 ? "text-red-600 font-semibold" : dueDays < 7 ? "text-amber-600" : "text-slate-500"
                           )}>
                             {dueDays < 0 ? t("sales.overdue_days", { days: Math.abs(dueDays) }) : t("sales.due_on", { date: sale.due_date })}
                           </p>
                         );
                       })()}
                     </td>
-                    <td className="text-end font-mono">
+                    <td className="text-end font-mono font-bold text-slate-900 text-sm">
                       {formatDZD(sale.total_amount)}
-                      <span className="text-2xs text-text-muted ms-1">DZD</span>
+                      <span className="text-2xs text-slate-400 ms-1 font-semibold">DZD</span>
                     </td>
                     <td className="text-end">
                       <span
                         className={cn(
                           "font-mono text-sm",
-                          parseFloat(sale.balance_due || "0") > 0 ? "text-danger font-semibold" : "text-text-muted"
+                          parseFloat(sale.balance_due || "0") > 0 ? "text-red-600 font-bold" : "text-slate-400"
                         )}
                       >
                         {parseFloat(sale.balance_due || "0") > 0
@@ -697,7 +717,7 @@ export default function SalesHistoryPage() {
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         <button
-                          className="btn-ghost btn-sm text-primary-500"
+                          className="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer"
                           title={t("common.print")}
                           onClick={() =>
                             sale.status === "partially_paid"
@@ -705,19 +725,19 @@ export default function SalesHistoryPage() {
                               : printReceipt(sale, storeName)
                           }
                         >
-                          <Printer size={14} />
+                          <Printer size={15} />
                         </button>
                         {isManager && sale.status === "completed" && (
                           <>
                             <button
-                              className="btn-ghost btn-sm text-warning"
+                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
                               title="Traiter un retour"
                               onClick={() => setReturnSale(sale)}
                             >
-                              <RotateCcw size={14} />
+                              <RotateCcw size={15} />
                             </button>
                             <button
-                              className="btn-ghost btn-sm text-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               title={
                                 (sale.exchange_count ?? 0) >= 3
                                   ? t("sales.max_exchanges_reached")
@@ -726,21 +746,21 @@ export default function SalesHistoryPage() {
                               disabled={(sale.exchange_count ?? 0) >= 3}
                               onClick={() => setExchangeSale(sale)}
                             >
-                              <ArrowLeftRight size={14} />
+                              <ArrowLeftRight size={15} />
                             </button>
                           </>
                         )}
                         {isManager && sale.status === "partially_paid" && (
                           <>
                             <button
-                              className="btn-ghost btn-sm text-amber-600"
+                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
                               title="Ajouter un paiement"
                               onClick={() => setAddPaymentSale(sale)}
                             >
-                              <Plus size={14} />
+                              <Plus size={15} />
                             </button>
                             <button
-                              className="btn-ghost btn-sm text-danger"
+                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                               title="Annuler le versement"
                               onClick={() => {
                                 if (confirm(t("sales.cancel_versement_confirm", { receipt: sale.receipt_number }))) {
@@ -749,7 +769,7 @@ export default function SalesHistoryPage() {
                               }}
                               disabled={cancelVersementMutation.isPending}
                             >
-                              <Ban size={14} />
+                              <Ban size={15} />
                             </button>
                           </>
                         )}
@@ -759,56 +779,58 @@ export default function SalesHistoryPage() {
 
                   {/* Expanded row: sale items */}
                   {expandedId === sale.id && (
-                    <tr key={`${sale.id}-detail`} className="bg-primary-50/20">
-                      <td colSpan={9} className="px-6 py-3">
-                        <div className="text-xs font-semibold text-text-muted mb-2 uppercase tracking-wide">
-                          Articles ({sale.items?.length ?? 0})
-                        </div>
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-xs text-text-muted">
-                              <th className="text-start pb-1 font-medium">{t("sales.item")}</th>
-                              <th className="text-end pb-1 font-medium">{t("sales.qty")}</th>
-                              <th className="text-end pb-1 font-medium">{t("sales.unit_price")}</th>
-                              <th className="text-end pb-1 font-medium">{t("sales.discount")}</th>
-                              <th className="text-end pb-1 font-medium">{t("sales.subtotal")}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {(sale.items ?? []).map((item) => (
-                              <tr key={item.id}>
-                                <td className="py-1">{item.variant_str}</td>
-                                <td className="text-end font-mono">{item.quantity}</td>
-                                <td className="text-end font-mono">{formatDZD(item.unit_price)}</td>
-                                <td className="text-end font-mono text-text-muted">
-                                  {parseFloat(item.discount_amount) > 0
-                                    ? `-${formatDZD(item.discount_amount)}`
-                                    : "—"}
+                    <tr key={`${sale.id}-detail`} className="bg-slate-50/60">
+                      <td colSpan={9} className="px-6 py-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+                          <div className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">
+                            Articles vendus ({sale.items?.length ?? 0})
+                          </div>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-slate-400 font-bold border-b border-slate-100">
+                                <th className="text-start pb-2">{t("sales.item")}</th>
+                                <th className="text-end pb-2">{t("sales.qty")}</th>
+                                <th className="text-end pb-2">{t("sales.unit_price")}</th>
+                                <th className="text-end pb-2">{t("sales.discount")}</th>
+                                <th className="text-end pb-2">{t("sales.subtotal")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {(sale.items ?? []).map((item) => (
+                                <tr key={item.id} className="text-slate-700">
+                                  <td className="py-2 font-medium">{item.variant_str}</td>
+                                  <td className="text-end font-mono font-bold">{item.quantity}</td>
+                                  <td className="text-end font-mono">{formatDZD(item.unit_price)}</td>
+                                  <td className="text-end font-mono text-slate-400">
+                                    {parseFloat(item.discount_amount) > 0
+                                      ? `-${formatDZD(item.discount_amount)}`
+                                      : "—"}
+                                  </td>
+                                  <td className="text-end font-mono font-bold text-slate-900">
+                                    {formatDZD(item.subtotal)} DZD
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t border-slate-200">
+                                <td colSpan={4} className="text-end pt-3 text-xs font-bold text-slate-800">
+                                  Total:
                                 </td>
-                                <td className="text-end font-mono font-medium">
-                                  {formatDZD(item.subtotal)} DZD
+                                <td className="text-end pt-3 font-mono font-black text-sm text-primary-600">
+                                  {formatDZD(sale.total_amount)} DZD
                                 </td>
                               </tr>
-                            ))}
-                          </tbody>
-                          <tfoot>
-                            <tr className="border-t border-border">
-                              <td colSpan={4} className="text-end pt-2 text-sm font-semibold">
-                                Total:
-                              </td>
-                              <td className="text-end pt-2 font-mono font-bold text-primary-600">
-                                {formatDZD(sale.total_amount)} DZD
-                              </td>
-                            </tr>
-                          </tfoot>
-                        </table>
+                            </tfoot>
+                          </table>
 
-                        {/* Notes */}
-                        {sale.notes && (
-                          <div className="mt-2 text-xs text-text-muted italic">
-                            Note: {sale.notes}
-                          </div>
-                        )}
+                          {/* Notes */}
+                          {sale.notes && (
+                            <div className="mt-3 text-xs text-slate-500 italic bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                              Note: {sale.notes}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -891,24 +891,22 @@ export default function SalesPage() {
       {/* ── Left: Product Search & Selection ── */}
       <div className="w-full lg:w-7/12 flex flex-col gap-3">
         {/* POS Header & Shortcuts */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2.5">
           <div>
-            <h1 className="text-xl font-bold text-text-primary tracking-tight">{t("nav.new_sale")}</h1>
-            <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-text-muted">
-              <span className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F2</kbd>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t("nav.new_sale")}</h1>
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F2</kbd>
                 <span>{t("sales.shortcut_search", "Rechercher")}</span>
               </span>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F10</kbd>
-                <span className="text-2xs text-text-muted">/</span>
-                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">.</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F10</kbd>
+                <span className="text-[10px] text-slate-400">/</span>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">.</kbd>
                 <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
               </span>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 text-2xs font-mono font-semibold bg-surface border border-border rounded text-text-secondary shadow-xs">F11</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F11</kbd>
                 <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
               </span>
             </div>
@@ -917,7 +915,7 @@ export default function SalesPage() {
 
         {/* Search Bar */}
         <div className="relative">
-          <Search size={18} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={19} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             ref={searchRef}
             data-shortcut-search="true"
@@ -925,26 +923,26 @@ export default function SalesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="form-input ps-10 pe-12 py-3 text-base shadow-xs rounded-xl border-border focus:border-primary-500"
+            className="form-input ps-11 pe-14 py-3.5 text-base shadow-xs rounded-2xl border-slate-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 bg-white text-slate-900 transition-all font-medium placeholder:text-slate-400"
             placeholder={t("sales.search_product")}
             autoFocus
           />
           {scanStatus === "idle" ? (
-            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-2 py-1 rounded shadow-xs pointer-events-none">
+            <kbd className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-1 rounded-md shadow-2xs pointer-events-none">
               F2
             </kbd>
           ) : (
             <div
               className={cn(
-                "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full pointer-events-none shadow-xs",
-                scanStatus === "found" && "bg-success-light text-success",
-                scanStatus === "not_found" && "bg-danger-light text-danger",
+                "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-xs",
+                scanStatus === "found" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                scanStatus === "not_found" && "bg-red-50 text-red-700 border border-red-200",
               )}
             >
               {scanStatus === "found" ? (
-                <><Check size={12} /> {t("sales.pos_added")}</>
+                <><Check size={13} className="stroke-[2.5]" /> {t("sales.pos_added")}</>
               ) : (
-                <><X size={12} /> {t("sales.pos_not_found")}</>
+                <><X size={13} className="stroke-[2.5]" /> {t("sales.pos_not_found")}</>
               )}
             </div>
           )}
@@ -952,11 +950,11 @@ export default function SalesPage() {
 
         {/* Search results or Empty State */}
         {search.length >= 2 && productResults ? (
-          <div className="card overflow-auto flex-1 divide-y divide-border rounded-xl shadow-xs">
+          <div className="card overflow-auto flex-1 divide-y divide-slate-100 rounded-2xl shadow-xs border border-slate-200/80 bg-white">
             {productResults.results.length === 0 ? (
-              <div className="p-8 text-center text-text-muted">
-                <p className="font-semibold text-sm">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
-                <p className="text-xs text-text-muted mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
+              <div className="p-10 text-center text-slate-500">
+                <p className="font-bold text-sm text-slate-700">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
+                <p className="text-xs text-slate-400 mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
               </div>
             ) : (
               productResults.results.map((product) => {
@@ -964,9 +962,9 @@ export default function SalesPage() {
                 const isExpanded = selectedProduct?.id === product.id;
 
                 return (
-                  <div key={product.id} className="transition-colors hover:bg-surface/50">
+                  <div key={product.id} className="transition-colors hover:bg-slate-50/60">
                     <div
-                      className="px-4 py-3 flex items-center justify-between gap-3 cursor-pointer select-none"
+                      className="px-4 py-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
                       onClick={() => {
                         if (isMultiVariant) {
                           setSelectedProduct(isExpanded ? null : product);
@@ -977,26 +975,26 @@ export default function SalesPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-bold text-text-primary text-base truncate">
+                          <div className="font-extrabold text-slate-900 text-base truncate">
                             {product.brand && (
-                              <span className="text-text-muted font-medium me-1">{product.brand}</span>
+                              <span className="text-slate-500 font-semibold me-1.5">{product.brand}</span>
                             )}
                             {product.name}
                           </div>
                           {product.barcode && (
-                            <span className="font-mono text-2xs text-text-muted bg-surface px-1.5 py-0.5 rounded border border-border/60">
+                            <span className="font-mono text-2xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                               {product.barcode}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-text-muted mt-0.5 flex items-center gap-2">
-                          <span className="font-semibold font-mono text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                        <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="font-bold font-mono text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary-100">
                             {formatDZD(product.sale_price)} DZD
                           </span>
-                          <span>·</span>
+                          <span className="text-slate-300">·</span>
                           <span className={cn(
-                            "font-mono font-medium",
-                            product.total_stock <= 0 ? "text-danger" : product.has_low_stock ? "text-amber-600" : "text-text-muted"
+                            "font-mono font-semibold",
+                            product.total_stock <= 0 ? "text-red-600" : product.has_low_stock ? "text-amber-600" : "text-slate-600"
                           )}>
                             {product.total_stock} {t("sales.in_stock")}
                           </span>
@@ -1011,7 +1009,7 @@ export default function SalesPage() {
                             e.stopPropagation();
                             setSelectedProduct(isExpanded ? null : product);
                           }}
-                          className="text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                          className="text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 px-3.5 py-2 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <span>{isExpanded ? "Masquer pointures ↑" : t("sales.view_sizes")}</span>
                         </button>
@@ -1022,7 +1020,7 @@ export default function SalesPage() {
                             e.stopPropagation();
                             handleAddProduct(product);
                           }}
-                          className="btn-primary text-xs font-bold py-1.5 px-3 rounded-lg shadow-2xs hover:shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0"
+                          className="btn-primary text-xs font-extrabold py-2 px-3.5 rounded-xl shadow-xs hover:shadow active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <Plus size={14} className="stroke-[2.5]" />
                           <span>{t("common.add", "Ajouter")}</span>
@@ -1031,8 +1029,8 @@ export default function SalesPage() {
                     </div>
 
                     {isMultiVariant && isExpanded && (
-                      <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-border/60">
-                        <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted mb-2">
+                      <div className="px-4 pb-4 pt-2 bg-slate-50/80 border-t border-slate-100">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2.5">
                           {t("sales.choose_size_color")}
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -1042,29 +1040,29 @@ export default function SalesPage() {
                               disabled={!allowNegativeStock && variant.stock_qty <= 0}
                               onClick={() => addToCart(variant, product)}
                               className={cn(
-                                "p-2 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-0.5",
+                                "p-2.5 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-1 cursor-pointer",
                                 variant.stock_qty <= 0
                                   ? allowNegativeStock
                                     ? "border-amber-300 bg-amber-50/70 text-amber-900 hover:bg-amber-100 hover:border-amber-400 active:scale-95 shadow-2xs"
-                                    : "border-border bg-surface text-text-muted opacity-50 cursor-not-allowed"
+                                    : "border-slate-200 bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed"
                                   : variant.is_low_stock
-                                  ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 active:scale-95 shadow-2xs"
-                                  : "border-border bg-white text-text-primary hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
+                                  ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 active:scale-95 shadow-2xs"
+                                  : "border-slate-200 bg-white text-slate-800 hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
                               )}
                             >
-                              <span className="font-black text-sm font-mono">T.{variant.size_eu}</span>
-                              <span className="text-2xs text-text-muted truncate max-w-full">
+                              <span className="font-black text-sm font-mono tracking-tight">T.{variant.size_eu}</span>
+                              <span className="text-[11px] text-slate-500 truncate max-w-full font-medium">
                                 {variant.colour === "N/A" ? t("common.na") : variant.colour}
                               </span>
                               <span className={cn(
-                                "text-2xs font-mono font-semibold px-1 rounded",
+                                "text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md",
                                 variant.stock_qty <= 0
                                   ? allowNegativeStock
-                                    ? "text-rose-700 bg-rose-100/80 font-bold"
-                                    : "text-text-muted"
+                                    ? "text-rose-700 bg-rose-100 font-bold"
+                                    : "text-slate-400"
                                   : variant.stock_qty <= 2
-                                  ? "text-amber-700 bg-amber-100/60"
-                                  : "text-text-muted"
+                                  ? "text-amber-800 bg-amber-100"
+                                  : "text-slate-600 bg-slate-100"
                               )}>
                                 Qté: {variant.stock_qty}
                               </span>
@@ -1079,19 +1077,19 @@ export default function SalesPage() {
             )}
           </div>
         ) : (
-          <div className="card p-6 flex flex-col items-center justify-center text-center flex-1 border-dashed border-2 border-border/80 bg-surface/30 rounded-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center mb-3 shadow-xs">
-              <Search size={22} />
+          <div className="card p-8 flex flex-col items-center justify-center text-center flex-1 border-dashed border-2 border-slate-200 bg-slate-50/40 rounded-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center mb-3.5 shadow-xs border border-primary-100">
+              <Search size={24} />
             </div>
-            <h3 className="font-bold text-text-primary text-sm">Prêt pour la vente</h3>
-            <p className="text-xs text-text-muted mt-1 max-w-sm">
+            <h3 className="font-extrabold text-slate-900 text-base">Prêt pour la vente</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm leading-relaxed">
               Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.
             </p>
-            <div className="flex gap-2 mt-4 text-2xs text-text-secondary flex-wrap justify-center">
-              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F2 = Rechercher</span>
-              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">Entrée = Ajouter au panier</span>
-              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F10 / . = Confirmer</span>
-              <span className="px-2 py-1 bg-white border border-border rounded-lg shadow-2xs">F11 = Plein écran</span>
+            <div className="flex gap-2 mt-5 text-[11px] text-slate-600 flex-wrap justify-center font-medium">
+              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F2 = Rechercher</span>
+              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">Entrée = Ajouter au panier</span>
+              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F10 / . = Confirmer</span>
+              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F11 = Plein écran</span>
             </div>
           </div>
         )}
@@ -1099,14 +1097,14 @@ export default function SalesPage() {
 
       {/* ── Right: Cashier Cart & Prominent Total ── */}
       <div className="w-full lg:w-5/12 flex flex-col gap-3">
-        <div className="card flex flex-col flex-1 overflow-hidden rounded-2xl shadow-sm border border-border bg-white">
+        <div className="card flex flex-col flex-1 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 bg-white">
           {/* Cart Header */}
-          <div className="card-header bg-surface-subtle py-3 px-4 flex items-center justify-between border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center shadow-xs">
-                <ShoppingBag size={15} />
+          <div className="card-header bg-slate-50/80 py-3.5 px-4 flex items-center justify-between border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shadow-xs">
+                <ShoppingBag size={16} />
               </div>
-              <h2 className="font-bold text-text-primary text-base">
+              <h2 className="font-extrabold text-slate-900 text-base">
                 {t("sales.cart")}
               </h2>
               {cart.length > 0 && (
@@ -1124,7 +1122,7 @@ export default function SalesPage() {
                     setRedeemPoints(0);
                   }
                 }}
-                className="text-xs text-text-muted hover:text-danger flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-danger-light transition-colors font-medium"
+                className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1 px-2.5 py-1 rounded-xl hover:bg-red-50 transition-colors font-bold cursor-pointer"
                 title="Vider tout le panier"
               >
                 <X size={13} />
@@ -1134,7 +1132,7 @@ export default function SalesPage() {
           </div>
 
           {/* Client selector (compact) */}
-          <div className="px-4 py-2.5 border-b border-border bg-white">
+          <div className="px-4 py-3 border-b border-slate-100 bg-white">
             <ClientSelector
               selected={selectedClient}
               onSelect={(c) => { setSelectedClient(c); setRedeemPoints(0); }}
@@ -1143,16 +1141,16 @@ export default function SalesPage() {
 
             {/* Loyalty points banner if client has loyalty */}
             {loyaltyAccount && loyaltyProgram?.is_active && (
-              <div className="mt-2 flex items-center justify-between gap-2 text-xs bg-primary-50/60 border border-primary-100 rounded-lg px-2.5 py-1.5">
+              <div className="mt-2.5 flex items-center justify-between gap-2 text-xs bg-primary-50/80 border border-primary-100 rounded-xl px-3 py-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-primary-800 font-bold font-mono">
                     {loyaltyAccount.points_balance.toLocaleString()}
                   </span>
-                  <span className="text-text-muted text-2xs">pts fidélité</span>
+                  <span className="text-slate-500 text-[11px] font-medium">pts fidélité</span>
                 </div>
                 {canRedeem && (
                   <div className="flex items-center gap-1.5">
-                    <Gift size={12} className="text-primary-600" />
+                    <Gift size={13} className="text-primary-600" />
                     <input
                       type="number"
                       value={redeemPoints || ""}
@@ -1167,10 +1165,10 @@ export default function SalesPage() {
                       max={loyaltyAccount.points_balance}
                       step={loyaltyProgram.min_redemption_points}
                       placeholder="Pts"
-                      className="w-16 px-1.5 py-0.5 text-xs border border-border rounded text-center font-mono"
+                      className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg text-center font-mono font-semibold"
                     />
                     {redeemPoints > 0 && (
-                      <span className="text-2xs text-primary-700 font-bold">
+                      <span className="text-2xs text-primary-700 font-bold font-mono">
                         −{formatDZD(redemptionDzd)} DZD
                       </span>
                     )}
@@ -1181,14 +1179,14 @@ export default function SalesPage() {
           </div>
 
           {/* Cart items list (prominent cards with large Pointure tag) */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50/50">
             {cart.length === 0 ? (
-              <div className="py-16 text-center flex flex-col items-center justify-center text-text-muted">
-                <div className="w-14 h-14 rounded-2xl bg-white border border-border flex items-center justify-center mb-3 text-text-muted shadow-xs">
-                  <ShoppingBag size={26} className="opacity-40 text-text-muted" />
+              <div className="py-16 text-center flex flex-col items-center justify-center text-slate-400">
+                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-3 text-slate-300 shadow-xs">
+                  <ShoppingBag size={28} className="opacity-50" />
                 </div>
-                <p className="font-bold text-text-primary text-sm">{t("sales.empty_cart")}</p>
-                <p className="text-xs text-text-muted mt-1 max-w-xs">
+                <p className="font-extrabold text-slate-800 text-sm">{t("sales.empty_cart")}</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
                   Scannez un code-barres ou recherchez un modèle (F2) pour commencer la vente.
                 </p>
               </div>
@@ -1200,49 +1198,49 @@ export default function SalesPage() {
                 return (
                   <div
                     key={item.variant.id}
-                    className="p-3 bg-white rounded-xl border border-border/80 hover:border-primary-300 transition-all shadow-xs"
+                    className="p-3.5 bg-white rounded-2xl border border-slate-200/90 hover:border-primary-400 transition-all shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {/* High-visibility Pointure / Size Badge only for sized products */}
                           {!isSimpleProduct && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200 shadow-2xs">
                               EU {item.variant.size_eu}
                             </span>
                           )}
-                          <span className="font-bold text-text-primary text-sm truncate">
+                          <span className="font-extrabold text-slate-900 text-sm truncate">
                             {item.product.brand && (
-                              <span className="text-text-muted font-medium me-1">{item.product.brand}</span>
+                              <span className="text-slate-500 font-semibold me-1.5">{item.product.brand}</span>
                             )}
                             {item.product.name}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-1.5 text-xs text-text-muted flex-wrap">
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 flex-wrap">
                           {hasCustomColour && (
-                            <span className="px-1.5 py-0.5 bg-surface rounded border border-border text-2xs font-medium">
+                            <span className="px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-2xs font-semibold text-slate-700">
                               {item.variant.colour}
                             </span>
                           )}
                           {item.variant.barcode && (
-                            <span className="font-mono text-2xs text-text-muted bg-surface px-1.5 py-0.5 rounded border border-border/50">
+                            <span className="font-mono text-2xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                               {item.variant.barcode}
                             </span>
                           )}
                           {item.promoName && (
-                            <span className="flex items-center gap-0.5 text-2xs text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-2xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                               <Tag size={10} />
                               {item.promoName}
                             </span>
                           )}
-                          <span className="font-mono text-2xs text-text-muted">
+                          <span className="font-mono text-2xs text-slate-400">
                             {formatDZD(item.unit_price)} DZD / u
                           </span>
                         </div>
 
                         {item.quantity > (item.variant.stock_qty ?? 0) && (
-                          <div className="flex items-center gap-1.5 mt-2 text-2xs font-semibold text-amber-900 bg-amber-50 border border-amber-300/80 px-2.5 py-1 rounded-md">
+                          <div className="flex items-center gap-1.5 mt-2 text-2xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg">
                             <AlertTriangle size={12} className="shrink-0 text-amber-600" />
                             <span>
                               Stock insuffisant : {item.variant.stock_qty ?? 0} dispo ({item.quantity - (item.variant.stock_qty ?? 0)} en rupture)
@@ -1253,11 +1251,11 @@ export default function SalesPage() {
 
                       {/* Line Total */}
                       <div className="text-end shrink-0">
-                        <div className="text-base font-black font-mono text-text-primary">
+                        <div className="text-base font-black font-mono text-slate-900 tracking-tight">
                           {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
                         </div>
                         {item.discount > 0 && (
-                          <div className="text-2xs text-text-muted line-through font-mono">
+                          <div className="text-2xs text-slate-400 line-through font-mono">
                             {formatDZD(item.unit_price * item.quantity)} DZD
                           </div>
                         )}
@@ -1265,21 +1263,21 @@ export default function SalesPage() {
                     </div>
 
                     {/* Quantity & Actions row */}
-                    <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/60">
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => updateQuantity(item.variant.id, -1)}
-                          className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
                           title="Diminuer la quantité"
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="w-8 text-center text-sm font-black font-mono text-text-primary">
+                        <span className="w-8 text-center text-sm font-black font-mono text-slate-900">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.variant.id, 1)}
-                          className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-slate-200 active:scale-95 flex items-center justify-center transition-all"
+                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
                           title="Augmenter la quantité"
                         >
                           <Plus size={12} />
@@ -1288,7 +1286,7 @@ export default function SalesPage() {
 
                       <button
                         onClick={() => removeItem(item.variant.id)}
-                        className="text-xs text-text-muted hover:text-danger hover:bg-danger-light px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                        className="text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 font-semibold cursor-pointer"
                         title="Supprimer du panier"
                       >
                         <X size={12} />
@@ -1302,17 +1300,17 @@ export default function SalesPage() {
           </div>
 
           {/* ── Cart Footer (Pinned: Grand Total & Confirm) ── */}
-          <div className="border-t border-border p-3.5 bg-white space-y-3">
+          <div className="border-t border-slate-100 p-4 bg-white space-y-3.5">
             {/* Quick options toolbar */}
             <div className="flex items-center justify-between gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => setShowOptions(!showOptions)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors font-medium",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all font-semibold cursor-pointer",
                   showOptions || cartDiscount > 0 || isFormal || isVersement
-                    ? "bg-primary-50 border-primary-200 text-primary-700 font-semibold"
-                    : "bg-surface border-border text-text-secondary hover:bg-slate-100"
+                    ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs"
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                 )}
               >
                 <span>⚙️ Options de vente</span>
@@ -1323,50 +1321,50 @@ export default function SalesPage() {
 
               <div className="flex items-center gap-2">
                 {/* Remise input */}
-                <div className="flex items-center gap-1 text-2xs text-text-muted">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                   <span>Remise:</span>
                   <input
                     type="number"
                     value={cartDiscount || ""}
                     onChange={(e) => setCartDiscount(parseFloat(e.target.value) || 0)}
                     placeholder="0"
-                    className="w-16 px-1.5 py-1 text-xs border border-border rounded font-mono text-end"
+                    className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg font-mono text-end font-bold"
                     min="0"
                   />
-                  <span>DZD</span>
+                  <span className="font-mono text-2xs text-slate-400">DZD</span>
                 </div>
               </div>
             </div>
 
             {/* Expandable Options Drawer */}
             {showOptions && (
-              <div className="p-3 bg-surface rounded-xl border border-border space-y-2.5 animate-in fade-in duration-100">
+              <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3 animate-in fade-in duration-100">
                 {/* Mode Réel switch */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-text-primary">{t("sales.formal_mode")}</p>
-                    <p className="text-2xs text-text-muted">{t("sales.formal_mode_desc")}</p>
+                    <p className="text-xs font-bold text-slate-900">{t("sales.formal_mode")}</p>
+                    <p className="text-2xs text-slate-500">{t("sales.formal_mode_desc")}</p>
                   </div>
-                  <label className="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
+                  <label className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
                     <input
                       type="checkbox"
                       checked={isFormal}
                       onChange={(e) => setIsFormal(e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={cn("block h-4 w-8 rounded-full transition-colors", isFormal ? "bg-primary-500" : "bg-border")}></div>
+                    <div className={cn("block h-4 w-8 rounded-full transition-colors", isFormal ? "bg-primary-600" : "bg-slate-200")}></div>
                     <div className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", isFormal ? "translate-x-4" : "translate-x-0")}></div>
                   </label>
                 </div>
 
                 {/* Versement (Acompte) switch */}
                 <div className={cn(
-                  "flex items-center justify-between pt-2 border-t border-border/60",
+                  "flex items-center justify-between pt-2.5 border-t border-slate-200/60",
                   storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
                 )}>
                   <div>
-                    <p className="text-xs font-semibold text-text-primary">{t("sales.versement_acompte")}</p>
-                    <p className="text-2xs text-text-muted">
+                    <p className="text-xs font-bold text-slate-900">{t("sales.versement_acompte")}</p>
+                    <p className="text-2xs text-slate-500">
                       {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
                     </p>
                   </div>
@@ -1384,8 +1382,8 @@ export default function SalesPage() {
                       }
                     }}
                     className={cn(
-                      "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                      isVersement ? "bg-warning" : "bg-border",
+                      "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                      isVersement ? "bg-amber-500" : "bg-slate-200",
                       storeSettings?.versement_requires_client && !selectedClient ? "cursor-not-allowed" : ""
                     )}
                     role="switch"
@@ -1399,8 +1397,8 @@ export default function SalesPage() {
                 </div>
 
                 {/* Multiple payment methods */}
-                <div className="pt-2 border-t border-border/60 space-y-1.5">
-                  <div className="text-2xs font-semibold text-text-muted uppercase tracking-wider">
+                <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Mode de règlement
                   </div>
                   {payments.map((payment, i) => (
@@ -1414,7 +1412,7 @@ export default function SalesPage() {
                             )
                           )
                         }
-                        className="form-input text-xs py-1 flex-1"
+                        className="form-input text-xs py-1.5 flex-1 rounded-xl"
                       >
                         {PAYMENT_METHOD_KEYS.map((key) => (
                           <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
@@ -1430,10 +1428,10 @@ export default function SalesPage() {
                             )
                           )
                         }
-                        className="w-24 px-2 py-1 text-xs border border-border rounded font-mono text-end"
+                        className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded-xl font-mono text-end font-bold"
                         placeholder={formatDZD(total)}
                       />
-                      <span className="text-2xs text-text-muted">DZD</span>
+                      <span className="text-2xs text-slate-400 font-mono">DZD</span>
                     </div>
                   ))}
                 </div>
@@ -1447,8 +1445,8 @@ export default function SalesPage() {
               const belowMin = paymentTotal < minAmt;
               return (
                 <div className={cn(
-                  "text-xs px-2.5 py-1.5 rounded-lg border font-medium flex items-center justify-between",
-                  belowMin ? "bg-danger-light text-danger border-danger/20" : "bg-success/10 text-success border-success/20"
+                  "text-xs px-3 py-2 rounded-xl border font-semibold flex items-center justify-between",
+                  belowMin ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
                 )}>
                   <span>Acompte minimum ({minPct}%): {formatDZD(Math.ceil(minAmt))} DZD</span>
                   <span>Solde: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
@@ -1457,28 +1455,28 @@ export default function SalesPage() {
             })()}
 
             {/* ── HIGH VISIBILITY GRAND TOTAL DISPLAY ── */}
-            <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-800 flex flex-col justify-between relative overflow-hidden">
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   {t("sales.total_to_pay", "Total à payer")}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-mono text-2xs">
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-mono text-[11px] font-bold">
                   {totalItems} {totalItems > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between gap-2 my-1">
-                <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">
+                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">
                   {formatDZD(total)}
                 </div>
-                <div className="text-lg font-bold font-mono text-primary-400">
+                <div className="text-xl font-black font-mono text-primary-400">
                   DZD
                 </div>
               </div>
 
               {(cartDiscount > 0 || redemptionDzd > 0 || timbreFiscal > 0) && (
-                <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-x-4 gap-y-1 text-2xs font-mono text-slate-300">
+                <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-wrap gap-x-4 gap-y-1 text-2xs font-mono text-slate-300 font-medium">
                   {cartDiscount > 0 && (
                     <span className="text-emerald-400">Remise: −{formatDZD(cartDiscount)} DZD</span>
                   )}
@@ -1494,7 +1492,7 @@ export default function SalesPage() {
 
             {/* Error banner */}
             {saleMutation.isError && (
-              <div className="text-xs text-danger bg-danger-light px-3 py-2 rounded-lg border border-danger/20 font-medium">
+              <div className="text-xs text-red-700 bg-red-50 px-3 py-2.5 rounded-xl border border-red-200 font-semibold">
                 {getApiError(saleMutation.error)}
               </div>
             )}
@@ -1508,10 +1506,10 @@ export default function SalesPage() {
                 (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100)
               }
               className={cn(
-                "w-full py-3.5 px-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]",
+                "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",
                 cart.length === 0
-                  ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
-                  : "btn-primary hover:shadow-lg"
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                  : "bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white shadow-primary-500/25 hover:shadow-lg"
               )}
             >
               {saleMutation.isPending ? (
@@ -1520,7 +1518,7 @@ export default function SalesPage() {
                 <>
                   <Check size={20} className="stroke-[2.5]" />
                   <span>{t("sales.versement_btn", { amount: formatDZD(paymentTotal) })}</span>
-                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded bg-white/20 text-white border border-white/30">
+                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded-lg bg-white/20 text-white border border-white/30">
                     F10 / .
                   </kbd>
                 </>
@@ -1529,7 +1527,7 @@ export default function SalesPage() {
                   <Check size={20} className="stroke-[2.5]" />
                   <span>{t("sales.confirm_sale")}</span>
                   <span className="font-mono text-white/90">— {formatDZD(total)} DZD</span>
-                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded bg-white/20 text-white border border-white/30">
+                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded-lg bg-white/20 text-white border border-white/30">
                     F10 / .
                   </kbd>
                 </>
