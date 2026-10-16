@@ -87,9 +87,12 @@ export default function DesktopTab() {
 
   if (!isDesktop) {
     return (
-      <div className="p-6 text-center text-text-muted">
-        <Monitor size={36} className="mx-auto mb-2 text-text-muted/60" />
-        <p className="text-sm">Cette section est disponible uniquement sur l'application installée ShoeDZ pour Windows.</p>
+      <div className="p-12 text-center text-slate-400">
+        <Monitor size={40} className="mx-auto mb-3 text-slate-300" />
+        <h3 className="font-semibold text-slate-700 text-sm">Application Web uniquement</h3>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+          Cette section est disponible uniquement sur l'application installée ShoeDZ pour Windows.
+        </p>
       </div>
     );
   }
@@ -97,20 +100,20 @@ export default function DesktopTab() {
   return (
     <div className="space-y-6">
       {/* App Overview Card */}
-      <div className="p-5 rounded-2xl border border-border bg-surface-subtle flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary-500 text-white flex items-center justify-center text-2xl shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-primary-600 text-white flex items-center justify-center text-2xl shadow-xs">
             👟
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-text-primary">ShoeDZ Desktop POS</h3>
-              <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-primary-100 text-primary-700">
+              <h3 className="text-base font-bold font-sans tracking-tight text-slate-900">ShoeDZ Desktop POS</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-2xs font-bold bg-primary-50 text-primary-700 border border-primary-200">
                 Windows Edition
               </span>
             </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Version installée : <strong className="text-text-primary font-mono">v{version}</strong>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Version installée : <strong className="text-slate-900 font-mono">v{version}</strong>
             </p>
           </div>
         </div>
@@ -118,54 +121,54 @@ export default function DesktopTab() {
         <button
           onClick={handleCheckForUpdates}
           disabled={checking || status === "downloading"}
-          className="btn-secondary btn-sm flex items-center gap-1.5 self-stretch md:self-auto justify-center"
+          className="btn-secondary py-2 px-3.5 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-2xs self-stretch md:self-auto justify-center"
         >
-          <RefreshCw size={14} className={checking ? "animate-spin text-primary-500" : ""} />
+          <RefreshCw size={14} className={checking ? "animate-spin text-primary-600" : ""} />
           <span>{checking ? "Vérification..." : "Vérifier les mises à jour"}</span>
         </button>
       </div>
 
       {/* Update Status Card */}
-      <div className="p-5 rounded-2xl border border-border bg-white shadow-2xs space-y-4">
+      <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Monitor size={18} className="text-primary-500" />
-            <h4 className="text-sm font-semibold text-text-primary">État des mises à jour logicielles</h4>
+            <Monitor size={18} className="text-primary-600" />
+            <h4 className="text-sm font-semibold text-slate-900">État des mises à jour logicielles</h4>
           </div>
 
           {/* Status Badge */}
           {status === "checking" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               <RefreshCw size={12} className="animate-spin" /> Recherche en cours...
             </span>
           )}
           {status === "not-available" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CheckCircle2 size={13} /> Votre application est à jour
             </span>
           )}
           {status === "available" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
               <Download size={13} /> Nouvelle version v{updateInfo?.version} disponible
             </span>
           )}
           {status === "downloading" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               <Download size={13} className="animate-bounce" /> Téléchargement ({downloadProgress}%)
             </span>
           )}
           {status === "downloaded" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CheckCircle2 size={13} /> Prête pour installation
             </span>
           )}
           {status === "error" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
               <AlertCircle size={13} /> Erreur de vérification
             </span>
           )}
           {status === ("idle" as any) && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs text-text-muted">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
               Canal de mise à jour stable (GitHub Releases)
             </span>
           )}
@@ -174,30 +177,30 @@ export default function DesktopTab() {
         {/* Progress bar during download */}
         {status === "downloading" && (
           <div className="space-y-1.5 pt-1">
-            <div className="w-full bg-surface-subtle h-2.5 rounded-full overflow-hidden border border-border">
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
               <div
-                className="bg-primary-500 h-full rounded-full transition-all duration-300"
+                className="bg-primary-600 h-full rounded-full transition-all duration-300"
                 style={{ width: `${downloadProgress}%` }}
               />
             </div>
-            <p className="text-2xs text-text-muted text-right font-mono">{downloadProgress}% téléchargé</p>
+            <p className="text-2xs text-slate-500 text-right font-mono font-medium">{downloadProgress}% téléchargé</p>
           </div>
         )}
 
         {/* Downloaded: Call to Action */}
         {status === "downloaded" && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
             <div>
               <p className="text-sm font-bold text-emerald-900">
                 La version {updateInfo?.version || "récente"} est téléchargée et prête !
               </p>
-              <p className="text-xs text-emerald-700">
+              <p className="text-xs text-emerald-700 mt-0.5">
                 Cliquez sur le bouton ci-contre pour redémarrer l'application et appliquer automatiquement la mise à jour.
               </p>
             </div>
             <button
               onClick={handleInstallUpdate}
-              className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 shadow-xs shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs shrink-0 transition-colors"
             >
               <Download size={14} />
               <span>Redémarrer et appliquer</span>
@@ -207,17 +210,17 @@ export default function DesktopTab() {
 
         {/* Error message */}
         {status === "error" && errorMessage && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
             {errorMessage}
           </div>
         )}
 
         {/* Safety Note */}
-        <div className="p-3.5 rounded-xl bg-surface-subtle border border-border flex items-start gap-2.5 text-xs text-text-muted">
-          <ShieldCheck size={16} className="text-primary-500 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3 text-xs text-slate-600">
+          <ShieldCheck size={18} className="text-primary-600 shrink-0 mt-0.5" />
           <p>
             Toutes vos données (catalogue, stocks, ventes et clients) sont stockées dans{" "}
-            <code className="text-2xs font-mono bg-white px-1 py-0.5 rounded border border-border text-text-primary">
+            <code className="text-2xs font-mono font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-800">
               %ProgramData%\ShoeDZ
             </code>{" "}
             et restent 100% préservées lors de chaque mise à jour.
@@ -226,48 +229,48 @@ export default function DesktopTab() {
       </div>
 
       {/* Local Data & Diagnostics */}
-      <div className="p-5 rounded-2xl border border-border bg-white shadow-2xs space-y-4">
-        <div className="flex items-center gap-2">
-          <HardDrive size={18} className="text-primary-500" />
-          <h4 className="text-sm font-semibold text-text-primary">Diagnostics et Données Locales</h4>
+      <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+          <HardDrive size={18} className="text-primary-600" />
+          <h4 className="text-sm font-semibold text-slate-900">Diagnostics et Données Locales</h4>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3.5 rounded-xl border border-border bg-surface-subtle flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center text-text-secondary">
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
                 <FolderArchive size={18} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-text-primary">Sauvegardes automatiques</p>
-                <p className="text-2xs text-text-muted font-mono">C:\ProgramData\ShoeDZ\backups</p>
+                <p className="text-xs font-semibold text-slate-900">Sauvegardes automatiques</p>
+                <p className="text-2xs text-slate-400 font-mono mt-0.5">C:\ProgramData\ShoeDZ\backups</p>
               </div>
             </div>
             <button
               onClick={() => window.electronAPI?.openBackupsFolder?.()}
-              className="btn-ghost btn-sm text-primary-600 hover:text-primary-700"
+              className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors"
               title="Ouvrir dans l'Explorateur Windows"
             >
-              <ExternalLink size={14} />
+              <ExternalLink size={15} />
             </button>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-border bg-surface-subtle flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center text-text-secondary">
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
                 <FileText size={18} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-text-primary">Journaux techniques (Logs)</p>
-                <p className="text-2xs text-text-muted font-mono">C:\ProgramData\ShoeDZ\logs</p>
+                <p className="text-xs font-semibold text-slate-900">Journaux techniques (Logs)</p>
+                <p className="text-2xs text-slate-400 font-mono mt-0.5">C:\ProgramData\ShoeDZ\logs</p>
               </div>
             </div>
             <button
               onClick={() => window.electronAPI?.openLogsFolder?.()}
-              className="btn-ghost btn-sm text-primary-600 hover:text-primary-700"
+              className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors"
               title="Ouvrir dans l'Explorateur Windows"
             >
-              <ExternalLink size={14} />
+              <ExternalLink size={15} />
             </button>
           </div>
         </div>

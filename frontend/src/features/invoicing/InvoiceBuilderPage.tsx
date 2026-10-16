@@ -96,12 +96,12 @@ function ClientSelector({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "form-input flex items-center justify-between gap-2 text-start",
-          !value && "text-text-muted"
+          "input w-full flex items-center justify-between gap-2 text-start rounded-xl border-slate-200 text-sm",
+          !value && "text-slate-400"
         )}
       >
         <span className="truncate">{value ? value.name : t("invoice.select_client")}</span>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {value && (
             <span
               role="button"
@@ -109,36 +109,36 @@ function ClientSelector({
                 e.stopPropagation();
                 onChange(null);
               }}
-              className="hover:text-danger transition-colors"
+              className="p-0.5 hover:text-rose-600 transition-colors"
             >
               <X size={14} />
             </span>
           )}
-          <ChevronDown size={14} className={cn("transition-transform", open && "rotate-180")} />
+          <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-200", open && "rotate-180")} />
         </div>
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-white border border-border rounded-md shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-border">
+        <div className="absolute z-50 top-full mt-1.5 w-full bg-white border border-slate-200/80 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100 bg-slate-50/50">
             <div className="relative">
-              <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+              <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 autoFocus
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="form-input ps-8 py-1.5 text-sm"
+                className="input w-full ps-8 py-1.5 text-xs rounded-lg border-slate-200"
                 placeholder={t("common.search")}
               />
             </div>
           </div>
-          <div className="max-h-52 overflow-y-auto">
+          <div className="max-h-52 overflow-y-auto divide-y divide-slate-100">
             {isFetching && (
-              <div className="px-3 py-2 text-xs text-text-muted">{t("app.loading")}</div>
+              <div className="px-3 py-2 text-xs text-slate-400">{t("app.loading")}</div>
             )}
             {!isFetching && clients.length === 0 && (
-              <div className="px-3 py-2 text-xs text-text-muted">{t("invoice.no_client_found")}</div>
+              <div className="px-3 py-2 text-xs text-slate-400">{t("invoice.no_client_found")}</div>
             )}
             {clients.map((c) => (
               <button
@@ -149,11 +149,11 @@ function ClientSelector({
                   setOpen(false);
                   setQuery("");
                 }}
-                className="w-full text-start px-3 py-2 text-sm hover:bg-surface transition-colors"
+                className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
               >
-                <div className="font-medium text-text-primary">{c.name}</div>
+                <div className="font-semibold text-slate-900">{c.name}</div>
                 {c.phone && (
-                  <div className="text-xs text-text-muted">{c.phone}</div>
+                  <div className="text-xs text-slate-500 font-mono mt-0.5">{c.phone}</div>
                 )}
               </button>
             ))}
@@ -461,42 +461,46 @@ export default function InvoiceBuilderPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="space-y-5 pb-12">
+    <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pb-12">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate("/invoices")}
-            className="btn-ghost btn-sm"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-text-primary">{t("invoice.new")}</h1>
-            <p className="text-sm text-text-muted">{t("invoice.fill_info")}</p>
+            <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{isEditMode ? "Modifier la facture" : t("invoice.new")}</h1>
+            <p className="text-xs font-medium text-slate-500 mt-0.5">{t("invoice.fill_info")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate("/invoices")}
-            className="btn-secondary"
-          >{t("app.cancel")}</button>
+            className="btn-secondary px-3.5 py-2 text-xs font-medium rounded-xl"
+          >
+            {t("app.cancel")}
+          </button>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, false)}
             disabled={mutation.isPending}
-            className="btn-secondary"
+            className="btn-secondary px-3.5 py-2 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5"
           >
-            <Save size={16} />{t("invoice.status_draft")}</button>
+            <Save size={14} />
+            {t("invoice.status_draft")}
+          </button>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, true)}
             disabled={mutation.isPending}
-            className="btn-primary"
+            className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl shadow-xs"
           >
-            <Save size={16} />
+            <Save size={15} />
             {mutation.isPending ? t("app.saving") : t("common.save")}
           </button>
         </div>
@@ -507,20 +511,20 @@ export default function InvoiceBuilderPage() {
 
       {/* ── Error banner ── */}
       {formError && (
-        <div className="card px-4 py-3 bg-danger-light border-danger flex items-start gap-2">
-          <AlertCircle size={16} className="text-danger mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-danger">{formError}</p>
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-2xs">
+          <AlertCircle size={16} className="text-rose-600 mt-0.5 shrink-0" />
+          <p className="text-sm font-medium text-rose-700">{formError}</p>
         </div>
       )}
 
       {/* ── Credit limit warning banner ── */}
       {creditLimitWarning && (
-        <div className="card px-4 py-4 bg-warning-light border border-warning space-y-3">
-          <div className="flex items-start gap-2">
-            <AlertCircle size={18} className="text-warning mt-0.5 flex-shrink-0" />
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={18} className="text-amber-600 mt-0.5 shrink-0" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-warning">{t("invoice.credit_limit_exceeded")}</p>
-              <p className="text-xs text-text-muted">
+              <p className="text-sm font-semibold text-amber-800">{t("invoice.credit_limit_exceeded")}</p>
+              <p className="text-xs text-amber-700 font-mono">
                 {t("invoice.current_balance")}: <strong>{formatDZD(creditLimitWarning.current_balance)} DZD</strong>
                 {" | "}
                 {t("invoice.invoice_amount")}: <strong>{formatDZD(creditLimitWarning.invoice_total)} DZD</strong>
@@ -535,13 +539,15 @@ export default function InvoiceBuilderPage() {
             <button
               type="button"
               onClick={() => setCreditLimitWarning(null)}
-              className="btn-secondary btn-sm"
-            >{t("app.cancel")}</button>
+              className="btn-secondary py-1.5 px-3 text-xs rounded-xl"
+            >
+              {t("app.cancel")}
+            </button>
             <button
               type="button"
               onClick={handleForceSubmit}
               disabled={mutation.isPending}
-              className="btn-primary btn-sm"
+              className="btn-primary py-1.5 px-3 text-xs rounded-xl"
             >
               Forcer (Manager)
             </button>
@@ -549,58 +555,58 @@ export default function InvoiceBuilderPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
         {/* ── Left column ── */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Client + metadata */}
-          <div className="card">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("invoice.general_info")}</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.general_info")}</h2>
             </div>
-            <div className="card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Client */}
               <div className="sm:col-span-2">
-                <label className="form-label">{t("invoice.client")}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.client")}</label>
                 <ClientSelector value={client} onChange={setClient} />
               </div>
 
               {/* Date */}
               <div>
-                <label className="form-label">{t("invoice.date")}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.date")}</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="form-input"
+                  className="input w-full rounded-xl border-slate-200 text-sm"
                 />
               </div>
 
               {/* Due date */}
               <div>
-                <label className="form-label">{t("invoice.due_date")}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.due_date")}</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="form-input"
+                  className="input w-full rounded-xl border-slate-200 text-sm"
                 />
               </div>
 
               {/* Series prefix */}
               <div>
-                <label className="form-label">{t("invoice.series_prefix")}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.series_prefix")}</label>
                 <input
                   type="text"
                   value={seriesPrefix}
                   onChange={(e) => setSeriesPrefix(e.target.value.toUpperCase())}
-                  className="form-input font-mono uppercase"
+                  className="input w-full font-mono uppercase rounded-xl border-slate-200 text-sm"
                   maxLength={4}
                   placeholder="FA"
                 />
               </div>
 
               {/* Toggles */}
-              <div className="flex flex-col gap-3 sm:col-span-2 pt-1 border-t border-border mt-2">
+              <div className="flex flex-col gap-3 sm:col-span-2 pt-2 border-t border-slate-100 mt-2">
                 <label className="flex items-center gap-3 cursor-pointer select-none">
                   <div className="relative">
                     <input
@@ -609,10 +615,10 @@ export default function InvoiceBuilderPage() {
                       onChange={(e) => setIsFormal(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary-500 transition-colors" />
+                    <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
                     <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                   </div>
-                  <span className="text-sm font-medium text-text-primary">
+                  <span className="text-sm font-medium text-slate-800">
                     {t("invoice.real_mode")}
                   </span>
                 </label>
@@ -626,10 +632,10 @@ export default function InvoiceBuilderPage() {
                         onChange={(e) => setApplyTva(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary-500 transition-colors" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
-                    <span className="text-sm font-medium text-text-primary">
+                    <span className="text-sm font-medium text-slate-800">
                       {t("invoice.apply_tva", { rate: TVA_RATE })}
                     </span>
                   </label>
@@ -644,10 +650,10 @@ export default function InvoiceBuilderPage() {
                         onChange={(e) => setIsPaidInCash(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-amber-500 transition-colors" />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-amber-500 transition-colors" />
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
-                    <span className="text-sm font-medium text-amber-700">
+                    <span className="text-sm font-medium text-amber-800">
                       {t("invoice.cash_payment_stamp")}
                     </span>
                   </label>
@@ -656,11 +662,11 @@ export default function InvoiceBuilderPage() {
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="form-label">{t("invoice.notes_optional")}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.notes_optional")}</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="form-input resize-none"
+                  className="input w-full resize-none rounded-xl border-slate-200 text-sm"
                   rows={2}
                   placeholder={t("invoice.notes_placeholder")}
                 />
@@ -669,14 +675,14 @@ export default function InvoiceBuilderPage() {
           </div>
 
           {/* Line items */}
-          <div className="card overflow-visible">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("invoice.billed_items")}</h2>
-              <span className="text-xs text-text-muted">{t("invoice.select_products_quantities")}</span>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.billed_items")}</h2>
+              <span className="text-xs text-slate-400 font-medium">{t("invoice.select_products_quantities")}</span>
             </div>
 
-            <div className="p-4 space-y-4">
-              {matrices.map((m, i) => (
+            <div className="space-y-4">
+              {matrices.map((m) => (
                 <InvoiceProductMatrix
                   key={m.id}
                   config={m}
@@ -688,32 +694,32 @@ export default function InvoiceBuilderPage() {
               <button
                 type="button"
                 onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
-                className="btn-ghost btn-sm text-primary-500 w-full justify-center border border-dashed border-primary-200"
+                className="w-full py-2.5 px-3 border border-dashed border-primary-300 hover:border-primary-500 hover:bg-primary-50/50 text-primary-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Plus size={14} /> Ajouter un autre produit
+                <Plus size={15} /> Ajouter un autre produit
               </button>
             </div>
           </div>
 
           {/* Payment recording */}
-          <div className="card">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("invoice.initial_payment")}</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.initial_payment")}</h2>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={addPayment}
                   onChange={(e) => setAddPayment(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-300"
+                  className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20"
                 />
-                <span className="text-sm text-text-muted">{t("invoice.record_payment")}</span>
+                <span className="text-xs font-semibold text-slate-700">{t("invoice.record_payment")}</span>
               </label>
             </div>
 
             {addPayment && (
-              <div className="card-body grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="form-label">{t("invoice.payment_method")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_method")}</label>
                   <select
                     value={payment.method}
                     onChange={(e) =>
@@ -722,7 +728,7 @@ export default function InvoiceBuilderPage() {
                         method: e.target.value as PaymentEntry["method"],
                       }))
                     }
-                    className="form-input"
+                    className="input w-full rounded-xl border-slate-200 text-sm"
                   >
                     {PAYMENT_METHODS.map((m) => (
                       <option key={m.value} value={m.value}>
@@ -732,7 +738,7 @@ export default function InvoiceBuilderPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">{t("invoice.payment_amount")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_amount")}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -740,25 +746,25 @@ export default function InvoiceBuilderPage() {
                       onChange={(e) =>
                         setPayment((p) => ({ ...p, amount: e.target.value }))
                       }
-                      className="form-input pe-12 font-mono"
+                      className="input w-full pe-12 font-mono rounded-xl border-slate-200 text-sm"
                       min="0"
                       step="100"
                       placeholder="0.00"
                     />
-                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
+                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-semibold text-slate-400">
                       DZD
                     </span>
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">{t("invoice.payment_date")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_date")}</label>
                   <input
                     type="date"
                     value={payment.date}
                     onChange={(e) =>
                       setPayment((p) => ({ ...p, date: e.target.value }))
                     }
-                    className="form-input"
+                    className="input w-full rounded-xl border-slate-200 text-sm"
                   />
                 </div>
               </div>
@@ -767,87 +773,87 @@ export default function InvoiceBuilderPage() {
         </div>
 
         {/* ── Right column: Totals sidebar ── */}
-        <div className="space-y-4">
-          <div className="card sticky top-20">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("invoice.summary")}</h2>
+        <div>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4 sticky top-6">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.summary")}</h2>
             </div>
-            <div className="card-body space-y-3">
+            <div className="space-y-3">
               {/* Subtotal HT */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-muted">{t("invoice.subtotal_ht")}</span>
-                <span className="font-mono text-sm text-text-primary">
-                  {formatDZD(subtotalHT)} DZD
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span className="font-medium">{t("invoice.subtotal_ht")}</span>
+                <span className="font-mono font-semibold text-slate-900 tabular-nums">
+                  {formatDZD(subtotalHT)} <span className="text-2xs text-slate-400 font-normal">DZD</span>
                 </span>
               </div>
 
               {/* TVA */}
               {(isFormal && applyTva) && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">{t("invoice.tva_rate", { rate: TVA_RATE })}</span>
-                  <span className="font-mono text-sm text-text-primary">
-                    {formatDZD(tvaAmount)} DZD
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span className="font-medium">{t("invoice.tva_rate", { rate: TVA_RATE })}</span>
+                  <span className="font-mono font-semibold text-slate-900 tabular-nums">
+                    {formatDZD(tvaAmount)} <span className="text-2xs text-slate-400 font-normal">DZD</span>
                   </span>
                 </div>
               )}
 
               {/* Timbre Fiscal */}
               {(isFormal && isPaidInCash) && (
-                <div className="flex items-center justify-between text-amber-700">
-                  <span className="text-sm">{t("invoice.timbre_fiscal")}</span>
-                  <span className="font-mono text-sm">
-                    {formatDZD(timbreFiscal)} DZD
+                <div className="flex items-center justify-between text-xs text-amber-700">
+                  <span className="font-medium">{t("invoice.timbre_fiscal")}</span>
+                  <span className="font-mono font-semibold tabular-nums">
+                    {formatDZD(timbreFiscal)} <span className="text-2xs opacity-70">DZD</span>
                   </span>
                 </div>
               )}
 
               {/* Total TTC */}
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <span className="font-semibold text-text-primary">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <span className="font-bold text-sm text-slate-900">
                   Total {applyTva ? "TTC" : "HT"}
                 </span>
-                <span className="font-mono font-bold text-lg text-primary-500">
-                  {formatDZD(totalTTC)} DZD
+                <span className="font-mono font-bold text-xl text-primary-600 tabular-nums">
+                  {formatDZD(totalTTC)} <span className="text-xs text-primary-400 font-normal">DZD</span>
                 </span>
               </div>
 
               {/* Paid */}
               {addPayment && paidAmount > 0 && (
                 <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-muted">{t("invoice.amount_paid")}</span>
-                    <span className="font-mono text-sm text-success">
-                      − {formatDZD(paidAmount)} DZD
+                  <div className="flex items-center justify-between text-xs text-emerald-700">
+                    <span className="font-medium">{t("invoice.amount_paid")}</span>
+                    <span className="font-mono font-semibold tabular-nums">
+                      − {formatDZD(paidAmount)} <span className="text-2xs opacity-70">DZD</span>
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="font-semibold text-text-primary">{t("invoice.balance_due")}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <span className="font-bold text-xs text-slate-900">{t("invoice.balance_due")}</span>
                     <span
                       className={cn(
-                        "font-mono font-bold text-base",
-                        balanceDue > 0 ? "text-danger" : "text-success"
+                        "font-mono font-bold text-base tabular-nums",
+                        balanceDue > 0 ? "text-rose-600" : "text-emerald-600"
                       )}
                     >
-                      {formatDZD(balanceDue)} DZD
+                      {formatDZD(balanceDue)} <span className="text-2xs font-normal opacity-70">DZD</span>
                     </span>
                   </div>
                 </>
               )}
 
               {/* Lines count */}
-              <div className="pt-2 text-xs text-text-muted border-t border-border">
+              <div className="pt-3 text-2xs text-slate-400 border-t border-slate-100">
                 {getFlatLines().length} ligne(s)
-                · Client: {client?.name ?? <em>{t("invoice.not_defined")}</em>}
+                · Client: <span className="font-medium text-slate-600">{client?.name ?? t("invoice.not_defined")}</span>
               </div>
             </div>
 
             {/* Action buttons (repeated for convenience) */}
-            <div className="px-5 pb-4 space-y-2">
+            <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
                 disabled={mutation.isPending}
-                className="btn-primary w-full justify-center"
+                className="btn-primary w-full justify-center py-2.5 rounded-xl font-semibold shadow-xs"
               >
                 <Save size={15} />
                 {mutation.isPending ? t("app.saving") : t("invoice.save_invoice")}
@@ -855,8 +861,10 @@ export default function InvoiceBuilderPage() {
               <button
                 type="button"
                 onClick={() => navigate("/invoices")}
-                className="btn-secondary w-full justify-center"
-              >{t("app.cancel")}</button>
+                className="btn-secondary w-full justify-center py-2 rounded-xl text-xs"
+              >
+                {t("app.cancel")}
+              </button>
             </div>
           </div>
         </div>
@@ -864,3 +872,4 @@ export default function InvoiceBuilderPage() {
     </form>
   );
 }
+

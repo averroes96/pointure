@@ -84,9 +84,13 @@ function ProductSearch({
 
   if (selectedProduct) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-primary-50 border border-primary-200 rounded-lg text-sm">
-        <span className="flex-1 font-medium text-primary-700 truncate">{selectedProduct.name}</span>
-        <button type="button" onClick={onClear} className="text-text-muted hover:text-danger">
+      <div className="flex items-center gap-2 px-3.5 py-2 bg-primary-50 border border-primary-200 rounded-xl text-sm">
+        <span className="flex-1 font-semibold text-primary-700 truncate">{selectedProduct.name}</span>
+        <button
+          type="button"
+          onClick={onClear}
+          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+        >
           <X size={14} />
         </button>
       </div>
@@ -96,10 +100,10 @@ function ProductSearch({
   return (
     <div ref={wrapperRef} className="relative w-full">
       <div className="relative">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
-          className="form-input pl-8 text-sm py-1.5 w-full"
-          placeholder="Rechercher un produit..."
+          className="input pl-9 text-sm py-2 w-full rounded-xl border-slate-200"
+          placeholder="Rechercher un produit (min. 2 lettres)..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -109,20 +113,20 @@ function ProductSearch({
         />
       </div>
       {open && query.length >= 2 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {isFetching && <div className="p-3 text-xs text-text-muted">Chargement...</div>}
+        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-slate-200/80 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-100">
+          {isFetching && <div className="p-3 text-xs text-slate-400">{t("app.loading")}</div>}
           {!isFetching && results.length === 0 && (
-            <div className="p-3 text-xs text-text-muted">Aucun résultat.</div>
+            <div className="p-3 text-xs text-slate-400">Aucun résultat trouvé.</div>
           )}
           {results.map((p) => (
             <button
               key={p.id}
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-surface transition-colors"
+              className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
               onClick={() => { onSelect(p); setQuery(""); setOpen(false); }}
             >
-              <span className="font-medium">{p.name}</span>
-              {p.brand && <span className="text-text-muted ml-1.5">· {p.brand}</span>}
+              <span className="font-semibold text-slate-900">{p.name}</span>
+              {p.brand && <span className="text-slate-400 ml-1.5 text-xs font-medium">· {p.brand}</span>}
             </button>
           ))}
         </div>
@@ -182,21 +186,20 @@ export function InvoiceProductMatrix({
     return newQty;
   };
 
-  // Calculate sum of pairs currently configured
-  const currentTotalPairs = colours.reduce(
-    (sum, c) => sum + sizes.reduce((s, sz) => s + (parseFloat(config.quantities[c]?.[sz] as any) || 0), 0),
-    0
-  );
-
   return (
-    <div className="border border-border rounded-lg p-4 space-y-4 bg-white shadow-sm relative">
+    <div className="border border-slate-200/80 rounded-2xl p-5 space-y-4 bg-slate-50/40 hover:border-slate-300 transition-colors relative">
       <div className="absolute top-4 right-4">
-        <button type="button" onClick={onRemove} className="text-text-muted hover:text-danger">
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+          title="Supprimer cet article"
+        >
           <X size={16} />
         </button>
       </div>
 
-      <div className="w-3/4">
+      <div className="w-full sm:w-3/4">
         <ProductSearch
           selectedProduct={product}
           onSelect={(p) => {
@@ -215,11 +218,11 @@ export function InvoiceProductMatrix({
       </div>
 
       {product && sizes.length > 0 && (
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4 pt-1">
           {/* Distribution controls */}
-          <div className="flex flex-wrap items-end gap-3 p-3 bg-surface border border-border rounded-lg">
+          <div className="flex flex-wrap items-end gap-3 p-3.5 bg-white border border-slate-200/80 rounded-xl shadow-2xs">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.cartons_count")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">{t("invoice.cartons_count")}</label>
               <input
                 type="number"
                 min="1"
@@ -228,11 +231,11 @@ export function InvoiceProductMatrix({
                   const c = parseInt(e.target.value) || 0;
                   onChange({ ...config, cartons: c, quantities: getDistributedQty(product, c, config.pairs_per_carton) });
                 }}
-                className="form-input text-xs py-1 w-24"
+                className="input text-xs py-1.5 w-24 rounded-lg font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.pairs_per_carton")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">{t("invoice.pairs_per_carton")}</label>
               <input
                 type="number"
                 min="1"
@@ -241,29 +244,29 @@ export function InvoiceProductMatrix({
                   const ppc = parseInt(e.target.value) || 0;
                   onChange({ ...config, pairs_per_carton: ppc, quantities: getDistributedQty(product, config.cartons, ppc) });
                 }}
-                className="form-input text-xs py-1 w-24"
+                className="input text-xs py-1.5 w-24 rounded-lg font-mono"
               />
             </div>
-            <div className="px-2 py-1 bg-white border border-border rounded text-sm font-medium">
+            <div className="px-3 py-1.5 bg-slate-100 border border-slate-200/80 rounded-lg text-xs font-bold text-slate-800 font-mono">
               = {config.cartons * config.pairs_per_carton} paires totales
             </div>
           </div>
 
           {/* Pricing Controls */}
-          <div className="flex flex-wrap items-end gap-3 p-3 bg-surface border border-border rounded-lg">
+          <div className="flex flex-wrap items-end gap-3 p-3.5 bg-white border border-slate-200/80 rounded-xl shadow-2xs">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Prix unitaire (DZD)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Prix unitaire (DZD)</label>
               <input
                 type="number"
                 min="0"
                 step="any"
                 value={config.unit_price}
                 onChange={(e) => onChange({ ...config, unit_price: e.target.value })}
-                className="form-input text-xs py-1 w-32 font-mono text-end"
+                className="input text-xs py-1.5 w-32 font-mono text-end rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Remise (%)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Remise (%)</label>
               <input
                 type="number"
                 min="0"
@@ -271,30 +274,30 @@ export function InvoiceProductMatrix({
                 step="1"
                 value={config.discount_pct}
                 onChange={(e) => onChange({ ...config, discount_pct: e.target.value })}
-                className="form-input text-xs py-1 w-24 text-center font-mono"
+                className="input text-xs py-1.5 w-24 text-center font-mono rounded-lg"
               />
             </div>
           </div>
 
           {/* Matrix */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white shadow-2xs">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr>
-                  <th className="border border-border p-2 bg-surface text-text-muted text-xs font-medium text-left">
+                <tr className="bg-slate-50/70 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="p-3 text-start">
                     {sizes.length === 1 && sizes[0] <= 0 ? "Article" : "Couleur \\ Taille"}
                   </th>
                   {sizes.map((s) => (
-                    <th key={s} className="border border-border p-2 bg-surface text-text-muted text-xs font-medium w-24 text-center">
+                    <th key={s} className="p-3 w-24 text-center">
                       {s > 0 ? `EU ${s}` : "Quantité"}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {colours.map((c) => (
-                  <tr key={c}>
-                    <td className="border border-border p-2 font-medium text-xs bg-surface/30">
+                  <tr key={c} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-3 font-semibold text-xs text-slate-800 bg-slate-50/30">
                       {c === "N/A" || c === "Standard" ? (sizes.length === 1 && sizes[0] <= 0 ? "Standard" : "Sans couleur") : c}
                     </td>
                     {sizes.map((s) => {
@@ -304,7 +307,7 @@ export function InvoiceProductMatrix({
                       const hasStockError = requestedQty > stockQty;
 
                       return (
-                        <td key={s} className={cn("border border-border p-1 text-center", hasStockError && "bg-danger/10")}>
+                        <td key={s} className={cn("p-2 text-center", hasStockError && "bg-rose-50/60")}>
                           {variant ? (
                             <div className="flex flex-col items-center gap-1">
                               <input
@@ -313,17 +316,17 @@ export function InvoiceProductMatrix({
                                 value={requestedQty || ""}
                                 onChange={(e) => updateQty(c, s, parseInt(e.target.value) || 0)}
                                 className={cn(
-                                  "form-input text-center w-16 text-xs py-1 px-1",
-                                  hasStockError && "border-danger text-danger focus:border-danger focus:ring-danger/20"
+                                  "input text-center w-16 text-xs py-1 px-1 rounded-lg font-mono",
+                                  hasStockError && "border-rose-400 text-rose-700 focus:border-rose-500 ring-rose-500/20"
                                 )}
                                 placeholder="0"
                               />
-                              <div className={cn("text-[10px]", hasStockError ? "text-danger font-medium" : "text-text-muted")}>
+                              <div className={cn("text-[10px] font-mono", hasStockError ? "text-rose-600 font-semibold" : "text-slate-400")}>
                                 Stock: {stockQty}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-text-muted text-xs">—</span>
+                            <span className="text-slate-300 text-xs">—</span>
                           )}
                         </td>
                       );
@@ -334,18 +337,19 @@ export function InvoiceProductMatrix({
             </table>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="mt-4 text-sm font-medium text-text-primary">
-            Total facturé pour cet article: {config.cartons * config.pairs_per_carton} paires
-          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+            <div className="text-xs font-semibold text-slate-700">
+              Total facturé pour cet article : <span className="font-mono font-bold text-slate-900">{config.cartons * config.pairs_per_carton}</span> paires
+            </div>
             {/* Show an alert if any cell exceeds stock */}
             {colours.some(c => sizes.some(s => {
               const variant = product.variants.find((v) => (v.colour || "N/A") === c && v.size_eu === s);
               const requestedQty = config.quantities[c]?.[s] ?? 0;
               return variant && requestedQty > variant.stock_qty;
             })) && (
-              <div className="flex items-center gap-2 text-danger text-sm font-medium bg-danger/10 px-3 py-1.5 rounded">
-                <AlertTriangle size={16} /> Quantité supérieure au stock disponible.
+              <div className="flex items-center gap-2 text-rose-700 text-xs font-semibold bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl">
+                <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+                Quantité supérieure au stock disponible.
               </div>
             )}
           </div>

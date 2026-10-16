@@ -58,16 +58,15 @@ function KPICard({
   color: string;
   sub?: string;
 }) {
-  const { t } = useTranslation();
   return (
-    <div className="kpi-card">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="kpi-card__label">{label}</div>
-          <div className="kpi-card__value">{value}</div>
-          {sub && <div className="text-xs text-text-muted mt-1">{sub}</div>}
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</div>
+          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 mt-1.5 tabular-nums truncate">{value}</div>
+          {sub && <div className="text-xs font-medium text-slate-500 mt-1">{sub}</div>}
         </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
           <Icon size={20} className="text-white" />
         </div>
       </div>
@@ -197,27 +196,41 @@ export default function DailyReportPage() {
   }
 
   return (
-    <div className="space-y-5 print:space-y-4">
+    <div className="space-y-6 print:space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("nav.daily_report")}</h1>
-          <p className="text-sm text-text-muted">{t("report.daily_summary")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.daily_report")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("report.daily_summary")}</p>
         </div>
-        <button onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date, t), "210mm", 15)} disabled={!data} className="btn-secondary">
-          <Printer size={16} />{t("common.print")}</button>
-        <button onClick={handleExportCSV} disabled={!data} className="btn-secondary">
-          <Download size={16} />{t("common.export_csv")}</button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => data && openPrintPopup(buildDailyReportHtml(data, date, t), "210mm", 15)}
+            disabled={!data}
+            className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-2xs disabled:opacity-50"
+          >
+            <Printer size={14} />
+            {t("common.print")}
+          </button>
+          <button
+            onClick={handleExportCSV}
+            disabled={!data}
+            className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-2xs disabled:opacity-50"
+          >
+            <Download size={14} />
+            {t("common.export_csv")}
+          </button>
+        </div>
       </div>
 
       {/* Date picker */}
       <div className="flex items-center gap-3 print:hidden">
-        <label className="text-sm font-medium text-text-primary whitespace-nowrap">Date :</label>
+        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">Date d'analyse :</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="form-input max-w-[200px]"
+          className="input max-w-[200px] rounded-xl border-slate-200 text-sm font-mono"
           max={todayISO()}
         />
       </div>
@@ -229,111 +242,120 @@ export default function DailyReportPage() {
       </div>
 
       {isLoading && (
-        <div className="card card-body text-center text-text-muted py-12">{t("report.loading_report")}</div>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-center text-slate-400 font-medium">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <span>{t("report.loading_report")}</span>
+          </div>
+        </div>
       )}
 
       {isError && (
-        <div className="card card-body text-center text-danger py-8">{t("report.error_loading_date")}</div>
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center text-rose-700 font-medium text-sm shadow-2xs">
+          {t("report.error_loading_date")}
+        </div>
       )}
 
       {data && !isLoading && (
         <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Primary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <KPICard
               label="CA brut du jour"
               value={formatDZD(data.total_revenue) + " DZD"}
               icon={TrendingUp}
-              color="bg-primary-500"
+              color="bg-primary-600"
               sub={`${data.sale_count} vente(s)`}
             />
             <KPICard
               label="Retours / Remboursements"
               value={"− " + formatDZD(data.total_refunds) + " DZD"}
               icon={RotateCcw}
-              color="bg-danger"
+              color="bg-rose-500"
             />
             <KPICard
               label="CA net du jour"
               value={formatDZD(data.net_revenue) + " DZD"}
               icon={BarChart2}
-              color="bg-success"
+              color="bg-emerald-600"
             />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {/* Secondary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               label="Articles vendus"
               value={data.items_sold}
               icon={ShoppingBag}
-              color="bg-accent"
+              color="bg-indigo-600"
               sub="unités"
             />
             <KPICard
               label="Chèques reçus"
               value={formatDZD(data.cheque_total) + " DZD"}
               icon={CreditCard}
-              color="bg-warning"
+              color="bg-amber-500"
             />
             <KPICard
               label="Total des remises"
               value={formatDZD(data.total_discounts) + " DZD"}
               icon={Tag}
-              color="bg-indigo-500"
+              color="bg-sky-500"
             />
             <KPICard
               label="Timbres fiscaux"
               value={formatDZD(data.total_stamps) + " DZD"}
               icon={FileSignature}
-              color="bg-slate-600"
+              color="bg-slate-700"
             />
           </div>
 
           {/* Bottom section */}
-          <div className="grid lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Payment breakdown */}
-            <div className="card overflow-hidden">
-              <div className="card-header">
-                <h2 className="font-semibold text-text-primary">{t("report.payment_breakdown")}</h2>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100">
+                <h2 className="font-semibold text-slate-900 text-sm">{t("report.payment_breakdown")}</h2>
               </div>
               {paymentBreakdown.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="data-table">
+                  <table className="w-full text-start text-sm border-collapse">
                     <thead>
-                      <tr>
-                        <th>Mode de paiement</th>
-                        <th className="text-end">Nb transactions</th>
-                        <th className="text-end">{t("report.amount")}</th>
+                      <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-3.5 text-start">Mode de paiement</th>
+                        <th className="px-4 py-3.5 text-end">Nb transactions</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.amount")}</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {paymentBreakdown.filter(r => r.method !== "account").map((row) => (
-                        <tr key={row.method}>
-                          <td className="font-medium text-text-primary">
+                    <tbody className="divide-y divide-slate-100">
+                      {paymentBreakdown.filter((r) => r.method !== "account").map((row) => (
+                        <tr key={row.method} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="px-4 py-3.5 font-semibold text-slate-900">
                             {t(`payment_method.${row.method}`, { defaultValue: row.method })}
                           </td>
-                          <td className="text-end text-text-muted">{row.count}</td>
-                          <td className="text-end font-mono font-medium">
+                          <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
                             {formatDZD(row.amount)}{" "}
-                            <span className="text-2xs text-text-muted">DZD</span>
+                            <span className="text-2xs text-slate-400 font-normal">DZD</span>
                           </td>
                         </tr>
                       ))}
-                      {paymentBreakdown.some(r => r.method === "account") && (
+                      {paymentBreakdown.some((r) => r.method === "account") && (
                         <>
-                          <tr className="border-t border-border/50">
-                            <td colSpan={3} className="py-2 px-3 text-xs font-semibold text-text-muted uppercase tracking-wider bg-surface-50">
+                          <tr className="border-t border-slate-200 bg-slate-50/70">
+                            <td colSpan={3} className="py-2.5 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
                               Solde / Crédit Client
                             </td>
                           </tr>
-                          {paymentBreakdown.filter(r => r.method === "account").map((row) => (
-                            <tr key={row.method}>
-                              <td className="font-medium text-text-primary">
+                          {paymentBreakdown.filter((r) => r.method === "account").map((row) => (
+                            <tr key={row.method} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="px-4 py-3.5 font-semibold text-slate-900">
                                 {t(`payment_method.${row.method}`, { defaultValue: row.method })}
                               </td>
-                              <td className="text-end text-text-muted">{row.count}</td>
-                              <td className="text-end font-mono font-medium text-indigo-600">
+                              <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
+                              <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-indigo-600 tabular-nums">
                                 {formatDZD(row.amount)}{" "}
-                                <span className="text-2xs text-text-muted">DZD</span>
+                                <span className="text-2xs text-slate-400 font-normal">DZD</span>
                               </td>
                             </tr>
                           ))}
@@ -341,56 +363,56 @@ export default function DailyReportPage() {
                       )}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-border">
-                        <td className="px-3 py-2.5 font-semibold">{t("common.total")}</td>
-                        <td className="px-3 py-2.5 text-end text-text-muted">
+                      <tr className="border-t-2 border-slate-200 bg-slate-50/70">
+                        <td className="px-4 py-3.5 font-bold text-slate-900">{t("common.total")}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700">
                           {paymentBreakdown.reduce((s, r) => s + r.count, 0)}
                         </td>
-                        <td className="px-3 py-2.5 text-end font-mono font-bold text-primary-600">
-                          {formatDZD(data.total_revenue)} DZD
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-primary-600 text-base tabular-nums">
+                          {formatDZD(data.total_revenue)} <span className="text-xs text-slate-400 font-normal">DZD</span>
                         </td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
               ) : (
-                <div className="card-body text-center text-text-muted py-6">
-                  Aucun paiement enregistré.
+                <div className="p-8 text-center text-slate-400 text-sm font-medium">
+                  Aucun paiement enregistré pour cette date.
                 </div>
               )}
             </div>
 
             {/* Top products */}
-            <div className="card overflow-hidden">
-              <div className="card-header">
-                <h2 className="font-semibold text-text-primary">{t("report.top_5_items")}</h2>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100">
+                <h2 className="font-semibold text-slate-900 text-sm">{t("report.top_5_items")}</h2>
               </div>
               {topProducts.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="data-table">
+                  <table className="w-full text-start text-sm border-collapse">
                     <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>{t("report.item")}</th>
-                        <th>{t("report.brand")}</th>
-                        <th className="text-end">{t("report.units")}</th>
-                        <th className="text-end">{t("report.revenue")}</th>
+                      <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="w-12 px-4 py-3.5 text-center">#</th>
+                        <th className="px-4 py-3.5 text-start">{t("report.item")}</th>
+                        <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.units")}</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {topProducts.slice(0, 5).map((product, i) => (
-                        <tr key={i}>
-                          <td>
-                            <span className="w-5 h-5 rounded-full bg-primary-50 text-primary-600 text-xs font-bold flex items-center justify-center">
+                        <tr key={i} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="px-4 py-3.5 text-center">
+                            <span className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 text-xs font-bold inline-flex items-center justify-center">
                               {i + 1}
                             </span>
                           </td>
-                          <td className="font-medium text-text-primary">{product.name}</td>
-                          <td className="text-text-muted">{product.brand || "—"}</td>
-                          <td className="text-end font-mono">{product.units}</td>
-                          <td className="text-end font-mono text-primary-600">
+                          <td className="px-4 py-3.5 font-semibold text-slate-900">{product.name}</td>
+                          <td className="px-4 py-3.5 text-slate-400 font-medium text-xs">{product.brand || "—"}</td>
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 tabular-nums">{product.units}</td>
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 tabular-nums">
                             {formatDZD(product.revenue)}{" "}
-                            <span className="text-2xs text-text-muted">DZD</span>
+                            <span className="text-2xs text-slate-400 font-normal">DZD</span>
                           </td>
                         </tr>
                       ))}
@@ -398,8 +420,8 @@ export default function DailyReportPage() {
                   </table>
                 </div>
               ) : (
-                <div className="card-body text-center text-text-muted py-6">
-                  Aucune vente ce jour.
+                <div className="p-8 text-center text-slate-400 text-sm font-medium">
+                  Aucune vente enregistrée ce jour.
                 </div>
               )}
             </div>

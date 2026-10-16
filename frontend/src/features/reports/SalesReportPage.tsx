@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import type { Branch } from "@/types";
 import type { PaginatedResponse } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 import { PlanGate, PlanLock } from "@/components/ui/PlanGate";
+import { cn } from "@/lib/utils";
 
 interface SalesPeriodRow {
   period: string;
@@ -61,27 +62,27 @@ function formatPeriodLabel(period: string): string {
 }
 
 function GrowthBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-text-muted text-sm">—</span>;
+  if (pct === null) return <span className="text-slate-400 text-sm">—</span>;
 
   if (pct > 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-success font-semibold text-sm">
-        <TrendingUp size={14} />
+      <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-sm">
+        <TrendingUp size={15} />
         +{pct.toFixed(1)}%
       </span>
     );
   }
   if (pct < 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-danger font-semibold text-sm">
-        <TrendingDown size={14} />
+      <span className="inline-flex items-center gap-1 text-rose-600 font-bold text-sm">
+        <TrendingDown size={15} />
         {pct.toFixed(1)}%
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-text-muted text-sm">
-      <Minus size={14} />
+    <span className="inline-flex items-center gap-1 text-slate-400 text-sm font-medium">
+      <Minus size={15} />
       0%
     </span>
   );
@@ -193,14 +194,14 @@ export default function SalesReportPage() {
   const activeLoading = isLoading || (showMargin && isManagerOrOwner && plLoading);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Analytique des ventes</h1>
-          <p className="text-sm text-text-muted">Évolution du chiffre d'affaires</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Analytique des ventes</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">Évolution du chiffre d'affaires et performance commerciale</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {isManagerOrOwner && (
             <PlanGate
               min="pro_retail"
@@ -208,36 +209,51 @@ export default function SalesReportPage() {
             >
               <button
                 onClick={() => setShowMargin((v) => !v)}
-                className={showMargin ? "btn-primary btn-sm" : "btn-secondary btn-sm"}
+                className={cn(
+                  "px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all",
+                  showMargin
+                    ? "bg-primary-600 text-white border-primary-600 shadow-xs"
+                    : "bg-white text-slate-700 border-slate-200/80 hover:bg-slate-50 shadow-2xs"
+                )}
               >
                 {showMargin ? "Masquer marges" : "Afficher marges"}
               </button>
             </PlanGate>
           )}
-          <button onClick={handleExportCSV} className="btn-secondary btn-sm">{t("common.export_csv")}</button>
+          <button
+            onClick={handleExportCSV}
+            className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-2xs"
+          >
+            <Download size={14} />
+            {t("common.export_csv")}
+          </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="card card-body">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+        <div className="flex flex-wrap items-end gap-4">
           {/* Period presets */}
           <div>
-            <label className="form-label">{t("report.period")}</label>
-            <div className="flex gap-1">
-              {(["7", "30", "90", "custom"] as PeriodPreset[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPreset(p)}
-                  className={
-                    preset === p
-                      ? "btn-primary btn-sm"
-                      : "btn-secondary btn-sm"
-                  }
-                >
-                  {PRESET_LABELS[p]}
-                </button>
-              ))}
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("report.period")}</label>
+            <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/80">
+              {(["7", "30", "90", "custom"] as PeriodPreset[]).map((p) => {
+                const isActive = preset === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setPreset(p)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs rounded-lg transition-all",
+                      isActive
+                        ? "bg-white text-slate-900 font-semibold shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                    )}
+                  >
+                    {PRESET_LABELS[p]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -245,22 +261,22 @@ export default function SalesReportPage() {
           {preset === "custom" && (
             <div className="flex items-end gap-2">
               <div>
-                <label className="form-label">Du</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Du</label>
                 <input
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
-                  className="form-input"
+                  className="input rounded-xl border-slate-200 text-sm"
                 />
               </div>
               <div>
-                <label className="form-label">Au</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Au</label>
                 <input
                   type="date"
                   value={customTo}
                   max={todayISO()}
                   onChange={(e) => setCustomTo(e.target.value)}
-                  className="form-input"
+                  className="input rounded-xl border-slate-200 text-sm"
                 />
               </div>
             </div>
@@ -268,11 +284,11 @@ export default function SalesReportPage() {
 
           {/* Branch filter */}
           <div>
-            <label className="form-label">Agence</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Agence</label>
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="form-input"
+              className="input rounded-xl border-slate-200 text-sm min-w-[180px]"
             >
               <option value="">Toutes les agences</option>
               {branches.map((b) => (
@@ -286,27 +302,27 @@ export default function SalesReportPage() {
       {/* P&L KPI cards (when margin is shown) */}
       {showMargin && isManagerOrOwner && plData && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="kpi-card">
-            <div className="kpi-card__label">CA Total</div>
-            <div className="kpi-card__value text-primary-600">
-              {formatDZD(plData.totals.revenue)} DZD
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">CA Total</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-primary-600 mt-1 tabular-nums">
+              {formatDZD(plData.totals.revenue)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-card__label">Coût des ventes</div>
-            <div className="kpi-card__value text-danger">
-              {formatDZD(plData.totals.cogs)} DZD
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Coût des ventes</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-rose-600 mt-1 tabular-nums">
+              {formatDZD(plData.totals.cogs)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-card__label">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Marge brute{" "}
-              <span className="text-xs font-normal text-text-muted">
+              <span className="text-xs font-mono font-bold text-emerald-600">
                 ({parseFloat(plData.totals.gross_margin_pct).toFixed(1)}%)
               </span>
             </div>
-            <div className="kpi-card__value text-success">
-              {formatDZD(plData.totals.gross_margin)} DZD
+            <div className="text-2xl font-bold font-mono tracking-tight text-emerald-600 mt-1 tabular-nums">
+              {formatDZD(plData.totals.gross_margin)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
         </div>
@@ -314,20 +330,22 @@ export default function SalesReportPage() {
 
       {/* Summary KPIs */}
       {data && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="kpi-card lg:col-span-2">
-            <div className="kpi-card__label">CA total période</div>
-            <div className="kpi-card__value text-primary-600">
-              {formatDZD(data.total_revenue)} DZD
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 lg:col-span-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">CA total période</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-primary-600 mt-1 tabular-nums">
+              {formatDZD(data.total_revenue)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-card__label">{t("report.sale_count")}</div>
-            <div className="kpi-card__value">{data.total_sales}</div>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("report.sale_count")}</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 mt-1 tabular-nums">
+              {data.total_sales}
+            </div>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-card__label">Croissance vs période préc.</div>
-            <div className="mt-1">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Croissance vs période préc.</div>
+            <div className="mt-2">
               <GrowthBadge pct={data.growth_pct ?? null} />
             </div>
           </div>
@@ -335,43 +353,48 @@ export default function SalesReportPage() {
       )}
 
       {activeLoading && (
-        <div className="card card-body text-center text-text-muted py-12">{t("common.loading")}</div>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-center text-slate-400 font-medium">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <span>{t("common.loading")}</span>
+          </div>
+        </div>
       )}
 
       {!activeLoading && data && (
         <>
           {/* Bar chart */}
-          <div className="card overflow-hidden">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Évolution du CA</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">Évolution du CA</h2>
             </div>
-            <div className="card-body">
+            <div>
               {rows.length === 0 ? (
-                <div className="text-center text-text-muted py-6">Aucune donnée.</div>
+                <div className="text-center text-slate-400 py-8 font-medium">Aucune donnée disponible.</div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {rows.map((row) => {
                     const val = parseFloat(row.revenue) || 0;
                     const pct = maxRevenue > 0 ? (val / maxRevenue) * 100 : 0;
                     return (
                       <div key={row.period} className="flex items-center gap-3 group">
-                        <span className="text-xs text-text-muted w-16 flex-shrink-0 text-right tabular-nums">
+                        <span className="text-xs font-mono font-medium text-slate-500 w-16 shrink-0 text-end tabular-nums">
                           {formatPeriodLabel(row.period)}
                         </span>
-                        <div className="flex-1 h-7 bg-surface rounded overflow-hidden">
+                        <div className="flex-1 h-7 bg-slate-100 rounded-lg overflow-hidden">
                           <div
-                            className="h-full bg-primary-500 group-hover:bg-primary-600 rounded transition-all duration-300 flex items-center ps-2"
+                            className="h-full bg-primary-600 group-hover:bg-primary-700 rounded-lg transition-all duration-300 flex items-center ps-2.5"
                             style={{ width: `${Math.max(pct, 1)}%` }}
                           >
                             {pct > 20 && (
-                              <span className="text-2xs text-white font-medium truncate">
-                                {formatDZD(row.revenue)}
+                              <span className="text-2xs text-white font-mono font-semibold truncate">
+                                {formatDZD(row.revenue)} DZD
                               </span>
                             )}
                           </div>
                         </div>
-                        <span className="text-xs font-mono text-text-muted w-28 flex-shrink-0 tabular-nums text-right">
-                          {formatDZD(row.revenue)} DZD
+                        <span className="text-xs font-mono font-bold text-slate-900 w-32 shrink-0 tabular-nums text-end">
+                          {formatDZD(row.revenue)} <span className="text-2xs font-normal text-slate-400">DZD</span>
                         </span>
                       </div>
                     );
@@ -382,30 +405,30 @@ export default function SalesReportPage() {
           </div>
 
           {/* Table */}
-          <div className="card overflow-hidden">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">Détail par période</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <h2 className="font-semibold text-slate-900 text-sm">Détail par période</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="data-table">
+              <table className="w-full text-start text-sm border-collapse">
                 <thead>
-                  <tr>
-                    <th>Date / Semaine</th>
-                    <th className="text-end">{t("report.revenue")}</th>
-                    <th className="text-end">{t("report.sale_count")}</th>
-                    <th className="text-end">Panier moyen</th>
+                  <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-3.5 text-start">Date / Semaine</th>
+                    <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
+                    <th className="px-4 py-3.5 text-end">{t("report.sale_count")}</th>
+                    <th className="px-4 py-3.5 text-end">Panier moyen</th>
                     {showMargin && isManagerOrOwner && (
                       <>
-                        <th className="text-end">Marge brute</th>
-                        <th className="text-end">Marge %</th>
+                        <th className="px-4 py-3.5 text-end">Marge brute</th>
+                        <th className="px-4 py-3.5 text-end">Marge %</th>
                       </>
                     )}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={showMargin && isManagerOrOwner ? 6 : 4} className="text-center py-8 text-text-muted">
+                      <td colSpan={showMargin && isManagerOrOwner ? 6 : 4} className="text-center py-10 text-slate-400 font-medium">
                         Aucune donnée pour cette période.
                       </td>
                     </tr>
@@ -413,22 +436,22 @@ export default function SalesReportPage() {
                   {rows.map((row) => {
                     const pl = plMap.get(row.period);
                     return (
-                      <tr key={row.period}>
-                        <td className="text-text-muted">{formatPeriodLabel(row.period)}</td>
-                        <td className="text-end font-mono font-medium">
+                      <tr key={row.period} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3.5 font-mono text-xs text-slate-600">{formatPeriodLabel(row.period)}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
                           {formatDZD(row.revenue)}{" "}
-                          <span className="text-2xs text-text-muted">DZD</span>
+                          <span className="text-2xs text-slate-400 font-normal">DZD</span>
                         </td>
-                        <td className="text-end text-text-muted">{row.sale_count}</td>
-                        <td className="text-end font-mono text-text-muted">
+                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.sale_count}</td>
+                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600 tabular-nums">
                           {formatDZD(row.avg_basket)} DZD
                         </td>
                         {showMargin && isManagerOrOwner && (
                           <>
-                            <td className="text-end font-mono text-success">
+                            <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-emerald-600 tabular-nums">
                               {pl ? `${formatDZD(pl.gross_margin)} DZD` : "—"}
                             </td>
-                            <td className="text-end font-mono text-text-muted">
+                            <td className="px-4 py-3.5 text-end font-mono font-semibold text-xs text-slate-700 tabular-nums">
                               {pl ? `${parseFloat(pl.gross_margin_pct).toFixed(1)}%` : "—"}
                             </td>
                           </>
@@ -442,42 +465,44 @@ export default function SalesReportPage() {
           </div>
 
           {/* Top products */}
-          <div className="card overflow-hidden">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("report.top_sales")}</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("report.top_sales")}</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="data-table">
+              <table className="w-full text-start text-sm border-collapse">
                 <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>{t("report.item")}</th>
-                    <th>{t("report.brand")}</th>
-                    <th className="text-end">Unités vendues</th>
-                    <th className="text-end">{t("report.revenue")}</th>
+                  <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="w-12 px-4 py-3.5 text-center">#</th>
+                    <th className="px-4 py-3.5 text-start">{t("report.item")}</th>
+                    <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
+                    <th className="px-4 py-3.5 text-end">Unités vendues</th>
+                    <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {topProducts.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-text-muted">
-                        Aucun produit.
+                      <td colSpan={5} className="text-center py-10 text-slate-400 font-medium">
+                        Aucun produit enregistré.
                       </td>
                     </tr>
                   )}
                   {topProducts.map((p, i) => (
-                    <tr key={p.product_id}>
-                      <td>
-                        <span className="w-6 h-6 rounded-full bg-primary-50 text-primary-600 text-xs font-bold inline-flex items-center justify-center">
+                    <tr key={p.product_id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3.5 text-center">
+                        <span className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 text-xs font-bold inline-flex items-center justify-center">
                           {i + 1}
                         </span>
                       </td>
-                      <td className="font-medium text-text-primary">{p.product_name}</td>
-                      <td className="text-text-muted">{p.brand || "—"}</td>
-                      <td className="text-end font-mono">{p.units_sold}</td>
-                      <td className="text-end font-mono font-medium text-primary-600">
+                      <td className="px-4 py-3.5 font-semibold text-slate-900">{p.product_name}</td>
+                      <td className="px-4 py-3.5 text-slate-400 font-medium text-xs">{p.brand || "—"}</td>
+                      <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 tabular-nums">
+                        {p.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
+                      </td>
+                      <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 tabular-nums">
                         {formatDZD(p.revenue)}{" "}
-                        <span className="text-2xs text-text-muted">DZD</span>
+                        <span className="text-2xs font-normal text-slate-400">DZD</span>
                       </td>
                     </tr>
                   ))}

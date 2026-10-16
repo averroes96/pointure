@@ -27,7 +27,7 @@ import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import type { Invoice } from "@/types";
 import { cn } from "@/lib/utils";
 
-// ── Invoice search input (reused pattern from DeliveryNoteFormPage) ────────────
+// ── Invoice search input ─────────────────────────────────────────────────────
 
 function InvoiceSearchInput({
   value,
@@ -79,8 +79,8 @@ function InvoiceSearchInput({
     <div className="relative">
       <div className="relative">
         {loading
-          ? <Loader2 size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted animate-spin" />
-          : <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          ? <Loader2 size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />
+          : <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
         }
         <input
           type="text"
@@ -88,30 +88,32 @@ function InvoiceSearchInput({
           onChange={(e) => search(e.target.value)}
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          className="form-input ps-9"
+          className="input w-full ps-9 rounded-xl border-slate-200 focus:border-primary-500 focus:ring-primary-500/20 text-sm"
           placeholder={t("invoice.search_placeholder")}
         />
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-20 w-full mt-1.5 bg-white border border-slate-200/80 rounded-xl shadow-xl overflow-hidden divide-y divide-slate-100">
           {results.map((inv) => (
             <button
               key={inv.id}
               type="button"
               onMouseDown={() => pick(inv)}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-surface text-start transition-colors"
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-start transition-colors"
             >
-              <FileText size={14} className="text-text-muted mt-0.5 flex-shrink-0" />
+              <FileText size={15} className="text-slate-400 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium text-sm text-text-primary">
+                  <span className="font-mono font-semibold text-sm text-slate-900">
                     {inv.number || `#${inv.id}`}
                   </span>
-                  <span className="badge badge-info text-xs">{inv.status}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    {inv.status}
+                  </span>
                 </div>
-                <div className="text-xs text-text-muted truncate">
-                  {inv.client_name || t("invoice.no_client")} · {formatDate(inv.date)} · {formatDZD(inv.total_ttc)} DZD
+                <div className="text-xs text-slate-500 truncate mt-0.5">
+                  {inv.client_name || t("invoice.no_client")} · {formatDate(inv.date)} · <span className="font-mono font-medium text-slate-700">{formatDZD(inv.total_ttc)} DZD</span>
                 </div>
               </div>
             </button>
@@ -211,90 +213,103 @@ export default function CreditNoteFormPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-6 max-w-2xl">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <Link to="/credit-notes" className="text-text-muted hover:text-text-primary transition-colors">
+        <Link
+          to="/credit-notes"
+          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+        >
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Nouvel Avoir</h1>
-          <p className="text-sm text-text-muted">{t("invoice.credit_note_desc")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Nouvel Avoir</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("invoice.credit_note_desc")}</p>
         </div>
       </div>
 
       {/* ── Form ──────────────────────────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
 
         {formError && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-danger-light border border-danger/30 rounded-lg text-sm text-danger">
-            <AlertTriangle size={14} className="flex-shrink-0" />
-            <span className="flex-1">{formError}</span>
-            <button type="button" onClick={() => setFormError(null)}><X size={14} /></button>
+          <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 shadow-2xs">
+            <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+            <span className="flex-1 font-medium">{formError}</span>
+            <button type="button" onClick={() => setFormError(null)} className="text-rose-500 hover:text-rose-700">
+              <X size={15} />
+            </button>
           </div>
         )}
 
         {saved && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
-            <CheckCircle size={14} />{t("invoice.credit_created_success")}</div>
+          <div className="flex items-center gap-2.5 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 shadow-2xs">
+            <CheckCircle size={15} className="text-emerald-500 shrink-0" />
+            <span className="font-medium">{t("invoice.credit_created_success")}</span>
+          </div>
         )}
 
         {/* Facture d'origine */}
-        <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <FileText size={14} className="text-primary-500" />{t("invoice.original_invoice")}</h2>
+        <div className="card bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+            <FileText size={16} className="text-primary-600" />
+            {t("invoice.original_invoice")}
+          </h2>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Facture <span className="text-danger">*</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Facture <span className="text-rose-500">*</span>
             </label>
             <InvoiceSearchInput value={selectedInvoice} onSelect={handleInvoiceSelect} />
           </div>
 
           {selectedInvoice && (
-            <div className="rounded-lg border border-primary-200 bg-primary-50/30 px-4 py-3 space-y-1">
+            <div className="rounded-xl border border-primary-200 bg-primary-50/40 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono font-semibold text-text-primary">
+                <span className="font-mono font-bold text-slate-900">
                   {selectedInvoice.number || `#${selectedInvoice.id}`}
                 </span>
-                <span className="text-xs text-text-muted">
+                <span className="text-xs font-semibold text-primary-700 bg-primary-100/70 px-2 py-0.5 rounded-md">
                   TVA {selectedInvoice.apply_tva ? `${selectedInvoice.tva_rate}%` : t("invoice.exempt")}
                 </span>
               </div>
-              <div className="text-sm text-text-muted">
-                Client : <strong className="text-text-primary">{selectedInvoice.client_name || "—"}</strong>
+              <div className="text-sm text-slate-600">
+                Client : <strong className="text-slate-900">{selectedInvoice.client_name || "—"}</strong>
               </div>
-              <div className="flex gap-4 text-xs text-text-muted">
-                <span>Total HT : {formatDZD(selectedInvoice.total_ht)} DZD</span>
-                <span>Total TTC : {formatDZD(selectedInvoice.total_ttc)} DZD</span>
+              <div className="flex gap-4 text-xs text-slate-500 font-mono">
+                <span>Total HT : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ht)} DZD</strong></span>
+                <span>Total TTC : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ttc)} DZD</strong></span>
               </div>
             </div>
           )}
         </div>
 
         {/* Avoir details */}
-        <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <FileX size={14} className="text-primary-500" />{t("invoice.credit_details")}</h2>
+        <div className="card bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+            <FileX size={16} className="text-primary-600" />
+            {t("invoice.credit_details")}
+          </h2>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.date")}<span className="text-danger">*</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t("invoice.date")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="date"
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="form-input max-w-xs"
+              className="input max-w-xs rounded-xl border-slate-200 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">{t("invoice.reason")}<span className="text-danger">*</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t("invoice.reason")} <span className="text-rose-500">*</span>
             </label>
             <textarea
               value={form.reason}
               onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-              className="form-input resize-none"
+              className="input w-full resize-none rounded-xl border-slate-200 text-sm"
               rows={3}
               placeholder={t("invoice.credit_reason_placeholder")}
             />
@@ -303,16 +318,16 @@ export default function CreditNoteFormPage() {
           {/* Amount section */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">
-                Montant HT (DZD) <span className="text-danger">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Montant HT (DZD) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
                 value={form.total_ht}
                 onChange={(e) => setForm((f) => ({ ...f, total_ht: e.target.value }))}
                 className={cn(
-                  "form-input max-w-xs",
-                  totalHtNum > maxHt && "border-danger focus:border-danger"
+                  "input max-w-xs rounded-xl border-slate-200 text-sm font-mono",
+                  totalHtNum > maxHt && "border-rose-400 focus:border-rose-500 ring-rose-500/20"
                 )}
                 placeholder="0.00"
                 min="0.01"
@@ -320,29 +335,29 @@ export default function CreditNoteFormPage() {
                 max={maxHt}
               />
               {selectedInvoice && (
-                <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-                  <Info size={10} />
-                  Maximum : {formatDZD(maxHt)} DZD (total HT de la facture)
+                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                  <Info size={12} className="text-slate-400" />
+                  Maximum : <span className="font-mono font-semibold text-slate-700">{formatDZD(maxHt)} DZD</span> (total HT de la facture)
                 </p>
               )}
             </div>
 
             {/* Auto-computed summary */}
             {totalHtNum > 0 && (
-              <div className="rounded-lg bg-surface border border-border divide-y divide-border overflow-hidden">
-                <div className="flex justify-between items-center px-4 py-2 text-sm">
-                  <span className="text-text-muted">{t("invoice.total_ht")}</span>
-                  <span className="font-mono">{formatDZD(totalHtNum)} DZD</span>
+              <div className="rounded-xl bg-slate-50 border border-slate-200/80 divide-y divide-slate-200/60 overflow-hidden">
+                <div className="flex justify-between items-center px-4 py-2.5 text-xs text-slate-600">
+                  <span className="font-medium">{t("invoice.total_ht")}</span>
+                  <span className="font-mono font-semibold text-slate-900">{formatDZD(totalHtNum)} DZD</span>
                 </div>
                 {tvaRate > 0 && (
-                  <div className="flex justify-between items-center px-4 py-2 text-sm">
-                    <span className="text-text-muted">TVA ({tvaRate}%)</span>
-                    <span className="font-mono">{formatDZD(tvaAmount)} DZD</span>
+                  <div className="flex justify-between items-center px-4 py-2.5 text-xs text-slate-600">
+                    <span className="font-medium">TVA ({tvaRate}%)</span>
+                    <span className="font-mono font-semibold text-slate-900">{formatDZD(tvaAmount)} DZD</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center px-4 py-2 bg-primary-50/40">
-                  <span className="font-semibold text-sm text-text-primary">Total TTC avoir</span>
-                  <span className="font-mono font-bold text-danger">
+                <div className="flex justify-between items-center px-4 py-2.5 bg-rose-50/60">
+                  <span className="font-semibold text-xs text-slate-900">Total TTC avoir</span>
+                  <span className="font-mono font-bold text-sm text-rose-600 tabular-nums">
                     − {formatDZD(totalTtc)} DZD
                   </span>
                 </div>
@@ -353,16 +368,21 @@ export default function CreditNoteFormPage() {
 
         {/* Submit */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link to="/credit-notes" className="btn-secondary">Annuler</Link>
+          <Link
+            to="/credit-notes"
+            className="btn-secondary px-4 py-2 text-sm font-medium rounded-xl"
+          >
+            Annuler
+          </Link>
           <button
             type="submit"
             disabled={saveMutation.isPending || saved || !form.invoice_id}
-            className="btn-primary"
+            className="btn-primary inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-xl shadow-xs disabled:opacity-50"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={14} className="animate-spin" />{t("common.creating")}</>
+              <><Loader2 size={15} className="animate-spin" />{t("common.creating")}</>
             ) : (
-              <><Save size={14} />{t("invoice.issue_credit")}</>
+              <><Save size={15} />{t("invoice.issue_credit")}</>
             )}
           </button>
         </div>

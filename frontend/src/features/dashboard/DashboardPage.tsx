@@ -28,22 +28,24 @@ function KPICard({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="kpi-card">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="kpi-card__label flex items-center gap-1.5">
-            {label}
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="truncate">{label}</span>
             {live && (
-              <span className="flex items-center gap-1 text-success text-2xs font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse inline-block" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
                 {t("dashboard.live")}
               </span>
             )}
           </div>
-          <div className="kpi-card__value">{value}</div>
-          {subtitle && <div className="text-xs text-text-muted mt-1">{subtitle}</div>}
+          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 mt-1.5 tabular-nums truncate">
+            {value}
+          </div>
+          {subtitle && <div className="text-xs font-medium text-slate-500 mt-1">{subtitle}</div>}
         </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
           <Icon size={20} className="text-white" />
         </div>
       </div>
@@ -66,53 +68,53 @@ function LiveFeed({
   const connected = status === "connected";
 
   return (
-    <div className="card">
-      <div className="card-header flex items-center justify-between">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-text-primary text-sm">{t("dashboard.real_time")}</h2>
+          <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.real_time")}</h2>
           <span className={cn(
-            "flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-full",
+            "flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full border",
             connected
-              ? "bg-success/10 text-success"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
               : status === "connecting"
-                ? "bg-warning/10 text-warning"
-                : "bg-danger/10 text-danger",
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-rose-50 text-rose-700 border-rose-200",
           )}>
             {connected
-              ? <Wifi size={10} />
-              : <WifiOff size={10} />}
+              ? <Wifi size={11} />
+              : <WifiOff size={11} />}
             {connected ? t("dashboard.connected") : status === "connecting" ? t("dashboard.connecting") : t("dashboard.disconnected")}
           </span>
         </div>
         {saleCountDelta > 0 && (
-          <span className="text-xs text-text-muted">
+          <span className="text-xs font-mono font-medium text-slate-500">
             {t("dashboard.sales_this_session", { count: saleCountDelta })}
           </span>
         )}
       </div>
 
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-slate-100">
         {/* Last sale */}
-        <div className="px-4 py-3">
-          <div className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+        <div className="px-5 py-4">
+          <div className="text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
             {t("dashboard.last_sale")}
           </div>
           {lastSale ? (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-medium text-text-primary">
+                <div className="text-sm font-semibold text-slate-900">
                   {lastSale.branch_name}
                 </div>
-                <div className="text-xs text-text-muted">
+                <div className="text-xs font-mono text-slate-500 mt-0.5">
                   #{lastSale.receipt_number} · {formatSecondsAgo(lastSale.ts, t)}
                 </div>
               </div>
-              <div className="font-mono font-bold text-success">
-                +{formatDZD(lastSale.total_amount)} DZD
+              <div className="font-mono font-bold text-sm text-emerald-600 tabular-nums">
+                +{formatDZD(lastSale.total_amount)} <span className="text-2xs font-normal">DZD</span>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-text-muted">
+            <div className="text-xs text-slate-400 italic">
               {connected ? t("dashboard.waiting_next_sale") : "—"}
             </div>
           )}
@@ -120,35 +122,35 @@ function LiveFeed({
 
         {/* Stock alerts */}
         {stockAlerts.length > 0 && (
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-text-muted uppercase tracking-wide flex items-center gap-1">
-                <Bell size={10} className="text-warning" />
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="text-2xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Bell size={12} className="text-amber-500" />
                 {t("dashboard.stock_alerts")}
               </div>
               <button
                 onClick={clearAlerts}
-                className="text-2xs text-text-muted hover:text-text-primary"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-md"
               >
-                <X size={12} />
+                <X size={13} />
               </button>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {stockAlerts.map((alert) => (
                 <div
                   key={`${alert.variant_id}-${alert.ts}`}
                   className={cn(
-                    "flex items-center justify-between text-xs rounded-lg px-2.5 py-1.5",
+                    "flex items-center justify-between text-xs rounded-xl px-3 py-2 border",
                     alert.is_out_of_stock
-                      ? "bg-danger/10 text-danger"
-                      : "bg-warning/10 text-warning",
+                      ? "bg-rose-50 border-rose-200 text-rose-700"
+                      : "bg-amber-50 border-amber-200 text-amber-800",
                   )}
                 >
-                  <span className="font-medium truncate max-w-[160px]">
+                  <span className="font-semibold truncate max-w-[160px]">
                     {alert.product_name} EU{alert.size_eu}
                     {alert.colour ? ` / ${alert.colour}` : ""}
                   </span>
-                  <span className="font-mono font-semibold flex-shrink-0 ml-2">
+                  <span className="font-mono font-bold shrink-0 ml-2">
                     {alert.is_out_of_stock ? t("dashboard.out_of_stock") : t("dashboard.stock_remaining", { count: alert.stock_qty })}
                   </span>
                 </div>
@@ -205,22 +207,22 @@ export default function DashboardPage() {
   const liveRevenue = baseRevenue + totalSalesDelta;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-xl font-bold text-text-primary">{t("nav.dashboard")}</h1>
-        <p className="text-sm text-text-muted">
-          {kpis?.as_of ? formatDate(kpis.as_of) : ""}
+        <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.dashboard")}</h1>
+        <p className="text-xs font-medium text-slate-500 mt-0.5">
+          {kpis?.as_of ? `Mise à jour : ${formatDate(kpis.as_of)}` : "Aperçu général de votre activité"}
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           label={t("dashboard.today_revenue")}
           value={kpisLoading ? "..." : formatDZD(liveRevenue) + " DZD"}
           icon={TrendingUp}
-          color="bg-primary-500"
+          color="bg-primary-600"
           live={isEnterprise && status === "connected"}
           subtitle={
             isEnterprise && saleCountDelta > 0
@@ -232,34 +234,34 @@ export default function DashboardPage() {
           label={t("dashboard.outstanding_debt")}
           value={kpisLoading ? "..." : formatDZD(kpis?.total_outstanding_debt) + " DZD"}
           icon={DollarSign}
-          color="bg-danger"
+          color="bg-rose-500"
         />
         <KPICard
           label={t("dashboard.low_stock")}
           value={kpisLoading ? "..." : String(kpis?.low_stock_sku_count ?? 0)}
           icon={AlertTriangle}
-          color="bg-warning"
+          color="bg-amber-500"
         />
         <KPICard
           label={t("dashboard.cheques_due")}
           value={kpisLoading ? "..." : String(kpis?.cheques_due_this_week ?? 0)}
           icon={CreditCard}
-          color="bg-accent"
+          color="bg-indigo-600"
         />
       </div>
 
       {/* Charts + live feed row */}
-      <div className={cn("grid gap-4", isEnterprise ? "lg:grid-cols-3" : "lg:grid-cols-3")}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue chart (2/3 width) */}
-        <div className="card lg:col-span-2">
-          <div className="card-header">
-            <h2 className="font-semibold text-text-primary">{t("dashboard.revenue_chart")}</h2>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 lg:col-span-2 space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.revenue_chart")}</h2>
           </div>
-          <div className="card-body h-64">
+          <div className="h-72">
             {salesData && salesData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <BarChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
                   <XAxis
                     dataKey="period"
                     tick={{ fontSize: 11, fill: "#64748B" }}
@@ -272,14 +274,22 @@ export default function DashboardPage() {
                   />
                   <YAxis tick={{ fontSize: 11, fill: "#64748B" }} width={60} />
                   <Tooltip
-                    formatter={(value: number) => [formatDZD(value) + " DZD", "Revenue"]}
+                    contentStyle={{
+                      backgroundColor: "#FFFFFF",
+                      borderRadius: "12px",
+                      border: "1px solid #E2E8F0",
+                      boxShadow: "0 10px 15px -3px rgba(0,0,0,0.08)",
+                      fontSize: "12px",
+                      fontFamily: "Plus Jakarta Sans, sans-serif",
+                    }}
+                    formatter={(value: number) => [formatDZD(value) + " DZD", "Chiffre d'affaires"]}
                     labelFormatter={(v) => formatDate(v)}
                   />
-                  <Bar dataKey="revenue" fill="#1A4A8A" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#2563EB" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-text-muted text-sm">
+              <div className="h-full flex items-center justify-center text-slate-400 text-sm font-medium">
                 {t("common.no_data")}
               </div>
             )}
@@ -296,27 +306,27 @@ export default function DashboardPage() {
             clearAlerts={clearAlerts}
           />
         ) : (
-          <div className="card">
-            <div className="card-header">
-              <h2 className="font-semibold text-text-primary">{t("dashboard.best_sellers")}</h2>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.best_sellers")}</h2>
             </div>
-            <div className="card-body divide-y divide-border">
+            <div className="divide-y divide-slate-100">
               {bestSellers?.slice(0, 5).map((item, i) => (
-                <div key={item.product_id} className="py-2 flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                <div key={item.product_id} className="py-3 flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{item.product_name}</div>
-                    <div className="text-xs text-text-muted">{item.brand}</div>
+                    <div className="text-sm font-semibold text-slate-900 truncate">{item.product_name}</div>
+                    <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                   </div>
-                  <div className="text-sm font-mono font-medium text-primary-600">
-                    {item.units_sold}
+                  <div className="text-sm font-mono font-bold text-primary-600 tabular-nums">
+                    {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
                   </div>
                 </div>
               ))}
               {!bestSellers?.length && (
-                <div className="py-6 text-center text-sm text-text-muted">
+                <div className="py-8 text-center text-sm text-slate-400 font-medium">
                   {t("common.no_data")}
                 </div>
               )}
@@ -327,27 +337,27 @@ export default function DashboardPage() {
 
       {/* Best sellers — shown below for enterprise (live feed takes the right column) */}
       {isEnterprise && (
-        <div className="card">
-          <div className="card-header">
-            <h2 className="font-semibold text-text-primary">{t("dashboard.best_sellers")}</h2>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.best_sellers")}</h2>
           </div>
-          <div className="card-body divide-y divide-border">
+          <div className="divide-y divide-slate-100">
             {bestSellers?.slice(0, 5).map((item, i) => (
-              <div key={item.product_id} className="py-2 flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <div key={item.product_id} className="py-3 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{item.product_name}</div>
-                  <div className="text-xs text-text-muted">{item.brand}</div>
+                  <div className="text-sm font-semibold text-slate-900 truncate">{item.product_name}</div>
+                  <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                 </div>
-                <div className="text-sm font-mono font-medium text-primary-600">
-                  {item.units_sold}
+                <div className="text-sm font-mono font-bold text-primary-600 tabular-nums">
+                  {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
                 </div>
               </div>
             ))}
             {!bestSellers?.length && (
-              <div className="py-6 text-center text-sm text-text-muted">
+              <div className="py-8 text-center text-sm text-slate-400 font-medium">
                 {t("common.no_data")}
               </div>
             )}

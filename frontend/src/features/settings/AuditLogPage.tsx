@@ -23,9 +23,9 @@ interface AuditLog {
 }
 
 const ACTION_BADGE: Record<string, string> = {
-  create: "badge-success",
-  update: "badge-warning",
-  delete: "badge-danger",
+  create: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  update: "bg-amber-50 text-amber-800 border-amber-200",
+  delete: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 const MODEL_LABELS: Record<string, string> = {
@@ -64,12 +64,14 @@ export default function AuditLogPage() {
   const totalPages = Math.ceil((data?.count ?? 0) / 25);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <Shield size={22} className="text-primary-500" />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3.5">
+        <div className="w-11 h-11 rounded-2xl bg-primary-50 border border-primary-200 flex items-center justify-center shrink-0 shadow-2xs">
+          <Shield size={22} className="text-primary-600" />
+        </div>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Journal d'activité</h1>
-          <p className="text-sm text-text-muted">Historique de toutes les modifications du système</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Journal d'activité</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">Historique et audit trail de toutes les modifications du système</p>
         </div>
       </div>
 
@@ -78,7 +80,7 @@ export default function AuditLogPage() {
         <select
           value={modelFilter}
           onChange={(e) => { setModelFilter(e.target.value); setPage(1); }}
-          className="form-input max-w-[200px] text-sm"
+          className="input max-w-[220px] rounded-xl border-slate-200 text-sm"
         >
           <option value="">Tous les modèles</option>
           {Object.entries(MODEL_LABELS).map(([k, v]) => (
@@ -88,7 +90,7 @@ export default function AuditLogPage() {
         <select
           value={actionFilter}
           onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-          className="form-input max-w-[160px] text-sm"
+          className="input max-w-[180px] rounded-xl border-slate-200 text-sm"
         >
           <option value="">Toutes les actions</option>
           <option value="create">Création</option>
@@ -98,57 +100,65 @@ export default function AuditLogPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {isLoading ? (
-          <div className="card-body text-center text-text-muted py-12">Chargement...</div>
+          <div className="p-12 text-center text-slate-400 font-medium">
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              <span>Chargement...</span>
+            </div>
+          </div>
         ) : logs.length === 0 ? (
-          <div className="card-body text-center text-text-muted py-12">Aucune entrée.</div>
+          <div className="p-12 text-center text-slate-400 font-medium">Aucune entrée d'audit trouvée.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full text-start text-sm border-collapse">
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Utilisateur</th>
-                  <th>Action</th>
-                  <th>Objet</th>
-                  <th>Détails</th>
+                <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-4 py-3.5 text-start">Date</th>
+                  <th className="px-4 py-3.5 text-start">Utilisateur</th>
+                  <th className="px-4 py-3.5 text-start">Action</th>
+                  <th className="px-4 py-3.5 text-start">Objet</th>
+                  <th className="px-4 py-3.5 text-start">Détails</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="whitespace-nowrap text-xs text-text-muted font-mono">
+                  <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500 font-mono">
                       {new Date(log.timestamp).toLocaleString("fr-DZ")}
                     </td>
-                    <td className="text-sm">{log.user_name}</td>
-                    <td>
-                      <span className={cn("badge text-xs", ACTION_BADGE[log.action] ?? "badge-neutral")}>
+                    <td className="px-4 py-3.5 font-semibold text-slate-900 text-xs">{log.user_name}</td>
+                    <td className="px-4 py-3.5">
+                      <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold border capitalize",
+                        ACTION_BADGE[log.action] ?? "bg-slate-100 text-slate-700 border-slate-200"
+                      )}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="text-sm">
-                      <span className="text-text-muted text-xs">{MODEL_LABELS[log.model_name] ?? log.model_name}</span>
+                    <td className="px-4 py-3.5 text-xs">
+                      <span className="text-slate-400 font-medium">{MODEL_LABELS[log.model_name] ?? log.model_name}</span>
                       <br />
-                      <span className="font-medium">{log.object_repr}</span>
+                      <span className="font-semibold text-slate-800">{log.object_repr}</span>
                     </td>
-                    <td className="max-w-[300px]">
+                    <td className="px-4 py-3.5 max-w-[320px]">
                       {log.diff && Object.keys(log.diff).length > 0 ? (
                         <details className="text-xs group">
-                          <summary className="cursor-pointer text-primary-500 font-medium group-open:mb-2">
+                          <summary className="cursor-pointer text-primary-600 hover:text-primary-800 font-semibold group-open:mb-2 transition-colors">
                             Voir détails ({Object.keys(log.diff).length} champ{Object.keys(log.diff).length > 1 ? 's' : ''})
                           </summary>
                           <div className="space-y-1.5">
                             {Object.entries(log.diff).map(([field, changes]: [string, any]) => (
-                              <div key={field} className="bg-surface p-2 rounded border border-border text-2xs">
-                                <span className="font-semibold text-text-primary block mb-1">
+                              <div key={field} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-2xs">
+                                <span className="font-bold text-slate-800 block mb-1">
                                   {field}
                                 </span>
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  <div className="bg-danger/10 text-danger-700 p-1 rounded break-all decoration-danger/50 line-through">
+                                <div className="grid grid-cols-2 gap-1.5 font-mono">
+                                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-1.5 rounded-lg break-all line-through opacity-80">
                                     {String(changes.from ?? "—")}
                                   </div>
-                                  <div className="bg-success/10 text-success-700 p-1 rounded break-all">
+                                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-1.5 rounded-lg break-all font-semibold">
                                     {String(changes.to ?? "—")}
                                   </div>
                                 </div>
@@ -157,7 +167,7 @@ export default function AuditLogPage() {
                           </div>
                         </details>
                       ) : (
-                        <span className="text-xs text-text-muted italic">—</span>
+                        <span className="text-xs text-slate-300 italic">—</span>
                       )}
                     </td>
                   </tr>
@@ -174,17 +184,17 @@ export default function AuditLogPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="btn-secondary btn-sm"
+            className="btn-secondary py-1.5 px-3 text-xs rounded-xl"
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="text-sm text-text-muted">
-            Page {page} / {totalPages}
+          <span className="text-xs font-medium text-slate-500">
+            Page <span className="font-semibold text-slate-900">{page}</span> / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="btn-secondary btn-sm"
+            className="btn-secondary py-1.5 px-3 text-xs rounded-xl"
           >
             <ChevronRight size={14} />
           </button>

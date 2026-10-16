@@ -146,20 +146,20 @@ export const LegacyImportSection: React.FC = () => {
       )}
 
       {/* Modern Bulk Excel & CSV Import Card */}
-      <div className="p-6 rounded-2xl bg-gradient-to-br from-primary-500/10 via-primary-500/5 to-surface border border-primary-500/30 shadow-sm space-y-4">
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-primary-50 via-primary-50/20 to-white border border-primary-200/80 shadow-xs space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-primary-500 text-white shadow-md shadow-primary-500/20">
+            <div className="p-3 rounded-xl bg-primary-600 text-white shadow-xs shadow-primary-500/20">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 {t("import_wizard.title")}
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700">
                   Nouveau
                 </span>
               </h2>
-              <p className="text-xs text-text-muted mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 {t("import_wizard.subtitle")}
               </p>
             </div>
@@ -170,76 +170,82 @@ export const LegacyImportSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveWizardEntity('products')}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary-400 hover:shadow-sm transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <Package className="w-4 h-4 text-primary-500" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+                <Package className="w-4 h-4" />
+              </div>
               <div>
-                <div className="text-xs font-bold text-text-primary">Produits & Stocks</div>
-                <div className="text-[11px] text-text-muted">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900">Produits & Stocks</div>
+                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
           </button>
 
           <button
             type="button"
             onClick={() => setActiveWizardEntity('clients')}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary-400 hover:shadow-sm transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <Users className="w-4 h-4 text-primary-500" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
               <div>
-                <div className="text-xs font-bold text-text-primary">Clients</div>
-                <div className="text-[11px] text-text-muted">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900">Clients</div>
+                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
           </button>
 
           <button
             type="button"
             onClick={() => setActiveWizardEntity('suppliers')}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary-400 hover:shadow-sm transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <Truck className="w-4 h-4 text-primary-500" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+                <Truck className="w-4 h-4" />
+              </div>
               <div>
-                <div className="text-xs font-bold text-text-primary">Fournisseurs</div>
-                <div className="text-[11px] text-text-muted">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900">Fournisseurs</div>
+                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
           </button>
         </div>
       </div>
 
       {/* Legacy DBF Migration Section */}
       <div className="space-y-5 pt-2">
-        <div className="border-t border-border pt-6">
-          <h2 className="text-base font-bold text-text-primary">{t("settings.legacy_migration")}</h2>
-          <p className="text-xs text-text-muted mt-1">
+        <div className="border-t border-slate-200/80 pt-6">
+          <h2 className="text-base font-bold text-slate-900">{t("settings.legacy_migration")}</h2>
+          <p className="text-xs text-slate-500 mt-1">
             {t("settings.legacy_desc")}
           </p>
         </div>
 
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex gap-3 text-amber-800">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-400">{t("settings.warning_proceed")}</h3>
-            <p className="text-xs text-amber-600/90 dark:text-amber-400/90 mt-1">
+            <h3 className="text-sm font-semibold text-amber-900">{t("settings.warning_proceed")}</h3>
+            <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
               {t("settings.warning_desc")}
             </p>
           </div>
         </div>
 
         {/* Inventory Management Mode */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Mode de gestion du stock (Articles)</h3>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Mode de gestion du stock (Articles)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className={cn(
-              "p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3",
-              options.easy_mode ? "border-primary-500 bg-primary-500/5 ring-1 ring-primary-500/20" : "border-border hover:border-border-hover bg-surface/50"
+              "p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3",
+              options.easy_mode ? "border-primary-500 bg-primary-50/50 ring-1 ring-primary-500/20" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
             )}>
               <input
                 type="radio"
@@ -247,22 +253,22 @@ export const LegacyImportSection: React.FC = () => {
                 checked={options.easy_mode}
                 onChange={() => setOptions({ ...options, easy_mode: true })}
                 disabled={isZipping || isUploading}
-                className="mt-0.5 border-border text-primary-600 focus:ring-primary-500"
+                className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <div className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                   Mode Simple (Recommandé)
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">Par défaut</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Par défaut</span>
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5">
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   1 article = 1 référence directe avec son stock réel exact. Encaissement 1-clic rapide au POS sans sélection de pointures.
                 </p>
               </div>
             </label>
 
             <label className={cn(
-              "p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3",
-              !options.easy_mode ? "border-primary-500 bg-primary-500/5 ring-1 ring-primary-500/20" : "border-border hover:border-border-hover bg-surface/50"
+              "p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3",
+              !options.easy_mode ? "border-primary-500 bg-primary-50/50 ring-1 ring-primary-500/20" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
             )}>
               <input
                 type="radio"
@@ -270,13 +276,13 @@ export const LegacyImportSection: React.FC = () => {
                 checked={!options.easy_mode}
                 onChange={() => setOptions({ ...options, easy_mode: false })}
                 disabled={isZipping || isUploading}
-                className="mt-0.5 border-border text-primary-600 focus:ring-primary-500"
+                className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <div className="text-xs font-bold text-text-primary">
+                <div className="text-xs font-bold text-slate-900">
                   Mode Variantes (Découper par tailles)
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5">
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   Génère une grille de pointures (36–41 / 40–45) et répartit le stock estimé sur chaque taille.
                 </p>
               </div>
@@ -284,48 +290,48 @@ export const LegacyImportSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Software Version</h3>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Software Version</h3>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="radio" checked={options.software_type === 'retail'} onChange={() => setOptions({...options, software_type: 'retail'})} disabled={isZipping || isUploading} className="border-border text-primary-600 focus:ring-primary-500" name="software_type" value="retail" />
-              <span className="text-xs font-medium text-text-primary">Retail (Standard)</span>
+              <input type="radio" checked={options.software_type === 'retail'} onChange={() => setOptions({...options, software_type: 'retail'})} disabled={isZipping || isUploading} className="border-slate-300 text-primary-600 focus:ring-primary-500" name="software_type" value="retail" />
+              <span className="text-xs font-medium text-slate-800">Retail (Standard)</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="radio" checked={options.software_type === 'wholesale'} onChange={() => setOptions({...options, software_type: 'wholesale'})} disabled={isZipping || isUploading} className="border-border text-primary-600 focus:ring-primary-500" name="software_type" value="wholesale" />
-              <span className="text-xs font-medium text-text-primary">Wholesale</span>
+              <input type="radio" checked={options.software_type === 'wholesale'} onChange={() => setOptions({...options, software_type: 'wholesale'})} disabled={isZipping || isUploading} className="border-slate-300 text-primary-600 focus:ring-primary-500" name="software_type" value="wholesale" />
+              <span className="text-xs font-medium text-slate-800">Wholesale</span>
             </label>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">{t("settings.select_data")}</h3>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">{t("settings.select_data")}</h3>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={options.suppliers} onChange={(e) => setOptions({...options, suppliers: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-text-primary">{t("settings.legacy_suppliers")}</span>
+              <input type="checkbox" checked={options.suppliers} onChange={(e) => setOptions({...options, suppliers: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_suppliers")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={options.clients} onChange={(e) => setOptions({...options, clients: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-text-primary">{t("settings.legacy_clients")}</span>
+              <input type="checkbox" checked={options.clients} onChange={(e) => setOptions({...options, clients: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_clients")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={options.products} onChange={(e) => setOptions({...options, products: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-text-primary">{t("settings.legacy_products")}</span>
+              <input type="checkbox" checked={options.products} onChange={(e) => setOptions({...options, products: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_products")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={options.purchases} onChange={(e) => setOptions({...options, purchases: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-text-primary">Bons d'Achat & Réceptions (ACHAT)</span>
+              <input type="checkbox" checked={options.purchases} onChange={(e) => setOptions({...options, purchases: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-slate-800">Bons d'Achat & Réceptions (ACHAT)</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={options.sales} onChange={(e) => setOptions({...options, sales: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-border text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-text-primary">{t("settings.legacy_sales")}</span>
+              <input type="checkbox" checked={options.sales} onChange={(e) => setOptions({...options, sales: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_sales")}</span>
             </label>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:bg-surface/40 transition-colors relative">
+          <div className="border-2 border-dashed border-slate-200/90 rounded-2xl p-8 text-center hover:bg-slate-50/60 transition-colors relative">
             <input
               type="file"
               // @ts-ignore
@@ -340,32 +346,32 @@ export const LegacyImportSection: React.FC = () => {
             
             {isZipping || isUploading ? (
               <div className="flex flex-col items-center">
-                <Loader2 className="h-10 w-10 text-primary-500 animate-spin mb-3" />
-                <p className="text-sm font-medium text-text-primary">
+                <Loader2 className="h-10 w-10 text-primary-600 animate-spin mb-3" />
+                <p className="text-sm font-semibold text-slate-900">
                   {isZipping ? `${t("settings.zipping")} ${progress}%` : t("settings.uploading")}
                 </p>
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <UploadCloud className="h-10 w-10 text-text-muted mb-3" />
-                <p className="text-sm font-semibold text-text-primary">{t("settings.click_select")}</p>
-                <p className="text-xs text-text-muted mt-1">{t("settings.contains_dbf")}</p>
+                <UploadCloud className="h-10 w-10 text-slate-400 mb-3" />
+                <p className="text-sm font-semibold text-slate-900">{t("settings.click_select")}</p>
+                <p className="text-xs text-slate-500 mt-1">{t("settings.contains_dbf")}</p>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-center gap-3 text-xs text-text-muted">
-            <span className="h-px bg-border flex-1" />
+          <div className="flex items-center justify-center gap-3 text-xs text-slate-400">
+            <span className="h-px bg-slate-200 flex-1" />
             <span>OU</span>
-            <span className="h-px bg-border flex-1" />
+            <span className="h-px bg-slate-200 flex-1" />
           </div>
 
           <div className="flex items-center justify-center">
             <label className={cn(
-              "btn-secondary text-xs font-semibold py-2 px-4 rounded-xl cursor-pointer flex items-center gap-2",
+              "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer",
               (isZipping || isUploading) && "opacity-50 pointer-events-none"
             )}>
-              <UploadCloud size={15} />
+              <UploadCloud size={15} className="text-slate-500" />
               <span>Téléverser une archive .ZIP (ex: export.zip)</span>
               <input
                 type="file"
