@@ -19,65 +19,89 @@ function VariantTable({ variants, isLoading, onOrder }: VariantTableProps) {
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
-          <tr>
-            <th>{t("inventory.product")}</th>
-            <th>{t("inventory.size")}</th>
-            <th>{t("inventory.colour")}</th>
-            <th className="text-end">{t("inventory.current_stock")}</th>
-            <th className="text-end">{t("inventory.alert_threshold")}</th>
-            <th>{t("common.status")}</th>
-            <th>{t("common.actions")}</th>
+          <tr className="border-b border-slate-200/80 bg-slate-50/70">
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.size")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.colour")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.current_stock")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.alert_threshold")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100">
           {isLoading && (
             <tr>
-              <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+              <td colSpan={7} className="text-center py-12 text-slate-400">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">{t("common.loading")}</span>
+                </div>
+              </td>
             </tr>
           )}
           {!isLoading && variants.length === 0 && (
             <tr>
-              <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
+              <td colSpan={7} className="text-center py-12 text-slate-400">
+                <div className="flex flex-col items-center gap-2">
+                  <Package size={32} className="text-slate-300 stroke-[1.5]" />
+                  <span className="text-sm">{t("common.no_data")}</span>
+                </div>
+              </td>
             </tr>
           )}
           {variants.map((variant) => (
-            <tr key={variant.id}>
-              <td>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-surface rounded flex items-center justify-center flex-shrink-0">
-                    <Package size={13} className="text-text-muted" />
+            <tr key={variant.id} className="group hover:bg-slate-50/80 transition-colors">
+              <td className="py-3.5 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors border border-slate-200/60">
+                    <Package size={14} />
                   </div>
-                  <span className="font-medium text-text-primary">{variant.product_name}</span>
+                  <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{variant.product_name}</span>
                 </div>
               </td>
-              <td className="font-mono text-text-muted">{variant.size_eu > 0 ? variant.size_eu : "—"}</td>
-              <td className="text-text-muted">
+              <td className="py-3.5 px-4">
+                {variant.size_eu > 0 ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200">
+                    T. {variant.size_eu}
+                  </span>
+                ) : (
+                  <span className="text-slate-400 font-mono text-xs">—</span>
+                )}
+              </td>
+              <td className="py-3.5 px-4 text-sm text-slate-600 font-medium">
                 {variant.colour === "N/A" || variant.colour === "Standard"
                   ? (variant.size_eu > 0 ? t("common.na") : "—")
                   : variant.colour}
               </td>
-              <td className="text-end">
+              <td className="py-3.5 px-4 text-end">
                 <span
                   className={cn(
-                    "font-mono font-semibold",
-                    variant.stock_qty === 0 ? "text-danger" : "text-warning"
+                    "font-mono font-bold tabular-nums text-sm",
+                    variant.stock_qty === 0 ? "text-red-600" : "text-amber-600"
                   )}
                 >
                   {variant.stock_qty}
                 </span>
               </td>
-              <td className="text-end font-mono text-text-muted">{variant.alert_threshold}</td>
-              <td>
+              <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">{variant.alert_threshold}</td>
+              <td className="py-3.5 px-4">
                 {variant.stock_qty === 0 ? (
-                  <span className="badge badge-danger">{t("inventory.out_of_stock_title")}</span>
+                  <span className="badge badge-danger">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    {t("inventory.out_of_stock_title")}
+                  </span>
                 ) : (
-                  <span className="badge badge-warning">{t("inventory.low_stock_status")}</span>
+                  <span className="badge badge-warning">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {t("inventory.low_stock_status")}
+                  </span>
                 )}
               </td>
-              <td>
+              <td className="py-3.5 px-4 text-end">
                 <button
                   onClick={() => onOrder(variant)}
-                  className="btn-secondary btn-sm flex items-center gap-1"
+                  className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-primary-600 hover:border-primary-300 rounded-lg ms-auto"
                 >
                   <ShoppingCart size={13} />
                   Commander
@@ -103,59 +127,75 @@ function ProductTable({ products, isLoading, onOrder }: ProductTableProps) {
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
-          <tr>
-            <th>{t("inventory.product")}</th>
-            <th>{t("inventory.reference")}</th>
-            <th className="text-end">{t("inventory.total_stock")}</th>
-            <th className="text-end">{t("inventory.global_threshold")}</th>
-            <th>{t("common.status")}</th>
-            <th>{t("common.actions")}</th>
+          <tr className="border-b border-slate-200/80 bg-slate-50/70">
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.reference")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.total_stock")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.global_threshold")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100">
           {isLoading && (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+              <td colSpan={6} className="text-center py-12 text-slate-400">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">{t("common.loading")}</span>
+                </div>
+              </td>
             </tr>
           )}
           {!isLoading && products.length === 0 && (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
+              <td colSpan={6} className="text-center py-12 text-slate-400">
+                <div className="flex flex-col items-center gap-2">
+                  <Package size={32} className="text-slate-300 stroke-[1.5]" />
+                  <span className="text-sm">{t("common.no_data")}</span>
+                </div>
+              </td>
             </tr>
           )}
           {products.map((product) => (
-            <tr key={product.id}>
-              <td>
-                <Link to={`/inventory/products/${product.id}`} className="flex items-center gap-2 hover:underline">
-                  <div className="w-7 h-7 bg-surface rounded flex items-center justify-center flex-shrink-0">
-                    <Package size={13} className="text-text-muted" />
+            <tr key={product.id} className="group hover:bg-slate-50/80 transition-colors">
+              <td className="py-3.5 px-4">
+                <Link to={`/inventory/products/${product.id}`} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors border border-slate-200/60">
+                    <Package size={14} />
                   </div>
-                  <span className="font-medium text-text-primary">{product.name}</span>
+                  <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{product.name}</span>
                 </Link>
               </td>
-              <td className="font-mono text-text-muted">{product.reference || "—"}</td>
-              <td className="text-end">
+              <td className="py-3.5 px-4 font-mono text-2xs text-slate-500">{product.reference || "—"}</td>
+              <td className="py-3.5 px-4 text-end">
                 <span
                   className={cn(
-                    "font-mono font-semibold",
-                    product.total_stock === 0 ? "text-danger" : "text-warning"
+                    "font-mono font-bold tabular-nums text-sm",
+                    product.total_stock === 0 ? "text-red-600" : "text-amber-600"
                   )}
                 >
                   {product.total_stock}
                 </span>
               </td>
-              <td className="text-end font-mono text-text-muted">{product.alert_threshold}</td>
-              <td>
+              <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">{product.alert_threshold}</td>
+              <td className="py-3.5 px-4">
                 {product.total_stock === 0 ? (
-                  <span className="badge badge-danger">{t("inventory.out_of_stock_title")}</span>
+                  <span className="badge badge-danger">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    {t("inventory.out_of_stock_title")}
+                  </span>
                 ) : (
-                  <span className="badge badge-warning">{t("inventory.low_stock_status")}</span>
+                  <span className="badge badge-warning">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {t("inventory.low_stock_status")}
+                  </span>
                 )}
               </td>
-              <td>
+              <td className="py-3.5 px-4 text-end">
                 <button
                   onClick={() => onOrder(product)}
-                  className="btn-secondary btn-sm flex items-center gap-1"
+                  className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-primary-600 hover:border-primary-300 rounded-lg ms-auto"
                 >
                   <ShoppingCart size={13} />
                   Commander
@@ -225,72 +265,76 @@ export default function LowStockPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("inventory.low_stock_title")}</h1>
-          <p className="text-sm text-text-muted">{t("inventory.low_stock_desc")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("inventory.low_stock_title")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("inventory.low_stock_desc")}</p>
         </div>
-        <div className="flex items-center p-1 bg-surface rounded-lg border border-border">
+        <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/80 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab("products")}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
-              activeTab === "products" ? "bg-white shadow-sm text-text-primary" : "text-text-muted hover:text-text-primary"
+              "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all",
+              activeTab === "products" ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-800"
             )}
           >
-            Produits
+            {t("inventory.products_tab", "Produits")}
           </button>
           <button
             onClick={() => setActiveTab("variants")}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
-              activeTab === "variants" ? "bg-white shadow-sm text-text-primary" : "text-text-muted hover:text-text-primary"
+              "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all",
+              activeTab === "variants" ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-800"
             )}
           >
-            Variantes
+            {t("inventory.variants_tab", "Variantes")}
           </button>
         </div>
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="kpi-card">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="kpi-card__label">{t("inventory.out_of_stock_title")} ({activeTab === "products" ? t("inventory.products_tab") : t("inventory.variants_tab")})</div>
-              <div className="kpi-card__value text-danger">{currentLoading ? "..." : currentOutOfStockLength}</div>
-              <div className="text-xs text-text-muted mt-1">{t("inventory.stock_zero")}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {t("inventory.out_of_stock_title")} ({activeTab === "products" ? t("inventory.products_tab", "Produits") : t("inventory.variants_tab", "Variantes")})
             </div>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-danger">
-              <AlertTriangle size={20} className="text-white" />
+            <div className="text-3xl font-bold font-mono text-red-600 mt-1 tabular-nums">
+              {currentLoading ? "..." : currentOutOfStockLength}
             </div>
+            <div className="text-xs text-slate-400 mt-0.5">{t("inventory.stock_zero")}</div>
+          </div>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 text-red-600 border border-red-100 flex-shrink-0">
+            <AlertTriangle size={22} />
           </div>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="kpi-card__label">En alerte ({activeTab === "products" ? "Produits" : "Variantes"})</div>
-              <div className="kpi-card__value text-warning">{currentLoading ? "..." : currentLowStockLength}</div>
-              <div className="text-xs text-text-muted mt-1">Sous le seuil</div>
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              En alerte ({activeTab === "products" ? t("inventory.products_tab", "Produits") : t("inventory.variants_tab", "Variantes")})
             </div>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning">
-              <AlertTriangle size={20} className="text-white" />
+            <div className="text-3xl font-bold font-mono text-amber-600 mt-1 tabular-nums">
+              {currentLoading ? "..." : currentLowStockLength}
             </div>
+            <div className="text-xs text-slate-400 mt-0.5">Sous le seuil d'alerte</div>
+          </div>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-100 flex-shrink-0">
+            <AlertTriangle size={22} />
           </div>
         </div>
       </div>
 
       {/* Out of stock section */}
-      <div className="card overflow-hidden">
-        <div className="card-header">
-          <div className="flex items-center gap-2">
-            <span className="badge badge-danger">
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+        <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-2.5">
+            <span className="badge badge-danger font-mono font-bold">
               {currentOutOfStockLength}
             </span>
-            <h2 className="font-semibold text-text-primary">En rupture</h2>
+            <h2 className="font-bold text-slate-900 text-sm">En rupture de stock</h2>
           </div>
-          <span className="text-xs text-text-muted">{t("inventory.stock_zero")}</span>
+          <span className="text-xs font-medium text-slate-500">{t("inventory.stock_zero")}</span>
         </div>
         {activeTab === "products" ? (
           <ProductTable products={outOfStockProducts} isLoading={productsLoading} onOrder={handleOrderProduct} />
@@ -300,15 +344,15 @@ export default function LowStockPage() {
       </div>
 
       {/* Low stock section */}
-      <div className="card overflow-hidden">
-        <div className="card-header">
-          <div className="flex items-center gap-2">
-            <span className="badge badge-warning">
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+        <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-2.5">
+            <span className="badge badge-warning font-mono font-bold">
               {currentLowStockLength}
             </span>
-            <h2 className="font-semibold text-text-primary">{t("inventory.low_stock_status")}</h2>
+            <h2 className="font-bold text-slate-900 text-sm">{t("inventory.low_stock_status")}</h2>
           </div>
-          <span className="text-xs text-text-muted">Sous le seuil d'alerte</span>
+          <span className="text-xs font-medium text-slate-500">Sous le seuil d'alerte</span>
         </div>
         {activeTab === "products" ? (
           <ProductTable products={lowStockProducts} isLoading={productsLoading} onOrder={handleOrderProduct} />

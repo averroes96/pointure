@@ -95,9 +95,9 @@ const SEASON_LABELS: Record<string, string> = {
 
 function InfoBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-text-muted font-medium uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-text-primary">{value}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider">{label}</span>
+      <span className="text-sm font-semibold text-slate-900">{value}</span>
     </div>
   );
 }
@@ -257,23 +257,23 @@ export default function ProductDetailPage() {
   return (
     <div className="space-y-5">
       {/* ── Breadcrumb / Header ─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/inventory/products"
-            className="mt-1 text-text-muted hover:text-text-primary transition-colors"
+            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs"
             title="Retour aux produits"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </Link>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-text-primary">{product.name}</h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{product.name}</h1>
               {product.brand && (
-                <span className="text-sm text-text-muted font-medium">· {product.brand}</span>
+                <span className="text-sm text-slate-500 font-medium">· {product.brand}</span>
               )}
               {product.reference && (
-                <span className="badge badge-neutral font-mono text-xs">{product.reference}</span>
+                <span className="badge badge-neutral font-mono text-2xs">{product.reference}</span>
               )}
               <span
                 className={cn(
@@ -281,21 +281,20 @@ export default function ProductDetailPage() {
                   product.is_active ? "badge-success" : "badge-neutral"
                 )}
               >
-                {product.is_active ? (
-                  <><CheckCircle size={10} className="inline me-1" />Actif</>
-                ) : (
-                  <><XCircle size={10} className="inline me-1" />Inactif</>
-                )}
+                <span className={cn("w-1.5 h-1.5 rounded-full", product.is_active ? "bg-emerald-500" : "bg-slate-400")} />
+                {product.is_active ? "Actif" : "Inactif"}
               </span>
             </div>
-            <p className="text-sm text-text-muted mt-0.5">
-              {CATEGORY_LABELS[product.category] ?? product.category} &middot;{" "}
-              {GENDER_LABELS[product.gender] ?? product.gender} &middot;{" "}
-              {SEASON_LABELS[product.season] ?? product.season}
+            <p className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
+              <span>{CATEGORY_LABELS[product.category] ?? product.category}</span>
+              <span>&middot;</span>
+              <span>{GENDER_LABELS[product.gender] ?? product.gender}</span>
+              <span>&middot;</span>
+              <span>{SEASON_LABELS[product.season] ?? product.season}</span>
               {product.location && (
                 <>
-                  {" "}&middot;{" "}
-                  <span className="inline-flex items-center gap-1 text-primary">
+                  <span>&middot;</span>
+                  <span className="inline-flex items-center gap-1 text-primary-600 font-medium">
                     <MapPin size={12} />
                     {product.location}
                   </span>
@@ -305,7 +304,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2.5 flex-shrink-0 self-start sm:self-auto">
           {isManager && (
             <>
               <button
@@ -331,33 +330,33 @@ export default function ProductDetailPage() {
       {/* ── Main grid (image + info + pricing + stock) ──────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Image */}
-        <div className="card p-4 flex items-center justify-center min-h-[200px]">
+        {/* Image Card */}
+        <div className="card rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-center min-h-[220px] bg-slate-50/50">
           {product.image ? (
             <img
               src={product.image}
               alt={product.name}
-              className="max-h-48 max-w-full object-contain rounded-lg"
+              className="max-h-52 max-w-full object-contain rounded-xl"
             />
           ) : (
-            <div className="flex flex-col items-center gap-2 text-text-muted opacity-40">
-              <Package size={56} />
-              <span className="text-xs">Pas d'image</span>
+            <div className="flex flex-col items-center gap-2 text-slate-400">
+              <Package size={56} className="text-slate-300 stroke-[1.5]" />
+              <span className="text-xs font-medium text-slate-400">Pas d'image</span>
             </div>
           )}
         </div>
 
-        {/* Classification + description */}
-        <div className="card p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-text-primary">Informations</h3>
+        {/* Classification + Description Card */}
+        <div className="card rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 bg-white">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Informations produit</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <InfoBadge label="Catégorie" value={CATEGORY_LABELS[product.category] ?? product.category} />
             <InfoBadge label="Genre" value={GENDER_LABELS[product.gender] ?? product.gender} />
             <InfoBadge label="Saison" value={SEASON_LABELS[product.season] ?? product.season} />
-            <InfoBadge label={t("product.pairs_per_carton")} value={product.pairs_per_carton ?? 10} />
+            <InfoBadge label={t("product.pairs_per_carton")} value={String(product.pairs_per_carton ?? 10)} />
           </div>
           {product.description && (
-            <p className="text-sm text-text-muted border-t border-border pt-3 leading-relaxed">
+            <p className="text-sm text-slate-600 border-t border-slate-100 pt-3 leading-relaxed">
               {product.description}
             </p>
           )}
@@ -365,52 +364,52 @@ export default function ProductDetailPage() {
 
         {/* Pricing + Stock KPIs */}
         <div className="flex flex-col gap-4">
-          {/* Pricing */}
-          <div className="card p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-text-primary">Prix</h3>
-            <div className="flex items-end justify-between">
-              <span className="text-xs text-text-muted">Prix de vente</span>
-              <span className="font-mono font-bold text-lg text-text-primary">
-                {formatDZD(product.sale_price)} <span className="text-xs text-text-muted">DZD</span>
+          {/* Pricing Card */}
+          <div className="card rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3.5 bg-white">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tarification</h3>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-medium text-slate-500">Prix de vente</span>
+              <span className="font-mono font-bold text-xl text-slate-900 tabular-nums">
+                {formatDZD(product.sale_price)} <span className="text-xs font-sans text-slate-400 font-normal">DZD</span>
               </span>
             </div>
             {parseFloat(product.wholesale_price || "0") > 0 && (
-              <div className="flex items-end justify-between">
-                <span className="text-xs text-text-muted">Prix de gros</span>
-                <span className="font-mono font-bold text-md text-accent">
-                  {formatDZD(product.wholesale_price)} <span className="text-xs text-text-muted">DZD</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-medium text-slate-500">Prix de gros</span>
+                <span className="font-mono font-bold text-base text-primary-600 tabular-nums">
+                  {formatDZD(product.wholesale_price)} <span className="text-xs font-sans text-slate-400 font-normal">DZD</span>
                 </span>
               </div>
             )}
             {user?.can_see_costs && product.purchase_price && (
               <>
-                <div className="flex items-end justify-between">
-                  <span className="text-xs text-text-muted">{t("inventory.last_purchase_price", "Dernier prix d'achat")}</span>
-                  <span className="font-mono text-sm text-text-muted">
-                    {formatDZD(product.purchase_price)} DZD
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs font-medium text-slate-500">{t("inventory.last_purchase_price", "Dernier prix d'achat")}</span>
+                  <span className="font-mono text-sm text-slate-600 tabular-nums">
+                    {formatDZD(product.purchase_price)} <span className="text-2xs font-sans text-slate-400">DZD</span>
                   </span>
                 </div>
                 {product.pamp && parseFloat(product.pamp) > 0 && (
-                  <div className="flex items-end justify-between">
-                    <span className="text-xs text-text-muted" title={t("inventory.pamp_tooltip")}>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-slate-500" title={t("inventory.pamp_tooltip")}>
                       {t("inventory.pamp", "PAMP (Coût moyen)")}
                     </span>
-                    <span className="font-mono text-sm text-accent font-medium">
-                      {formatDZD(product.pamp)} DZD
+                    <span className="font-mono text-sm text-amber-600 font-semibold tabular-nums">
+                      {formatDZD(product.pamp)} <span className="text-2xs font-sans text-slate-400">DZD</span>
                     </span>
                   </div>
                 )}
                 {product.margin_pct != null && (
-                  <div className="flex items-end justify-between border-t border-border pt-2">
-                    <span className="text-xs text-text-muted">Marge</span>
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+                    <span className="text-xs font-medium text-slate-500">Marge brute</span>
                     <span
                       className={cn(
-                        "font-mono font-semibold text-sm",
+                        "font-mono font-bold text-xs px-2 py-0.5 rounded-full border tabular-nums",
                         parseFloat(product.margin_pct) >= 20
-                          ? "text-success"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : parseFloat(product.margin_pct) >= 10
-                          ? "text-warning"
-                          : "text-danger"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-red-50 text-red-700 border-red-200"
                       )}
                     >
                       {parseFloat(product.margin_pct).toFixed(1)}%
@@ -421,54 +420,54 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Stock KPI */}
+          {/* Stock KPI Card */}
           <div
             className={cn(
-              "card p-5",
+              "card rounded-2xl p-5 border shadow-xs bg-white",
               outOfStock
-                ? "border-danger/30 bg-danger-light"
+                ? "border-red-200 bg-red-50/20"
                 : product.is_total_low_stock || product.has_low_stock
-                ? "border-warning/30 bg-warning-light"
-                : ""
+                ? "border-amber-200 bg-amber-50/20"
+                : "border-slate-200/80"
             )}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-text-muted font-medium uppercase tracking-wide mb-1">
+                <p className="text-2xs text-slate-400 font-bold uppercase tracking-wider mb-1">
                   Stock total
                 </p>
                 <p
                   className={cn(
-                    "text-3xl font-mono font-bold",
-                    outOfStock ? "text-danger" : product.is_total_low_stock ? "text-warning" : "text-success"
+                    "text-3xl font-mono font-black tabular-nums",
+                    outOfStock ? "text-red-600" : product.is_total_low_stock ? "text-amber-600" : "text-emerald-600"
                   )}
                 >
                   {product.total_stock}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 {outOfStock ? (
-                  <div className="flex items-center justify-end gap-1 text-danger text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1 text-red-600 text-xs font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
                     <XCircle size={14} />
                     Rupture de stock
                   </div>
                 ) : product.is_total_low_stock ? (
-                  <div className="flex items-center justify-end gap-1 text-warning text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1 text-amber-600 text-xs font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
                     <AlertTriangle size={14} />
                     Stock global bas
                   </div>
                 ) : product.has_low_stock ? (
-                  <div className="flex items-center justify-end gap-1 text-warning text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1 text-amber-600 text-xs font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
                     <AlertTriangle size={14} />
                     Variantes basses
                   </div>
                 ) : (
-                  <div className="flex items-center justify-end gap-1 text-success text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                     <CheckCircle size={14} />
                     Disponible
                   </div>
                 )}
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-slate-400 mt-1.5 font-medium">
                   {activeVariants.length} variante(s) active(s)
                 </p>
               </div>
@@ -479,18 +478,18 @@ export default function ProductDetailPage() {
 
       {/* ── Single-Product Stock & Barcode Card (Simple Mode) ──────────────── */}
       {isSimpleProduct && !showMatrixOverride ? (
-        <div className="card p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
-                <Package size={17} />
+        <div className="card rounded-2xl border border-slate-200/80 p-5 shadow-xs bg-white space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary-50 text-primary-600 border border-primary-100 flex items-center justify-center">
+                <Package size={18} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-text-primary">Stock & Code-barres</h2>
+                  <h2 className="text-sm font-bold text-slate-900">Stock & Code-barres</h2>
                   <span className="badge badge-neutral text-2xs">Article Unique</span>
                 </div>
-                <p className="text-xs text-text-muted">Gestion directe du stock et étiquette pour cet article</p>
+                <p className="text-xs text-slate-500 mt-0.5">Gestion directe du stock et étiquette pour cet article</p>
               </div>
             </div>
 
@@ -499,7 +498,7 @@ export default function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => printLabels(defaultVariant.id, 1)}
-                  className="btn-secondary btn-sm flex items-center gap-1.5"
+                  className="btn-secondary btn-sm flex items-center gap-1.5 font-medium"
                   title="Imprimer une étiquette"
                 >
                   <Printer size={13} />
@@ -519,7 +518,7 @@ export default function ProductDetailPage() {
                     }
                     setAdjustOpen(true);
                   }}
-                  className="btn-secondary btn-sm flex items-center gap-1.5"
+                  className="btn-secondary btn-sm flex items-center gap-1.5 font-medium"
                 >
                   <BarChart3 size={13} />
                   Ajuster stock
@@ -528,7 +527,7 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowMatrixOverride(true)}
-                className="text-xs text-text-muted hover:text-primary-600 transition-colors ms-1"
+                className="text-xs font-medium text-slate-500 hover:text-primary-600 transition-colors ms-1"
               >
                 Passer en vue détaillée
               </button>
@@ -538,26 +537,26 @@ export default function ProductDetailPage() {
           {/* 3-column overview grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             {/* 1. Stock quantity & quick adjust */}
-            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+            <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/70 flex flex-col justify-between">
               <div>
-                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">
                   Quantité en rayon
                 </span>
                 <div className="flex items-baseline gap-2 mt-2">
                   <span
                     className={cn(
-                      "text-3xl font-mono font-bold",
-                      outOfStock ? "text-danger" : product.is_total_low_stock ? "text-warning" : "text-success"
+                      "text-3xl font-mono font-black tabular-nums",
+                      outOfStock ? "text-red-600" : product.is_total_low_stock ? "text-amber-600" : "text-emerald-600"
                     )}
                   >
                     {defaultVariant?.stock_qty ?? product.total_stock}
                   </span>
-                  <span className="text-xs text-text-muted">unités</span>
+                  <span className="text-xs font-medium text-slate-400">unités</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
-                <span className="text-xs text-text-muted">Seuil d'alerte : {product.alert_threshold || 3}</span>
+              <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                <span className="text-xs text-slate-500">Seuil d'alerte : {product.alert_threshold || 3}</span>
                 {isManager && defaultVariant && (
                   <div className="flex items-center gap-1">
                     <button
@@ -570,7 +569,7 @@ export default function ProductDetailPage() {
                         });
                         setAdjustOpen(true);
                       }}
-                      className="w-7 h-7 rounded border border-border bg-white hover:bg-surface flex items-center justify-center text-text-muted hover:text-danger text-xs font-bold"
+                      className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-red-600 text-xs font-bold transition-colors shadow-2xs"
                       title="-1 unité"
                     >
                       <Minus size={12} />
@@ -585,7 +584,7 @@ export default function ProductDetailPage() {
                         });
                         setAdjustOpen(true);
                       }}
-                      className="w-7 h-7 rounded border border-border bg-white hover:bg-surface flex items-center justify-center text-text-muted hover:text-success text-xs font-bold"
+                      className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-emerald-600 text-xs font-bold transition-colors shadow-2xs"
                       title="+1 unité"
                     >
                       <Plus size={12} />
@@ -596,24 +595,24 @@ export default function ProductDetailPage() {
             </div>
 
             {/* 2. Barcode & Live SVG */}
-            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+            <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/70 flex flex-col justify-between">
               <div>
-                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">
                   Code-barres de l'article
                 </span>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="font-mono text-sm font-semibold text-text-primary">
+                  <span className="font-mono text-sm font-bold text-slate-900">
                     {defaultVariant?.barcode || product.barcode || "Non généré"}
                   </span>
                   {defaultVariant?.barcode && (
                     <button
                       type="button"
                       onClick={() => copyBarcode(defaultVariant.id, defaultVariant.barcode!)}
-                      className="btn-ghost btn-sm p-1 text-text-muted hover:text-primary-600"
+                      className="p-1 text-slate-400 hover:text-primary-600 rounded-md hover:bg-white transition-colors"
                       title="Copier le code-barres"
                     >
                       {copiedId === defaultVariant.id ? (
-                        <Check size={14} className="text-success" />
+                        <Check size={14} className="text-emerald-600" />
                       ) : (
                         <Copy size={14} />
                       )}
@@ -622,7 +621,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-center min-h-[48px]">
+              <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-center min-h-[48px] bg-white rounded-lg p-1 border border-slate-100">
                 {defaultVariant?.barcode ? (
                   <BarcodeSvg
                     value={defaultVariant.barcode}
@@ -631,23 +630,23 @@ export default function ProductDetailPage() {
                     className="max-w-full"
                   />
                 ) : (
-                  <span className="text-xs text-text-muted">Aucun code-barres assigné</span>
+                  <span className="text-xs text-slate-400">Aucun code-barres assigné</span>
                 )}
               </div>
             </div>
 
             {/* 3. Emplacement & Informations carton */}
-            <div className="bg-surface/60 rounded-xl p-4 border border-border flex flex-col justify-between">
+            <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/70 flex flex-col justify-between">
               <div>
-                <span className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">
                   Stockage & Emplacement
                 </span>
-                <div className="mt-2 space-y-1.5">
+                <div className="mt-2 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">Emplacement :</span>
-                    <span className="font-medium text-text-primary">
+                    <span className="text-slate-500">Emplacement :</span>
+                    <span className="font-semibold text-slate-800">
                       {product.location ? (
-                        <span className="inline-flex items-center gap-1 text-primary">
+                        <span className="inline-flex items-center gap-1 text-primary-600 font-medium">
                           <MapPin size={11} /> {product.location}
                         </span>
                       ) : (
@@ -656,21 +655,21 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">{t("product.pairs_per_carton", "Pièces par carton")} :</span>
-                    <span className="font-mono font-medium text-text-primary">
+                    <span className="text-slate-500">{t("product.pairs_per_carton", "Pièces par carton")} :</span>
+                    <span className="font-mono font-bold text-slate-800">
                       {product.pairs_per_carton ?? 10}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">Référence SKU :</span>
-                    <span className="font-mono text-text-primary">
+                    <span className="text-slate-500">Référence SKU :</span>
+                    <span className="font-mono font-semibold text-slate-800">
                       {product.reference || "—"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-2xs text-text-muted">
+              <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between text-2xs text-slate-400">
                 <span>Créé le {new Date(product.created_at).toLocaleDateString("fr-FR")}</span>
               </div>
             </div>
@@ -678,17 +677,17 @@ export default function ProductDetailPage() {
         </div>
       ) : (
         /* ── SKU Matrix (Multi-variants or override) ────────────────────────── */
-        <div className="card p-5 space-y-4">
+        <div className="card rounded-2xl border border-slate-200/80 p-5 shadow-xs bg-white space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Tag size={16} className="text-primary-500" />
-              <h2 className="text-sm font-semibold text-text-primary">Variantes (Taille × Couleur)</h2>
+              <Tag size={16} className="text-primary-600" />
+              <h2 className="text-sm font-bold text-slate-900">Variantes (Taille × Couleur)</h2>
             </div>
             {isSimpleProduct && showMatrixOverride && (
               <button
                 type="button"
                 onClick={() => setShowMatrixOverride(false)}
-                className="text-xs text-text-muted hover:text-primary-600 transition-colors"
+                className="text-xs font-medium text-slate-500 hover:text-primary-600 transition-colors"
               >
                 Revenir à la vue simple
               </button>
@@ -704,45 +703,45 @@ export default function ProductDetailPage() {
       )}
 
       {/* ── Stock by Branch (collapsible) ────────────────────────────────────── */}
-      <div className="card overflow-hidden">
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
         <button
           onClick={() => setBranchOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-text-primary hover:bg-surface/60 transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-slate-800 hover:bg-slate-50/60 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <BarChart3 size={15} className="text-primary-500" />
+            <BarChart3 size={15} className="text-primary-600" />
             Stock par succursale
           </div>
           {branchOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
 
         {branchOpen && (
-          <div className="border-t border-border px-5 py-4">
+          <div className="border-t border-slate-200/80 px-5 py-4">
             {branchLoading ? (
-              <div className="flex items-center gap-2 text-text-muted text-sm py-4 justify-center">
-                <Loader2 size={16} className="animate-spin" /> Chargement...
+              <div className="flex items-center gap-2 text-slate-400 text-sm py-4 justify-center">
+                <Loader2 size={16} className="animate-spin text-primary-500" /> Chargement...
               </div>
             ) : !branchStock || branchStock.length === 0 ? (
-              <p className="text-sm text-text-muted text-center py-4">Aucune succursale configurée.</p>
+              <p className="text-sm text-slate-400 text-center py-4">Aucune succursale configurée.</p>
             ) : isSimpleProduct ? (
               <div className="overflow-x-auto">
                 <table className="data-table text-xs">
                   <thead>
-                    <tr>
-                      <th>Succursale</th>
-                      <th className="text-end">Stock disponible</th>
+                    <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">Succursale</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">Stock disponible</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {branchStock.map((branch) => {
                       const branchTotal = branch.variants.reduce((s, v) => s + v.stock, 0);
                       return (
-                        <tr key={branch.branch_id}>
-                          <td className="font-medium">{branch.branch_name}</td>
-                          <td className="text-end font-mono font-bold">
+                        <tr key={branch.branch_id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-4 font-semibold text-slate-800">{branch.branch_name}</td>
+                          <td className="py-3 px-4 text-end font-mono font-bold tabular-nums">
                             <span
                               className={cn(
-                                branchTotal === 0 ? "text-danger" : branchTotal > 0 ? "text-success" : "text-text-muted"
+                                branchTotal === 0 ? "text-red-600" : branchTotal > 0 ? "text-emerald-600" : "text-slate-400"
                               )}
                             >
                               {branchTotal}
@@ -758,8 +757,8 @@ export default function ProductDetailPage() {
               <div className="overflow-x-auto">
                 <table className="data-table text-xs">
                   <thead>
-                    <tr>
-                      <th>Succursale</th>
+                    <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">Succursale</th>
                       {/* Collect unique sizes across all branches */}
                       {Array.from(
                         new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour === "N/A" ? t("common.na") : v.colour}`)))
@@ -768,35 +767,35 @@ export default function ProductDetailPage() {
                         .map((key) => {
                           const [size, colour] = key.split("_");
                           return (
-                            <th key={key} className="text-center whitespace-nowrap">
-                              EU{size}<br />
-                              <span className="text-2xs font-normal text-text-muted">{colour}</span>
+                            <th key={key} className="py-3 px-2 text-center whitespace-nowrap font-semibold text-slate-500 uppercase tracking-wider">
+                              EU {size}<br />
+                              <span className="text-2xs font-normal text-slate-400">{colour}</span>
                             </th>
                           );
                         })}
-                      <th className="text-end">Total</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">Total</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {branchStock.map((branch) => {
                       const variantKeys = Array.from(
                         new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour === "N/A" ? t("common.na") : v.colour}`)))
                       ).slice(0, 12);
                       const branchTotal = branch.variants.reduce((s, v) => s + v.stock, 0);
                       return (
-                        <tr key={branch.branch_id}>
-                          <td className="font-medium">{branch.branch_name}</td>
+                        <tr key={branch.branch_id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-4 font-semibold text-slate-800">{branch.branch_name}</td>
                           {variantKeys.map((key) => {
                             const [sizeStr, colour] = key.split("_");
                             const v = branch.variants.find(
                               (bv) => bv.size_eu === parseInt(sizeStr) && bv.colour === colour
                             );
                             return (
-                              <td key={key} className="text-center font-mono">
+                              <td key={key} className="py-3 px-2 text-center font-mono tabular-nums">
                                 <span
                                   className={cn(
-                                    "font-medium",
-                                    v?.stock === 0 ? "text-danger" : v?.stock && v.stock > 0 ? "text-success" : "text-text-muted"
+                                    "font-bold",
+                                    v?.stock === 0 ? "text-red-600" : v?.stock && v.stock > 0 ? "text-emerald-600" : "text-slate-400"
                                   )}
                                 >
                                   {v?.stock ?? "—"}
@@ -804,7 +803,7 @@ export default function ProductDetailPage() {
                               </td>
                             );
                           })}
-                          <td className="text-end font-mono font-bold">{branchTotal}</td>
+                          <td className="py-3 px-4 text-end font-mono font-bold text-slate-900 tabular-nums">{branchTotal}</td>
                         </tr>
                       );
                     })}
@@ -818,15 +817,15 @@ export default function ProductDetailPage() {
 
       {/* ── Codes-barres (collapsible for multi-variants) ───────────────────── */}
       {(!isSimpleProduct || showMatrixOverride) && (
-        <div className="card overflow-hidden">
+        <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
           <button
             onClick={() => setBarcodesOpen((o) => !o)}
-            className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-text-primary hover:bg-surface/60 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-slate-800 hover:bg-slate-50/60 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Barcode size={15} className="text-primary-500" />
+              <Barcode size={15} className="text-primary-600" />
               Codes-barres des variantes
-              <span className="text-xs font-normal text-text-muted">
+              <span className="text-xs font-medium text-slate-400">
                 ({product.variants.filter((v) => v.barcode).length} codes)
               </span>
             </div>
@@ -849,54 +848,60 @@ export default function ProductDetailPage() {
           </button>
 
           {barcodesOpen && (
-            <div className="border-t border-border px-5 py-4">
+            <div className="border-t border-slate-200/80 px-5 py-4">
               <div className="overflow-x-auto">
                 <table className="data-table text-sm">
                   <thead>
-                    <tr>
-                      <th>{t("inventory.size")}</th>
-                      <th>{t("inventory.colour")}</th>
-                      <th>{t("inventory.barcode")}</th>
-                      <th className="text-center">Aperçu</th>
-                      <th></th>
+                    <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.size")}</th>
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.colour")}</th>
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.barcode")}</th>
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Aperçu</th>
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end"></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {product.variants
                       .filter((v) => v.is_active)
                       .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
                       .map((v) => (
-                        <tr key={v.id}>
-                          <td className="font-mono font-semibold">
-                            {v.size_eu > 0 ? `EU ${v.size_eu}` : "Standard"}
-                          </td>
-                          <td>{v.colour === "N/A" ? t("common.na") : v.colour}</td>
-                          <td>
-                            {v.barcode ? (
-                              <span className="font-mono text-text-primary">{v.barcode}</span>
+                        <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3.5 px-4">
+                            {v.size_eu > 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200">
+                                T. {v.size_eu}
+                              </span>
                             ) : (
-                              <span className="text-text-muted text-xs">Non généré</span>
+                              <span className="text-slate-500 font-medium">Standard</span>
                             )}
                           </td>
-                          <td className="text-center py-2">
+                          <td className="py-3.5 px-4 text-slate-600 font-medium text-sm">{v.colour === "N/A" ? t("common.na") : v.colour}</td>
+                          <td className="py-3.5 px-4">
+                            {v.barcode ? (
+                              <span className="font-mono font-semibold text-slate-900">{v.barcode}</span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">Non généré</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
                             {v.barcode && (
                               <BarcodeSvg
                                 value={v.barcode}
                                 height={36}
                                 showText={false}
-                                className="inline-block text-text-primary"
+                                className="inline-block text-slate-900"
                               />
                             )}
                           </td>
-                          <td>
+                          <td className="py-3.5 px-4 text-end">
                             {v.barcode && (
                               <button
                                 onClick={() => copyBarcode(v.id, v.barcode!)}
-                                className="btn-ghost btn-sm text-text-muted hover:text-primary-500"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-100 transition-colors"
                                 title="Copier"
                               >
                                 {copiedId === v.id ? (
-                                  <Check size={14} className="text-success" />
+                                  <Check size={14} className="text-emerald-600" />
                                 ) : (
                                   <Copy size={14} />
                                 )}
@@ -915,28 +920,28 @@ export default function ProductDetailPage() {
 
       {/* ── Stock Adjustment Modal ────────────────────────────────────────────── */}
       {adjustOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="card w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="card rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col bg-white overflow-hidden">
             {/* Modal header */}
-            <div className="card-header flex-shrink-0">
-              <h2 className="font-semibold text-text-primary">Ajustement de stock multiple</h2>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between font-bold text-slate-900 bg-slate-50/50 flex-shrink-0">
+              <h2>Ajustement de stock multiple</h2>
               <button
                 onClick={() => {
                   setAdjustOpen(false);
                   setAdjustError(null);
                   setAdjustForm({ reason: "adjustment", notes: "", deltas: {} });
                 }}
-                className="text-text-muted hover:text-text-primary"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Modal body */}
-            <div className="card-body space-y-5 overflow-y-auto min-h-0">
+            <div className="px-6 py-5 space-y-5 overflow-y-auto min-h-0">
               {adjustError && (
-                <div className="flex items-center gap-2 text-xs text-danger bg-danger-light px-3 py-2 rounded-lg flex-shrink-0">
-                  <AlertTriangle size={13} />
+                <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 px-3.5 py-2.5 rounded-xl flex-shrink-0">
+                  <AlertTriangle size={14} />
                   {adjustError}
                 </div>
               )}
@@ -944,7 +949,7 @@ export default function ProductDetailPage() {
               <div className="grid grid-cols-2 gap-4 flex-shrink-0">
                 {/* Reason */}
                 <div>
-                  <label className="block text-xs font-medium text-text-muted mb-1">Motif *</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Motif *</label>
                   <select
                     value={adjustForm.reason}
                     onChange={(e) =>
@@ -953,7 +958,7 @@ export default function ProductDetailPage() {
                         reason: e.target.value as BulkAdjustForm["reason"],
                       }))
                     }
-                    className="form-input"
+                    className="form-input bg-white border-slate-200 shadow-2xs rounded-xl focus:ring-primary-500/20"
                   >
                     {ADJUST_REASONS.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -965,30 +970,30 @@ export default function ProductDetailPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-medium text-text-muted mb-1">Notes</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Notes</label>
                   <input
                     type="text"
                     value={adjustForm.notes}
                     onChange={(e) =>
                       setAdjustForm((f) => ({ ...f, notes: e.target.value }))
                     }
-                    className="form-input"
+                    className="form-input bg-white border-slate-200 shadow-2xs rounded-xl focus:ring-primary-500/20"
                     placeholder="Commentaire optionnel..."
                   />
                 </div>
               </div>
 
               {/* Variants table */}
-              <div className="border border-border rounded-lg overflow-hidden flex-shrink-0">
+              <div className="border border-slate-200 rounded-xl overflow-hidden flex-shrink-0">
                 <table className="data-table text-sm w-full">
-                  <thead className="bg-surface sticky top-0 z-10">
+                  <thead className="bg-slate-50/90 sticky top-0 z-10 border-b border-slate-200/80">
                     <tr>
-                      <th className="w-1/3">{isSimpleProduct ? "Article" : "Variante"}</th>
-                      <th className="w-1/4 text-center">Stock actuel</th>
-                      <th className="w-5/12 text-center">Ajustement (±)</th>
+                      <th className="w-1/3 py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{isSimpleProduct ? "Article" : "Variante"}</th>
+                      <th className="w-1/4 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock actuel</th>
+                      <th className="w-5/12 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ajustement (±)</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {product.variants
                       .filter((v) => v.is_active)
                       .sort((a, b) => a.size_eu - b.size_eu || a.colour.localeCompare(b.colour))
@@ -998,20 +1003,20 @@ export default function ProductDetailPage() {
                         const newStock = v.stock_qty + deltaVal;
 
                         const variantLabel = v.size_eu > 0
-                          ? `EU${v.size_eu} · ${v.colour === "N/A" ? t("common.na") : v.colour}`
+                          ? `EU ${v.size_eu} · ${v.colour === "N/A" ? t("common.na") : v.colour}`
                           : (v.colour && v.colour !== "Standard" && v.colour !== "N/A"
                               ? `${product.name} (${v.colour})`
                               : product.name);
 
                         return (
-                          <tr key={v.id}>
-                            <td className="font-medium text-text-primary">
+                          <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-900">
                               {variantLabel}
                             </td>
-                            <td className="text-center font-mono text-text-muted">
+                            <td className="py-3 px-4 text-center font-mono font-bold text-slate-600 tabular-nums">
                               {v.stock_qty}
                             </td>
-                            <td>
+                            <td className="py-3 px-4">
                               <div className="flex items-center justify-center gap-2">
                                 <button
                                   type="button"
@@ -1021,7 +1026,7 @@ export default function ProductDetailPage() {
                                       deltas: { ...f.deltas, [v.id]: String(deltaVal - 1) },
                                     }))
                                   }
-                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0"
+                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0 rounded-lg font-bold"
                                 >
                                   <Minus size={14} />
                                 </button>
@@ -1035,9 +1040,9 @@ export default function ProductDetailPage() {
                                     }))
                                   }
                                   className={cn(
-                                    "form-input text-center font-mono w-20 py-1.5",
-                                    deltaVal > 0 ? "text-success bg-success/5 border-success/30" :
-                                    deltaVal < 0 ? "text-danger bg-danger-light border-danger/30" : ""
+                                    "form-input text-center font-mono font-bold w-20 py-1.5 rounded-lg border tabular-nums",
+                                    deltaVal > 0 ? "text-emerald-700 bg-emerald-50 border-emerald-300" :
+                                    deltaVal < 0 ? "text-red-700 bg-red-50 border-red-300" : "border-slate-200"
                                   )}
                                   placeholder="0"
                                 />
@@ -1049,13 +1054,13 @@ export default function ProductDetailPage() {
                                       deltas: { ...f.deltas, [v.id]: String(deltaVal + 1) },
                                     }))
                                   }
-                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0"
+                                  className="btn-secondary btn-sm w-8 h-8 p-0 flex items-center justify-center flex-shrink-0 rounded-lg font-bold"
                                 >
                                   <Plus size={14} />
                                 </button>
-                                <span className="text-xs font-mono w-8 text-end">
+                                <span className="text-xs font-mono font-bold w-10 text-end tabular-nums">
                                   {deltaVal !== 0 ? (
-                                    <span className="text-text-muted">→ {newStock}</span>
+                                    <span className={newStock < 0 ? "text-red-600" : "text-slate-600"}>→ {newStock}</span>
                                   ) : null}
                                 </span>
                               </div>
@@ -1069,7 +1074,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Modal footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-surface/40 rounded-b-lg flex-shrink-0">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
               <button
                 onClick={() => {
                   setAdjustOpen(false);

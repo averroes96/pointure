@@ -103,30 +103,30 @@ export default function StockMovementsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("inventory.stock_movements")}</h1>
-          <p className="text-sm text-text-muted">{t("inventory.movement_count", { count: data?.count ?? 0 })}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("inventory.stock_movements")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("inventory.movement_count", { count: data?.count ?? 0 })}</p>
         </div>
-        <button onClick={handleExportCSV} className="btn-secondary">
-          <Download size={16} />
+        <button onClick={handleExportCSV} className="btn-secondary self-start sm:self-auto flex items-center gap-2">
+          <Download size={15} />
           Exporter CSV
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="card card-body">
+      {/* Filters Card */}
+      <div className="card rounded-2xl border border-slate-200/80 p-5 shadow-xs bg-white space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Variant search */}
           <div className="relative lg:col-span-1">
-            <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="form-input ps-9"
+              className="form-input ps-9 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
               placeholder={t("inventory.search_article")}
             />
           </div>
@@ -135,7 +135,7 @@ export default function StockMovementsPage() {
           <select
             value={reason}
             onChange={(e) => { setReason(e.target.value); setPage(1); }}
-            className="form-input"
+            className="form-input bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
           >
             {[{ value: "", label: t("inventory.all_reasons") }, "sale", "reception", "adjustment", "return", "transfer_out", "transfer_in", "damaged", "initial"].map(opt => typeof opt === "string" ? { value: opt, label: t(`movement_reason.${opt}`) } : opt).map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -147,7 +147,7 @@ export default function StockMovementsPage() {
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="form-input"
+            className="form-input bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
             placeholder={t("common.from")}
           />
 
@@ -156,7 +156,7 @@ export default function StockMovementsPage() {
             type="date"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="form-input"
+            className="form-input bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
             placeholder={t("common.to")}
           />
 
@@ -164,7 +164,7 @@ export default function StockMovementsPage() {
           <select
             value={branchId}
             onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
-            className="form-input"
+            className="form-input bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
           >
             <option value="">{t("inventory.all_branches")}</option>
             {branches.map((b) => (
@@ -174,62 +174,71 @@ export default function StockMovementsPage() {
         </div>
 
         {(search || reason || dateFrom || dateTo || branchId) && (
-          <div className="mt-2 flex items-center gap-2">
-            <button onClick={handleReset} className="btn-ghost btn-sm text-text-muted">
+          <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
+            <button onClick={handleReset} className="btn-ghost btn-sm text-slate-500 hover:text-slate-800 font-medium">
               Réinitialiser les filtres
             </button>
           </div>
         )}
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
+      {/* Table Card */}
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr>
-                <th>{t("inventory.datetime")}</th>
-                <th>{t("inventory.product")}</th>
-                <th>{t("inventory.warehouse")}</th>
-                <th>{t("inventory.reason")}</th>
-                <th className="text-end">{t("inventory.delta_qty")}</th>
-                <th>{t("inventory.reference")}</th>
-                <th>{t("inventory.operator")}</th>
+              <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.datetime")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.warehouse")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.reason")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.delta_qty")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.reference")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.operator")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm">{t("common.loading")}</span>
+                    </div>
+                  </td>
                 </tr>
               )}
               {!isLoading && movements.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("inventory.no_movement_found")}</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <span className="text-sm">{t("inventory.no_movement_found")}</span>
+                  </td>
                 </tr>
               )}
               {movements.map((movement) => (
-                <tr key={movement.id}>
-                  <td className="text-text-muted text-xs whitespace-nowrap">
+                <tr key={movement.id} className="group hover:bg-slate-50/80 transition-colors">
+                  <td className="py-3.5 px-4 text-slate-500 text-xs font-mono tabular-nums whitespace-nowrap">
                     {formatTimestamp(movement.timestamp)}
                   </td>
-                  <td>
+                  <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2">
-                      <ArrowUpDown size={13} className="text-text-muted flex-shrink-0" />
-                      <span className="font-medium text-text-primary">{movement.variant_str}</span>
+                      <ArrowUpDown size={13} className="text-slate-400 flex-shrink-0" />
+                      <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{movement.variant_str}</span>
                     </div>
                   </td>
-                  <td className="text-text-muted">{movement.branch_name || "—"}</td>
-                  <td>
+                  <td className="py-3.5 px-4 text-slate-600 font-medium text-sm">{movement.branch_name || "—"}</td>
+                  <td className="py-3.5 px-4">
                     <span className={cn("badge", REASON_BADGE_CLASS[movement.reason] ?? "badge-neutral")}>
                       {(t(`movement_reason.${movement.reason}`) !== `movement_reason.${movement.reason}` ? t(`movement_reason.${movement.reason}`) : movement.reason)}
                     </span>
                   </td>
-                  <td className="text-end">
+                  <td className="py-3.5 px-4 text-end">
                     <span
                       className={cn(
-                        "font-mono font-semibold",
-                        movement.quantity_delta > 0 ? "text-success" : "text-danger"
+                        "inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs tabular-nums border",
+                        movement.quantity_delta > 0
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-red-50 text-red-700 border-red-200"
                       )}
                     >
                       {movement.quantity_delta > 0
@@ -237,10 +246,10 @@ export default function StockMovementsPage() {
                         : movement.quantity_delta}
                     </span>
                   </td>
-                  <td className="text-text-muted text-xs font-mono">
+                  <td className="py-3.5 px-4 text-slate-400 text-2xs font-mono">
                     {movement.reference_id || "—"}
                   </td>
-                  <td className="text-text-muted text-xs">{movement.user_email || "—"}</td>
+                  <td className="py-3.5 px-4 text-slate-500 text-xs font-mono">{movement.user_email || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -249,8 +258,8 @@ export default function StockMovementsPage() {
 
         {/* Pagination */}
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-text-muted">
+          <div className="px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/40 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">
               {t("inventory.page_info_movements", { current: data.current_page, total: data.total_pages, count: data.count })}
             </span>
             <div className="flex gap-2">
