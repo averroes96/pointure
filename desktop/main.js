@@ -476,8 +476,14 @@ autoUpdater.on('update-not-available', (info) => {
 });
 
 autoUpdater.on('error', (err) => {
-  log.warn('[Updater] Error:', err.message);
-  sendUpdateStatus('error', { message: err.message });
+  const msg = err ? err.message : '';
+  if (msg.includes('No published versions on GitHub') || msg.includes('404')) {
+    log.info('[Updater] No published releases found on GitHub — app is currently up to date.');
+    sendUpdateStatus('not-available', { currentVersion: app.getVersion() });
+    return;
+  }
+  log.warn('[Updater] Error:', msg);
+  sendUpdateStatus('error', { message: msg });
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
@@ -632,6 +638,10 @@ ipcMain.handle('check-for-updates', async () => {
     const res = await autoUpdater.checkForUpdates();
     return { status: 'ok', updateInfo: res?.updateInfo };
   } catch (err) {
+    if (err?.message?.includes('No published versions on GitHub') || err?.message?.includes('404')) {
+      sendUpdateStatus('not-available', { currentVersion: app.getVersion() });
+      return { status: 'ok', updateInfo: null, message: 'Application à jour.' };
+    }
     return { status: 'error', message: err.message };
   }
 });

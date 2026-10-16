@@ -1,6 +1,6 @@
 {
   "name": "shoedz-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ShoeDZ / Pointure - Desktop Edition for Windows",
   "main": "main.js",
   "scripts": {
