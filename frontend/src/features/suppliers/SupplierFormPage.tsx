@@ -121,15 +121,15 @@ export default function SupplierFormPage() {
         <button
           type="button"
           onClick={() => navigate(isEditing ? `/suppliers/${id}` : "/suppliers")}
-          className="text-text-muted hover:text-text-primary transition-colors"
+          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
             {isEditing ? t("supplier.edit_supplier") : t("supplier.new_supplier")}
           </h1>
-          <p className="text-sm text-text-muted">
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
             {isEditing
               ? t("supplier.edit_supplier_desc")
               : t("supplier.new_supplier_desc")}
@@ -138,28 +138,29 @@ export default function SupplierFormPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Error banner */}
         {formError && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-danger/10 border border-danger/30 rounded-lg text-sm text-danger">
+          <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-medium animate-in fade-in">
             <span className="flex-1">{formError}</span>
-            <button type="button" onClick={() => setFormError(null)} className="text-danger hover:text-danger/70">
+            <button type="button" onClick={() => setFormError(null)} className="text-rose-500 hover:text-rose-800">
               ✕
             </button>
           </div>
         )}
 
         {/* Main card */}
-        <div className="card p-5 space-y-4">
+        <div className="card p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
           {/* Nom du fournisseur */}
           <div>
-            <label className="form-label">{t("supplier.name")}<span className="text-danger">*</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t("supplier.name")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={set("name")}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               placeholder="Ex: SARL Chaussures Import"
               autoFocus
               required
@@ -168,35 +169,35 @@ export default function SupplierFormPage() {
 
           {/* Contact */}
           <div>
-            <label className="form-label">{t("supplier.contact")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.contact")}</label>
             <input
               type="text"
               value={form.contact_name}
               onChange={set("contact_name")}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               placeholder="Nom du responsable"
             />
           </div>
 
           {/* Téléphone & Email */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="form-label">{t("supplier.phone")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={set("phone")}
-                className="form-input"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                 placeholder="0550 000 000"
               />
             </div>
             <div>
-              <label className="form-label">{t("supplier.email")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.email")}</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={set("email")}
-                className="form-input"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                 placeholder="fournisseur@example.com"
               />
             </div>
@@ -204,35 +205,35 @@ export default function SupplierFormPage() {
 
           {/* Pays d'origine */}
           <div>
-            <label className="form-label">{t("supplier.origin_country")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.origin_country")}</label>
             <input
               type="text"
               value={form.origin_country}
               onChange={set("origin_country")}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               placeholder="Chine, Turquie, Italie..."
             />
           </div>
 
           {/* Conditions de paiement */}
           <div>
-            <label className="form-label">{t("supplier.payment_terms")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.payment_terms")}</label>
             <input
               type="text"
               value={form.payment_terms}
               onChange={set("payment_terms")}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               placeholder="30 jours net"
             />
           </div>
 
           {/* Adresse */}
           <div>
-            <label className="form-label">{t("supplier.address")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.address")}</label>
             <textarea
               value={form.address}
               onChange={set("address")}
-              className="form-input resize-none"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
               placeholder="Adresse complète du fournisseur"
             />
@@ -240,11 +241,11 @@ export default function SupplierFormPage() {
 
           {/* Notes */}
           <div>
-            <label className="form-label">{t("common.notes")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("common.notes")}</label>
             <textarea
               value={form.notes}
               onChange={set("notes")}
-              className="form-input resize-none"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
               placeholder="Remarques, conditions spéciales..."
             />
@@ -252,32 +253,32 @@ export default function SupplierFormPage() {
 
           {/* Actif (edit only) */}
           {isEditing && (
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
               <input
                 type="checkbox"
                 id="is_active"
                 checked={form.is_active}
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                className="w-4 h-4 rounded border-border text-primary-500"
+                className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
-              <label htmlFor="is_active" className="text-sm font-medium text-text-primary cursor-pointer">{t("supplier.active")}</label>
+              <label htmlFor="is_active" className="text-xs font-semibold text-slate-800 cursor-pointer">{t("supplier.active")}</label>
             </div>
           )}
         </div>
 
         {/* Submit */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3 pt-1">
           <button
             type="button"
             onClick={() => navigate(isEditing ? `/suppliers/${id}` : "/suppliers")}
-            className="btn-secondary"
+            className="btn-secondary rounded-xl"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="btn-primary"
+            className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
           >
             {saveMutation.isPending ? (
               <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>

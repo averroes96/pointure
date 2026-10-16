@@ -74,10 +74,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-1">
-        {Icon && <Icon size={11} className="flex-shrink-0" />}
+      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+        {Icon && <Icon size={12} className="text-slate-400 shrink-0" />}
         {label}
-        {required && <span className="text-danger">*</span>}
+        {required && <span className="text-rose-500">*</span>}
       </label>
       {children}
     </div>
@@ -166,9 +166,9 @@ export default function ClientFormPage() {
 
   if (isEditing && loadingClient && !existingClient) {
     return (
-      <div className="flex items-center justify-center h-48 gap-2 text-text-muted">
-        <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">{t("common.loading")}</span>
+      <div className="flex items-center justify-center h-48 gap-2 text-slate-400">
+        <Loader2 size={18} className="animate-spin text-primary-600" />
+        <span className="text-sm font-medium">{t("common.loading")}</span>
       </div>
     );
   }
@@ -179,15 +179,15 @@ export default function ClientFormPage() {
       <div className="flex items-center gap-3">
         <Link
           to={isEditing ? `/clients/${id}` : "/clients"}
-          className="text-text-muted hover:text-text-primary transition-colors"
+          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
             {isEditing ? "Modifier le client" : "Nouveau client"}
           </h1>
-          <p className="text-sm text-text-muted">
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
             {isEditing
               ? "Modifiez les informations du client."
               : "Remplissez les informations pour créer un nouveau client."}
@@ -196,34 +196,34 @@ export default function ClientFormPage() {
       </div>
 
       {/* ── Form ──────────────────────────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Error banner */}
         {formError && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-danger-light border border-danger/30 rounded-lg text-sm text-danger">
-            <AlertTriangle size={14} className="flex-shrink-0" />
+          <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-medium text-rose-700 animate-in fade-in">
+            <AlertTriangle size={15} className="shrink-0" />
             <span className="flex-1">{formError}</span>
-            <button type="button" onClick={() => setFormError(null)}>
+            <button type="button" onClick={() => setFormError(null)} className="text-rose-500 hover:text-rose-800">
               <X size={14} />
             </button>
           </div>
         )}
 
         {saved && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success">
-            <CheckCircle size={14} />
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 animate-in fade-in">
+            <CheckCircle size={15} className="text-emerald-600" />
             Client enregistré avec succès. Redirection...
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
           {/* ── Left: Identity & Contact ─────────────────────────────────── */}
           <div className="lg:col-span-3 space-y-4">
 
             {/* Identity */}
-            <div className="card p-5 space-y-4">
-              <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
+            <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
                 Identité
               </h2>
 
@@ -232,19 +232,19 @@ export default function ClientFormPage() {
                   type="text"
                   value={form.name}
                   onChange={set("name")}
-                  className="form-input"
-                  placeholder="Ex: SARL El Baraka"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-medium"
+                  placeholder="Ex: SARL El Baraka ou Ahmed Benali"
                   autoFocus
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3.5">
                 <Field label={t("client.nif")} icon={FileText}>
                   <input
                     type="text"
                     value={form.nif}
                     onChange={set("nif")}
-                    className="form-input"
+                    className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                     placeholder="00012345678901234"
                   />
                 </Field>
@@ -253,7 +253,7 @@ export default function ClientFormPage() {
                     type="text"
                     value={form.rc}
                     onChange={set("rc")}
-                    className="form-input"
+                    className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                     placeholder="16/00-0123456B12"
                   />
                 </Field>
@@ -261,18 +261,18 @@ export default function ClientFormPage() {
             </div>
 
             {/* Contact */}
-            <div className="card p-5 space-y-4">
-              <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
-                Contact
+            <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
+                Contact & Localisation
               </h2>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3.5">
                 <Field label={t("client.phone_label")} icon={Phone}>
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={set("phone")}
-                    className="form-input"
+                    className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                     placeholder="0550 000 000"
                   />
                 </Field>
@@ -281,7 +281,7 @@ export default function ClientFormPage() {
                     type="email"
                     value={form.email}
                     onChange={set("email")}
-                    className="form-input"
+                    className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                     placeholder="client@example.com"
                   />
                 </Field>
@@ -292,14 +292,14 @@ export default function ClientFormPage() {
                   type="text"
                   value={form.address}
                   onChange={set("address")}
-                  className="form-input"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
                   placeholder="Rue, quartier, commune..."
                 />
               </Field>
 
               <Field label={t("client.wilaya")} icon={MapPin}>
                 <select
-                  className="form-input"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
                   value={form.wilaya}
                   onChange={(e) => setForm((f) => ({ ...f, wilaya: e.target.value }))}
                 >
@@ -314,14 +314,14 @@ export default function ClientFormPage() {
             </div>
 
             {/* Notes */}
-            <div className="card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
+            <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
                 Notes internes
               </h2>
               <textarea
                 value={form.notes}
                 onChange={set("notes")}
-                className="form-input resize-none"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
                 rows={3}
                 placeholder="Remarques, conditions spéciales..."
               />
@@ -332,35 +332,35 @@ export default function ClientFormPage() {
           <div className="lg:col-span-2 flex flex-col gap-4">
 
             {/* Credit */}
-            <div className="card p-5 space-y-4">
-              <h2 className="text-sm font-semibold text-text-primary border-b border-border pb-2">
+            <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
                 Conditions commerciales
               </h2>
 
               {/* Client type toggle */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-1.5">
-                  <Building2 size={11} className="flex-shrink-0" />
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                  <Building2 size={12} className="text-slate-400 shrink-0" />
                   Type de client
                 </label>
-                <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+                <div className="flex rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 text-xs">
                   {(["retail", "wholesale"] as ClientType[]).map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, client_type: t }))}
                       className={cn(
-                        "flex-1 py-2 font-medium transition-colors",
+                        "flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all text-xs",
                         form.client_type === t
-                          ? "bg-primary-500 text-white"
-                          : "bg-surface text-text-muted hover:bg-surface/80"
+                          ? "bg-white text-slate-900 shadow-2xs"
+                          : "text-slate-500 hover:text-slate-800"
                       )}
                     >
-                      {t === "retail" ? "Détail" : "Gros"}
+                      {t === "retail" ? "Détail (Particulier)" : "Gros (Professionnel)"}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-2xs text-slate-500 mt-1.5 font-medium">
                   {form.client_type === "retail"
                     ? "Client particulier — éligible au programme fidélité."
                     : "Partenaire grossiste — exclu du programme fidélité."}
@@ -375,39 +375,39 @@ export default function ClientFormPage() {
                   type="number"
                   value={form.credit_limit}
                   onChange={set("credit_limit")}
-                  className="form-input"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                   placeholder="0"
                   min="0"
                   step="1000"
                 />
-                <p className="text-xs text-text-muted mt-0.5">
+                <p className="text-2xs text-slate-500 mt-1 font-medium">
                   Mettre 0 pour désactiver la limite de crédit.
                 </p>
               </Field>
             </div>
 
             {/* Status */}
-            <div className="card p-5">
+            <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">Client actif</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    Les clients inactifs n'apparaissent pas dans les recherches.
+                  <p className="text-xs font-semibold text-slate-900">Client actif</p>
+                  <p className="text-2xs text-slate-500 mt-0.5 font-medium">
+                    Les clients inactifs sont masqués des sélecteurs de vente.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
                   className={cn(
-                    "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                    form.is_active ? "bg-primary-500" : "bg-border"
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+                    form.is_active ? "bg-primary-600" : "bg-slate-300"
                   )}
                   role="switch"
                   aria-checked={form.is_active}
                 >
                   <span
                     className={cn(
-                      "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform",
+                      "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform duration-200",
                       form.is_active ? "translate-x-5" : "translate-x-0"
                     )}
                   />
@@ -417,24 +417,24 @@ export default function ClientFormPage() {
 
             {/* Summary preview (edit mode) */}
             {isEditing && existingClient && (
-              <div className="card p-5 space-y-2 bg-surface/60">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+              <div className="card p-5 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-2">
+                <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wider">
                   Solde actuel
                 </p>
                 <p
                   className={cn(
-                    "text-2xl font-mono font-bold",
+                    "text-xl font-mono font-bold tabular-nums",
                     parseFloat(existingClient.cached_balance) > 0
-                      ? "text-warning"
-                      : "text-success"
+                      ? "text-rose-600"
+                      : "text-emerald-700"
                   )}
                 >
                   {parseFloat(existingClient.cached_balance).toLocaleString("fr-DZ", {
                     minimumFractionDigits: 2,
                   })}{" "}
-                  <span className="text-sm font-normal text-text-muted">DZD</span>
+                  <span className="text-xs font-normal text-slate-400">DZD</span>
                 </p>
-                <p className="text-xs text-text-muted">
+                <p className="text-2xs text-slate-500 font-medium">
                   Créé le{" "}
                   {new Date(existingClient.created_at).toLocaleDateString("fr-DZ", {
                     day: "2-digit",
@@ -451,14 +451,14 @@ export default function ClientFormPage() {
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             to={isEditing ? `/clients/${id}` : "/clients"}
-            className="btn-secondary"
+            className="btn-secondary rounded-xl"
           >
             Annuler
           </Link>
           <button
             type="submit"
             disabled={saveMutation.isPending || saved}
-            className="btn-primary"
+            className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
           >
             {saveMutation.isPending ? (
               <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>

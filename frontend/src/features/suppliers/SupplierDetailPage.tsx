@@ -109,28 +109,33 @@ function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="card w-full max-w-md shadow-2xl">
-        <div className="card-header flex items-center justify-between">
-          <h2 className="font-semibold text-text-primary">Enregistrer un paiement fournisseur</h2>
-          <button onClick={onClose} className="btn-ghost btn-sm"><X size={16} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 font-sans">Enregistrer un paiement fournisseur</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Règlement de facture ou acompte</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+            <X size={18} />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="card-body space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {errMsg && (
-            <div className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 font-medium">
               {errMsg}
             </div>
           )}
 
           <div>
-            <label className="form-label">Montant (DZD) *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Montant (DZD) *</label>
             <input
               type="number"
               step="0.01"
               min="0.01"
               value={form.amount}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
               placeholder="0.00"
               required
               autoFocus
@@ -138,7 +143,7 @@ function PaymentModal({
           </div>
 
           <div>
-            <label className="form-label">Mode de paiement *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Mode de paiement *</label>
             <div className="grid grid-cols-3 gap-2">
               {(["cash", "cheque", "virement"] as const).map((m) => (
                 <button
@@ -146,10 +151,10 @@ function PaymentModal({
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, method: m }))}
                   className={cn(
-                    "px-3 py-2 rounded-lg border text-sm font-medium transition-colors capitalize",
+                    "px-3 py-2 rounded-xl border text-xs font-semibold transition-all capitalize",
                     form.method === m
-                      ? "border-primary-500 bg-primary-50 text-primary-700"
-                      : "border-border bg-surface text-text-secondary hover:border-primary-300"
+                      ? "border-primary-500 bg-primary-50/80 text-primary-700 shadow-2xs"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                   )}
                 >
                   {m === "cash" ? "Espèces" : m === "cheque" ? "Chèque" : "Virement"}
@@ -161,22 +166,22 @@ function PaymentModal({
           {form.method === "cheque" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="form-label">N° Chèque</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">N° Chèque</label>
                 <input
                   type="text"
                   value={form.cheque_number}
                   onChange={(e) => setForm((f) => ({ ...f, cheque_number: e.target.value }))}
-                  className="form-input"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
                   placeholder="CHQ-123456"
                 />
               </div>
               <div>
-                <label className="form-label">Banque</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Banque</label>
                 <input
                   type="text"
                   value={form.bank}
                   onChange={(e) => setForm((f) => ({ ...f, bank: e.target.value }))}
-                  className="form-input"
+                  className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
                   placeholder="BNA, CPA..."
                 />
               </div>
@@ -184,30 +189,30 @@ function PaymentModal({
           )}
 
           <div>
-            <label className="form-label">Date *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Date *</label>
             <input
               type="date"
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               required
             />
           </div>
 
           <div>
-            <label className="form-label">{t("common.notes")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("common.notes")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              className="form-input resize-none"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
               placeholder="Référence, commentaire..."
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
-            <button type="submit" className="btn-primary" disabled={mutation.isPending}>
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="btn-secondary rounded-xl">Annuler</button>
+            <button type="submit" className="btn-primary rounded-xl shadow-xs shadow-primary-500/20" disabled={mutation.isPending}>
               {mutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</> : <><Save size={14} /> Confirmer</>}
             </button>
           </div>
@@ -224,10 +229,12 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
   const balance = parseFloat(supplier.outstanding_balance);
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
-      <div className="card">
-        <div className="card-header"><h3 className="font-semibold text-text-primary">Informations</h3></div>
-        <div className="card-body divide-y divide-border">
+    <div className="grid lg:grid-cols-2 gap-5">
+      <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">Informations Générales</h3>
+        </div>
+        <div className="px-5 divide-y divide-slate-100">
           <InfoRow icon={Phone} label={t("supplier.phone")} value={supplier.phone} />
           <InfoRow icon={Mail} label={t("supplier.email")} value={supplier.email} />
           <InfoRow icon={MapPin} label="Adresse" value={supplier.address} />
@@ -237,37 +244,41 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
       </div>
 
       <div className="space-y-4">
-        <div className="card">
-          <div className="card-body">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Solde dû</p>
-            <p className={cn("text-3xl font-bold font-mono", balance > 0 ? "text-danger" : "text-success")}>
-              {formatDZD(supplier.outstanding_balance)}{" "}
-              <span className="text-lg font-normal text-text-muted">DZD</span>
-            </p>
-          </div>
+        <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Solde dû fournisseur</p>
+          <p className={cn("text-3xl font-bold font-mono tabular-nums tracking-tight", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
+            {formatDZD(supplier.outstanding_balance)}{" "}
+            <span className="text-sm font-normal text-slate-400">DZD</span>
+          </p>
         </div>
 
         {supplier.notes && (
-          <div className="card">
-            <div className="card-header"><h3 className="text-sm font-semibold text-text-primary">{t("common.notes")}</h3></div>
-            <div className="card-body">
-              <p className="text-sm text-text-muted whitespace-pre-wrap">{supplier.notes}</p>
-            </div>
+          <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6 space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t("common.notes")}</h3>
+            <p className="text-xs text-slate-600 whitespace-pre-wrap">{supplier.notes}</p>
           </div>
         )}
 
-        <div className="card">
-          <div className="card-body">
-            <p className="text-xs text-text-muted">
-              Client depuis le{" "}
+        <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-slate-500 font-medium">
+              Fournisseur depuis le{" "}
               {new Date(supplier.created_at).toLocaleDateString("fr-DZ", {
                 day: "2-digit", month: "long", year: "numeric",
               })}
             </p>
-            <span className={cn("badge mt-2", supplier.is_active ? "badge-success" : "badge-neutral")}>
-              {supplier.is_active ? "Actif" : "Inactif"}
-            </span>
           </div>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
+              supplier.is_active
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-600 border border-slate-200"
+            )}
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
+            {supplier.is_active ? "Actif" : "Inactif"}
+          </span>
         </div>
       </div>
     </div>
@@ -534,61 +545,75 @@ export default function SupplierDetailPage() {
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/suppliers")}
-              className="btn-ghost btn-sm text-text-muted hover:text-text-primary"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">{supplier.name}</h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className={cn("badge", supplier.is_active ? "badge-success" : "badge-neutral")}>
+              <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{supplier.name}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
+                    supplier.is_active
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  )}
+                >
+                  <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
                   {supplier.is_active ? "Actif" : "Inactif"}
                 </span>
                 {supplier.origin_country && (
-                  <span className="text-xs text-text-muted">{supplier.origin_country}</span>
+                  <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                    {supplier.origin_country}
+                  </span>
                 )}
                 {supplier.contact_name && (
-                  <span className="text-xs text-text-muted">· {supplier.contact_name}</span>
+                  <span className="text-xs text-slate-500 font-medium">· {supplier.contact_name}</span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Link
               to={`/suppliers/${supplierId}/edit`}
-              className="btn-secondary"
+              className="btn-secondary rounded-xl"
             >
-              <Pencil size={15} />{t("common.edit")}</Link>
+              <Pencil size={15} />
+              {t("common.edit")}
+            </Link>
             <Link
               to={`/purchase-orders/new?supplier=${supplierId}`}
-              className="btn-secondary"
+              className="btn-secondary rounded-xl"
             >
-              <ShoppingBag size={15} />{t("supplier.new_order")}</Link>
-            <button onClick={() => setShowPayment(true)} className="btn-primary">
+              <ShoppingBag size={15} />
+              {t("supplier.new_order")}
+            </Link>
+            <button onClick={() => setShowPayment(true)} className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
               <CreditCard size={15} />
               Enregistrer paiement
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-border overflow-x-auto">
+        {/* Segmented Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap",
                 activeTab === tab.key
-                  ? "border-primary-500 text-primary-600"
-                  : "border-transparent text-text-muted hover:text-text-primary hover:border-border"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
               )}
             >
               {tab.label}

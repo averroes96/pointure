@@ -56,84 +56,97 @@ function SupplierFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="card-header">
-          <h2 className="font-semibold text-text-primary">{t("supplier.new")}</h2>
-          <button onClick={onClose} className="btn-ghost btn-sm p-1">
-            <X size={16} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 font-sans">{t("supplier.new")}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Ajouter un nouveau fournisseur partenaire</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="card-body space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="rounded-md bg-danger-light text-danger text-sm px-3 py-2">
+            <div className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 font-medium">
               {error}
             </div>
           )}
 
           <div>
-            <label className="form-label">{t("supplier.name_required")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.name_required")}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
               placeholder={t("supplier.name")}
               required
+              autoFocus
             />
           </div>
 
           <div>
-            <label className="form-label">{t("supplier.contact")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.contact")}</label>
             <input
               type="text"
               value={form.contact_name}
               onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
               placeholder={t("supplier.contact_name")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">{t("supplier.phone")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="form-input"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 font-mono text-sm"
                 placeholder="0550 000 000"
               />
             </div>
             <div>
-              <label className="form-label">{t("supplier.email")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.email")}</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="form-input"
-                placeholder="contact@example.com"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
+                placeholder="contact@fournisseur.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="form-label">{t("supplier.origin_country")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.origin_country")}</label>
             <input
               type="text"
               value={form.origin_country}
               onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
-              className="form-input"
-              placeholder="Chine, Turquie..."
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
+              placeholder="Algérie, Chine, Turquie, Italie..."
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">{t("common.cancel")}</button>
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary rounded-xl"
+            >
+              {t("common.cancel")}
+            </button>
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
               disabled={mutation.isPending}
             >
               {mutation.isPending ? t("common.saving") : t("common.save")}
@@ -183,74 +196,90 @@ function EditRow({ supplier, onDone }: EditRowProps) {
 
   return (
     <>
-      <tr className="bg-blue-50">
-        <td>
+      <tr className="bg-primary-50/40 border-b border-primary-100">
+        <td className="px-4 py-2.5">
           <input
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="form-input py-1 text-xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-medium"
+            placeholder="Nom"
           />
         </td>
-        <td>
+        <td className="px-4 py-2.5">
           <input
             type="text"
             value={form.contact_name}
             onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-            className="form-input py-1 text-xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            placeholder="Contact"
           />
         </td>
-        <td>
+        <td className="px-4 py-2.5">
           <input
             type="tel"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="form-input py-1 text-xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-mono"
+            placeholder="Téléphone"
           />
         </td>
-        <td>
+        <td className="px-4 py-2.5">
           <input
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="form-input py-1 text-xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            placeholder="Email"
           />
         </td>
-        <td>
+        <td className="px-4 py-2.5">
           <input
             type="text"
             value={form.origin_country}
             onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
-            className="form-input py-1 text-xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            placeholder="Pays"
           />
         </td>
-        <td className="text-end font-mono text-text-muted">
+        <td className="px-4 py-2.5 text-end font-mono font-medium text-slate-500 tabular-nums">
           {formatDZD(supplier.outstanding_balance)} DZD
         </td>
-        <td>
-          <span className={cn("badge", supplier.is_active ? "badge-success" : "badge-neutral")}>
+        <td className="px-4 py-2.5">
+          <span className={cn(
+            "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
+            supplier.is_active
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+              : "bg-slate-100 text-slate-600 border border-slate-200"
+          )}>
             {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
           </span>
         </td>
-        <td>
-          <div className="flex items-center gap-1">
+        <td className="px-4 py-2.5 text-end">
+          <div className="flex items-center justify-end gap-1.5">
             <button
               onClick={handleSave}
               disabled={mutation.isPending}
-              className="btn-primary btn-sm p-1.5"
+              className="p-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-2xs"
               title={t("common.save")}
             >
               <Check size={13} />
             </button>
-            <button onClick={onDone} className="btn-secondary btn-sm p-1.5" title={t("common.cancel")}>
+            <button
+              onClick={onDone}
+              className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+              title={t("common.cancel")}
+            >
               <X size={13} />
             </button>
           </div>
         </td>
       </tr>
       {error && (
-        <tr className="bg-blue-50">
-          <td colSpan={8} className="px-3 py-1 text-xs text-danger">{error}</td>
+        <tr className="bg-rose-50/60 border-b border-rose-100">
+          <td colSpan={8} className="px-4 py-1.5 text-xs font-medium text-rose-600">
+            {error}
+          </td>
         </tr>
       )}
     </>
@@ -278,7 +307,7 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {showImport && (
         <ImportModal
           entity="suppliers"
@@ -291,17 +320,19 @@ export default function SuppliersPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("supplier.suppliers")}</h1>
-          <p className="text-sm text-text-muted">{data?.count ?? 0} fournisseur(s)</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("supplier.suppliers")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> fournisseurs enregistrés
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowImport(true)} className="btn-secondary">
-            <Upload size={16} />
-            Importer
+        <div className="flex items-center gap-2.5">
+          <button onClick={() => setShowImport(true)} className="btn-secondary rounded-xl">
+            <Upload size={15} />
+            Importer CSV
           </button>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
+          <button onClick={() => setShowModal(true)} className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
             <Plus size={16} />
             {t("supplier.new")}
           </button>
@@ -310,41 +341,45 @@ export default function SuppliersPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
+          data-shortcut-search="true"
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="form-input ps-9"
+          className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
           placeholder="Nom, contact, pays..."
         />
+        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+          F2
+        </kbd>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
+      {/* Table Card */}
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr>
-                <th>{t("supplier.name")}</th>
-                <th>{t("supplier.contact")}</th>
-                <th>{t("supplier.phone")}</th>
-                <th>{t("supplier.email")}</th>
-                <th>{t("supplier.origin_country")}</th>
-                <th className="text-end">{t("supplier.balance_due")}</th>
-                <th>{t("supplier.active")}</th>
-                <th>{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.name")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.contact")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.phone")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.email")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.origin_country")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("supplier.balance_due")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.active")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+                  <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">{t("common.loading")}</td>
                 </tr>
               )}
               {!isLoading && suppliers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-text-muted">Aucun fournisseur trouvé.</td>
+                  <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">Aucun fournisseur trouvé.</td>
                 </tr>
               )}
               {suppliers.map((supplier) =>
@@ -355,50 +390,67 @@ export default function SuppliersPage() {
                     onDone={() => setEditingId(null)}
                   />
                 ) : (
-                  <tr key={supplier.id}>
-                    <td>
-                      <span className="font-medium text-text-primary">{supplier.name}</span>
+                  <tr key={supplier.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-4 py-3.5">
+                      <Link
+                        to={`/suppliers/${supplier.id}`}
+                        className="font-semibold text-slate-900 hover:text-primary-600 transition-colors font-sans"
+                      >
+                        {supplier.name}
+                      </Link>
                     </td>
-                    <td className="text-text-muted">{supplier.contact_name || "—"}</td>
-                    <td className="text-text-muted">{supplier.phone || "—"}</td>
-                    <td className="text-text-muted text-xs">{supplier.email || "—"}</td>
-                    <td className="text-text-muted">{supplier.origin_country || "—"}</td>
-                    <td className="text-end">
+                    <td className="px-4 py-3.5 text-slate-600 text-sm">{supplier.contact_name || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3.5 text-slate-600 text-sm font-mono">{supplier.phone || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3.5 text-slate-500 text-xs font-mono">{supplier.email || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3.5">
+                      {supplier.origin_country ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/60">
+                          {supplier.origin_country}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-end">
                       <span
                         className={cn(
-                          "font-mono font-medium",
+                          "font-mono font-semibold tabular-nums text-sm",
                           parseFloat(supplier.outstanding_balance) > 0
-                            ? "text-danger"
-                            : "text-text-muted"
+                            ? "text-rose-600"
+                            : "text-slate-400"
                         )}
                       >
-                        {formatDZD(supplier.outstanding_balance)} DZD
+                        {formatDZD(supplier.outstanding_balance)} <span className="text-2xs font-normal text-slate-400">DZD</span>
                       </span>
                     </td>
-                    <td>
+                    <td className="px-4 py-3.5">
                       <span
                         className={cn(
-                          "badge",
-                          supplier.is_active ? "badge-success" : "badge-neutral"
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-2xs font-semibold",
+                          supplier.is_active
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                            : "bg-slate-100 text-slate-600 border border-slate-200"
                         )}
                       >
+                        <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
                         {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
                       </span>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3.5 text-end">
+                      <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/suppliers/${supplier.id}`}
-                          className="btn-ghost btn-sm text-primary-500"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 bg-primary-50/70 hover:bg-primary-100/70 transition-colors"
                         >
                           <Eye size={13} />
-                          Voir
+                          Fiche
                         </Link>
                         <button
                           onClick={() => setEditingId(supplier.id)}
-                          className="btn-ghost btn-sm text-text-muted"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                          title="Modifier"
                         >
-                          <Pencil size={13} />
+                          <Pencil size={14} />
                         </button>
                       </div>
                     </td>

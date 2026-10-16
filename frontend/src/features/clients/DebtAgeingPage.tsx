@@ -35,20 +35,30 @@ function useToast() {
 function AmountCell({
   value,
   colorClass,
+  bgClass,
   bold = false,
 }: {
   value: string;
   colorClass: string;
+  bgClass?: string;
   bold?: boolean;
 }) {
-  const { t } = useTranslation();
   const num = parseFloat(value);
   if (!num || num === 0) {
-    return <td className="text-end font-mono text-text-muted text-sm">—</td>;
+    return <td className="py-3 px-4 text-end font-mono text-slate-300 text-xs">—</td>;
   }
   return (
-    <td className={cn("text-end font-mono text-sm", colorClass, bold && "font-bold")}>
-      {formatDZD(value)}
+    <td className="py-3 px-4 text-end">
+      <span
+        className={cn(
+          "font-mono text-xs tabular-nums px-2 py-0.5 rounded-md font-semibold inline-block",
+          colorClass,
+          bgClass,
+          bold && "font-bold text-sm"
+        )}
+      >
+        {formatDZD(value)}
+      </span>
     </td>
   );
 }
@@ -57,10 +67,10 @@ function AmountCell({
 
 function SkeletonRow() {
   return (
-    <tr>
+    <tr className="animate-pulse">
       {Array.from({ length: 7 }).map((_, i) => (
-        <td key={i}>
-          <div className="h-4 bg-border rounded animate-pulse" style={{ width: i === 0 ? "80%" : "60%" }} />
+        <td key={i} className="py-3.5 px-4">
+          <div className="h-4 bg-slate-100 rounded-md" style={{ width: i === 0 ? "80%" : "60%" }} />
         </td>
       ))}
     </tr>
@@ -128,114 +138,153 @@ export default function DebtAgeingPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Toast */}
       {toast.message && (
-        <div className="fixed top-4 end-4 z-50 bg-surface border border-border shadow-lg rounded-lg px-4 py-3 text-sm text-text-primary">
+        <div className="fixed top-4 end-4 z-50 bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/50 shadow-2xl rounded-xl px-4 py-3 text-xs font-medium animate-in fade-in duration-200">
           {toast.message}
         </div>
       )}
 
       {/* Page header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
             Tableau de vieillissement des créances
           </h1>
-          <p className="text-sm text-text-muted mt-0.5">
-            {isLoading ? "Chargement..." : `${filtered.length} clients avec solde`}
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            {isLoading ? "Chargement de la balance âgée..." : (
+              <>
+                <span className="font-mono font-semibold text-slate-700">{filtered.length}</span> clients avec solde dû
+              </>
+            )}
           </p>
         </div>
-        <button onClick={handleExportExcel} className="btn-secondary">
+        <button onClick={handleExportExcel} className="btn-secondary rounded-xl">
           <Download size={15} />
-          Exporter Excel
+          Exporter CSV
         </button>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <MapPin size={15} className="text-text-muted flex-shrink-0" />
-          <select
-            value={wilayaFilter}
-            onChange={(e) => setWilayaFilter(e.target.value)}
-            className="form-input max-w-[200px]"
-          >
-            <option value="">Toutes les wilayas</option>
-            {wilayas.map((w) => (
-              <option key={w} value={w}>{wilayaName(w) || w}</option>
-            ))}
-          </select>
+      {/* Top Bucket KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="card p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">Total Créances</span>
+          <p className="text-base font-bold font-mono text-slate-900 mt-1 tabular-nums">
+            {formatDZD(totals.total)} <span className="text-2xs font-normal text-slate-400">DZD</span>
+          </p>
         </div>
-
-        {wilayaFilter && (
-          <button
-            onClick={() => setWilayaFilter("")}
-            className="btn-ghost btn-sm text-text-muted hover:text-text-primary"
-          >
-            Réinitialiser le filtre
-          </button>
-        )}
+        <div className="card p-3.5 rounded-xl border border-blue-200/60 bg-blue-50/40 shadow-2xs">
+          <span className="text-2xs font-semibold text-blue-700 uppercase tracking-wider block">Courant (0–30j)</span>
+          <p className="text-base font-bold font-mono text-blue-800 mt-1 tabular-nums">
+            {formatDZD(totals.current)} <span className="text-2xs font-normal text-blue-500">DZD</span>
+          </p>
+        </div>
+        <div className="card p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 shadow-2xs">
+          <span className="text-2xs font-semibold text-amber-700 uppercase tracking-wider block">31–60 jours</span>
+          <p className="text-base font-bold font-mono text-amber-800 mt-1 tabular-nums">
+            {formatDZD(totals.days_30)} <span className="text-2xs font-normal text-amber-500">DZD</span>
+          </p>
+        </div>
+        <div className="card p-3.5 rounded-xl border border-orange-200/60 bg-orange-50/40 shadow-2xs">
+          <span className="text-2xs font-semibold text-orange-700 uppercase tracking-wider block">61–90 jours</span>
+          <p className="text-base font-bold font-mono text-orange-800 mt-1 tabular-nums">
+            {formatDZD(totals.days_60)} <span className="text-2xs font-normal text-orange-500">DZD</span>
+          </p>
+        </div>
+        <div className="card p-3.5 rounded-xl border border-rose-200/60 bg-rose-50/40 shadow-2xs col-span-2 md:col-span-1">
+          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">+90 jours (Critique)</span>
+          <p className="text-base font-bold font-mono text-rose-800 mt-1 tabular-nums">
+            {formatDZD(totals.days_90_plus)} <span className="text-2xs font-normal text-rose-500">DZD</span>
+          </p>
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-primary-500 inline-block" />
-          <span>Courant (0-30j)</span>
+      {/* Filter bar & Legend */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <MapPin size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              value={wilayaFilter}
+              onChange={(e) => setWilayaFilter(e.target.value)}
+              className="form-input ps-9 pe-8 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 max-w-[220px]"
+            >
+              <option value="">Toutes les wilayas</option>
+              {wilayas.map((w) => (
+                <option key={w} value={w}>{wilayaName(w) || w}</option>
+              ))}
+            </select>
+          </div>
+
+          {wilayaFilter && (
+            <button
+              onClick={() => setWilayaFilter("")}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              Effacer le filtre
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
-          <span>31-60 jours</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
-          <span>61-90 jours</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-danger inline-block" />
-          <span>+90 jours</span>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+            <span>0-30j</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+            <span>31-60j</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+            <span>61-90j</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-600 inline-block" />
+            <span>+90j</span>
+          </div>
         </div>
       </div>
 
       {/* Error state */}
       {isError && (
-        <div className="card px-4 py-6 text-center space-y-2">
-          <AlertCircle size={28} className="text-danger mx-auto" />
-          <p className="text-text-primary font-medium">Erreur de chargement</p>
-          <p className="text-sm text-text-muted">
-            Impossible de récupérer les données de vieillissement.
+        <div className="card rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center space-y-2">
+          <AlertCircle size={28} className="text-rose-600 mx-auto" />
+          <p className="text-slate-900 font-bold font-sans">Erreur de chargement</p>
+          <p className="text-xs text-slate-600">
+            Impossible de récupérer les données de vieillissement des créances.
           </p>
         </div>
       )}
 
-      {/* Table */}
+      {/* Table Card */}
       {!isError && (
-        <div className="card overflow-hidden">
+        <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>{t("invoice.client")}</th>
-                  <th>Wilaya</th>
-                  <th className="text-end">
-                    <span className="text-primary-600">Courant</span>
-                    <span className="block text-2xs font-normal text-text-muted">0-30j</span>
+                <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.client")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Wilaya</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                    <span className="text-blue-700">Courant (0–30j)</span>
                   </th>
-                  <th className="text-end">
-                    <span className="text-warning">31-60j</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                    <span className="text-amber-700">31–60j</span>
                   </th>
-                  <th className="text-end">
-                    <span className="text-orange-500">61-90j</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                    <span className="text-orange-700">61–90j</span>
                   </th>
-                  <th className="text-end">
-                    <span className="text-danger">+90j</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                    <span className="text-rose-700">+90j</span>
                   </th>
-                  <th className="text-end">Total</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Total Dû</th>
                 </tr>
               </thead>
 
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {/* Loading skeletons */}
                 {isLoading &&
                   Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
@@ -243,7 +292,7 @@ export default function DebtAgeingPage() {
                 {/* Empty state */}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-text-muted">
+                    <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
                       Aucune créance trouvée
                       {wilayaFilter ? ` pour la wilaya "${wilayaFilter}"` : ""}.
                     </td>
@@ -252,40 +301,54 @@ export default function DebtAgeingPage() {
 
                 {/* Data rows */}
                 {filtered.map((row) => (
-                  <tr key={row.client_id} className="hover:bg-surface-hover transition-colors">
-                    <td>
+                  <tr key={row.client_id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4">
                       <button
                         onClick={() => navigate(`/clients/${row.client_id}`)}
-                        className="font-medium text-primary-600 hover:underline text-start"
+                        className="font-semibold text-slate-900 hover:text-primary-600 transition-colors text-start font-sans"
                       >
                         {row.client_name}
                       </button>
                       {row.phone && (
-                        <div className="text-xs text-text-muted mt-0.5">{row.phone}</div>
+                        <div className="text-xs text-slate-500 font-mono mt-0.5">{row.phone}</div>
                       )}
                     </td>
-                    <td className="text-text-muted">{wilayaName(row.wilaya) || "—"}</td>
+                    <td className="py-3 px-4 text-slate-600 text-xs">
+                      {row.wilaya ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
+                          {wilayaName(row.wilaya) || row.wilaya}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
 
                     <AmountCell
                       value={row.current}
-                      colorClass="text-primary-600"
+                      colorClass="text-blue-700"
+                      bgClass={parseFloat(row.current) > 0 ? "bg-blue-50/80" : undefined}
                     />
                     <AmountCell
                       value={row.days_30}
-                      colorClass="text-warning"
+                      colorClass="text-amber-800"
+                      bgClass={parseFloat(row.days_30) > 0 ? "bg-amber-50/80" : undefined}
                     />
                     <AmountCell
                       value={row.days_60}
-                      colorClass="text-orange-500"
+                      colorClass="text-orange-800"
+                      bgClass={parseFloat(row.days_60) > 0 ? "bg-orange-50/80" : undefined}
                     />
                     <AmountCell
                       value={row.days_90_plus}
-                      colorClass="text-danger"
+                      colorClass="text-rose-700"
+                      bgClass={parseFloat(row.days_90_plus) > 0 ? "bg-rose-50/80" : undefined}
                     />
 
-                    <td className="text-end font-mono font-semibold text-sm text-text-primary">
-                      {formatDZD(row.total)}{" "}
-                      <span className="text-2xs text-text-muted font-normal">DZD</span>
+                    <td className="py-3 px-4 text-end">
+                      <span className="font-mono font-bold text-sm text-slate-900 tabular-nums">
+                        {formatDZD(row.total)}{" "}
+                        <span className="text-2xs text-slate-400 font-normal">DZD</span>
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -294,25 +357,25 @@ export default function DebtAgeingPage() {
               {/* Summary / Totals row */}
               {!isLoading && filtered.length > 0 && (
                 <tfoot>
-                  <tr className="bg-surface border-t-2 border-border font-semibold">
-                    <td colSpan={2} className="text-text-primary text-sm">
-                      Total ({filtered.length} clients)
+                  <tr className="bg-slate-50/90 border-t-2 border-slate-200 font-bold">
+                    <td colSpan={2} className="py-3.5 px-4 text-slate-800 text-xs font-sans uppercase tracking-wider">
+                      Total ({filtered.length} client{filtered.length > 1 ? "s" : ""})
                     </td>
-                    <td className="text-end font-mono text-sm text-primary-600">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-blue-700 tabular-nums">
                       {formatDZD(totals.current)}
                     </td>
-                    <td className="text-end font-mono text-sm text-warning">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-amber-800 tabular-nums">
                       {formatDZD(totals.days_30)}
                     </td>
-                    <td className="text-end font-mono text-sm text-orange-500">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-orange-800 tabular-nums">
                       {formatDZD(totals.days_60)}
                     </td>
-                    <td className="text-end font-mono text-sm text-danger">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-rose-700 tabular-nums">
                       {formatDZD(totals.days_90_plus)}
                     </td>
-                    <td className="text-end font-mono text-sm text-text-primary">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-slate-900 font-extrabold tabular-nums">
                       {formatDZD(totals.total)}{" "}
-                      <span className="text-2xs text-text-muted font-normal">DZD</span>
+                      <span className="text-2xs text-slate-500 font-normal">DZD</span>
                     </td>
                   </tr>
                 </tfoot>

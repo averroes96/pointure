@@ -36,7 +36,7 @@ export default function ClientsPage() {
   const clients = data?.results ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {showImport && (
         <ImportModal
           title="Importer des clients"
@@ -47,15 +47,17 @@ export default function ClientsPage() {
           onClose={() => setShowImport(false)}
         />
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("nav.client_list")}</h1>
-          <p className="text-sm text-text-muted">{data?.count ?? 0} clients</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.client_list")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> clients enregistrés
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2.5">
           <button onClick={() => setShowImport(true)} className="btn-secondary">
-            <Upload size={16} />
-            Importer
+            <Upload size={15} />
+            Importer CSV
           </button>
           <Link to="/clients/new" className="btn-primary">
             <Plus size={16} />
@@ -64,26 +66,26 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Search + type filter */}
+      {/* Search + Type filter */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             data-shortcut-search="true"
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9 pe-10"
+            className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
             placeholder={t("client.search_placeholder")}
           />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-surface border border-border text-text-muted px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
             F2
           </kbd>
         </div>
         <select
           value={clientType}
           onChange={(e) => { setClientType(e.target.value); setPage(1); }}
-          className="form-input max-w-[160px]"
+          className="form-input max-w-[170px] bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
         >
           <option value="">Tous les types</option>
           <option value="retail">{t("client.retail")}</option>
@@ -91,43 +93,50 @@ export default function ClientsPage() {
         </select>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
+      {/* Table Card */}
+      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr>
-                <th>{t("client.name")}</th>
-                <th>{t("client.phone")}</th>
-                <th>{t("client.wilaya")}</th>
-                <th className="text-end">{t("client.credit_limit")}</th>
-                <th className="text-end">{t("client.balance")}</th>
-                <th>{t("common.status")}</th>
-                <th>{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 bg-slate-50/70">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.name")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.phone")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.wilaya")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.credit_limit")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.balance")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm">{t("common.loading")}</span>
+                    </div>
+                  </td>
                 </tr>
               )}
               {!isLoading && clients.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.no_data")}</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <span className="text-sm">{t("common.no_data")}</span>
+                  </td>
                 </tr>
               )}
               {clients.map((client) => (
                 <tr
                   key={client.id}
-                  className="cursor-pointer hover:bg-surface"
+                  className="group cursor-pointer hover:bg-slate-50/80 transition-colors"
                   onClick={() => navigate(`/clients/${client.id}`)}
                 >
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-text-primary">{client.name}</span>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{client.name}</span>
                       <span className={cn(
-                        "text-2xs font-semibold px-1.5 py-0.5 rounded-full border",
+                        "text-2xs font-bold px-2 py-0.5 rounded-md border",
                         client.client_type === "wholesale"
                           ? "bg-purple-50 text-purple-700 border-purple-200"
                           : "bg-blue-50 text-blue-700 border-blue-200"
@@ -135,57 +144,64 @@ export default function ClientsPage() {
                         {client.client_type === "wholesale" ? t("client.wholesale") : t("client.retail")}
                       </span>
                     </div>
-                    {client.nif && <div className="text-xs text-text-muted">NIF: {client.nif}</div>}
+                    {client.nif && <div className="text-2xs font-mono text-slate-400 mt-0.5">NIF: {client.nif}</div>}
                   </td>
-                  <td>
+                  <td className="py-3.5 px-4">
                     {client.phone ? (
                       <a
                         href={whatsappLink(client.phone, `Bonjour ${client.name}`)}
                         target="_blank"
-                        className="flex items-center gap-1 text-sm text-green-600 hover:underline"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <MessageCircle size={12} />
+                        <MessageCircle size={13} className="text-emerald-600" />
                         {client.phone}
                       </a>
-                    ) : "—"}
+                    ) : (
+                      <span className="text-slate-400 font-mono text-xs">—</span>
+                    )}
                   </td>
-                  <td className="text-text-muted">{wilayaName(client.wilaya) || "—"}</td>
-                  <td className="text-end font-mono text-text-muted">
-                    {parseFloat(client.credit_limit) > 0
-                      ? formatDZD(client.credit_limit) + " DZD"
-                      : "—"}
+                  <td className="py-3.5 px-4 text-slate-600 font-medium text-sm">{wilayaName(client.wilaya) || "—"}</td>
+                  <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">
+                    {parseFloat(client.credit_limit) > 0 ? (
+                      <>
+                        {formatDZD(client.credit_limit)} <span className="text-2xs font-sans text-slate-400">DZD</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
-                  <td className="text-end">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="py-3.5 px-4 text-end">
+                    <div className="inline-flex items-center justify-end gap-1.5">
                       {client.is_over_credit_limit && (
-                        <AlertCircle size={14} className="text-danger" />
+                        <AlertCircle size={13} className="text-red-600 flex-shrink-0" />
                       )}
                       <span
                         className={cn(
-                          "font-mono font-medium",
+                          "font-mono font-bold tabular-nums text-sm",
                           parseFloat(client.cached_balance) > 0
-                            ? client.is_over_credit_limit ? "text-danger" : "text-warning"
-                            : "text-success"
+                            ? client.is_over_credit_limit ? "text-red-600" : "text-amber-600"
+                            : "text-emerald-600"
                         )}
                       >
-                        {formatDZD(client.cached_balance)} DZD
+                        {formatDZD(client.cached_balance)} <span className="text-2xs font-sans text-slate-400 font-normal">DZD</span>
                       </span>
                     </div>
                   </td>
-                  <td>
+                  <td className="py-3.5 px-4">
                     <span className={cn("badge", client.is_active ? "badge-success" : "badge-neutral")}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", client.is_active ? "bg-emerald-500" : "bg-slate-400")} />
                       {client.is_active ? t("common.active") : t("common.inactive")}
                     </span>
                   </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1">
-                      <button
-                        className="btn-ghost btn-sm text-primary-500"
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                      >
-                        {t("common.view")}
-                      </button>
-                    </div>
+                  <td className="py-3.5 px-4 text-end" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="btn-ghost btn-sm text-primary-600 hover:bg-primary-50 hover:text-primary-700 font-semibold inline-flex items-center"
+                      onClick={() => navigate(`/clients/${client.id}`)}
+                    >
+                      {t("common.view")}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -194,8 +210,8 @@ export default function ClientsPage() {
         </div>
 
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-text-muted">
+          <div className="px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/40 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">
               {t("common.page_info_movements", { current: data.current_page, total: data.total_pages, count: data.count }).split("·")[0].trim()}
             </span>
             <div className="flex gap-2">

@@ -178,29 +178,29 @@ function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="card w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="card-header flex items-center justify-between">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
           <div>
-            <h2 className="font-semibold text-text-primary">{t("payment.record")}</h2>
-            <p className="text-xs text-text-muted mt-0.5">{clientName}</p>
+            <h2 className="text-base font-bold text-slate-900 font-sans">{t("payment.record")}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{clientName}</p>
           </div>
           <button
             onClick={onClose}
-            className="btn-ghost btn-sm text-text-muted hover:text-text-primary"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="Fermer"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="card-body space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Target Invoice (optional) */}
           {openInvoices.length > 0 && (
             <div>
-              <label className="form-label">{t("payment.target_invoice", "Facture concernée (optionnel)")}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("payment.target_invoice", "Facture concernée (optionnel)")}</label>
               <select
                 value={form.invoice_id || ""}
                 onChange={(e) => {
@@ -212,7 +212,7 @@ function PaymentModal({
                     amount: targetInv ? String(targetInv.balance_due) : f.amount,
                   }));
                 }}
-                className="form-input"
+                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               >
                 <option value="">{t("payment.all_open_invoices", "Toutes les factures en cours (par ancienneté)")}</option>
                 {openInvoices.map((inv) => (
@@ -226,14 +226,14 @@ function PaymentModal({
 
           {/* Amount */}
           <div>
-            <label className="form-label">{t("payment.amount")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("payment.amount")}</label>
             <input
               type="number"
               step="0.01"
               min="0.01"
               value={form.amount}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-mono"
               placeholder="0.00"
               required
               autoFocus
@@ -242,18 +242,18 @@ function PaymentModal({
 
           {/* Method */}
           <div>
-            <label className="form-label">{t("payment.method")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("payment.method")}</label>
             <div className="grid grid-cols-2 gap-2">
               {[{ key: "cash", label: t("payment.cash") }, { key: "ccp", label: t("payment.ccp") }, { key: "virement", label: t("payment.transfer") }, { key: "cheque", label: t("payment.cheque") }].map((m) => (
                 <button
                   key={m.key}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, method: m.key }))}
+                  onClick={() => setForm((f) => ({ ...f, method: m.key as any }))}
                   className={cn(
-                    "px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
+                    "px-3 py-2 rounded-xl border text-xs font-semibold transition-all",
                     form.method === m.key
-                      ? "border-primary-500 bg-primary-50 text-primary-700"
-                      : "border-border bg-surface text-text-secondary hover:border-primary-300"
+                      ? "border-primary-500 bg-primary-50/80 text-primary-700 shadow-2xs"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                   )}
                 >
                   {m.label}
@@ -264,23 +264,23 @@ function PaymentModal({
 
           {/* Date */}
           <div>
-            <label className="form-label">{t("common.date")}</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("common.date")}</label>
             <input
               type="date"
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="form-input"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
               required
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="form-label">Notes</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notes & Référence</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              className="form-input resize-none"
+              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
               placeholder={t("client.reference_comment")}
             />
@@ -288,20 +288,20 @@ function PaymentModal({
 
           {/* Error */}
           {errorMsg && (
-            <div className="flex items-center gap-2 text-sm text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
-              <AlertCircle size={14} className="flex-shrink-0" />
+            <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 font-medium">
+              <AlertCircle size={15} className="shrink-0" />
               {errorMsg}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="btn-secondary rounded-xl">
               Annuler
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
               disabled={mutation.isPending}
             >
               {mutation.isPending ? "Enregistrement..." : "Confirmer le paiement"}
@@ -330,13 +330,13 @@ function ClientInfoTab({
   const whatsappMsg = `Bonjour ${client.name}, votre solde est de ${formatDZD(client.cached_balance)} DZD`;
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
+    <div className="grid lg:grid-cols-2 gap-5">
       {/* Left: Details */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="font-semibold text-text-primary">{t("client.general_info")}</h3>
+      <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">{t("client.general_info")}</h3>
         </div>
-        <div className="card-body divide-y divide-border">
+        <div className="px-5 divide-y divide-slate-100">
           <InfoField icon={User} label="Nom complet" value={client.name} />
           <InfoField
             icon={Phone}
@@ -347,7 +347,7 @@ function ClientInfoTab({
                   href={whatsappLink(client.phone, whatsappMsg)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 text-green-600 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 hover:underline font-mono"
                 >
                   <MessageCircle size={13} />
                   {client.phone}
@@ -355,7 +355,7 @@ function ClientInfoTab({
               ) : null
             }
           />
-          <InfoField icon={Mail} label={t("client.email")} value={client.email} />
+          <InfoField icon={Mail} label={t("client.email")} value={client.email} mono />
           <InfoField icon={MapPin} label={t("client.address")} value={client.address} />
           <InfoField icon={MapPin} label="Wilaya" value={wilayaLabel(client.wilaya)} />
           <InfoField icon={Building2} label="NIF" value={client.nif} mono />
@@ -366,87 +366,94 @@ function ClientInfoTab({
       {/* Right: Financial */}
       <div className="space-y-4">
         {/* Balance card */}
-        <div className={cn("card border-2", isOverLimit ? "border-danger" : "border-transparent")}>
-          <div className="card-body space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-text-secondary">Solde actuel</span>
-              {isOverLimit && (
-                <div className="flex items-center gap-1 text-xs text-danger font-medium">
-                  <AlertCircle size={13} />
-                  Limite dépassée
-                </div>
-              )}
-            </div>
-
-            <div
-              className={cn(
-                "text-3xl font-bold font-mono",
-                isOverLimit
-                  ? "text-danger"
-                  : balance > 0
-                  ? "text-warning"
-                  : "text-success"
-              )}
-            >
-              {formatDZD(client.cached_balance)} <span className="text-lg">DZD</span>
-            </div>
-
-            {creditLimit > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-text-muted mb-1">
-                  <span>{t("client.credit_limit")}</span>
-                  <span className="font-mono">
-                    {formatDZD(client.credit_limit)} DZD
-                  </span>
-                </div>
-                {/* Progress bar */}
-                <div className="w-full bg-border rounded-full h-2">
-                  <div
-                    className={cn(
-                      "h-2 rounded-full transition-all",
-                      isOverLimit ? "bg-danger" : balance / creditLimit > 0.8 ? "bg-warning" : "bg-success"
-                    )}
-                    style={{
-                      width: `${Math.min((balance / creditLimit) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
+        <div className={cn(
+          "card rounded-2xl border bg-white shadow-xs p-6 space-y-4",
+          isOverLimit ? "border-rose-400 ring-2 ring-rose-500/10" : "border-slate-200/80"
+        )}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Solde actuel</span>
+            {isOverLimit && (
+              <div className="inline-flex items-center gap-1 text-2xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">
+                <AlertCircle size={12} />
+                Limite dépassée
               </div>
             )}
-
-            <button onClick={onPayment} className="btn-primary w-full">
-              <CreditCard size={15} />
-              Enregistrer paiement
-            </button>
           </div>
+
+          <div
+            className={cn(
+              "text-3xl font-bold font-mono tabular-nums tracking-tight",
+              isOverLimit
+                ? "text-rose-600"
+                : balance > 0
+                ? "text-amber-600"
+                : "text-emerald-600"
+            )}
+          >
+            {formatDZD(client.cached_balance)} <span className="text-sm font-normal text-slate-400">DZD</span>
+          </div>
+
+          {creditLimit > 0 && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span className="font-medium">{t("client.credit_limit")}</span>
+                <span className="font-mono font-semibold text-slate-700">
+                  {formatDZD(client.credit_limit)} DZD
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300",
+                    isOverLimit ? "bg-rose-500" : balance / creditLimit > 0.8 ? "bg-amber-500" : "bg-emerald-500"
+                  )}
+                  style={{
+                    width: `${Math.min((balance / creditLimit) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <button onClick={onPayment} className="btn-primary w-full rounded-xl shadow-xs shadow-primary-500/20 py-2.5">
+            <CreditCard size={15} />
+            Enregistrer paiement
+          </button>
         </div>
 
         {/* Status card */}
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">Statut du compte</span>
-              <span className={cn("badge", client.is_active ? "badge-success" : "badge-neutral")}>
-                {client.is_active ? "Actif" : "Inactif"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-              <span className="text-sm text-text-secondary">Type de client</span>
-              <span className={cn(
-                "text-xs font-semibold px-2 py-0.5 rounded-full border",
-                client.client_type === "wholesale"
-                  ? "bg-purple-50 text-purple-700 border-purple-200"
-                  : "bg-blue-50 text-blue-700 border-blue-200"
-              )}>
-                {client.client_type === "wholesale" ? t("client.wholesale_full") : t("client.retail_full")}
-              </span>
-            </div>
-            {client.notes && (
-              <p className="mt-3 text-sm text-text-muted border-t border-border pt-3">
-                {client.notes}
-              </p>
-            )}
+        <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6 space-y-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-600">Statut du compte</span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
+                client.is_active
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-slate-100 text-slate-600 border border-slate-200"
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full", client.is_active ? "bg-emerald-500" : "bg-slate-400")} />
+              {client.is_active ? "Actif" : "Inactif"}
+            </span>
           </div>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+            <span className="text-xs font-semibold text-slate-600">Type de client</span>
+            <span className={cn(
+              "text-2xs font-semibold px-2.5 py-0.5 rounded-full border",
+              client.client_type === "wholesale"
+                ? "bg-purple-50 text-purple-700 border-purple-200"
+                : "bg-blue-50 text-blue-700 border-blue-200"
+            )}>
+              {client.client_type === "wholesale" ? t("client.wholesale_full") : t("client.retail_full")}
+            </span>
+          </div>
+          {client.notes && (
+            <p className="text-xs text-slate-500 border-t border-slate-100 pt-3">
+              {client.notes}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -1190,23 +1197,31 @@ export default function ClientDetailPage() {
     <>
       <div className="space-y-4">
         {/* Page header */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/clients")}
-              className="btn-ghost btn-sm text-text-muted hover:text-text-primary"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
               aria-label="Retour"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">{client.name}</h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className={cn("badge", client.is_active ? "badge-success" : "badge-neutral")}>
+              <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{client.name}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
+                    client.is_active
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  )}
+                >
+                  <span className={cn("w-1.5 h-1.5 rounded-full", client.is_active ? "bg-emerald-500" : "bg-slate-400")} />
                   {client.is_active ? "Actif" : "Inactif"}
                 </span>
                 <span className={cn(
-                  "text-2xs font-semibold px-1.5 py-0.5 rounded-full border",
+                  "text-2xs font-semibold px-2 py-0.5 rounded-full border",
                   client.client_type === "wholesale"
                     ? "bg-purple-50 text-purple-700 border-purple-200"
                     : "bg-blue-50 text-blue-700 border-blue-200"
@@ -1214,46 +1229,46 @@ export default function ClientDetailPage() {
                   {client.client_type === "wholesale" ? "Gros" : "Détail"}
                 </span>
                 {client.wilaya && (
-                  <span className="text-xs text-text-muted">{wilayaLabel(client.wilaya)}</span>
+                  <span className="text-xs text-slate-500 font-medium">{wilayaLabel(client.wilaya)}</span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {client.phone && (
               <a
                 href={whatsappLink(client.phone, whatsappMsg)}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-secondary"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-colors shadow-2xs"
               >
                 <MessageCircle size={15} />
                 WhatsApp
               </a>
             )}
-            <Link to={`/clients/${clientId}/edit`} className="btn-secondary">
+            <Link to={`/clients/${clientId}/edit`} className="btn-secondary rounded-xl">
               <Pencil size={15} />
               Modifier
             </Link>
-            <button onClick={() => setShowPaymentModal(true)} className="btn-primary">
+            <button onClick={() => setShowPaymentModal(true)} className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
               <CreditCard size={15} />
               Enregistrer paiement
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-border overflow-x-auto">
+        {/* Segmented Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80">
           {TABS.filter((t) => t.key !== "loyalty" || hasLoyalty).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => setActiveTab(tab.key as any)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap",
                 activeTab === tab.key
-                  ? "border-primary-500 text-primary-600"
-                  : "border-transparent text-text-muted hover:text-text-primary hover:border-border"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
               )}
             >
               {tab.label}
