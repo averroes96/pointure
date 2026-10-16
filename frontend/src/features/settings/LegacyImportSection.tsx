@@ -37,6 +37,43 @@ export const LegacyImportSection: React.FC = () => {
     easy_mode: true, // true = Easy Mode (1 product = 1 SKU with real stock), false = expand sizes
   });
 
+  const uploadZipBlob = async (blob: Blob | File, filename = 'legacy.zip') => {
+    setIsZipping(false);
+    setIsUploading(true);
+    setProgress(100);
+
+    const formData = new FormData();
+    formData.append('zip_file', blob, filename);
+    formData.append('options', JSON.stringify(options));
+
+    const response = await api.post('/core/legacy-import/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    setResult(response.data.stats);
+  };
+
+  const handleZipFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setResult(null);
+    setIsZipping(false);
+    setIsUploading(true);
+
+    try {
+      await uploadZipBlob(file, file.name);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Une erreur est survenue lors de l\'importation.');
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const handleDirectorySelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -47,19 +84,38 @@ export const LegacyImportSection: React.FC = () => {
     setProgress(0);
 
     try {
+      // If user selected a .zip file via the selector
+      if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+        await uploadZipBlob(files[0], files[0].name);
+        return;
+      }
+
       const zip = new JSZip();
-      
-      let dbfCount = 0;
+      const dbfFiles: File[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.name.toLowerCase().endsWith('.dbf')) {
-          zip.file(file.name, file);
-          dbfCount++;
+          dbfFiles.push(file);
         }
       }
 
-      if (dbfCount === 0) {
-        throw new Error('No .DBF files found. Please select a folder containing your .DBF files.');
+      if (dbfFiles.length === 0) {
+        throw new Error('Aucun fichier .DBF trouvé. Veuillez sélectionner le dossier contenant vos fichiers .DBF ou une archive .ZIP.');
+      }
+
+      // Read each file buffer individually to detect and report locked files specifically
+      for (let i = 0; i < dbfFiles.length; i++) {
+        const file = dbfFiles[i];
+        try {
+          const buffer = await file.arrayBuffer();
+          zip.file(file.name, buffer);
+          setProgress(Math.round(((i + 1) / dbfFiles.length) * 45));
+        } catch (readErr: any) {
+          throw new Error(
+            `Impossible de lire le fichier "${file.name}" (accès verrouillé par Windows). L'ancien logiciel de caisse est probablement encore ouvert en arrière-plan. Fermez l'ancien logiciel, ou copiez le dossier sur votre Bureau, ou compressez-le en fichier .ZIP.`
+          );
+        }
       }
 
       setProgress(50);
@@ -68,22 +124,9 @@ export const LegacyImportSection: React.FC = () => {
         setProgress(50 + Math.floor(meta.percent / 2));
       });
 
-      setIsZipping(false);
-      setIsUploading(true);
-
-      const formData = new FormData();
-      formData.append('zip_file', zipBlob, 'legacy.zip');
-      formData.append('options', JSON.stringify(options));
-
-      const response = await api.post('/core/legacy-import/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
-      });
-
-      setResult(response.data.stats);
+      await uploadZipBlob(zipBlob, 'legacy.zip');
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'An error occurred during import.');
+      setError(err.response?.data?.error || err.message || 'Une erreur est survenue lors de l\'importation.');
     } finally {
       setIsZipping(false);
       setIsUploading(false);
@@ -281,33 +324,58 @@ export const LegacyImportSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center hover:bg-surface/40 transition-colors relative">
-          <input
-            type="file"
-            // @ts-ignore
-            webkitdirectory=""
-            directory=""
-            multiple
-            onChange={handleDirectorySelect}
-            disabled={isZipping || isUploading}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-            title="Select /LEGACY folder"
-          />
-          
-          {isZipping || isUploading ? (
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-10 w-10 text-primary-500 animate-spin mb-3" />
-              <p className="text-sm font-medium text-text-primary">
-                {isZipping ? `${t("settings.zipping")} ${progress}%` : t("settings.uploading")}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <UploadCloud className="h-10 w-10 text-text-muted mb-3" />
-              <p className="text-sm font-semibold text-text-primary">{t("settings.click_select")}</p>
-              <p className="text-xs text-text-muted mt-1">{t("settings.contains_dbf")}</p>
-            </div>
-          )}
+        <div className="space-y-3">
+          <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:bg-surface/40 transition-colors relative">
+            <input
+              type="file"
+              // @ts-ignore
+              webkitdirectory=""
+              directory=""
+              multiple
+              onChange={handleDirectorySelect}
+              disabled={isZipping || isUploading}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              title="Sélectionner le dossier contenant vos fichiers .DBF"
+            />
+            
+            {isZipping || isUploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-10 w-10 text-primary-500 animate-spin mb-3" />
+                <p className="text-sm font-medium text-text-primary">
+                  {isZipping ? `${t("settings.zipping")} ${progress}%` : t("settings.uploading")}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <UploadCloud className="h-10 w-10 text-text-muted mb-3" />
+                <p className="text-sm font-semibold text-text-primary">{t("settings.click_select")}</p>
+                <p className="text-xs text-text-muted mt-1">{t("settings.contains_dbf")}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-center gap-3 text-xs text-text-muted">
+            <span className="h-px bg-border flex-1" />
+            <span>OU</span>
+            <span className="h-px bg-border flex-1" />
+          </div>
+
+          <div className="flex items-center justify-center">
+            <label className={cn(
+              "btn-secondary text-xs font-semibold py-2 px-4 rounded-xl cursor-pointer flex items-center gap-2",
+              (isZipping || isUploading) && "opacity-50 pointer-events-none"
+            )}>
+              <UploadCloud size={15} />
+              <span>Téléverser une archive .ZIP (ex: export.zip)</span>
+              <input
+                type="file"
+                accept=".zip"
+                onChange={handleZipFileSelect}
+                disabled={isZipping || isUploading}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
 
         {error && (
