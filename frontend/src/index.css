@@ -60,7 +60,7 @@
 @layer components {
   /* ── Layout ── */
   .layout-topbar {
-    @apply fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-b border-slate-200/80 z-40 flex items-center px-4 gap-3 shadow-xs;
+    @apply fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200/90 z-40 flex items-center px-4 gap-3 shadow-xs;
   }
 
   .layout-sidebar {

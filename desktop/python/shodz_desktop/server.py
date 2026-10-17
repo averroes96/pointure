@@ -161,9 +161,9 @@ def run_server(port: int = 8745):
         application,
         host="127.0.0.1",
         port=port,
-        threads=16,
+        threads=6,
         channel_timeout=60,
         cleanup_interval=30,
-        connection_limit=100,
+        connection_limit=50,
         ident="ShoeDZ",
     )

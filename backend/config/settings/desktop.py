@@ -169,6 +169,9 @@ def _configure_sqlite_wal(sender, connection, **kwargs):
             cursor.execute("PRAGMA journal_mode = WAL;")
             cursor.execute("PRAGMA synchronous = NORMAL;")
             cursor.execute("PRAGMA busy_timeout = 60000;")
+            cursor.execute("PRAGMA cache_size = -32000;")      # 32 MB in-memory query cache (default is 2 MB)
+            cursor.execute("PRAGMA mmap_size = 268435456;")    # 256 MB memory-mapped I/O (reads directly from OS cache)
+            cursor.execute("PRAGMA temp_store = MEMORY;")      # Keep temporary tables and sorts in RAM
 
 
 connection_created.connect(_configure_sqlite_wal)

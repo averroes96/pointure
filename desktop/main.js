@@ -25,6 +25,17 @@ if (!gotTheLock) {
   process.exit(0);
 }
 
+// ── Low-spec & 4GB RAM Hardware Optimizations ──────────────────────────────
+// Enforce aggressive V8 garbage collection at 256MB to prevent memory bloat on 4GB RAM machines
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256');
+// Disable site isolation overhead for this single-origin desktop application
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+// Disable background occlusion tracking and unused Chromium features to save CPU cycles
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,TranslateUI');
+// Enable zero-copy memory transfers between CPU and integrated GPU
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+
 // ── Shared application data path ────────────────────────────────────────────
 const isWindows = process.platform === 'win32';
 const dataDir = isWindows && process.env.PROGRAMDATA

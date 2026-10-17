@@ -73,7 +73,7 @@ export default function DashboardLayout() {
       {/* Click-away backdrop when sidebar is open */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-20 backdrop-blur-xs transition-opacity lg:hidden"
+          className="fixed inset-0 bg-black/40 z-20 transition-opacity lg:hidden"
           onClick={closeSidebar}
         />
       )}
