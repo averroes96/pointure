@@ -20,7 +20,14 @@ export default function DashboardLayout() {
     }
   }, [location.pathname]);
 
-  const closeSidebar = () => setIsSidebarOpen(false);
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    const sidebarEl = document.querySelector(".layout-sidebar");
+    if (sidebarEl && sidebarEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement)?.blur();
+      window.dispatchEvent(new CustomEvent("app-shortcut-search"));
+    }
+  };
 
   useEffect(() => {
     const handleToggle = () => {
@@ -69,7 +76,7 @@ export default function DashboardLayout() {
           onClick={closeSidebar}
         />
       )}
-      <Sidebar onItemClick={closeSidebar} />
+      <Sidebar onItemClick={closeSidebar} isOpen={isSidebarOpen} />
       <main className="layout-main transition-all duration-300">
         <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
           <Outlet />

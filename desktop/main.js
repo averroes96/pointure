@@ -222,6 +222,9 @@ function createMainWindow(port) {
 
       // F10, F2, F1, etc.: Prevent Windows default menu/help actions and notify renderer
       event.preventDefault();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.focus();
+      }
       mainWindow.webContents.send('keyboard-shortcut', {
         key: key,
         code: input.code,
@@ -576,6 +579,15 @@ ipcMain.handle('get-version', () => app.getVersion());
 ipcMain.handle('open-backups-folder', () => shell.openPath(path.join(dataDir, 'backups')));
 ipcMain.handle('open-logs-folder', () => shell.openPath(logsDir));
 ipcMain.handle('quit-app', () => app.quit());
+ipcMain.handle('focus-window', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+    return true;
+  }
+  return false;
+});
 ipcMain.handle('toggle-fullscreen', () => {
   if (mainWindow) {
     const next = !mainWindow.isFullScreen();

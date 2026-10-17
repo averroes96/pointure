@@ -43,6 +43,7 @@ export interface ElectronAPI {
   openBackupsFolder: () => Promise<void>;
   openLogsFolder: () => Promise<void>;
   quitApp: () => Promise<void>;
+  focusWindow?: () => Promise<boolean>;
   toggleFullscreen: () => Promise<boolean>;
   isFullscreen: () => Promise<boolean>;
   checkForUpdates: () => Promise<{ status: string; updateInfo?: any; message?: string }>;

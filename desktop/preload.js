@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openBackupsFolder: () => ipcRenderer.invoke('open-backups-folder'),
   openLogsFolder: () => ipcRenderer.invoke('open-logs-folder'),
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  focusWindow: () => ipcRenderer.invoke('focus-window'),
   toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
   isFullscreen: () => ipcRenderer.invoke('is-fullscreen'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

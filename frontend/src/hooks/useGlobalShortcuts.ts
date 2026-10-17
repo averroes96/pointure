@@ -36,7 +36,7 @@ export function useGlobalShortcuts() {
         case "F2":
         case "Alt+2": {
           e?.preventDefault?.();
-          window.focus();
+          window.electronAPI?.focusWindow?.();
           if (isSalesNew) {
             window.dispatchEvent(new CustomEvent("app-shortcut-search"));
           }
@@ -50,6 +50,7 @@ export function useGlobalShortcuts() {
           } else if (!isSalesNew) {
             navigate("/sales/new");
             setTimeout(() => {
+              window.electronAPI?.focusWindow?.();
               window.dispatchEvent(new CustomEvent("app-shortcut-search"));
               const input = document.querySelector<HTMLInputElement>('input[data-shortcut-search="true"]');
               input?.focus();

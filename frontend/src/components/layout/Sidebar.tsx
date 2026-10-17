@@ -121,9 +121,10 @@ function useNavSections(): NavSection[] {
 
 interface SidebarProps {
   onItemClick?: () => void;
+  isOpen?: boolean;
 }
 
-export default function Sidebar({ onItemClick }: SidebarProps) {
+export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
@@ -207,6 +208,8 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
       onKeyDown={handleKeyDown}
       tabIndex={-1}
       aria-label={t("nav.main_menu", "Menu de navigation")}
+      aria-hidden={isOpen === false ? true : undefined}
+      inert={isOpen === false ? "" : undefined}
       className="layout-sidebar outline-none"
     >
       {/* Brand */}

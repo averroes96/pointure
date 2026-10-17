@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle, Trash2 } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
@@ -280,6 +280,8 @@ export default function SalesPage() {
     items: Array<{ item: CartItem; deficit: number; newStock: number }>;
     quickMode: boolean;
   } | null>(null);
+  const [showClearCartModal, setShowClearCartModal] = useState(false);
+  const [stockWarningToast, setStockWarningToast] = useState<string | null>(null);
 
   // Keep a ref so addToCart (useCallback) can read current cart without stale closure
   const cartRef = useRef<CartItem[]>([]);
@@ -288,7 +290,7 @@ export default function SalesPage() {
   // Ensure search input is always focused on mount or whenever returning to this page
   useEffect(() => {
     const focusSearch = () => {
-      window.focus();
+      window.electronAPI?.focusWindow?.();
       searchRef.current?.focus();
     };
     focusSearch();
@@ -411,6 +413,7 @@ export default function SalesPage() {
     setSelectedProduct(null);
     applyPromo(variant.id, newQty);
     setTimeout(() => {
+      window.electronAPI?.focusWindow?.();
       searchRef.current?.focus();
     }, 40);
   }, [applyPromo]);
@@ -610,9 +613,10 @@ export default function SalesPage() {
         setNegativeStockAlert({ items: negativeItems, quickMode });
         return;
       } else {
-        alert(
-          "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres (Ventes & Versements)."
+        setStockWarningToast(
+          "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres."
         );
+        setTimeout(() => setStockWarningToast(null), 4000);
         return;
       }
     }
@@ -622,28 +626,43 @@ export default function SalesPage() {
 
   const handleClearCart = useCallback(() => {
     if (cart.length === 0) return;
-    if (window.confirm("Voulez-vous vider le panier en cours ?")) {
-      setCart([]);
-      setCartDiscount(0);
-      setRedeemPoints(0);
-      setSearch("");
-      setSelectedProduct(null);
-    }
-    setTimeout(() => {
-      window.focus();
-      searchRef.current?.focus();
-    }, 60);
+    setShowClearCartModal(true);
   }, [cart.length]);
+
+  const confirmClearCart = useCallback(() => {
+    setCart([]);
+    setCartDiscount(0);
+    setRedeemPoints(0);
+    setSearch("");
+    setSelectedProduct(null);
+    setShowClearCartModal(false);
+    setTimeout(() => {
+      window.electronAPI?.focusWindow?.();
+      searchRef.current?.focus();
+    }, 40);
+  }, []);
+
+  const cancelClearCart = useCallback(() => {
+    setShowClearCartModal(false);
+    setTimeout(() => {
+      window.electronAPI?.focusWindow?.();
+      searchRef.current?.focus();
+    }, 40);
+  }, []);
 
   // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale, Escape = clear/empty)
   useEffect(() => {
     const onSearch = () => {
-      window.focus();
+      window.electronAPI?.focusWindow?.();
       searchRef.current?.focus();
       searchRef.current?.select();
     };
 
     const onConfirm = () => {
+      if (showClearCartModal) {
+        confirmClearCart();
+        return;
+      }
       if (receipt) {
         setReceipt(null);
         searchRef.current?.focus();
@@ -662,18 +681,29 @@ export default function SalesPage() {
       if (receipt) {
         setReceipt(null);
       }
-      window.focus();
+      window.electronAPI?.focusWindow?.();
       searchRef.current?.focus();
       searchRef.current?.select();
     };
 
     const onEscape = () => {
-      if (negativeStockAlert) {
+      if (showClearCartModal) {
+        cancelClearCart();
+      } else if (negativeStockAlert) {
         setNegativeStockAlert(null);
+        setTimeout(() => {
+          window.electronAPI?.focusWindow?.();
+          searchRef.current?.focus();
+        }, 40);
       } else if (selectedProduct) {
         setSelectedProduct(null);
+        setTimeout(() => {
+          window.electronAPI?.focusWindow?.();
+          searchRef.current?.focus();
+        }, 40);
       } else if (search.trim() !== "") {
         setSearch("");
+        window.electronAPI?.focusWindow?.();
         searchRef.current?.focus();
       } else if (cart.length > 0) {
         handleClearCart();
@@ -681,6 +711,20 @@ export default function SalesPage() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // If clear cart modal is open, intercept Enter and Escape directly
+      if (showClearCartModal) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          confirmClearCart();
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cancelClearCart();
+          return;
+        }
+      }
+
       // Direct local F2 / Alt+2 handler inside SalesPage
       if (e.key === "F2" || (e.altKey && e.key === "2")) {
         e.preventDefault();
@@ -698,10 +742,10 @@ export default function SalesPage() {
       // POS Type-to-Search: if cashier starts typing characters while focus is outside inputs, seamlessly redirect to search
       const target = e.target as HTMLElement;
       const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable || target.tagName === "SELECT");
-      if (!isOtherInput && target !== searchRef.current && !receipt && !negativeStockAlert) {
+      if (!isOtherInput && target !== searchRef.current && !receipt && !negativeStockAlert && !showClearCartModal) {
         if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== " " && e.key !== ".") {
           e.preventDefault();
-          window.focus();
+          window.electronAPI?.focusWindow?.();
           searchRef.current?.focus();
           setSearch((prev) => prev + e.key);
           return;
@@ -756,7 +800,7 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-escape", onEscape);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock, selectedProduct, handleClearCart]);
+  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock, selectedProduct, handleClearCart, showClearCartModal, confirmClearCart, cancelClearCart]);
 
   // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
@@ -988,7 +1032,7 @@ export default function SalesPage() {
 
         {/* Search Bar */}
         <div className="relative">
-          <Search size={19} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={19} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             ref={searchRef}
             data-shortcut-search="true"
@@ -1694,6 +1738,49 @@ export default function SalesPage() {
                   <Check size={15} className="stroke-[2.5]" />
                   <span>Confirmer la vente</span>
                   <span className="opacity-80 text-2xs font-mono">(Entrée / .)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Stock Exceeded Notification Toast */}
+      {stockWarningToast && (
+        <div className="fixed bottom-6 start-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <AlertTriangle size={18} className="shrink-0 stroke-[2.5]" />
+          <span>{stockWarningToast}</span>
+        </div>
+      )}
+
+      {/* In-App Clear Cart Confirmation Modal (Prevents Win32 modal popup focus lock) */}
+      {showClearCartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
+            <div className="p-5 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base mb-1">
+                Vider le panier en cours ?
+              </h3>
+              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+                Tous les articles ({totalItems}) ajoutés au panier seront retirés. Cette action est irréversible.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={cancelClearCart}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler <span className="opacity-60 text-2xs">(Échap)</span>
+                </button>
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={confirmClearCart}
+                  className="btn-primary bg-red-600 hover:bg-red-700 text-white flex-1 py-2.5 text-xs font-bold rounded-xl shadow-xs"
+                >
+                  Vider <span className="opacity-80 text-2xs font-mono">(Entrée)</span>
                 </button>
               </div>
             </div>
