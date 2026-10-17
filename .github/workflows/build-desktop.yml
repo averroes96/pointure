@@ -14,8 +14,12 @@ permissions:
 
 jobs:
   build-windows:
-    name: Package ShoeDZ Windows Installer (x64)
+    name: Package ShoeDZ Windows Installer (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, ia32]
 
     steps:
       - name: Checkout repository
@@ -30,32 +34,59 @@ jobs:
             frontend/package-lock.json
             desktop/package-lock.json
 
-      - name: Execute Windows Desktop Build Pipeline (x64)
+      - name: Execute Windows Desktop Build Pipeline (${{ matrix.arch }})
         shell: powershell
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          powershell -ExecutionPolicy Bypass -File desktop\scripts\build.ps1 -Arch x64
+          powershell -ExecutionPolicy Bypass -File desktop\scripts\build.ps1 -Arch ${{ matrix.arch }}
 
-      - name: Upload Installer Artifact (x64)
+      - name: Upload Installer Artifact (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
         with:
-          name: ShoeDZ-Setup-Windows-x64
+          name: ShoeDZ-Setup-Windows-${{ matrix.arch }}
           path: |
             desktop/dist/*.exe
-            desktop/dist/*.yml
             desktop/dist/*.blockmap
+            desktop/dist/latest-*.yml
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Release Asset (on tag)
-        if: startsWith(github.ref, 'refs/tags/v')
+  publish-release:
+    name: Publish Multi-Architecture Release (x64 & ia32)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download all installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ShoeDZ-Setup-Windows-*
+          path: release-staging
+          merge-multiple: true
+
+      - name: Generate Unified Multi-Architecture latest.yml
+        shell: powershell
+        run: |
+          node desktop/scripts/merge-release-yml.js release-staging/latest-x64.yml release-staging/latest-ia32.yml release-staging/latest.yml
+          Write-Host "`nGenerated Unified latest.yml content:"
+          Get-Content release-staging/latest.yml
+
+      - name: Publish Release Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            desktop/dist/*.exe
-            desktop/dist/*.yml
-            desktop/dist/*.blockmap
+            release-staging/*.exe
+            release-staging/*.blockmap
+            release-staging/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

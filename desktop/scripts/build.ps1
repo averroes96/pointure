@@ -116,6 +116,10 @@ try {
 
     npx electron-builder --win nsis --$Arch --publish never
     if ($LASTEXITCODE -ne 0) { throw "electron-builder packaging failed" }
+
+    if (Test-Path "$DesktopDir\dist\latest.yml") {
+        Copy-Item "$DesktopDir\dist\latest.yml" "$DesktopDir\dist\latest-$Arch.yml" -Force
+    }
 } finally {
     Pop-Location
 }
