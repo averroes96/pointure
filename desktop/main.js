@@ -475,6 +475,20 @@ autoUpdater.on('update-not-available', (info) => {
   sendUpdateStatus('not-available', { currentVersion: app.getVersion() });
 });
 
+function formatUpdaterError(msg) {
+  if (!msg) return 'Erreur lors de la vérification des mises à jour.';
+  if (msg.includes('ERR_NAME_NOT_RESOLVED') || msg.includes('ENOTFOUND') || msg.includes('SimpleURLLoaderWrapper')) {
+    return 'Connexion impossible à GitHub : problème de résolution DNS ou pas d\'accès Internet sur cette machine.';
+  }
+  if (msg.includes('ERR_INTERNET_DISCONNECTED') || msg.includes('NETWORK_CHANGED')) {
+    return 'Aucune connexion Internet active sur cette machine.';
+  }
+  if (msg.includes('ETIMEDOUT') || msg.includes('ERR_TIMED_OUT')) {
+    return 'Délai d\'attente dépassé lors de la connexion aux serveurs de mise à jour.';
+  }
+  return msg;
+}
+
 autoUpdater.on('error', (err) => {
   const msg = err ? err.message : '';
   if (msg.includes('No published versions on GitHub') || msg.includes('404')) {
@@ -483,7 +497,7 @@ autoUpdater.on('error', (err) => {
     return;
   }
   log.warn('[Updater] Error:', msg);
-  sendUpdateStatus('error', { message: msg });
+  sendUpdateStatus('error', { message: formatUpdaterError(msg) });
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
@@ -642,7 +656,7 @@ ipcMain.handle('check-for-updates', async () => {
       sendUpdateStatus('not-available', { currentVersion: app.getVersion() });
       return { status: 'ok', updateInfo: null, message: 'Application à jour.' };
     }
-    return { status: 'error', message: err.message };
+    return { status: 'error', message: formatUpdaterError(err.message) };
   }
 });
 
