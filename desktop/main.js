@@ -246,6 +246,25 @@ function createMainWindow(port) {
       });
       return;
     }
+
+    // Handle Alt+P (Paramètres), Alt+S (Settings), or Ctrl+, (Settings standard)
+    if (
+      (input.alt && !input.control && (key === 'p' || key === 'P' || key === 's' || key === 'S')) ||
+      (input.control && !input.alt && (key === ',' || input.code === 'Comma'))
+    ) {
+      event.preventDefault();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.focus();
+      }
+      const shortcutKey = input.control ? 'Ctrl+,' : `Alt+${key.toUpperCase()}`;
+      mainWindow.webContents.send('keyboard-shortcut', {
+        key: shortcutKey,
+        altKey: input.alt,
+        ctrlKey: input.control,
+        shiftKey: input.shift,
+      });
+      return;
+    }
   });
 
   attachDiagnostics(mainWindow, 'MainWindow');

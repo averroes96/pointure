@@ -281,6 +281,16 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
                     <span className="text-sm font-medium truncate">
                       {item.labelKey ? t(item.labelKey) : item.label}
                     </span>
+                    {item.to === "/sales/new" && (
+                      <kbd className="ms-auto text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                        F1
+                      </kbd>
+                    )}
+                    {item.to === "/settings" && (
+                      <kbd className="ms-auto text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                        Alt+P
+                      </kbd>
+                    )}
                   </NavLink>
                 );
               })}

@@ -170,6 +170,18 @@ export function useGlobalShortcuts() {
           break;
         }
 
+        // Alt+P / Alt+S / Ctrl+, : Paramètres / Configuration
+        case "Alt+p":
+        case "Alt+P":
+        case "Alt+s":
+        case "Alt+S":
+        case "Ctrl+,": {
+          e?.preventDefault?.();
+          window.electronAPI?.focusWindow?.();
+          navigate("/settings");
+          break;
+        }
+
         // Escape: Fermer modale ou effacer recherche
         case "Escape": {
           window.dispatchEvent(new CustomEvent("app-shortcut-escape"));
@@ -198,9 +210,12 @@ export function useGlobalShortcuts() {
       const isFKey = /^F([1-9]|1[0-2])$/.test(e.key);
       const isAltNumber = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
       const isAltM = e.altKey && !e.ctrlKey && (e.key === "m" || e.key === "M");
+      const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P");
+      const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S");
+      const isCtrlComma = (e.ctrlKey || e.metaKey) && (e.key === "," || e.code === "Comma");
 
-      // Never ignore Function keys or Alt shortcuts or Escape, even when typing inside an input or textarea!
-      if (!isFKey && !isAltNumber && !isAltM && e.key !== "Escape") {
+      // Never ignore Function keys or Alt shortcuts or Ctrl+, or Escape, even when typing inside an input or textarea!
+      if (!isFKey && !isAltNumber && !isAltM && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
         const target = e.target as HTMLElement;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
@@ -213,6 +228,12 @@ export function useGlobalShortcuts() {
         executeShortcut(`Alt+${e.key}`, e);
       } else if (isAltM) {
         executeShortcut("Alt+M", e);
+      } else if (isAltP) {
+        executeShortcut("Alt+P", e);
+      } else if (isAltS) {
+        executeShortcut("Alt+S", e);
+      } else if (isCtrlComma) {
+        executeShortcut("Ctrl+,", e);
       } else if (e.key === "Escape") {
         executeShortcut("Escape", e);
       }

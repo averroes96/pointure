@@ -49,6 +49,7 @@ export default function ShortcutsModal() {
 
   const generalShortcuts: ShortcutItem[] = [
     { key: "F5", label: t("shortcuts.sidebar", "Menu latéral (Navigation flèches ↑ ↓)"), desc: "Alt + M / Alt + 5 · Entrée pour ouvrir" },
+    { key: "Alt + P", label: t("shortcuts.settings", "Paramètres & Configuration du magasin"), desc: "Ctrl + , · Alt + S" },
     { key: "Échap", label: t("shortcuts.escape", "Annuler, effacer recherche ou fermer modale") },
     { key: "F12", label: t("shortcuts.help", "Ouvrir ce guide des raccourcis") },
   ];
