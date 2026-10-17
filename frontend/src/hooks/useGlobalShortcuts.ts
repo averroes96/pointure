@@ -16,14 +16,15 @@ export function useGlobalShortcuts() {
       lastTriggerRef.current = { key, time: now };
 
       const isShift = !!e?.shiftKey;
-      const currentPath = location.pathname;
+      const normalizedPath = location.pathname.split("?")[0].replace(/\/+$/, "");
+      const isSalesNew = normalizedPath === "/sales/new";
 
       switch (key) {
         // F1 or Alt+1: Caisse POS / Nouvelle vente
         case "F1":
         case "Alt+1": {
           e?.preventDefault?.();
-          if (currentPath === "/sales/new") {
+          if (isSalesNew) {
             window.dispatchEvent(new CustomEvent("app-shortcut-new-sale"));
           } else {
             navigate("/sales/new");
@@ -35,23 +36,24 @@ export function useGlobalShortcuts() {
         case "F2":
         case "Alt+2": {
           e?.preventDefault?.();
-          if (currentPath === "/sales/new") {
+          window.focus();
+          if (isSalesNew) {
             window.dispatchEvent(new CustomEvent("app-shortcut-search"));
-          } else {
-            // Find active search field on the page
-            const searchInput = document.querySelector<HTMLInputElement>(
-              'input[data-shortcut-search="true"], input[type="search"], input[placeholder*="search" i], input[placeholder*="recherch" i], input[placeholder*="بحث" i]'
-            );
-            if (searchInput) {
-              searchInput.focus();
-              searchInput.select();
-            } else {
-              // Fallback to POS sales page with search ready
-              navigate("/sales/new");
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent("app-shortcut-search"));
-              }, 120);
-            }
+          }
+          // Direct DOM fallback to guarantee focus even if event propagation is delayed
+          const searchInput = document.querySelector<HTMLInputElement>(
+            'input[data-shortcut-search="true"], input[type="search"], input[placeholder*="search" i], input[placeholder*="recherch" i], input[placeholder*="بحث" i]'
+          );
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+          } else if (!isSalesNew) {
+            navigate("/sales/new");
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent("app-shortcut-search"));
+              const input = document.querySelector<HTMLInputElement>('input[data-shortcut-search="true"]');
+              input?.focus();
+            }, 120);
           }
           break;
         }
@@ -129,7 +131,7 @@ export function useGlobalShortcuts() {
         // F10: Confirmer la vente sur la caisse ou valider le modal/formulaire
         case "F10": {
           e?.preventDefault?.();
-          if (currentPath === "/sales/new") {
+          if (isSalesNew) {
             window.dispatchEvent(new CustomEvent("app-shortcut-confirm"));
           } else {
             // Find active dialog submit button or form submit button

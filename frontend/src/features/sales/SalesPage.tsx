@@ -285,6 +285,21 @@ export default function SalesPage() {
   const cartRef = useRef<CartItem[]>([]);
   useEffect(() => { cartRef.current = cart; }, [cart]);
 
+  // Ensure search input is always focused on mount or whenever returning to this page
+  useEffect(() => {
+    const focusSearch = () => {
+      window.focus();
+      searchRef.current?.focus();
+    };
+    focusSearch();
+    const raf = requestAnimationFrame(focusSearch);
+    const timer = setTimeout(focusSearch, 60);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, []);
+
   const { user } = useAuth();
   const { currentBranch } = useBranch();
   const { canAccess } = usePlan();
@@ -395,6 +410,9 @@ export default function SalesPage() {
     setSearch("");
     setSelectedProduct(null);
     applyPromo(variant.id, newQty);
+    setTimeout(() => {
+      searchRef.current?.focus();
+    }, 40);
   }, [applyPromo]);
 
   const enableVariants = storeSettings?.enable_variants ?? false;
@@ -605,6 +623,7 @@ export default function SalesPage() {
   // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale)
   useEffect(() => {
     const onSearch = () => {
+      window.focus();
       searchRef.current?.focus();
       searchRef.current?.select();
     };
@@ -628,17 +647,36 @@ export default function SalesPage() {
       if (receipt) {
         setReceipt(null);
       }
+      window.focus();
       searchRef.current?.focus();
       searchRef.current?.select();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // Direct local F2 / Alt+2 handler inside SalesPage
+      if (e.key === "F2" || (e.altKey && e.key === "2")) {
+        e.preventDefault();
+        onSearch();
+        return;
+      }
+
+      // POS Type-to-Search: if cashier starts typing characters while focus is outside inputs, seamlessly redirect to search
+      const target = e.target as HTMLElement;
+      const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable || target.tagName === "SELECT");
+      if (!isOtherInput && target !== searchRef.current && !receipt && !negativeStockAlert) {
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== " " && e.key !== ".") {
+          e.preventDefault();
+          window.focus();
+          searchRef.current?.focus();
+          setSearch((prev) => prev + e.key);
+          return;
+        }
+      }
+
       const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
 
       if (isPoint) {
-        const target = e.target as HTMLElement;
         const isSearch = target === searchRef.current;
-        const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
 
         // Allow '.' or NumpadDecimal to confirm sale if:
         // 1. Focus is outside any input field (cart, table, buttons)
@@ -1120,7 +1158,13 @@ export default function SalesPage() {
                     setCart([]);
                     setCartDiscount(0);
                     setRedeemPoints(0);
+                    setSearch("");
+                    setSelectedProduct(null);
                   }
+                  setTimeout(() => {
+                    window.focus();
+                    searchRef.current?.focus();
+                  }, 60);
                 }}
                 className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1 px-2.5 py-1 rounded-xl hover:bg-red-50 transition-colors font-bold cursor-pointer"
                 title="Vider tout le panier"
