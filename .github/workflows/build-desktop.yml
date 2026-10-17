@@ -34,6 +34,16 @@ jobs:
             frontend/package-lock.json
             desktop/package-lock.json
 
+      - name: Sync package version from Git Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        run: |
+          $rawTag = "${{ github.ref_name }}"
+          $version = $rawTag.TrimStart('v')
+          Write-Host "Syncing package.json versions to: $version"
+          npm --prefix desktop version $version --no-git-tag-version --allow-same-version
+          npm --prefix frontend version $version --no-git-tag-version --allow-same-version
+
       - name: Execute Windows Desktop Build Pipeline (${{ matrix.arch }})
         shell: powershell
         env:
