@@ -15,16 +15,18 @@
 !macroend
 
 !macro customUnInstall
-  SetShellVarContext all
-  ; Prompt user to preserve their store database and backups
-  MessageBox MB_YESNO|MB_ICONQUESTION "Souhaitez-vous conserver la base de données et les sauvegardes de vos magasins ?" IDYES keepData IDNO removeData
+  ${IfNot} ${isUpdated}
+    SetShellVarContext all
+    ; Prompt user to preserve their store database and backups
+    MessageBox MB_YESNO|MB_ICONQUESTION "Souhaitez-vous conserver la base de données et les sauvegardes de vos magasins ?" IDYES keepData IDNO removeData
 
-  removeData:
-    RMDir /r "$APPDATA\ShoeDZ"
-    Goto done
+    removeData:
+      RMDir /r "$APPDATA\ShoeDZ"
+      Goto done
 
-  keepData:
-    DetailPrint "Données et sauvegardes conservées."
+    keepData:
+      DetailPrint "Données et sauvegardes conservées."
 
-  done:
+    done:
+  ${EndIf}
 !macroend

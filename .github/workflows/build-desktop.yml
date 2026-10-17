@@ -14,12 +14,8 @@ permissions:
 
 jobs:
   build-windows:
-    name: Package ShoeDZ Windows Installer (${{ matrix.arch }})
+    name: Package ShoeDZ Windows Installer (x64)
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, ia32]
 
     steps:
       - name: Checkout repository
@@ -34,18 +30,18 @@ jobs:
             frontend/package-lock.json
             desktop/package-lock.json
 
-      - name: Execute Windows Desktop Build Pipeline (${{ matrix.arch }})
+      - name: Execute Windows Desktop Build Pipeline (x64)
         shell: powershell
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          powershell -ExecutionPolicy Bypass -File desktop\scripts\build.ps1 -Arch ${{ matrix.arch }}
+          powershell -ExecutionPolicy Bypass -File desktop\scripts\build.ps1 -Arch x64
 
-      - name: Upload Installer Artifact (${{ matrix.arch }})
+      - name: Upload Installer Artifact (x64)
         uses: actions/upload-artifact@v4
         with:
-          name: ShoeDZ-Setup-Windows-${{ matrix.arch }}
+          name: ShoeDZ-Setup-Windows-x64
           path: |
             desktop/dist/*.exe
             desktop/dist/*.yml
