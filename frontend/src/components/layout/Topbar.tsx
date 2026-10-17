@@ -1,5 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Menu, Keyboard, Download, type LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX,
+  Menu, Keyboard, Download, ArrowRight, Trash2, type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { applyDirection } from "@/lib/i18n";
@@ -83,9 +87,30 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
     },
   });
 
-  const markAllReadMutation = useMutation({
+  const navigate = useNavigate();
+
+  const handleNotificationClick = (notif: Notification) => {
+    if (!notif.read) {
+      markReadMutation.mutate(notif.id);
+    }
+    setShowNotifPanel(false);
+
+    if (notif.type === "low_stock") {
+      navigate("/inventory/low-stock");
+    } else if (notif.type === "cheque_due") {
+      navigate("/cheques");
+    } else if (notif.type === "invoice_overdue") {
+      if (notif.related_object_id) {
+        navigate(`/invoices/${notif.related_object_id}/edit`);
+      } else {
+        navigate("/invoices");
+      }
+    }
+  };
+
+  const clearAllMutation = useMutation({
     mutationFn: () =>
-      api.post("/notifications/mark-all-read/").then((r) => r.data),
+      api.post("/notifications/clear-all/").then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
@@ -244,9 +269,9 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
           </button>
 
           {showNotifPanel && (
-            <div className="absolute end-0 top-full mt-2 w-84 max-h-[420px] overflow-hidden flex flex-col bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 animate-slide-up">
+            <div className="absolute end-0 top-full mt-2 w-88 max-h-[440px] overflow-hidden flex flex-col bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 animate-slide-up">
               {/* Panel header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">{t("notification.title")}</span>
                   {(unreadCount ?? 0) > 0 && (
@@ -255,13 +280,27 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={() => markAllReadMutation.mutate()}
-                  disabled={markAllReadMutation.isPending}
-                  className="text-xs font-semibold text-primary-600 hover:text-primary-700 disabled:opacity-50 cursor-pointer"
-                >
-                  {t("notification.mark_all_read")}
-                </button>
+                <div className="flex items-center gap-2">
+                  {(unreadCount ?? 0) > 0 && (
+                    <button
+                      onClick={() => markAllReadMutation.mutate()}
+                      disabled={markAllReadMutation.isPending}
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 disabled:opacity-50 cursor-pointer"
+                    >
+                      {t("notification.mark_all_read")}
+                    </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={() => clearAllMutation.mutate()}
+                      disabled={clearAllMutation.isPending}
+                      title="Effacer les notifications"
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Notification list */}
@@ -278,14 +317,19 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                     return (
                       <button
                         key={notif.id}
-                        onClick={() => markReadMutation.mutate(notif.id)}
-                        className="w-full text-start px-4 py-3 hover:bg-slate-50/80 flex items-start gap-3 transition-colors cursor-pointer"
+                        onClick={() => handleNotificationClick(notif)}
+                        className="group w-full text-start px-4 py-3 hover:bg-slate-50/90 flex items-start gap-3 transition-colors cursor-pointer"
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5", accent)}>
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-105", accent)}>
                           <Icon size={15} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{notif.title}</p>
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 transition-colors truncate">
+                              {notif.title}
+                            </p>
+                            <ArrowRight size={12} className="text-slate-400 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
+                          </div>
                           <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{notif.body}</p>
                           <p className="text-[11px] font-medium text-slate-400 mt-1 font-mono">{relativeTime(notif.created_at, t)}</p>
                         </div>
@@ -297,6 +341,19 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                   })}
                 </div>
               )}
+
+              {/* Panel footer link */}
+              <div className="p-2 border-t border-slate-100 bg-slate-50/60 text-center">
+                <button
+                  onClick={() => {
+                    setShowNotifPanel(false);
+                    navigate("/inventory/low-stock");
+                  }}
+                  className="text-2xs font-semibold text-slate-500 hover:text-primary-600 transition-colors cursor-pointer"
+                >
+                  {t("inventory.low_stock", "Stock bas")} →
+                </button>
+              </div>
             </div>
           )}
         </div>

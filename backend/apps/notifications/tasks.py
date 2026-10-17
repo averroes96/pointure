@@ -64,62 +64,68 @@ def flag_overdue_invoices():
 
 @shared_task(queue="notifications")
 def check_low_stock():
-    """Run every 6 hours. Create notifications for products and variants below alert threshold."""
-    from django.db.models import F
-    from apps.inventory.models import Variant, Product
+    """
+    Run periodically (Celery every 6h, or Desktop scheduler daily).
+    Stateful low stock check: creates exactly one notification per low-stock
+    variant until replenished. Automatically resolves/clears notifications when
+    stock is replenished above threshold.
+    """
+    from django.db.models import F, Q
+    from apps.inventory.models import Variant
     from apps.notifications.models import Notification
     from apps.core.models import User, RoleChoices
-    from django.utils import timezone
 
-    # 1. Product level alerts
-    for product in Product.objects.filter(is_active=True, alert_threshold__gt=0):
-        if product.is_total_low_stock:
-            owners = User.objects.filter(tenant=product.tenant, role=RoleChoices.OWNER, is_active=True)
-            for owner in owners:
-                cutoff = timezone.now() - timezone.timedelta(hours=24)
-                if not Notification.objects.filter(
-                    user=owner,
-                    type="low_stock",
-                    related_object_type="Product",
-                    related_object_id=str(product.pk),
-                    created_at__gte=cutoff,
-                ).exists():
-                    Notification.objects.create(
-                        tenant=product.tenant,
-                        user=owner,
-                        type="low_stock",
-                        title=f"Global Low stock: {product.name}",
-                        body=f"{product.name} has only {product.total_stock} unit(s) left globally (threshold: {product.alert_threshold}).",
-                        related_object_type="Product",
-                        related_object_id=str(product.pk),
-                    )
+    # 1. Auto-resolve/remove low stock notifications for variants that are NO LONGER low stock
+    # (i.e. restocked above alert_threshold or alert_threshold set to 0)
+    healthy_variant_ids = Variant.objects.filter(
+        is_active=True,
+    ).filter(
+        Q(alert_threshold=0) | Q(stock_qty__gt=F("alert_threshold"))
+    ).values_list("id", flat=True)
 
-    # 2. Variant level alerts
+    Notification.objects.filter(
+        type="low_stock",
+        related_object_type="Variant",
+        related_object_id__in=[str(vid) for vid in healthy_variant_ids],
+    ).delete()
+
+    # Clean up any legacy product-level notifications to eliminate double-alerting
+    Notification.objects.filter(
+        type="low_stock",
+        related_object_type="Product",
+    ).delete()
+
+    # 2. Variant level alerts: exactly one notification per low-stock variant until replenished
     low_variants = Variant.objects.filter(
         is_active=True,
         alert_threshold__gt=0,
         stock_qty__lte=F("alert_threshold"),
     ).select_related("product__tenant")
 
+    created_count = 0
     for variant in low_variants:
         tenant = variant.product.tenant
         owners = User.objects.filter(tenant=tenant, role=RoleChoices.OWNER, is_active=True)
         for owner in owners:
-            cutoff = timezone.now() - timezone.timedelta(hours=24)
-            if not Notification.objects.filter(
+            # Check if an alert already exists for this owner and variant
+            # (regardless of read status - we do NOT spam daily if already notified)
+            already_notified = Notification.objects.filter(
                 user=owner,
                 type="low_stock",
                 related_object_type="Variant",
                 related_object_id=str(variant.pk),
-                created_at__gte=cutoff,
-            ).exists():
+            ).exists()
+
+            if not already_notified:
                 Notification.objects.create(
                     tenant=tenant,
                     user=owner,
                     type="low_stock",
-                    title=f"Low stock: {variant.product.name} ({variant.colour} EU{variant.size_eu})",
-                    body=f"{variant} has only {variant.stock_qty} unit(s) left (threshold: {variant.alert_threshold}).",
+                    title=f"Stock faible: {variant.product.name} ({variant.colour} EU{variant.size_eu})",
+                    body=f"{variant} n'a plus que {variant.stock_qty} unité(s) en stock (seuil d'alerte: {variant.alert_threshold}).",
                     related_object_type="Variant",
                     related_object_id=str(variant.pk),
                 )
-    logger.info("Low stock check complete.")
+                created_count += 1
+
+    logger.info(f"Low stock check complete. {created_count} new notifications created.")

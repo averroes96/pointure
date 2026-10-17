@@ -11,7 +11,11 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        qs = Notification.objects.filter(user=self.request.user)
+        notif_type = self.request.query_params.get("type")
+        if notif_type:
+            qs = qs.filter(type=notif_type)
+        return qs
 
     @action(detail=True, methods=["post"], url_path="mark-read")
     def mark_read(self, request, pk=None):
@@ -23,6 +27,11 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=["post"], url_path="mark-all-read")
     def mark_all_read(self, request):
         self.get_queryset().filter(read=False).update(read=True)
+        return Response({"status": "ok"})
+
+    @action(detail=False, methods=["post"], url_path="clear-all")
+    def clear_all(self, request):
+        self.get_queryset().delete()
         return Response({"status": "ok"})
 
     @action(detail=False, methods=["get"])

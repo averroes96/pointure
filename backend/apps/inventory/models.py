@@ -303,6 +303,17 @@ class StockMovement(TenantScopedModel):
         super().save(*args, **kwargs)
         # Refresh the cached stock_qty on the variant after every movement
         self.variant.refresh_stock()
+        # If stock is now healthy, immediately resolve any active low-stock notifications
+        if self.variant.stock_qty > self.variant.alert_threshold or self.variant.alert_threshold == 0:
+            try:
+                from apps.notifications.models import Notification
+                Notification.objects.filter(
+                    type="low_stock",
+                    related_object_type="Variant",
+                    related_object_id=str(self.variant_id),
+                ).delete()
+            except Exception:
+                pass
 
 
 # ─────────────────────────────────────────────
