@@ -1,18 +1,85 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import {
   TrendingUp, AlertTriangle, CreditCard, DollarSign,
   Wifi, WifiOff, Bell, X,
+  ShoppingCart, Package, PlusCircle, ScanBarcode, FileText,
+  Users, BarChart2, Settings, History, ClipboardCheck, ArrowUpRight,
   type LucideIcon,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import api, { formatDZD, formatDate } from "@/lib/api";
-import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow } from "@/types";
+import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow, Plan } from "@/types";
+import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useSSE } from "@/hooks/useSSE";
 import { cn } from "@/lib/utils";
+
+// ── Quick action card ─────────────────────────────────────────────────────────
+
+interface QuickActionItem {
+  id: string;
+  title: string;
+  description: string;
+  to: string;
+  icon: LucideIcon;
+  shortcut?: string;
+  iconBg: string;
+  iconColor: string;
+  managerOnly?: boolean;
+  minPlan?: Plan;
+}
+
+function QuickActionCard({ item }: { item: QuickActionItem }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.to}
+      className={cn(
+        "group relative flex flex-col justify-between p-4 bg-white rounded-2xl",
+        "border border-slate-200/80 shadow-xs",
+        "hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+        "transition-all duration-200"
+      )}
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        <div
+          className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-110",
+            item.iconBg
+          )}
+        >
+          <Icon size={20} className={item.iconColor} />
+        </div>
+
+        {item.shortcut && (
+          <kbd className="px-2 py-0.5 text-2xs font-mono font-semibold rounded-md bg-slate-100/90 text-slate-600 border border-slate-200/80 shadow-2xs group-hover:bg-slate-200/90 group-hover:text-slate-800 transition-colors">
+            {item.shortcut}
+          </kbd>
+        )}
+      </div>
+
+      <div className="mt-3.5 min-w-0">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 transition-colors truncate">
+            {item.title}
+          </span>
+          <ArrowUpRight
+            size={14}
+            className="text-slate-400 opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all shrink-0"
+          />
+        </div>
+        <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+          {item.description}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 // ── KPI card ──────────────────────────────────────────────────────────────────
 
@@ -174,8 +241,10 @@ function formatSecondsAgo(ts: number, t: (key: string, options?: any) => string)
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { canAccess } = usePlan();
   const isEnterprise = canAccess("enterprise");
+  const isCashier = user?.role === "cashier";
 
   const {
     status, lastSale, stockAlerts, totalSalesDelta, saleCountDelta, clearAlerts,
@@ -206,14 +275,156 @@ export default function DashboardPage() {
   const baseRevenue = parseFloat(kpis?.today_revenue ?? "0");
   const liveRevenue = baseRevenue + totalSalesDelta;
 
+  const quickActions: QuickActionItem[] = [
+    {
+      id: "new-sale",
+      title: t("dashboard.action_new_sale", "Nouvelle vente"),
+      description: t("dashboard.action_new_sale_desc", "Caisse enregistreuse & encaissement"),
+      to: "/sales/new",
+      icon: ShoppingCart,
+      shortcut: "F1",
+      iconBg: "bg-emerald-500",
+      iconColor: "text-white",
+    },
+    {
+      id: "products",
+      title: t("dashboard.action_products", "Catalogue stock"),
+      description: t("dashboard.action_products_desc", "Articles, pointures et disponibilités"),
+      to: "/inventory/products",
+      icon: Package,
+      shortcut: "F8",
+      iconBg: "bg-indigo-600",
+      iconColor: "text-white",
+    },
+    {
+      id: "new-product",
+      title: t("dashboard.action_new_product", "Nouveau produit"),
+      description: t("dashboard.action_new_product_desc", "Ajouter un article & code-barres"),
+      to: "/inventory/products/new",
+      icon: PlusCircle,
+      shortcut: "F9",
+      iconBg: "bg-sky-500",
+      iconColor: "text-white",
+      managerOnly: true,
+    },
+    {
+      id: "scanner",
+      title: t("dashboard.action_scanner", "Scanner"),
+      description: t("dashboard.action_scanner_desc", "Vérifier le prix et les références"),
+      to: "/inventory/scanner",
+      icon: ScanBarcode,
+      shortcut: "F2",
+      iconBg: "bg-cyan-600",
+      iconColor: "text-white",
+    },
+    {
+      id: "invoices",
+      title: t("dashboard.action_invoices", "Factures B2B"),
+      description: t("dashboard.action_invoices_desc", "Facturation, proforma & cartons"),
+      to: "/invoices/new",
+      icon: FileText,
+      shortcut: "Shift+F3",
+      iconBg: "bg-amber-500",
+      iconColor: "text-white",
+      managerOnly: true,
+      minPlan: "pro_wholesale",
+    },
+    {
+      id: "clients",
+      title: t("dashboard.action_clients", "Clients & Crédits"),
+      description: t("dashboard.action_clients_desc", "Comptes clients et créances"),
+      to: "/clients",
+      icon: Users,
+      shortcut: "F4",
+      iconBg: "bg-teal-600",
+      iconColor: "text-white",
+      managerOnly: true,
+    },
+    {
+      id: "daily-report",
+      title: t("dashboard.action_daily_report", "Rapport journalier"),
+      description: t("dashboard.action_daily_report_desc", "Clôture de caisse & bilan du jour"),
+      to: "/reports/daily",
+      icon: BarChart2,
+      shortcut: "F7",
+      iconBg: "bg-violet-600",
+      iconColor: "text-white",
+      managerOnly: true,
+    },
+    {
+      id: "settings",
+      title: t("dashboard.action_settings", "Paramètres"),
+      description: t("dashboard.action_settings_desc", "Configuration magasin & reçus"),
+      to: "/settings",
+      icon: Settings,
+      shortcut: "Alt+P",
+      iconBg: "bg-slate-700",
+      iconColor: "text-white",
+      managerOnly: true,
+    },
+    {
+      id: "sale-history",
+      title: t("dashboard.action_sale_history", "Historique ventes"),
+      description: t("dashboard.action_sale_history_desc", "Tickets du jour et reçus clients"),
+      to: "/sales",
+      icon: History,
+      iconBg: "bg-blue-600",
+      iconColor: "text-white",
+    },
+    {
+      id: "reconciliation",
+      title: t("dashboard.action_reconciliation", "Fermeture de caisse"),
+      description: t("dashboard.action_reconciliation_desc", "Comptage des espèces & réconciliation"),
+      to: "/sales/reconciliation",
+      icon: ClipboardCheck,
+      iconBg: "bg-purple-600",
+      iconColor: "text-white",
+    },
+  ];
+
+  const visibleActions = quickActions.filter((action) => {
+    if (isCashier) {
+      if (action.managerOnly) return false;
+      return true;
+    }
+    if (action.id === "sale-history" || action.id === "reconciliation") return false;
+    if (action.minPlan && !canAccess(action.minPlan)) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.dashboard")}</h1>
-        <p className="text-xs font-medium text-slate-500 mt-0.5">
-          {kpis?.as_of ? `Mise à jour : ${formatDate(kpis.as_of)}` : "Aperçu général de votre activité"}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.dashboard")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            {kpis?.as_of ? `Mise à jour : ${formatDate(kpis.as_of)}` : "Aperçu général de votre activité"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link
+            to="/inventory/products"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-2xs hover:shadow-xs transition-all"
+          >
+            <Package size={15} className="text-indigo-600" />
+            <span>{t("nav.products", "Produits")}</span>
+            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-2xs font-mono font-medium text-slate-500 bg-slate-100 rounded border border-slate-200">
+              F8
+            </kbd>
+          </Link>
+          <Link
+            to="/sales/new"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-primary-600 hover:bg-primary-700 text-white shadow-2xs hover:shadow-xs transition-all"
+          >
+            <ShoppingCart size={15} />
+            <span>{t("nav.new_sale", "Nouvelle vente")}</span>
+            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-2xs font-mono font-medium text-primary-100 bg-primary-700/90 rounded border border-primary-500/50">
+              F1
+            </kbd>
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -248,6 +459,27 @@ export default function DashboardPage() {
           icon={CreditCard}
           color="bg-indigo-600"
         />
+      </div>
+
+      {/* Quick actions cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary-600 inline-block" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">
+              {t("dashboard.quick_actions", "Actions rapides")}
+            </h2>
+          </div>
+          <span className="text-2xs font-medium text-slate-400">
+            {t("dashboard.quick_actions_hint", "Accès direct & raccourcis clavier")}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          {visibleActions.map((action) => (
+            <QuickActionCard key={action.id} item={action} />
+          ))}
+        </div>
       </div>
 
       {/* Charts + live feed row */}
