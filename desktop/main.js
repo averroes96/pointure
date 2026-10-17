@@ -597,6 +597,17 @@ function createTray() {
 ipcMain.handle('get-version', () => app.getVersion());
 ipcMain.handle('open-backups-folder', () => shell.openPath(path.join(dataDir, 'backups')));
 ipcMain.handle('open-logs-folder', () => shell.openPath(logsDir));
+ipcMain.handle('resync-system-clock', async () => {
+  if (process.platform === 'win32') {
+    const { exec } = require('child_process');
+    return new Promise((resolve) => {
+      exec('w32tm /resync /nowait', (error, stdout, stderr) => {
+        resolve({ success: !error, output: (stdout || stderr || '').trim() });
+      });
+    });
+  }
+  return { success: false, output: 'Supported on Windows platforms' };
+});
 ipcMain.handle('quit-app', () => app.quit());
 ipcMain.handle('focus-window', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {

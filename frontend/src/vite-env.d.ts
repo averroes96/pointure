@@ -42,6 +42,7 @@ export interface ElectronAPI {
   getVersion: () => Promise<string>;
   openBackupsFolder: () => Promise<void>;
   openLogsFolder: () => Promise<void>;
+  resyncSystemClock?: () => Promise<{ success: boolean; output: string }>;
   quitApp: () => Promise<void>;
   focusWindow?: () => Promise<boolean>;
   toggleFullscreen: () => Promise<boolean>;

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useTimeSyncStatus } from "@/lib/time";
 import type { UpdateStatusData } from "@/vite-env";
 
 interface BackupItem {
@@ -57,6 +58,37 @@ export default function DesktopTab() {
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Time sync & anti-tamper state
+  const {
+    currentTimeDisplay,
+    isSynchronized,
+    syncSource,
+    skewSeconds,
+    anomalyDetected,
+    anomalyMessage,
+    resync: resyncTime,
+    isRefetching: isTimeRefetching,
+  } = useTimeSyncStatus(60000);
+  const [resyncingClock, setResyncingClock] = useState(false);
+
+  const handleManualTimeSync = async () => {
+    try {
+      setResyncingClock(true);
+      await resyncTime();
+      setToast({
+        type: "success",
+        message: "Horloge vérifiée et synchronisée avec succès !",
+      });
+    } catch {
+      setToast({
+        type: "error",
+        message: "Impossible de synchroniser l'horloge réseau.",
+      });
+    } finally {
+      setResyncingClock(false);
+    }
+  };
 
   // Toast auto-clear
   useEffect(() => {
@@ -718,6 +750,56 @@ export default function DesktopTab() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Horloge & Anti-Tamper Card */}
+          <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
+                  anomalyDetected
+                    ? "bg-amber-100 text-amber-700 border border-amber-200"
+                    : "bg-white text-slate-700 border border-slate-200/80"
+                )}
+              >
+                <Clock size={18} className={anomalyDetected ? "text-amber-600" : "text-primary-600"} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold text-slate-900">Horloge & Intégrité Temporelle</p>
+                  {anomalyDetected ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      <AlertCircle size={11} /> Anomalie détectée
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 size={11} /> Synchronisée
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xs text-slate-500 mt-0.5">
+                  Heure certifiée : <strong className="text-slate-800 font-mono">{currentTimeDisplay || "..."}</strong>
+                  {syncSource && ` • Source: ${syncSource}`}
+                  {skewSeconds !== 0 && ` • Décalage: ${skewSeconds > 0 ? "+" : ""}${skewSeconds}s`}
+                </p>
+                {anomalyDetected && anomalyMessage && (
+                  <p className="text-2xs text-amber-800 mt-1 font-medium bg-amber-50 p-1.5 rounded-lg border border-amber-200/70">
+                    {anomalyMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleManualTimeSync}
+              disabled={resyncingClock || isTimeRefetching}
+              className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs self-stretch md:self-auto justify-center cursor-pointer disabled:opacity-50"
+              title="Resynchroniser avec les serveurs de temps HTTPS et recaler l'horloge Windows"
+            >
+              <RefreshCw size={13} className={cn((resyncingClock || isTimeRefetching) && "animate-spin text-primary-600")} />
+              <span>{resyncingClock ? "Synchronisation..." : "Recaler l'horloge"}</span>
+            </button>
           </div>
         </div>
       </div>

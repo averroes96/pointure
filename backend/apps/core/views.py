@@ -428,3 +428,19 @@ class LegacyDBFImportView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             shutil.rmtree(temp_dir)
+
+
+class SystemTimeView(APIView):
+    """
+    GET /api/v1/core/time/
+    Returns verified time, clock skew, network sync source, and anomaly diagnostics.
+    Query ?resync=true forces fresh network check.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from apps.core.services.time_service import sync_time
+        force_resync = request.query_params.get("resync", "").lower() in ("1", "true", "yes")
+        status_data = sync_time(force=force_resync)
+        return Response(status_data)
+

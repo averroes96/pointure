@@ -36,9 +36,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response interceptor: handle auth errors ──────────────────────────────
+import { updateServerTimeOffset } from "./time";
+
+// ── Response interceptor: handle auth errors & sync clock offset ───────────
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    const serverDate = response.headers?.date;
+    if (serverDate) {
+      updateServerTimeOffset(serverDate);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;

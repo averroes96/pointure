@@ -6,6 +6,7 @@ import Topbar from "./Topbar";
 import { cn } from "@/lib/utils";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import ShortcutsModal from "@/components/ui/ShortcutsModal";
+import TimeAnomalyBanner from "@/components/ui/TimeAnomalyBanner";
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -79,6 +80,7 @@ export default function DashboardLayout() {
       <Sidebar onItemClick={closeSidebar} isOpen={isSidebarOpen} />
       <main className="layout-main transition-all duration-300">
         <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
+          <TimeAnomalyBanner />
           <Outlet />
         </div>
       </main>

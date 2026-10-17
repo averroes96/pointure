@@ -65,6 +65,15 @@ class Sale(TenantScopedModel):
     def __str__(self):
         return f"Sale #{self.receipt_number or self.pk}"
 
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.created_at:
+            try:
+                from apps.core.services.time_service import get_trusted_now
+                self.created_at = get_trusted_now()
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
     @property
     def amount_paid(self):
         return self.payments.aggregate(
