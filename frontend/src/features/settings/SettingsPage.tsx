@@ -12,6 +12,7 @@ import {
   Banknote,
   Truck,
   Database,
+  HardDrive,
   Monitor,
   Printer,
   CheckCircle2,
@@ -1171,7 +1172,7 @@ const TABS: Tab[] = [
   { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
   { key: "imprimantes", label: "Imprimantes", icon: Printer, roles: ["owner", "manager"] },
   { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
-  { key: "desktop", label: "Application & Mises à jour", icon: Monitor, roles: ["owner", "manager"] },
+  { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner", "manager"] },
 ];
 
 export default function SettingsPage() {
@@ -1186,9 +1187,8 @@ export default function SettingsPage() {
     enabled: !!user?.tenant?.id && activeTab === "boutique",
   });
 
-  const isDesktop = !!window.electronAPI?.isDesktop;
   const visibleTabs = TABS.filter(
-    (t) => (!t.roles || (user && t.roles.includes(user.role))) && (t.key !== "desktop" || isDesktop)
+    (t) => !t.roles || (user && t.roles.includes(user.role))
   );
 
   if (!user) return null;

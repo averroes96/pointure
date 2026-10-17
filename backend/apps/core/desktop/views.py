@@ -87,3 +87,111 @@ def spa_index(request):
         content_type="text/html",
         status=200,
     )
+
+
+# ── Backup Management Endpoints ───────────────────────────────────────────────
+from datetime import datetime
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.http import FileResponse, Http404
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_backups_view(request):
+    """List available local database backups."""
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    from .backup import get_backups_dir, list_backup_files, MAX_BACKUP_COPIES
+    backups = list_backup_files()
+    backups_dir = get_backups_dir()
+    db_name = str(settings.DATABASES["default"]["NAME"])
+
+    return Response({
+        "backups": backups,
+        "total_count": len(backups),
+        "backups_dir": str(backups_dir),
+        "db_path": db_name,
+        "max_copies": MAX_BACKUP_COPIES,
+        "last_backup": backups[0]["created_at"] if backups else None,
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_backup_view(request):
+    """Trigger an immediate manual online database backup."""
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    from .backup import perform_database_backup, _format_size
+    backup_file = perform_database_backup()
+    if not backup_file or not backup_file.exists():
+        return Response(
+            {"detail": "La sauvegarde de la base de données a échoué. Vérifiez l'intégrité de la base de données."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    stat = backup_file.stat()
+    file_info = {
+        "filename": backup_file.name,
+        "size_bytes": stat.st_size,
+        "size_human": _format_size(stat.st_size),
+        "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+    }
+    return Response({
+        "status": "ok",
+        "message": f"Sauvegarde {backup_file.name} créée avec succès.",
+        "file": file_info,
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_backup_view(request, filename):
+    """Download a specific .sqlite3 backup file safely."""
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    # Sanitize filename: no directory traversal
+    safe_name = os.path.basename(filename)
+    if not safe_name.endswith(".sqlite3") or safe_name != filename:
+        return Response({"detail": "Nom de fichier invalide."}, status=status.HTTP_400_BAD_REQUEST)
+
+    from .backup import get_backups_dir
+    backups_dir = get_backups_dir()
+    target_path = (backups_dir / safe_name).resolve()
+
+    # Ensure path is strictly inside backups_dir
+    try:
+        target_path.relative_to(backups_dir.resolve())
+    except ValueError:
+        return Response({"detail": "Accès non autorisé."}, status=status.HTTP_403_FORBIDDEN)
+
+    if not target_path.exists() or not target_path.is_file():
+        raise Http404("Sauvegarde introuvable.")
+
+    return FileResponse(
+        open(target_path, "rb"),
+        as_attachment=True,
+        filename=safe_name,
+        content_type="application/x-sqlite3",
+    )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_backup_view(request, filename):
+    """Delete a specific backup file."""
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    from .backup import delete_backup_file
+    success = delete_backup_file(filename)
+    if not success:
+        return Response({"detail": "Fichier introuvable ou suppression impossible."}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"status": "ok", "message": f"Sauvegarde {filename} supprimée."})

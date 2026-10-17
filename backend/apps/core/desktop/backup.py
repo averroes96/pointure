@@ -20,10 +20,64 @@ MAX_BACKUP_COPIES = 14
 
 def get_backups_dir() -> Path:
     """Return the directory path for storing desktop backups."""
-    data_dir = getattr(settings, "DATA_DIR", Path("."))
-    backups_dir = data_dir / "backups"
+    data_dir = getattr(settings, "DATA_DIR", None)
+    if not data_dir:
+        base_dir = getattr(settings, "BASE_DIR", Path("."))
+        data_dir = base_dir / "data"
+    backups_dir = Path(data_dir) / "backups"
     backups_dir.mkdir(parents=True, exist_ok=True)
     return backups_dir
+
+
+def _format_size(size_bytes: int) -> str:
+    """Format bytes into readable string."""
+    if size_bytes < 1024:
+        return f"{size_bytes} o"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} Ko"
+    else:
+        return f"{size_bytes / (1024 * 1024):.2f} Mo"
+
+
+def list_backup_files() -> list:
+    """Return a sorted list of metadata for all available database backups."""
+    backups_dir = get_backups_dir()
+    files = sorted(
+        backups_dir.glob("db_backup_*.sqlite3"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    result = []
+    for p in files:
+        try:
+            stat = p.stat()
+            result.append({
+                "filename": p.name,
+                "size_bytes": stat.st_size,
+                "size_human": _format_size(stat.st_size),
+                "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            })
+        except OSError:
+            pass
+    return result
+
+
+def delete_backup_file(filename: str) -> bool:
+    """Delete a backup file safely, guarding against path traversal."""
+    safe_name = os.path.basename(filename)
+    if not safe_name.endswith(".sqlite3") or safe_name != filename:
+        return False
+    backups_dir = get_backups_dir()
+    target = backups_dir / safe_name
+    if target.exists() and target.is_file():
+        try:
+            target.unlink()
+            logger.info("Deleted backup file: %s", target)
+            return True
+        except OSError:
+            logger.warning("Could not delete backup file: %s", target, exc_info=True)
+            return False
+    return False
 
 
 def perform_database_backup() -> Path:

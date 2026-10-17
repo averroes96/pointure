@@ -61,6 +61,7 @@ api_v1 = [
     path("events/", include("apps.events.urls")),
     # path("webhooks/", include("apps.webhooks.urls")),
     path("deliveries/", include("apps.delivery_integrations.urls")),
+    path("desktop/", include("apps.core.desktop.urls")),
     # OpenAPI
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
@@ -85,16 +86,9 @@ if settings.DEBUG:
 if getattr(settings, "DESKTOP_MODE", False):
     from django.urls import re_path
     from django.views.static import serve as serve_media
-    from apps.core.desktop.views import (
-        health_check,
-        desktop_meta,
-        desktop_shutdown,
-        spa_index,
-    )
+    from apps.core.desktop.views import health_check, spa_index
     urlpatterns += [
         path("api/v1/health/", health_check, name="desktop-health"),
-        path("api/v1/desktop/meta/", desktop_meta, name="desktop-meta"),
-        path("api/v1/desktop/shutdown/", desktop_shutdown, name="desktop-shutdown"),
         # static() is a no-op when DEBUG=False, so serve local media explicitly.
         re_path(r"^media/(?P<path>.*)$", serve_media, {"document_root": settings.MEDIA_ROOT}),
         # Client-side routes only: never answer API/static/asset requests or
