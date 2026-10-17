@@ -620,7 +620,22 @@ export default function SalesPage() {
     executeSaleSubmission(quickMode);
   }
 
-  // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale)
+  const handleClearCart = useCallback(() => {
+    if (cart.length === 0) return;
+    if (window.confirm("Voulez-vous vider le panier en cours ?")) {
+      setCart([]);
+      setCartDiscount(0);
+      setRedeemPoints(0);
+      setSearch("");
+      setSelectedProduct(null);
+    }
+    setTimeout(() => {
+      window.focus();
+      searchRef.current?.focus();
+    }, 60);
+  }, [cart.length]);
+
+  // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale, Escape = clear/empty)
   useEffect(() => {
     const onSearch = () => {
       window.focus();
@@ -652,11 +667,31 @@ export default function SalesPage() {
       searchRef.current?.select();
     };
 
+    const onEscape = () => {
+      if (negativeStockAlert) {
+        setNegativeStockAlert(null);
+      } else if (selectedProduct) {
+        setSelectedProduct(null);
+      } else if (search.trim() !== "") {
+        setSearch("");
+        searchRef.current?.focus();
+      } else if (cart.length > 0) {
+        handleClearCart();
+      }
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
       // Direct local F2 / Alt+2 handler inside SalesPage
       if (e.key === "F2" || (e.altKey && e.key === "2")) {
         e.preventDefault();
         onSearch();
+        return;
+      }
+
+      // Escape key: close dialogs, collapse variant picker, clear search, or empty cart
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onEscape();
         return;
       }
 
@@ -704,12 +739,6 @@ export default function SalesPage() {
         const qm = negativeStockAlert.quickMode;
         setNegativeStockAlert(null);
         executeSaleSubmission(qm);
-      } else if (e.key === "Escape") {
-        if (negativeStockAlert) {
-          setNegativeStockAlert(null);
-        } else if (search) {
-          setSearch("");
-        }
       }
     };
 
@@ -717,15 +746,17 @@ export default function SalesPage() {
     window.addEventListener("app-shortcut-search", onSearch);
     window.addEventListener("app-shortcut-confirm", onConfirm);
     window.addEventListener("app-shortcut-new-sale", onNewSale);
+    window.addEventListener("app-shortcut-escape", onEscape);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
       window.removeEventListener("app-shortcut-search", onSearch);
       window.removeEventListener("app-shortcut-confirm", onConfirm);
       window.removeEventListener("app-shortcut-new-sale", onNewSale);
+      window.removeEventListener("app-shortcut-escape", onEscape);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock]);
+  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock, selectedProduct, handleClearCart]);
 
   // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
@@ -947,6 +978,10 @@ export default function SalesPage() {
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F11</kbd>
                 <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
               </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">Échap</kbd>
+                <span>{t("sales.shortcut_clear", "Vider panier / Effacer")}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -1153,24 +1188,15 @@ export default function SalesPage() {
             </div>
             {cart.length > 0 && (
               <button
-                onClick={() => {
-                  if (window.confirm("Voulez-vous vider le panier en cours ?")) {
-                    setCart([]);
-                    setCartDiscount(0);
-                    setRedeemPoints(0);
-                    setSearch("");
-                    setSelectedProduct(null);
-                  }
-                  setTimeout(() => {
-                    window.focus();
-                    searchRef.current?.focus();
-                  }, 60);
-                }}
-                className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1 px-2.5 py-1 rounded-xl hover:bg-red-50 transition-colors font-bold cursor-pointer"
-                title="Vider tout le panier"
+                onClick={handleClearCart}
+                className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1.5 px-2.5 py-1 rounded-xl hover:bg-red-50 transition-colors font-bold cursor-pointer"
+                title="Vider tout le panier (Touche Échap)"
               >
                 <X size={13} />
                 <span>{t("sales.clear_cart", "Vider")}</span>
+                <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-500">
+                  Échap
+                </kbd>
               </button>
             )}
           </div>
