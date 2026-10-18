@@ -43,6 +43,20 @@ interface ScanResult {
   }>;
 }
 
+interface VariantSuggestion {
+  id: number;
+  barcode: string;
+  product: number;
+  product_name: string;
+  product_brand?: string;
+  product_reference?: string;
+  product_sale_price: string;
+  size_eu: number;
+  colour: string;
+  stock_qty: number;
+  is_out_of_stock: boolean;
+}
+
 // BarcodeDetector is available in Chrome 83+, Edge 83+, Samsung Internet.
 // Not available in Firefox or Safari. getUserMedia is needed for camera access.
 const CAMERA_SUPPORTED =
@@ -60,6 +74,7 @@ export default function BarcodeScannerPage() {
   const cooldownRef  = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const detectorRef  = useRef<any>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const [query, setQuery]           = useState("");
   const [loading, setLoading]       = useState(false);
@@ -68,6 +83,11 @@ export default function BarcodeScannerPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError]   = useState<string | null>(null);
   const [lastCode, setLastCode]         = useState<string | null>(null);
+
+  // Suggestions state
+  const [suggestions, setSuggestions] = useState<VariantSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchingSuggestions, setSearchingSuggestions] = useState(false);
 
   // Auto-focus for HID scanners on desktop
   useEffect(() => {
@@ -82,9 +102,52 @@ export default function BarcodeScannerPage() {
     };
   }, []);
 
-  async function lookup(barcode: string) {
-    const code = barcode.trim();
+  // Debounced search for product name / reference / barcode suggestions
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingSuggestions(true);
+      try {
+        const res = await api.get(`/inventory/variants/?search=${encodeURIComponent(trimmed)}&page_size=8`);
+        const items = res.data?.results ?? (Array.isArray(res.data) ? res.data : []);
+        setSuggestions(items);
+        setShowSuggestions(items.length > 0);
+      } catch {
+        // ignore errors on background suggestion lookup
+      } finally {
+        setSearchingSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function lookup(barcodeOrRef: string) {
+    const code = barcodeOrRef.trim();
     if (!code) return;
+    setShowSuggestions(false);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -94,7 +157,7 @@ export default function BarcodeScannerPage() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
-        setError(`Aucun article trouvé pour le code-barres « ${code} ».`);
+        setError(`Aucun article trouvé pour « ${code} » (code-barres, référence ou nom).`);
       } else {
         setError("Erreur de connexion. Vérifiez votre réseau.");
       }
@@ -103,12 +166,31 @@ export default function BarcodeScannerPage() {
     }
   }
 
+  function handleSelectSuggestion(item: VariantSuggestion) {
+    setShowSuggestions(false);
+    setQuery(item.barcode || item.product_reference || item.product_name);
+    if (item.barcode) {
+      lookup(item.barcode);
+    } else if (item.product_reference) {
+      lookup(item.product_reference);
+    } else {
+      lookup(item.product_name);
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") lookup(query);
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      lookup(query);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
   }
 
   function reset() {
     setQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
     setResult(null);
     setError(null);
     setLastCode(null);
@@ -194,10 +276,10 @@ export default function BarcodeScannerPage() {
       <div>
         <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">
           <ScanBarcode size={20} />
-          Scanner code-barres
+          Scanner & Recherche Stock
         </h1>
         <p className="text-sm text-text-muted">
-          Scannez ou saisissez un code-barres pour consulter le stock en temps réel.
+          Scannez un code-barres ou recherchez par <strong>nom</strong> ou <strong>référence</strong> pour consulter le stock en temps réel.
         </p>
       </div>
 
@@ -211,12 +293,76 @@ export default function BarcodeScannerPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
               onKeyDown={handleKeyDown}
-              className="form-input ps-9 font-mono"
-              placeholder="Scanner ou chercher (nom, réf, code)…"
+              className="form-input ps-9 pe-8 font-mono"
+              placeholder="Scanner ou chercher par nom, référence ou code…"
               autoComplete="off"
               inputMode="text"
             />
+            {searchingSuggestions && (
+              <Loader2 size={13} className="animate-spin text-slate-400 absolute end-3 top-1/2 -translate-y-1/2" />
+            )}
+
+            {/* Suggestions Popover */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full start-0 end-0 z-40 mt-1 max-h-80 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 divide-y divide-slate-100"
+              >
+                <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-2xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Suggestions ({suggestions.length}) — cliquez pour sélectionner
+                </div>
+                {suggestions.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(item)}
+                    className="w-full p-3 text-start hover:bg-slate-50 flex items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 text-sm truncate flex items-center gap-1.5">
+                        {item.product_name}
+                        {item.product_brand && (
+                          <span className="text-xs text-slate-400 font-normal">· {item.product_brand}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+                        {item.product_reference && (
+                          <span className="font-mono text-2xs bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-700 font-bold">
+                            RÉF: {item.product_reference}
+                          </span>
+                        )}
+                        <span className="font-medium text-slate-700">
+                          {item.size_eu > 0 ? `EU ${item.size_eu}` : "Article"}
+                          {item.colour && item.colour !== "N/A" && item.colour !== "Standard" ? ` · ${item.colour}` : ""}
+                        </span>
+                        {item.barcode && (
+                          <span className="font-mono text-2xs text-slate-400">
+                            {item.barcode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-end flex-shrink-0">
+                      <div className="font-mono font-bold text-sm text-slate-900 tabular-nums">
+                        {formatDZD(item.product_sale_price)} <span className="text-2xs font-normal text-slate-400">DZD</span>
+                      </div>
+                      <div className="text-2xs font-medium mt-0.5">
+                        {item.is_out_of_stock ? (
+                          <span className="text-red-600 font-bold">Rupture (0)</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold">{item.stock_qty} en stock</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={() => lookup(query)}

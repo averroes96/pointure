@@ -34,6 +34,7 @@ import {
   Printer,
   Copy,
   Check,
+  Trash2,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Product, StoreSettings } from "@/types";
@@ -212,6 +213,54 @@ export default function ProductDetailPage() {
     }
   }
 
+  const [shelfLabelLoading, setShelfLabelLoading] = useState(false);
+  async function handlePrintShelfLabel(copies = 1) {
+    if (!id || shelfLabelLoading) return;
+    setShelfLabelLoading(true);
+    try {
+      const res = await api.get(`/inventory/products/${id}/shelf-labels/?copies=${copies}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+    } catch {
+      alert("Erreur lors de la génération de l'étiquette rayon.");
+    } finally {
+      setShelfLabelLoading(false);
+    }
+  }
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteForce, setDeleteForce] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function handleDeleteProduct() {
+    if (!id || deleteLoading) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/inventory/products/${id}/`, {
+        params: { force: deleteForce ? "true" : "false" },
+      });
+      navigate("/inventory/products");
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data?.has_transactions) {
+        setDeleteError(
+          data?.detail || "Ce produit possède des historiques de ventes ou factures. Cochez l'option 'Forcer la suppression' pour continuer."
+        );
+        setDeleteForce(true);
+      } else {
+        setDeleteError(data?.detail || data?.error || getApiError(err));
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   function submitAdjust() {
     const hasValidDeltas = Object.values(adjustForm.deltas).some(
       (d) => d && !isNaN(parseInt(d)) && parseInt(d) !== 0
@@ -304,7 +353,20 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 self-start sm:self-auto">
+          <button
+            onClick={() => handlePrintShelfLabel()}
+            disabled={shelfLabelLoading}
+            className="btn-secondary btn-sm flex items-center gap-1.5"
+            title="Imprimer l'étiquette rayon pour ce produit (nom, prix de vente, emplacement)"
+          >
+            {shelfLabelLoading ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Tag size={13} className="text-amber-600" />
+            )}
+            Étiquette Rayon
+          </button>
           {isManager && (
             <>
               <button
@@ -322,6 +384,18 @@ export default function ProductDetailPage() {
                 <Edit2 size={14} />
                 Modifier
               </Link>
+              <button
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteForce(false);
+                  setDeleteModalOpen(true);
+                }}
+                className="btn-ghost btn-sm text-red-600 hover:bg-red-50 hover:text-red-700"
+                title="Supprimer définitivement ce produit"
+              >
+                <Trash2 size={14} />
+                Supprimer
+              </button>
             </>
           )}
         </div>
@@ -494,15 +568,25 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handlePrintShelfLabel()}
+                disabled={shelfLabelLoading}
+                className="btn-secondary btn-sm flex items-center gap-1.5 font-medium"
+                title="Imprimer une étiquette rayon (nom, prix de vente, emplacement)"
+              >
+                {shelfLabelLoading ? <Loader2 size={13} className="animate-spin" /> : <Tag size={13} className="text-amber-600" />}
+                Étiquette Rayon
+              </button>
               {defaultVariant?.barcode && (
                 <button
                   type="button"
                   onClick={() => printLabels(defaultVariant.id, 1)}
                   className="btn-secondary btn-sm flex items-center gap-1.5 font-medium"
-                  title="Imprimer une étiquette"
+                  title="Imprimer une étiquette code-barres"
                 >
                   <Printer size={13} />
-                  Imprimer étiquette
+                  Code-barres
                 </button>
               )}
               {isManager && (
@@ -829,19 +913,30 @@ export default function ProductDetailPage() {
                 ({product.variants.filter((v) => v.barcode).length} codes)
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {barcodesOpen && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handlePrintLabels(); }}
-                  disabled={printLoading}
-                  className="btn-secondary btn-sm"
-                  title="Imprimer les étiquettes"
-                >
-                  {printLoading
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : <Printer size={13} />}
-                  Imprimer étiquettes
-                </button>
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrintShelfLabel(); }}
+                    disabled={shelfLabelLoading}
+                    className="btn-secondary btn-sm flex items-center gap-1.5"
+                    title="Imprimer l'étiquette rayon (nom, prix, emplacement)"
+                  >
+                    {shelfLabelLoading ? <Loader2 size={13} className="animate-spin" /> : <Tag size={13} className="text-amber-600" />}
+                    Étiquette Rayon
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrintLabels(); }}
+                    disabled={printLoading}
+                    className="btn-secondary btn-sm"
+                    title="Imprimer les étiquettes codes-barres"
+                  >
+                    {printLoading
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <Printer size={13} />}
+                    Codes-barres
+                  </button>
+                </>
               )}
               {barcodesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
@@ -1099,6 +1194,81 @@ export default function ProductDetailPage() {
                   <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
                 ) : (
                   "Confirmer les ajustements"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Hard Delete Confirmation ───────────────────────────────── */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="card max-w-md w-full p-6 space-y-4 bg-white shadow-xl rounded-2xl animate-in fade-in zoom-in-95 border border-red-100">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Supprimer définitivement ce produit ?
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Le produit <strong className="text-slate-800">{product.name}</strong> ainsi que toutes ses déclinaisons et mouvements de stock seront supprimés de manière irréversible.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-amber-900 font-medium">
+                <input
+                  type="checkbox"
+                  checked={deleteForce}
+                  onChange={(e) => setDeleteForce(e.target.checked)}
+                  className="rounded border-amber-400 text-red-600 focus:ring-red-500 mt-0.5"
+                />
+                <span>
+                  <strong>Forcer la suppression</strong> : Supprimer même si ce produit figure dans d'anciennes ventes, retours ou factures archivées.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setDeleteError(null);
+                  setDeleteForce(false);
+                }}
+                disabled={deleteLoading}
+                className="btn-secondary btn-sm"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                disabled={deleteLoading}
+                className="btn-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Suppression…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Supprimer définitivement
+                  </>
                 )}
               </button>
             </div>

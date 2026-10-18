@@ -9,6 +9,8 @@ from .models import DefectItem, Product, StockMovement, StockTransfer, Variant
 
 class VariantSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_brand = serializers.CharField(source="product.brand", read_only=True, default="")
+    product_reference = serializers.CharField(source="product.reference", read_only=True, default="")
     product_sale_price = serializers.DecimalField(
         source="product.sale_price", max_digits=12, decimal_places=2, read_only=True
     )
@@ -34,7 +36,7 @@ class VariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Variant
         fields = [
-            "id", "product", "product_name", "product_sale_price",
+            "id", "product", "product_name", "product_brand", "product_reference", "product_sale_price",
             "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]

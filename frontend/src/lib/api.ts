@@ -10,6 +10,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
+import { updateServerTimeOffset } from "./time";
 
 const BASE_URL = import.meta.env.VITE_API_URL !== undefined
   ? import.meta.env.VITE_API_URL
@@ -36,7 +37,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-import { updateServerTimeOffset } from "./time";
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
 
 // ── Response interceptor: handle auth errors & sync clock offset ───────────
 api.interceptors.response.use(
@@ -53,36 +64,58 @@ api.interceptors.response.use(
     };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
       const refreshToken = localStorage.getItem("refresh_token");
 
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh/`, {
-            refresh: refreshToken,
-          });
-          const { access } = response.data;
-          localStorage.setItem("access_token", access);
-          originalRequest.headers!.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
-        } catch {
-          // Refresh failed — clear all tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          localStorage.removeItem("user");
-          const publicRoutes = ["/login", "/setup", "/forgot-password", "/reset-password"];
-          if (!publicRoutes.includes(window.location.pathname)) {
-            window.location.href = "/login";
-          }
-        }
-      } else {
-        // No refresh token — clear stale access token so we don't loop
+      if (!refreshToken) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("user");
         const publicRoutes = ["/login", "/setup", "/forgot-password", "/reset-password"];
         if (!publicRoutes.includes(window.location.pathname)) {
           window.location.href = "/login";
         }
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((newToken) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh/`, {
+          refresh: refreshToken,
+        });
+        const { access, refresh } = response.data;
+        localStorage.setItem("access_token", access);
+        if (refresh) {
+          localStorage.setItem("refresh_token", refresh);
+        }
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+        }
+        isRefreshing = false;
+        onRefreshed(access);
+        return api(originalRequest);
+      } catch (refreshErr) {
+        isRefreshing = false;
+        refreshSubscribers = [];
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        const publicRoutes = ["/login", "/setup", "/forgot-password", "/reset-password"];
+        if (!publicRoutes.includes(window.location.pathname)) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshErr);
       }
     }
 

@@ -494,6 +494,228 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         response["Content-Disposition"] = f'inline; filename="barcodes_{safe_name}.pdf"'
         return response
 
+    @action(detail=True, methods=["get"], url_path="shelf-labels")
+    def shelf_labels(self, request, pk=None):
+        """
+        Return a PDF of shelf/product labels for Algerian stores.
+        Includes Name, Sale Price, Location (if present), and Barcode.
+        Query param: ?copies=N (default 1).
+        """
+        product = self.get_object()
+        try:
+            copies = max(1, min(int(request.query_params.get("copies", 1)), 200))
+        except (ValueError, TypeError):
+            copies = 1
+
+        branch_id = getattr(request, "branch_id", None)
+        if hasattr(request, "branch") and request.branch:
+            branch_id = request.branch.id
+        from apps.inventory.models import ProductLocation
+        loc_obj = product.branch_locations.filter(branch_id=branch_id).first() if branch_id else product.branch_locations.first()
+        location_str = loc_obj.location if loc_obj else ""
+
+        variant = product.variants.filter(is_active=True).first()
+        if variant and not variant.barcode:
+            variant.barcode = generate_barcode(variant)
+            Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
+
+        single_html = _render_shelf_label(product, location=location_str, variant=variant)
+        labels_html = "\n".join(single_html for _ in range(copies))
+
+        html_string = _shelf_labels_page(
+            title=f"{product.name} — Étiquette Rayon",
+            labels_html=labels_html,
+        )
+
+        safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in product.name)
+        return _build_pdf_response(html_string, filename=f"etiquette_rayon_{safe_name}.pdf")
+
+    @action(detail=False, methods=["get", "post"], url_path="shelf-labels")
+    def bulk_shelf_labels(self, request):
+        """
+        Generate consolidated PDF of shelf labels for multiple products.
+        Accepts:
+          POST JSON: {"product_ids": [1, 2, ...], "copies": 1}
+          or GET ?product_ids=1,2,3&copies=1
+        """
+        if request.method == "POST":
+            product_ids = request.data.get("product_ids", [])
+            copies = request.data.get("copies", 1)
+        else:
+            raw_ids = request.query_params.get("product_ids") or request.query_params.get("ids", "")
+            product_ids = [int(x.strip()) for x in raw_ids.split(",") if x.strip().isdigit()]
+            copies = request.query_params.get("copies", 1)
+
+        try:
+            copies = max(1, min(int(copies), 50))
+        except (ValueError, TypeError):
+            copies = 1
+
+        if not product_ids:
+            return Response({"error": "product_ids list required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        products = list(
+            Product.objects.filter(tenant=request.tenant, id__in=product_ids)
+            .prefetch_related("branch_locations", "variants")
+        )
+        if not products:
+            return Response({"detail": "Aucun produit trouvé."}, status=status.HTTP_404_NOT_FOUND)
+
+        branch_id = getattr(request, "branch_id", None)
+        if hasattr(request, "branch") and request.branch:
+            branch_id = request.branch.id
+
+        labels_list = []
+        for p in products:
+            loc_obj = p.branch_locations.filter(branch_id=branch_id).first() if branch_id else p.branch_locations.first()
+            location_str = loc_obj.location if loc_obj else ""
+            variant = p.variants.filter(is_active=True).first()
+            if variant and not variant.barcode:
+                variant.barcode = generate_barcode(variant)
+                Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
+
+            single_html = _render_shelf_label(p, location=location_str, variant=variant)
+            for _ in range(copies):
+                labels_list.append(single_html)
+
+        labels_html = "\n".join(labels_list)
+        html_string = _shelf_labels_page(
+            title=f"Étiquettes Rayon ({len(products)} produits)",
+            labels_html=labels_html,
+        )
+
+        return _build_pdf_response(html_string, filename="etiquettes_rayon_selection.pdf")
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Permanently delete a product (hard delete).
+        Ensures foreign key dependencies with PROTECT are cleanly removed:
+        - Variants and their StockMovements, StockTransfers, Defects, ProductLocations
+        - If the product has sales/invoices, require ?force=true to prevent accidental loss
+        """
+        self.require_manager()
+        product = self.get_object()
+        variants = list(product.variants.all())
+
+        from apps.sales.models import SaleItem, ReturnItem, ExchangeItem
+        from apps.invoicing.models import InvoiceItem, DeliveryNoteItem
+        from apps.suppliers.models import PurchaseOrderItem
+        from apps.inventory.models import StockMovement, StockTransfer, Defect, ProductLocation
+
+        sales_count = SaleItem.objects.filter(variant__in=variants).count()
+        invoices_count = InvoiceItem.objects.filter(variant__in=variants).count()
+        returns_count = ReturnItem.objects.filter(variant__in=variants).count()
+        po_count = PurchaseOrderItem.objects.filter(variant__in=variants).count()
+        total_transactions = sales_count + invoices_count + returns_count + po_count
+
+        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+
+        if total_transactions > 0 and not force:
+            details = []
+            if sales_count > 0:
+                details.append(f"{sales_count} vente(s)")
+            if invoices_count > 0:
+                details.append(f"{invoices_count} ligne(s) de facture")
+            if returns_count > 0:
+                details.append(f"{returns_count} retour(s)")
+            if po_count > 0:
+                details.append(f"{po_count} commande(s) fournisseur")
+
+            return Response(
+                {
+                    "error": "has_transactions",
+                    "can_force": True,
+                    "total_transactions": total_transactions,
+                    "message": (
+                        f"Ce produit est référencé dans {' et '.join(details)}. "
+                        "Confirmez la suppression forcée pour supprimer définitivement le produit "
+                        "et purger ces références historiques associées."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            if total_transactions > 0 and force:
+                SaleItem.objects.filter(variant__in=variants).delete()
+                ReturnItem.objects.filter(variant__in=variants).delete()
+                ExchangeItem.objects.filter(variant__in=variants).delete()
+                InvoiceItem.objects.filter(variant__in=variants).delete()
+                DeliveryNoteItem.objects.filter(variant__in=variants).delete()
+                PurchaseOrderItem.objects.filter(variant__in=variants).delete()
+
+            StockMovement.objects.filter(variant__in=variants).delete()
+            StockTransfer.objects.filter(variant__in=variants).delete()
+            Defect.objects.filter(variant__in=variants).delete()
+            ProductLocation.objects.filter(product=product).delete()
+
+            for v in variants:
+                v.delete()
+            product.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """Bulk permanently delete multiple products."""
+        self.require_manager()
+        product_ids = request.data.get("product_ids", [])
+        force = bool(request.data.get("force", False))
+
+        if not product_ids or not isinstance(product_ids, list):
+            return Response({"error": "product_ids list required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        products = list(Product.objects.filter(tenant=request.tenant, id__in=product_ids))
+        if not products:
+            return Response({"detail": "Aucun produit trouvé."}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.sales.models import SaleItem, ReturnItem, ExchangeItem
+        from apps.invoicing.models import InvoiceItem, DeliveryNoteItem
+        from apps.suppliers.models import PurchaseOrderItem
+        from apps.inventory.models import StockMovement, StockTransfer, Defect, ProductLocation
+
+        if not force:
+            blocked = []
+            for p in products:
+                vars_ids = p.variants.values_list("id", flat=True)
+                s_count = SaleItem.objects.filter(variant_id__in=vars_ids).count()
+                if s_count > 0:
+                    blocked.append({"id": p.id, "name": p.name, "sales": s_count})
+            if blocked:
+                return Response(
+                    {
+                        "error": "has_transactions",
+                        "can_force": True,
+                        "blocked_products": blocked,
+                        "message": f"{len(blocked)} produit(s) sélectionné(s) possèdent des ventes enregistrées. Confirmez pour forcer la suppression.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        deleted_count = 0
+        with transaction.atomic():
+            for p in products:
+                variants = list(p.variants.all())
+                if force:
+                    SaleItem.objects.filter(variant__in=variants).delete()
+                    ReturnItem.objects.filter(variant__in=variants).delete()
+                    ExchangeItem.objects.filter(variant__in=variants).delete()
+                    InvoiceItem.objects.filter(variant__in=variants).delete()
+                    DeliveryNoteItem.objects.filter(variant__in=variants).delete()
+                    PurchaseOrderItem.objects.filter(variant__in=variants).delete()
+
+                StockMovement.objects.filter(variant__in=variants).delete()
+                StockTransfer.objects.filter(variant__in=variants).delete()
+                Defect.objects.filter(variant__in=variants).delete()
+                ProductLocation.objects.filter(product=p).delete()
+
+                for v in variants:
+                    v.delete()
+                p.delete()
+                deleted_count += 1
+
+        return Response({"deleted": deleted_count, "detail": f"{deleted_count} produit(s) supprimé(s) définitivement."})
+
 
 # ── CODE-128C renderer ────────────────────────────────────────────────────────
 # CODE-128C encodes pairs of digits 00-99 → very compact for even-length numbers.
@@ -670,6 +892,258 @@ def _barcode_page(title: str, labels_html: str) -> str:
     font-family: monospace;
     letter-spacing: 0.06em;
     margin-top: 1mm;
+  }}
+</style>
+</head>
+<body>
+{labels_html}
+</body>
+</html>"""
+
+
+def _build_pdf_response(html_string: str, filename: str) -> HttpResponse:
+    try:
+        from django.conf import settings
+        if getattr(settings, "DESKTOP_MODE", False):
+            from apps.core.desktop.pdf_client import render_html_to_pdf
+            pdf_bytes = render_html_to_pdf(html_string)
+        else:
+            from weasyprint import HTML as WeasyHTML
+            pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
+    except Exception as exc:
+        return HttpResponse(
+            f"PDF generation failed: {exc}",
+            content_type="text/plain",
+            status=500,
+        )
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response
+
+
+def _render_shelf_label(product, location: str = "", variant = None) -> str:
+    """
+    Render a horizontal Algerian retail shelf/shoe box label (100mm × 44mm).
+    Displays:
+    - Product Name & Brand (large bold)
+    - Sale Price (huge prominent DZD amount)
+    - Location / Emplacement (if present)
+    - Reference & Barcode
+    """
+    brand_part = f"{product.brand} · " if product.brand else ""
+    formatted_price = f"{product.sale_price:,.0f}".replace(",", " ")
+    barcode_val = variant.barcode if (variant and variant.barcode) else ""
+    svg_barcode = _barcode_svg(barcode_val, height=45, module_w=1.6) if barcode_val else ""
+
+    location_html = ""
+    if location and location.strip():
+        location_html = f"""
+        <div class="loc-badge">
+            <span class="loc-label">EMPLACEMENT</span>
+            <span class="loc-val">{location.strip()}</span>
+        </div>
+        """
+
+    ref_html = f'<span class="ref">RÉF: {product.reference}</span>' if product.reference else ""
+    barcode_section = ""
+    if svg_barcode:
+        barcode_section = f"""
+        <div class="bc-wrap">
+            <div class="bc-svg">{svg_barcode}</div>
+            <span class="bc-code">{barcode_val}</span>
+        </div>
+        """
+
+    return f"""
+    <div class="shelf-label">
+        <div class="top-row">
+            <div class="title-block">
+                <span class="brand">{brand_part}</span>
+                <span class="p-name">{product.name}</span>
+            </div>
+            {location_html}
+        </div>
+        
+        <div class="middle-row">
+            <div class="price-box">
+                <span class="price-tag">PRIX VENTE T.T.C</span>
+                <div class="price-val">{formatted_price} <span class="dzd">DZD</span></div>
+            </div>
+            {barcode_section}
+        </div>
+
+        <div class="bottom-row">
+            {ref_html}
+            <span class="store-mark">Pointure / ShoeDZ</span>
+        </div>
+    </div>
+    """
+
+
+def _shelf_labels_page(title: str, labels_html: str) -> str:
+    """
+    HTML container for shelf labels.
+    Page size 100mm × 48mm (standard thermal shelf label / sticker roll).
+    """
+    return f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{title}</title>
+<style>
+  @page {{
+    size: 100mm 48mm;
+    margin: 2mm 3mm;
+  }}
+
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: white;
+    color: #111;
+  }}
+
+  .shelf-label {{
+    page-break-after: always;
+    width: 100%;
+    height: 44mm;
+    border: 1.5pt solid #000;
+    border-radius: 4px;
+    padding: 2.5mm 3.5mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }}
+  .shelf-label:last-child {{
+    page-break-after: avoid;
+  }}
+
+  .top-row {{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1pt solid #ddd;
+    padding-bottom: 1.5mm;
+    gap: 3mm;
+  }}
+
+  .title-block {{
+    flex: 1;
+    overflow: hidden;
+  }}
+
+  .brand {{
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #444;
+  }}
+
+  .p-name {{
+    font-size: 11pt;
+    font-weight: 800;
+    color: #000;
+    line-height: 1.15;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }}
+
+  .loc-badge {{
+    border: 1.2pt solid #000;
+    border-radius: 3px;
+    padding: 1mm 2.5mm;
+    text-align: center;
+    background: #f4f4f5;
+    shrink: 0;
+  }}
+
+  .loc-label {{
+    display: block;
+    font-size: 5pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #555;
+  }}
+
+  .loc-val {{
+    display: block;
+    font-size: 8.5pt;
+    font-weight: 800;
+    color: #000;
+  }}
+
+  .middle-row {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5mm 0;
+  }}
+
+  .price-box {{
+    display: flex;
+    flex-direction: column;
+  }}
+
+  .price-tag {{
+    font-size: 5.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #555;
+    text-transform: uppercase;
+  }}
+
+  .price-val {{
+    font-size: 20pt;
+    font-weight: 900;
+    font-family: monospace, sans-serif;
+    letter-spacing: -0.03em;
+    color: #000;
+    line-height: 1;
+  }}
+
+  .dzd {{
+    font-size: 10pt;
+    font-weight: 700;
+    color: #333;
+  }}
+
+  .bc-wrap {{
+    text-align: right;
+    line-height: 0;
+  }}
+
+  .bc-code {{
+    display: block;
+    font-size: 6.5pt;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+    margin-top: 1mm;
+    color: #444;
+  }}
+
+  .bottom-row {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 0.8pt solid #eee;
+    padding-top: 1mm;
+    font-size: 6.5pt;
+    color: #666;
+  }}
+
+  .ref {{
+    font-weight: 700;
+    font-family: monospace;
+  }}
+
+  .store-mark {{
+    font-size: 6pt;
+    font-style: italic;
+    color: #888;
   }}
 </style>
 </head>
