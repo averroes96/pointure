@@ -114,8 +114,70 @@ try {
     }
     if ($LASTEXITCODE -ne 0) { throw "npm dependencies installation failed in desktop directory" }
 
-    npx electron-builder --win nsis --$Arch --publish never
-    if ($LASTEXITCODE -ne 0) { throw "electron-builder packaging failed" }
+    # Pre-cache Electron prebuilt binary if not already cached to prevent app-builder CDN socket drops
+    $ElectronVersion = "32.3.3"
+    $ElectronCacheDir = "$env:LOCALAPPDATA\electron\Cache"
+    $ElectronZipName = "electron-v$ElectronVersion-win32-$Arch.zip"
+    $ElectronZipPath = "$ElectronCacheDir\$ElectronZipName"
+    $ElectronUrl = "https://github.com/electron/electron/releases/download/v$ElectronVersion/$ElectronZipName"
+
+    if (-not (Test-Path $ElectronCacheDir)) {
+        New-Item -ItemType Directory -Path $ElectronCacheDir -Force | Out-Null
+    }
+
+    if (-not (Test-Path $ElectronZipPath) -or (Get-Item $ElectronZipPath).Length -lt 50000000) {
+        Write-Host "Pre-fetching Electron binary ($ElectronZipName)..." -ForegroundColor Cyan
+        $downloadSuccess = $false
+        for ($i = 1; $i -le 3; $i++) {
+            try {
+                Write-Host "Downloading $ElectronUrl (Attempt $i)..."
+                if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                    & curl.exe -L --retry 3 --retry-delay 5 --max-time 300 -o $ElectronZipPath $ElectronUrl
+                    if ($LASTEXITCODE -eq 0 -and (Test-Path $ElectronZipPath) -and (Get-Item $ElectronZipPath).Length -gt 50000000) {
+                        $downloadSuccess = $true
+                        break
+                    }
+                } else {
+                    Invoke-WebRequest -Uri $ElectronUrl -OutFile $ElectronZipPath -UseBasicParsing -TimeoutSec 300
+                    if ((Test-Path $ElectronZipPath) -and (Get-Item $ElectronZipPath).Length -gt 50000000) {
+                        $downloadSuccess = $true
+                        break
+                    }
+                }
+            } catch {
+                Write-Warning "Download attempt $i failed: $_"
+                Start-Sleep -Seconds 5
+            }
+        }
+        if (-not $downloadSuccess) {
+            Write-Warning "Could not pre-download Electron zip; falling back to electron-builder internal downloader."
+        }
+    } else {
+        Write-Host "Using cached Electron binary: $ElectronZipPath" -ForegroundColor Green
+    }
+
+    # Execute electron-builder with retry on transient network/packaging errors
+    $maxAttempts = 3
+    $attempt = 1
+    $built = $false
+    while ($attempt -le $maxAttempts -and -not $built) {
+        Write-Host "Running electron-builder (Attempt $attempt of $maxAttempts)..." -ForegroundColor Cyan
+        npx electron-builder --win nsis --$Arch --publish never
+        if ($LASTEXITCODE -eq 0) {
+            $built = $true
+        } else {
+            Write-Warning "electron-builder packaging failed on attempt $attempt."
+            if ($attempt -lt $maxAttempts) {
+                Write-Host "Retrying electron-builder in 10 seconds..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 10
+            }
+            $attempt++
+        }
+    }
+
+    if (-not $built) {
+        throw "electron-builder packaging failed after $maxAttempts attempts"
+    }
 
     if (Test-Path "$DesktopDir\dist\latest.yml") {
         Copy-Item "$DesktopDir\dist\latest.yml" "$DesktopDir\dist\latest-$Arch.yml" -Force
