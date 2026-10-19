@@ -78,6 +78,8 @@ def _write_audit(instance, action, diff=None):
         return
 
     user = get_current_user()
+    if user and getattr(user, "tenant_id", None) != getattr(tenant, "id", None):
+        user = None
 
     AuditLog.objects.create(
         tenant=tenant,

@@ -1,4 +1,5 @@
 """Inventory API views."""
+from decimal import Decimal
 from django.db import transaction
 from django.http import HttpResponse
 from rest_framework import status, viewsets
@@ -715,6 +716,92 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 deleted_count += 1
 
         return Response({"deleted": deleted_count, "detail": f"{deleted_count} produit(s) supprimé(s) définitivement."})
+
+    @action(detail=False, methods=["post"], url_path="bulk-price-update")
+    def bulk_price_update(self, request):
+        """
+        Mass price update for selected products.
+        Supports:
+        - update_type: 'percentage' (+10%, -5%), 'fixed_delta' (+500 DZD, -200 DZD), 'fixed_set' (set all to 2500 DZD)
+        - target_field: 'sale_price' (default) or 'wholesale_price'
+        - value: decimal/float (e.g. 10 for +10%, -500 for -500 DZD)
+        - rounding: 'none', 'nearest_10', 'nearest_50', 'nearest_100', 'end_90'
+        - product_ids: list of int
+        """
+        self.require_manager()
+        product_ids = request.data.get("product_ids", [])
+        if not product_ids or not isinstance(product_ids, list):
+            return Response({"error": "product_ids list required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        update_type = request.data.get("update_type", "percentage")
+        target_field = request.data.get("target_field", "sale_price")
+        if target_field not in ("sale_price", "wholesale_price"):
+            return Response({"error": "target_field must be 'sale_price' or 'wholesale_price'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            val = Decimal(str(request.data.get("value", 0)))
+        except Exception as exc:
+            return Response({"error": f"Invalid numeric value provided: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        rounding = request.data.get("rounding", "none")
+
+        products = list(Product.objects.filter(tenant=request.tenant, id__in=product_ids))
+        if not products:
+            return Response({"detail": "Aucun produit trouvé."}, status=status.HTTP_404_NOT_FOUND)
+
+        updated_summary = []
+        with transaction.atomic():
+            for p in products:
+                current_price = getattr(p, target_field) or Decimal("0.00")
+                if update_type == "percentage":
+                    factor = Decimal("1.00") + (val / Decimal("100.00"))
+                    new_price = current_price * factor
+                elif update_type == "fixed_delta":
+                    new_price = current_price + val
+                elif update_type == "fixed_set":
+                    new_price = val
+                else:
+                    return Response({"error": f"Unknown update_type: {update_type}"}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Rounding logic
+                if rounding == "nearest_10":
+                    new_price = (new_price / Decimal("10")).quantize(Decimal("1"), rounding="ROUND_HALF_UP") * Decimal("10")
+                elif rounding == "nearest_50":
+                    new_price = (new_price / Decimal("50")).quantize(Decimal("1"), rounding="ROUND_HALF_UP") * Decimal("50")
+                elif rounding == "nearest_100":
+                    new_price = (new_price / Decimal("100")).quantize(Decimal("1"), rounding="ROUND_HALF_UP") * Decimal("100")
+                elif rounding == "end_90":
+                    hundreds = (new_price / Decimal("100")).quantize(Decimal("1"), rounding="ROUND_HALF_UP") * Decimal("100")
+                    new_price = max(Decimal("0.00"), hundreds - Decimal("10.00"))
+                else:
+                    new_price = new_price.quantize(Decimal("0.01"))
+
+                # Floor at zero
+                new_price = max(Decimal("0.00"), new_price)
+
+                setattr(p, target_field, new_price)
+                p.save(update_fields=[target_field, "updated_at"])
+
+                diff = new_price - current_price
+                diff_str = f"+{diff:.2f}" if diff > 0 else f"{diff:.2f}"
+
+                updated_summary.append({
+                    "id": p.id,
+                    "name": p.name,
+                    "reference": p.reference,
+                    "brand": p.brand,
+                    "old_price": str(current_price),
+                    "new_price": str(new_price),
+                    "difference": diff_str,
+                })
+
+        return Response({
+            "updated_count": len(updated_summary),
+            "target_field": target_field,
+            "product_ids": [p["id"] for p in updated_summary],
+            "updated_products": updated_summary,
+            "message": f"Prix mis à jour pour {len(updated_summary)} produit(s).",
+        })
 
 
 # ── CODE-128C renderer ────────────────────────────────────────────────────────

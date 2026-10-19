@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer, CheckCircle2, X } from "lucide-react";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import ImportModal from "@/components/ui/ImportModal";
+import BulkPriceUpdateModal from "./components/BulkPriceUpdateModal";
 
 const PRODUCT_TEMPLATE = `brand,name,category,gender,sale_price,purchase_price,size_eu,colour,alert_threshold
 Nike,Air Max 90,sneakers,M,8500,5000,42,Noir,3
@@ -31,6 +32,11 @@ export default function ProductsPage() {
   const [bulkDeleteForce, setBulkDeleteForce] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+
+  // Mass Price Update state
+  const [bulkPriceModalOpen, setBulkPriceModalOpen] = useState(false);
+  const [priceUpdateSuccessMessage, setPriceUpdateSuccessMessage] = useState<string | null>(null);
+  const [lastUpdatedProductIds, setLastUpdatedProductIds] = useState<(number | string)[]>([]);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", { search, page }],
@@ -61,13 +67,13 @@ export default function ProductsPage() {
     );
   }
 
-  async function handleBulkShelfLabels() {
-    if (selectedIds.length === 0 || bulkShelfLoading) return;
+  async function handleShelfLabelsForIds(ids: (number | string)[]) {
+    if (ids.length === 0 || bulkShelfLoading) return;
     setBulkShelfLoading(true);
     try {
       const res = await api.post(
         "/inventory/products/shelf-labels/",
-        { product_ids: selectedIds, copies: 1 },
+        { product_ids: ids, copies: 1 },
         { responseType: "blob" }
       );
       const blob = new Blob([res.data], { type: "application/pdf" });
@@ -79,6 +85,10 @@ export default function ProductsPage() {
     } finally {
       setBulkShelfLoading(false);
     }
+  }
+
+  async function handleBulkShelfLabels() {
+    await handleShelfLabelsForIds(selectedIds);
   }
 
   async function handleSingleShelfLabel(id: number) {
@@ -157,6 +167,36 @@ export default function ProductsPage() {
         )}
       </div>
 
+      {/* Price Update Success Notification Banner */}
+      {priceUpdateSuccessMessage && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 text-sm shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+            <span className="font-medium">{priceUpdateSuccessMessage}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {lastUpdatedProductIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleShelfLabelsForIds(lastUpdatedProductIds)}
+                disabled={bulkShelfLoading}
+                className="btn-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg flex items-center gap-1.5 px-3 py-1.5 text-xs shadow-2xs transition-colors"
+              >
+                <Printer size={13} />
+                Réimprimer étiquettes rayon ({lastUpdatedProductIds.length})
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setPriceUpdateSuccessMessage(null)}
+              className="text-emerald-600 hover:text-emerald-800 p-1 rounded-md"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Search & Toolbar */}
       <div className="flex items-center justify-between gap-3">
         <div className="relative w-full max-w-md">
@@ -188,6 +228,17 @@ export default function ProductsPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {user?.role !== "cashier" && (
+              <button
+                type="button"
+                onClick={() => setBulkPriceModalOpen(true)}
+                className="btn-sm bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors"
+              >
+                <Tag size={14} />
+                {t("inventory.bulk_price_update", "Modifier les prix")} ({selectedIds.length})
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleBulkShelfLabels}
@@ -197,9 +248,9 @@ export default function ProductsPage() {
               {bulkShelfLoading ? (
                 <Loader2 size={14} className="animate-spin text-slate-600" />
               ) : (
-                <Tag size={14} className="text-amber-600" />
+                <Printer size={14} className="text-amber-600" />
               )}
-              Imprimer étiquettes rayon ({selectedIds.length})
+              {t("inventory.print_shelf_labels", "Imprimer étiquettes rayon")} ({selectedIds.length})
             </button>
 
             {user?.role !== "cashier" && (
@@ -493,6 +544,25 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Price Update Modal */}
+      {bulkPriceModalOpen && (
+        <BulkPriceUpdateModal
+          isOpen={bulkPriceModalOpen}
+          onClose={() => setBulkPriceModalOpen(false)}
+          selectedIds={selectedIds}
+          selectedProducts={products.filter((p) => selectedIds.includes(p.id))}
+          onSuccess={async (updatedIds, autoReprint) => {
+            qc.invalidateQueries({ queryKey: ["products"] });
+            setPriceUpdateSuccessMessage(`${updatedIds.length} produit(s) mis à jour avec succès.`);
+            setLastUpdatedProductIds(updatedIds);
+            setSelectedIds([]);
+            if (autoReprint) {
+              await handleShelfLabelsForIds(updatedIds);
+            }
+          }}
+        />
       )}
     </div>
   );
