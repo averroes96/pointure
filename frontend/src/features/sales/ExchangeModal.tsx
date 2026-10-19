@@ -10,9 +10,11 @@ import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Search, Plus, Trash2, AlertTriangle } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
-import type { Sale, SaleItem, Variant, PaymentMethod, DefectReason } from "@/types";
+import type { Sale, SaleItem, Variant, PaymentMethod, DefectReason, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/features/auth/AuthContext";
+import ManagerPinModal from "@/components/ui/ManagerPinModal";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
   { value: "cash", labelKey: "payment.cash" },
@@ -113,6 +115,16 @@ export default function ExchangeModal({
   }, []);
 
   // ── Misc state ─────────────────────────────────────────────────────────────
+  const { user } = useAuth();
+  const [managerPin, setManagerPin] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [reason, setReason] = useState("");
   const [extraPaymentMethod, setExtraPaymentMethod] =
     useState<PaymentMethod>("cash");
@@ -133,8 +145,9 @@ export default function ExchangeModal({
 
   // ── Mutation ───────────────────────────────────────────────────────────────
   const mutation = useMutation({
-    mutationFn: () =>
-      api.post(`/sales/${sale.id}/exchange/`, {
+    mutationFn: (overridePin?: string) => {
+      const pinToSend = overridePin || managerPin;
+      return api.post(`/sales/${sale.id}/exchange/`, {
         returned_items: selectedReturned.map((s) => ({
           variant_id: s.item.variant,
           quantity: s.quantity,
@@ -149,7 +162,9 @@ export default function ExchangeModal({
         })),
         reason,
         ...(diff > 0 ? { extra_payment_method: extraPaymentMethod } : {}),
-      }),
+        ...(pinToSend ? { manager_pin: pinToSend } : {}),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["defects"] });
@@ -161,8 +176,24 @@ export default function ExchangeModal({
       queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       onClose();
     },
-    onError: (err) => setError(getApiError(err)),
+    onError: (err) => {
+      const errMsg = getApiError(err);
+      setError(errMsg);
+      if (errMsg.toLowerCase().includes("pin")) {
+        setShowPinModal(true);
+      }
+    },
   });
+
+  const handleConfirmExchange = () => {
+    setError(null);
+    const requirePin = storeSettings?.require_manager_pin_for_returns ?? true;
+    if (user?.role === "cashier" && !user.can_process_returns && requirePin && !managerPin) {
+      setShowPinModal(true);
+      return;
+    }
+    mutation.mutate();
+  };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function updateReturned(index: number, patch: Partial<ReturnedItemState>) {
@@ -584,10 +615,7 @@ export default function ExchangeModal({
               {t("common.cancel")}
             </button>
             <button
-              onClick={() => {
-                setError(null);
-                mutation.mutate();
-              }}
+              onClick={handleConfirmExchange}
               className="btn-primary btn-sm"
               disabled={!canSubmit}
             >
@@ -596,6 +624,18 @@ export default function ExchangeModal({
           </div>
         </div>
       </div>
+
+      <ManagerPinModal
+        isOpen={showPinModal}
+        reason="Autorisation Responsable requise pour l'échange"
+        actionDescription="Un code PIN manager est nécessaire pour valider cet échange avec retour d'articles."
+        onSuccess={(pin) => {
+          setManagerPin(pin);
+          setShowPinModal(false);
+          mutation.mutate(pin);
+        }}
+        onCancel={() => setShowPinModal(false)}
+      />
     </div>
   );
 }

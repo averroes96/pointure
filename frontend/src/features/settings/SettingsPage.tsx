@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Plus,
   Lock,
+  Key,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
@@ -480,6 +482,11 @@ interface InviteFormData {
   last_name: string;
   password: string;
   confirm_password: string;
+  max_discount_pct?: number;
+  can_modify_price?: boolean;
+  can_process_returns?: boolean;
+  can_cancel_sale?: boolean;
+  pin_code?: string;
 }
 
 function UsersTab() {
@@ -487,6 +494,9 @@ function UsersTab() {
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [pinActionLoading, setPinActionLoading] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<UserType>>({
     queryKey: ["settings", "users"],
@@ -497,10 +507,19 @@ function UsersTab() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<InviteFormData>({
-    defaultValues: { role: "cashier" },
+    defaultValues: {
+      role: "cashier",
+      max_discount_pct: 10,
+      can_modify_price: false,
+      can_process_returns: false,
+      can_cancel_sale: false,
+    },
   });
+
+  const selectedRole = watch("role");
 
   const inviteMutation = useMutation({
     mutationFn: (data: InviteFormData) =>
@@ -524,6 +543,17 @@ function UsersTab() {
     onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
   });
 
+  const updatePermissionsMutation = useMutation({
+    mutationFn: ({ userId, patch }: { userId: number; patch: Partial<UserType> }) =>
+      api.patch(`/core/users/${userId}/`, patch).then((r) => r.data),
+    onSuccess: () => {
+      setToast({ msg: "Permissions mises à jour.", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ["settings", "users"] });
+      setEditingUser(null);
+    },
+    onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
+  });
+
   const users = data?.results ?? [];
 
   const ROLE_LABELS: Record<string, string> = {
@@ -536,6 +566,23 @@ function UsersTab() {
     setToast(null);
     inviteMutation.mutate(data);
   }
+
+  const handleSetPin = async (userId: number, pin: string) => {
+    setPinActionLoading(true);
+    try {
+      await api.post(`/core/users/${userId}/set-pin/`, { pin });
+      setToast({
+        msg: pin ? "Code PIN mis à jour avec succès." : "Code PIN supprimé.",
+        type: "success",
+      });
+      setPinInput("");
+      queryClient.invalidateQueries({ queryKey: ["settings", "users"] });
+    } catch (err) {
+      setToast({ msg: getApiError(err), type: "error" });
+    } finally {
+      setPinActionLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -658,6 +705,62 @@ function UsersTab() {
                 <option value="manager">Gérant</option>
               </select>
             </div>
+
+            {/* Cashier-specific permissions & PIN in invite form */}
+            {selectedRole === "cashier" ? (
+              <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-3">
+                <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-amber-600" />
+                  Permissions & Limites de Caisse
+                </span>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Remise max autorisée sans PIN (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    {...register("max_discount_pct")}
+                    className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono"
+                  />
+                </div>
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register("can_modify_price")}
+                      className="w-4 h-4 accent-primary-600 rounded"
+                    />
+                    Autoriser la modification des prix de vente au panier
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register("can_process_returns")}
+                      className="w-4 h-4 accent-primary-600 rounded"
+                    />
+                    Autoriser les retours et remboursements sans PIN manager
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-200/80">
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <Key size={14} className="text-blue-600" />
+                  Code PIN Manager (4 ou 6 chiffres)
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="Ex: 1234"
+                  {...register("pin_code")}
+                  className="w-32 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono"
+                />
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
               <button
                 type="submit"
@@ -697,6 +800,9 @@ function UsersTab() {
                   {t("settings.role")}
                 </th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Permissions Caisse & PIN
+                </th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Statut
                 </th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
@@ -707,14 +813,14 @@ function UsersTab() {
             <tbody className="divide-y divide-slate-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-slate-400">
+                  <td colSpan={6} className="text-center py-8 text-slate-400">
                     {t("common.loading")}
                   </td>
                 </tr>
               )}
               {!isLoading && users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-slate-400">
+                  <td colSpan={6} className="text-center py-8 text-slate-400">
                     Aucun utilisateur.
                   </td>
                 </tr>
@@ -742,6 +848,51 @@ function UsersTab() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4">
+                    {u.role === "cashier" ? (
+                      <div className="flex flex-col gap-1 text-2xs">
+                        <span className="font-mono text-slate-700">
+                          Remise max: <strong className="text-amber-700">{u.max_discount_pct ?? 10}%</strong>
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.5 rounded border",
+                              u.can_modify_price
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-50 text-slate-500 border-slate-200"
+                            )}
+                          >
+                            {u.can_modify_price ? "Prix modifiables" : "Prix fixes"}
+                          </span>
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.5 rounded border",
+                              u.can_process_returns
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            )}
+                          >
+                            {u.can_process_returns ? "Retours libres" : "Retours avec PIN"}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold border",
+                            u.has_pin
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-rose-50 text-rose-700 border-rose-200"
+                          )}
+                        >
+                          <Key size={11} />
+                          {u.has_pin ? "PIN défini" : "Sans PIN"}
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
                     <span
                       className={cn(
                         "inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-semibold border",
@@ -760,19 +911,33 @@ function UsersTab() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    {u.is_active && u.role !== "owner" && (
+                    <div className="inline-flex items-center gap-2">
                       <button
                         onClick={() => {
-                          if (confirm(`Désactiver ${u.full_name || u.email} ?`)) {
-                            deactivateMutation.mutate(u.id);
-                          }
+                          setEditingUser(u);
+                          setPinInput("");
                         }}
-                        className="inline-flex items-center px-2.5 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-all cursor-pointer"
-                        disabled={deactivateMutation.isPending}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                        title="Configurer les permissions & code PIN"
                       >
-                        Désactiver
+                        <ShieldCheck size={13} className="text-slate-500" />
+                        Permissions & PIN
                       </button>
-                    )}
+
+                      {u.is_active && u.role !== "owner" && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Désactiver ${u.full_name || u.email} ?`)) {
+                              deactivateMutation.mutate(u.id);
+                            }
+                          }}
+                          className="inline-flex items-center px-2 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-all cursor-pointer"
+                          disabled={deactivateMutation.isPending}
+                        >
+                          Désactiver
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -780,6 +945,189 @@ function UsersTab() {
           </table>
         </div>
       </div>
+
+      {/* Edit User Permissions & PIN Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-primary-600" />
+                  Permissions & PIN: {editingUser.full_name || editingUser.email}
+                </h3>
+                <p className="text-2xs text-slate-500 mt-0.5">
+                  Rôle: <span className="font-semibold">{ROLE_LABELS[editingUser.role] ?? editingUser.role}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 overflow-y-auto max-h-[75vh]">
+              {/* Cashier Permissions */}
+              {editingUser.role === "cashier" && (
+                <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Contrôle de Caisse
+                  </h4>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Remise maximum autorisée sans validation manager (%)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        defaultValue={editingUser.max_discount_pct ?? 10}
+                        id="edit_max_discount_pct"
+                        className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono font-bold"
+                      />
+                      <span className="text-xs font-mono text-slate-400">%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        defaultChecked={editingUser.can_modify_price ?? false}
+                        id="edit_can_modify_price"
+                        className="w-4 h-4 accent-primary-600 rounded"
+                      />
+                      Autoriser la modification des prix de vente au panier
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        defaultChecked={editingUser.can_process_returns ?? false}
+                        id="edit_can_process_returns"
+                        className="w-4 h-4 accent-primary-600 rounded"
+                      />
+                      Autoriser les retours et remboursements sans PIN manager
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        defaultChecked={editingUser.can_cancel_sale ?? false}
+                        id="edit_can_cancel_sale"
+                        className="w-4 h-4 accent-primary-600 rounded"
+                      />
+                      Autoriser l'annulation de ventes sans PIN manager
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={updatePermissionsMutation.isPending}
+                    onClick={() => {
+                      const max_discount_pct = Number(
+                        (document.getElementById("edit_max_discount_pct") as HTMLInputElement)?.value || 10
+                      );
+                      const can_modify_price = (document.getElementById("edit_can_modify_price") as HTMLInputElement)?.checked ?? false;
+                      const can_process_returns = (document.getElementById("edit_can_process_returns") as HTMLInputElement)?.checked ?? false;
+                      const can_cancel_sale = (document.getElementById("edit_can_cancel_sale") as HTMLInputElement)?.checked ?? false;
+
+                      updatePermissionsMutation.mutate({
+                        userId: editingUser.id,
+                        patch: {
+                          max_discount_pct,
+                          can_modify_price,
+                          can_process_returns,
+                          can_cancel_sale,
+                        },
+                      });
+                    }}
+                    className="w-full mt-2 py-2 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
+                  >
+                    {updatePermissionsMutation.isPending ? "Enregistrement..." : "Enregistrer les permissions"}
+                  </button>
+                </div>
+              )}
+
+              {/* PIN Code Configuration */}
+              <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Key size={14} className="text-amber-600" />
+                    Code PIN de sécurité
+                  </h4>
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-2xs font-semibold border",
+                      editingUser.has_pin
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-slate-100 text-slate-500 border-slate-200"
+                    )}
+                  >
+                    {editingUser.has_pin ? "Configuré" : "Non configuré"}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Le code PIN (4 ou 6 chiffres) permet au responsable d'autoriser rapidement les retours,
+                  les remises et les dérogations directement depuis le terminal de caisse.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Nouveau code PIN
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={pinInput}
+                      onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Ex: 1234"
+                      className="w-36 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-mono tracking-widest text-center focus:border-primary-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={pinActionLoading || (pinInput.length !== 4 && pinInput.length !== 6)}
+                      onClick={() => handleSetPin(editingUser.id, pinInput)}
+                      className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-40"
+                    >
+                      {pinActionLoading ? "..." : "Définir le PIN"}
+                    </button>
+                    {editingUser.has_pin && (
+                      <button
+                        type="button"
+                        disabled={pinActionLoading}
+                        onClick={() => {
+                          if (confirm("Supprimer le code PIN pour cet utilisateur ?")) {
+                            handleSetPin(editingUser.id, "");
+                          }
+                        }}
+                        className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-semibold transition-all disabled:opacity-40"
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="py-1.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -992,6 +1340,9 @@ interface VersementsFormData {
   versement_due_days: number;
   versement_requires_client: boolean;
   allow_negative_stock: boolean;
+  require_manager_pin_for_returns: boolean;
+  require_manager_pin_for_discounts: boolean;
+  default_max_discount_pct: number;
 }
 
 function VersementsTab() {
@@ -1015,12 +1366,18 @@ function VersementsTab() {
           versement_due_days: settings.versement_due_days,
           versement_requires_client: settings.versement_requires_client,
           allow_negative_stock: settings.allow_negative_stock ?? false,
+          require_manager_pin_for_returns: settings.require_manager_pin_for_returns ?? true,
+          require_manager_pin_for_discounts: settings.require_manager_pin_for_discounts ?? true,
+          default_max_discount_pct: settings.default_max_discount_pct ?? 10,
         }
       : {
           min_versement_pct: 30,
           versement_due_days: 90,
           versement_requires_client: true,
           allow_negative_stock: false,
+          require_manager_pin_for_returns: true,
+          require_manager_pin_for_discounts: true,
+          default_max_discount_pct: 10,
         },
   });
 
@@ -1041,6 +1398,9 @@ function VersementsTab() {
       min_versement_pct: Number(data.min_versement_pct),
       versement_due_days: Number(data.versement_due_days),
       allow_negative_stock: Boolean(data.allow_negative_stock),
+      require_manager_pin_for_returns: Boolean(data.require_manager_pin_for_returns),
+      require_manager_pin_for_discounts: Boolean(data.require_manager_pin_for_discounts),
+      default_max_discount_pct: Number(data.default_max_discount_pct),
     });
   }
 
@@ -1050,8 +1410,82 @@ function VersementsTab() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-xl">
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
+      {/* Contrôle Caisse & Code PIN Responsable */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <ShieldCheck size={16} className="text-amber-600" />
+            Contrôle Caisse & Code PIN Manager
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Sécurisez vos encaissements contre les fraudes de retour et les remises excessives.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="require_manager_pin_for_returns"
+              {...register("require_manager_pin_for_returns")}
+              className="w-4 h-4 mt-0.5 accent-primary-600 rounded border-slate-300"
+            />
+            <div>
+              <label
+                htmlFor="require_manager_pin_for_returns"
+                className="text-sm font-semibold text-slate-900 cursor-pointer"
+              >
+                Exiger le code PIN Manager pour les retours & remboursements
+              </label>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Empêche un caissier de valider un retour ou de rembourser un client sans la présence et le PIN d'un responsable.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="require_manager_pin_for_discounts"
+              {...register("require_manager_pin_for_discounts")}
+              className="w-4 h-4 mt-0.5 accent-primary-600 rounded border-slate-300"
+            />
+            <div>
+              <label
+                htmlFor="require_manager_pin_for_discounts"
+                className="text-sm font-semibold text-slate-900 cursor-pointer"
+              >
+                Exiger le code PIN Manager en cas de dépassement de remise
+              </label>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Si un caissier accorde une remise supérieure à sa limite autorisée, le PIN d'un gérant sera requis pour finaliser l'encaissement.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Remise maximale par défaut pour les caissiers (%)
+            </label>
+            <div className="flex items-center gap-2 max-w-xs">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                {...register("default_max_discount_pct", { min: 0, max: 100 })}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono font-bold"
+              />
+              <span className="text-xs font-mono font-bold text-slate-400">%</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Limite appliquée à tout caissier n'ayant pas de règle spécifique personnalisée.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Stock Policy */}
-      <div className="space-y-3">
+      <div className="pt-6 border-t border-slate-200/80 space-y-3">
         <h3 className="text-sm font-bold text-slate-900">Politique de Stock & Caisse</h3>
         <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50">
           <div className="flex items-start gap-3">

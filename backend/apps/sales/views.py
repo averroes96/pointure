@@ -135,7 +135,10 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"detail": "Seules les ventes complétées peuvent être retournées."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = CreateReturnSerializer(data=request.data, context={"sale": sale})
+        serializer = CreateReturnSerializer(
+            data=request.data,
+            context={"sale": sale, "request": request, "processed_by": request.user},
+        )
         serializer.is_valid(raise_exception=True)
         return_obj = serializer.create_return(sale, processed_by=request.user)
         return Response(
@@ -158,7 +161,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = CreateExchangeSerializer(
-            data=request.data, context={"sale": sale, "request": request}
+            data=request.data, context={"sale": sale, "request": request, "processed_by": request.user}
         )
         serializer.is_valid(raise_exception=True)
         serializer.create_exchange(sale, processed_by=request.user)

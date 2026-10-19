@@ -18,6 +18,7 @@ import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSumma
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import ManagerPinModal from "@/components/ui/ManagerPinModal";
 
 interface CartItem {
   variant: Variant;
@@ -283,6 +284,18 @@ export default function SalesPage() {
   } | null>(null);
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [stockWarningToast, setStockWarningToast] = useState<string | null>(null);
+  const managerPinRef = useRef<string | null>(null);
+  const [managerPinPrompt, setManagerPinPrompt] = useState<{
+    isOpen: boolean;
+    reason: string;
+    actionDescription?: string;
+    quickMode: boolean;
+  }>({
+    isOpen: false,
+    reason: "",
+    actionDescription: "",
+    quickMode: false,
+  });
 
   const navigate = useNavigate();
   const [showMovementModal, setShowMovementModal] = useState(false);
@@ -592,9 +605,11 @@ export default function SalesPage() {
         cart_discount: Number(cartDiscount || 0).toFixed(2),
         is_formal: isFormal,
         is_versement: isVersement,
+        ...(managerPinRef.current ? { manager_pin: managerPinRef.current } : {}),
       }).then((r) => r.data);
     },
     onSuccess: (data) => {
+      managerPinRef.current = null;
       const wasQuickMode = isQuickModeRef.current;
       if (wasQuickMode) {
         // Dot (.) quick sale: don't render receipt modal, show confirmation toast
@@ -675,6 +690,40 @@ export default function SalesPage() {
       }
     }
 
+    // Cashier permission & Manager PIN check
+    if (user?.role === "cashier" && !managerPinRef.current) {
+      const grossTotal = cart.reduce((s, i) => s + (Number(i.unit_price) * i.quantity), 0);
+      const totalDiscount = (Number(cartDiscount) || 0) + cart.reduce((s, i) => s + (Number(i.discount) || 0), 0);
+      const discountPct = grossTotal > 0 ? (totalDiscount / grossTotal) * 100 : 0;
+      const maxAllowed = user.max_discount_pct ?? storeSettings?.default_max_discount_pct ?? 10;
+      const requirePinForDiscounts = storeSettings?.require_manager_pin_for_discounts ?? true;
+
+      if (requirePinForDiscounts && discountPct > maxAllowed) {
+        setManagerPinPrompt({
+          isOpen: true,
+          reason: `Remise totale (${discountPct.toFixed(1)}%) supérieure à votre plafond autorisé (${maxAllowed}%)`,
+          actionDescription: "La validation d'un responsable par code PIN est nécessaire pour accorder cette remise.",
+          quickMode,
+        });
+        return;
+      }
+
+      if (user.can_modify_price === false) {
+        const altered = cart.find(
+          (i) => Math.abs(Number(i.unit_price) - parseFloat(i.product.sale_price)) > 0.01
+        );
+        if (altered) {
+          setManagerPinPrompt({
+            isOpen: true,
+            reason: `Prix unitaire modifié pour "${altered.product.name}" (${Number(altered.unit_price).toFixed(2)} DA vs ${parseFloat(altered.product.sale_price).toFixed(2)} DA)`,
+            actionDescription: "La modification des prix du catalogue nécessite l'approbation d'un responsable.",
+            quickMode,
+          });
+          return;
+        }
+      }
+    }
+
     executeSaleSubmission(quickMode);
   }
 
@@ -684,6 +733,7 @@ export default function SalesPage() {
   }, [cart.length]);
 
   const confirmClearCart = useCallback(() => {
+    managerPinRef.current = null;
     setCart([]);
     setCartDiscount(0);
     setRedeemPoints(0);
@@ -2189,6 +2239,21 @@ export default function SalesPage() {
           </div>
         </div>
       )}
+
+      {/* Manager PIN Modal for Cashier Authorizations */}
+      <ManagerPinModal
+        isOpen={managerPinPrompt.isOpen}
+        reason={managerPinPrompt.reason}
+        actionDescription={managerPinPrompt.actionDescription}
+        onSuccess={(pin) => {
+          managerPinRef.current = pin;
+          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false }));
+          executeSaleSubmission(managerPinPrompt.quickMode);
+        }}
+        onCancel={() => {
+          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false }));
+        }}
+      />
     </div>
   );
 }

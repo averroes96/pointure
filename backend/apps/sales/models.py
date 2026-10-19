@@ -49,6 +49,10 @@ class Sale(TenantScopedModel):
     cashier = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="sales"
     )
+    authorized_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="authorized_sales",
+        help_text=_("Manager who authorized this sale (e.g. discount override or price edit)"),
+    )
     client = models.ForeignKey(
         "clients.Client", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="sales"
@@ -155,6 +159,10 @@ class Return(TenantScopedModel):
     )
     processed_by = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="returns_processed"
+    )
+    authorized_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="authorized_returns",
+        help_text=_("Manager who approved this return with PIN"),
     )
     reason = models.TextField(_("Reason"))
     refund_amount = models.DecimalField(
@@ -358,6 +366,10 @@ class Exchange(TenantScopedModel):
     original_sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="exchanges")
     processed_by = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="exchanges_processed"
+    )
+    authorized_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="authorized_exchanges",
+        help_text=_("Manager who approved this exchange with PIN"),
     )
     reason = models.TextField(_("Reason"), blank=True)
     # Positive when customer owes extra (new items more expensive than returned)

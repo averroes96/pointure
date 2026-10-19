@@ -41,6 +41,7 @@ class SaleSerializer(serializers.ModelSerializer):
     loyalty_points = serializers.SerializerMethodField()
     exchange_count = serializers.IntegerField(source="exchanges.count", read_only=True)
     session_number = serializers.IntegerField(source="session.session_number", read_only=True, default=None)
+    authorized_by_name = serializers.CharField(source="authorized_by.get_full_name", read_only=True, default=None)
 
     def _loyalty_account(self, obj):
         if not obj.client_id:
@@ -66,8 +67,26 @@ class SaleSerializer(serializers.ModelSerializer):
             "total_amount", "discount_amount", "amount_paid", "balance_due", "is_formal", "timbre_fiscal",
             "receipt_number", "notes", "due_date", "items", "payments",
             "exchange_count", "session", "session_number", "created_at",
+            "authorized_by", "authorized_by_name",
         ]
-        read_only_fields = ["id", "created_at", "receipt_number"]
+        read_only_fields = ["id", "created_at", "receipt_number", "authorized_by_name"]
+
+
+def verify_manager_pin_helper(tenant, raw_pin):
+    """Verify if raw_pin matches any active owner or manager in tenant. Returns matching User or None."""
+    if not raw_pin or not str(raw_pin).strip():
+        return None
+    from apps.core.models import RoleChoices, User
+    managers = User.objects.filter(
+        tenant=tenant,
+        role__in=[RoleChoices.OWNER, RoleChoices.MANAGER],
+        is_active=True,
+    )
+    clean_pin = str(raw_pin).strip()
+    for mgr in managers:
+        if mgr.check_pin(clean_pin):
+            return mgr
+    return None
 
 
 # ─── Create sale input ────────────────────────────────────────────────────────
@@ -103,6 +122,7 @@ class CreateSaleSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
     is_versement = serializers.BooleanField(default=False)
+    manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, data):
         from apps.clients.models import Client
@@ -219,6 +239,47 @@ class CreateSaleSerializer(serializers.Serializer):
             # Stash for create_sale
             data["_versement_due_days"] = due_days
 
+        # Cashier Permissions & Manager PIN Enforcement
+        req = self.context.get("request")
+        user = getattr(req, "user", None)
+        pin = data.get("manager_pin", "")
+        authorized_mgr = None
+
+        if user and getattr(user, "role", None) == "cashier":
+            # 1. Price Modification Check
+            if not getattr(user, "can_modify_price", False):
+                for item_data in data["items"]:
+                    variant = item_data["variant"]
+                    catalog_price = variant.product.sale_price
+                    if item_data["unit_price"] != catalog_price:
+                        if not authorized_mgr:
+                            authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                        if not authorized_mgr:
+                            raise serializers.ValidationError({
+                                "items": f"Modification du prix de '{variant.product.name}' ({item_data['unit_price']} DA vs {catalog_price} DA) non autorisée. Code PIN manager requis."
+                            })
+
+            # 2. Maximum Discount Check
+            require_discount_pin = store_settings.require_manager_pin_for_discounts if store_settings else True
+            if require_discount_pin:
+                allowed_pct = Decimal(user.max_discount_pct if user.max_discount_pct is not None else (store_settings.default_max_discount_pct if store_settings else 10))
+                gross_items_total = sum(item["unit_price"] * item["quantity"] for item in data["items"])
+                cart_disc = data.get("cart_discount", Decimal("0.00"))
+                item_discs = sum(item.get("discount_amount", Decimal("0.00")) for item in data["items"])
+                total_disc = cart_disc + item_discs
+                if gross_items_total > Decimal("0.00"):
+                    disc_pct = (total_disc / gross_items_total) * Decimal("100")
+                    if disc_pct > allowed_pct:
+                        if not authorized_mgr:
+                            authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                        if not authorized_mgr:
+                            raise serializers.ValidationError({
+                                "cart_discount": f"La remise totale accordée ({disc_pct:.1f}%) dépasse votre limite autorisée ({allowed_pct}%). Code PIN manager requis."
+                            })
+
+        if authorized_mgr:
+            data["_authorized_by"] = authorized_mgr
+
         # Allow underpayment (creates account balance) but not overpayment > 10%
         if payment_total > items_total * Decimal("1.1"):
             raise serializers.ValidationError(
@@ -238,6 +299,7 @@ class CreateSaleSerializer(serializers.Serializer):
         _loyalty_account = validated_data.pop("_loyalty_account", None)
         is_versement = validated_data.pop("is_versement", False)
         versement_due_days = validated_data.pop("_versement_due_days", 90)
+        authorized_by = validated_data.pop("_authorized_by", None)
 
         # Resolve optional FKs
         branch = None
@@ -312,6 +374,7 @@ class CreateSaleSerializer(serializers.Serializer):
             receipt_number=receipt_number,
             status=sale_status,
             due_date=due_date,
+            authorized_by=authorized_by,
         )
 
         # Create items + stock movements
@@ -468,11 +531,28 @@ class CreateReturnSerializer(serializers.Serializer):
     reason = serializers.CharField()
     refund_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
     refund_method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
+    manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, data):
         sale = self.context.get("sale")
         if not sale:
             return data
+
+        # Manager PIN validation for returns
+        request = self.context.get("request")
+        processed_by = getattr(request, "user", None) or self.context.get("processed_by")
+        from apps.core.models import StoreSettings
+        store_settings = StoreSettings.objects.filter(tenant=sale.tenant).first()
+        require_pin = store_settings.require_manager_pin_for_returns if store_settings else True
+
+        if processed_by and getattr(processed_by, "role", None) == "cashier" and (require_pin or not getattr(processed_by, "can_process_returns", False)):
+            pin = data.get("manager_pin", "")
+            mgr = verify_manager_pin_helper(sale.tenant, pin)
+            if not mgr:
+                raise serializers.ValidationError({
+                    "manager_pin": "Un code PIN manager valide est requis pour autoriser un retour ou remboursement."
+                })
+            data["_authorized_by"] = mgr
 
         # Build a map of how many units of each variant were sold
         sold_qty: dict[int, int] = {
@@ -542,6 +622,7 @@ class CreateReturnSerializer(serializers.Serializer):
             session=active_session,
             original_sale=sale,
             processed_by=processed_by,
+            authorized_by=data.get("_authorized_by"),
             reason=data["reason"],
             refund_amount=data["refund_amount"],
             refund_method=data["refund_method"],
@@ -877,12 +958,29 @@ class CreateExchangeSerializer(serializers.Serializer):
     extra_payment_method = serializers.ChoiceField(
         choices=PaymentMethodChoices.choices, required=False, allow_blank=True, default=""
     )
+    manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, data):
         sale = self.context.get("sale")
         request = self.context.get("request")
         if not sale:
             return data
+
+        # Manager PIN enforcement for exchange returns
+        tenant = request.tenant if request else sale.tenant
+        current_user = getattr(request, "user", None) or self.context.get("processed_by")
+        from apps.core.models import StoreSettings
+        store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+        require_pin = store_settings.require_manager_pin_for_returns if store_settings else True
+
+        if current_user and getattr(current_user, "role", None) == "cashier" and (require_pin or not getattr(current_user, "can_process_returns", False)):
+            pin = data.get("manager_pin", "")
+            mgr = verify_manager_pin_helper(tenant, pin)
+            if not mgr:
+                raise serializers.ValidationError({
+                    "manager_pin": "Un code PIN manager valide est requis pour autoriser un échange."
+                })
+            data["_authorized_by"] = mgr
 
         # Hard limit: 3 exchanges per sale
         MAX_EXCHANGES = 3
@@ -989,6 +1087,7 @@ class CreateExchangeSerializer(serializers.Serializer):
             tenant=tenant,
             original_sale=sale,
             processed_by=processed_by,
+            authorized_by=data.get("_authorized_by"),
             reason=data.get("reason", ""),
             extra_payment_amount=extra_payment_amount,
             extra_payment_method=data.get("extra_payment_method", "") if extra_payment_amount > 0 else "",

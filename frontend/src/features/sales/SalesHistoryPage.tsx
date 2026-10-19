@@ -11,9 +11,10 @@ import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from 
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
 import ExchangeModal from "./ExchangeModal";
-import type { Sale, SaleItem, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
+import type { Sale, SaleItem, StoreSettings, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import ManagerPinModal from "@/components/ui/ManagerPinModal";
 
 const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon: typeof Star }> = {
   bronze: { label: "Bronze", className: "text-amber-700 bg-amber-100", Icon: Medal },
@@ -54,8 +55,17 @@ interface ReturnItemState {
 
 function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<string | null>(null);
+  const [managerPin, setManagerPin] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [itemStates, setItemStates] = useState<ReturnItemState[]>(
     (sale.items ?? []).map((item) => ({
@@ -77,8 +87,9 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   const selectedItems = itemStates.filter((s) => s.selected);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api.post(`/sales/${sale.id}/returns/`, {
+    mutationFn: (overridePin?: string) => {
+      const pinToSend = overridePin || managerPin;
+      return api.post(`/sales/${sale.id}/returns/`, {
         items: selectedItems.map((s) => ({
           variant_id: s.item.variant,
           quantity: s.quantity,
@@ -90,7 +101,9 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
         reason,
         refund_amount: refundAmount,
         refund_method: refundMethod,
-      }),
+        ...(pinToSend ? { manager_pin: pinToSend } : {}),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["defects"] });
@@ -100,9 +113,22 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
       onClose();
     },
     onError: (err) => {
-      setToast(getApiError(err));
+      const errMsg = getApiError(err);
+      setToast(errMsg);
+      if (errMsg.toLowerCase().includes("pin")) {
+        setShowPinModal(true);
+      }
     },
   });
+
+  const handleConfirmReturn = () => {
+    const requirePin = storeSettings?.require_manager_pin_for_returns ?? true;
+    if (user?.role === "cashier" && !user.can_process_returns && requirePin && !managerPin) {
+      setShowPinModal(true);
+      return;
+    }
+    mutation.mutate();
+  };
 
   function updateItem(index: number, patch: Partial<ReturnItemState>) {
     setItemStates((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -307,7 +333,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
               Annuler
             </button>
             <button
-              onClick={() => mutation.mutate()}
+              onClick={handleConfirmReturn}
               className="btn-primary btn-sm"
               disabled={!canSubmit || mutation.isPending}
             >
@@ -316,6 +342,18 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           </div>
         </div>
       </div>
+
+      <ManagerPinModal
+        isOpen={showPinModal}
+        reason="Autorisation Responsable requise pour le retour"
+        actionDescription="Un code PIN manager est nécessaire pour valider ce retour ou remboursement."
+        onSuccess={(pin) => {
+          setManagerPin(pin);
+          setShowPinModal(false);
+          mutation.mutate(pin);
+        }}
+        onCancel={() => setShowPinModal(false)}
+      />
     </div>
   );
 }

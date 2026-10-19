@@ -38,6 +38,11 @@ export interface User {
   can_see_costs: boolean;
   is_active: boolean;
   tenant?: Tenant;
+  max_discount_pct?: number;
+  can_modify_price?: boolean;
+  can_process_returns?: boolean;
+  can_cancel_sale?: boolean;
+  has_pin?: boolean;
 }
 
 export interface Branch {
@@ -253,6 +258,8 @@ export interface Sale {
   exchange_count: number;
   session?: string;
   session_number?: number | null;
+  authorized_by?: number | null;
+  authorized_by_name?: string | null;
   created_at: string;
 }
 
@@ -263,6 +270,9 @@ export interface StoreSettings {
   versement_requires_client: boolean;
   enable_variants: boolean;
   allow_negative_stock: boolean;
+  require_manager_pin_for_returns?: boolean;
+  require_manager_pin_for_discounts?: boolean;
+  default_max_discount_pct?: number;
 }
 
 // ─────────────────────────────────────────────

@@ -165,6 +165,35 @@ class User(AbstractUser):
     phone = models.CharField(_("Phone"), max_length=20, blank=True)
     avatar = models.ImageField(_("Avatar"), upload_to="users/avatars/", blank=True, null=True)
 
+    # Cashier permissions & Manager PIN controls
+    pin_code = models.CharField(
+        _("PIN Code Hash"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_("4-6 digit hashed PIN code for manager approvals in POS"),
+    )
+    max_discount_pct = models.PositiveSmallIntegerField(
+        _("Max Discount (%)"),
+        default=10,
+        help_text=_("Maximum percentage discount this cashier can grant without manager approval"),
+    )
+    can_modify_price = models.BooleanField(
+        _("Can modify price"),
+        default=False,
+        help_text=_("Allow cashier to manually alter unit selling price at POS checkout"),
+    )
+    can_process_returns = models.BooleanField(
+        _("Can process returns"),
+        default=False,
+        help_text=_("Allow cashier to process returns and refunds without manager approval"),
+    )
+    can_cancel_sale = models.BooleanField(
+        _("Can cancel sale"),
+        default=False,
+        help_text=_("Allow cashier to void or cancel sales"),
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"
@@ -190,6 +219,19 @@ class User(AbstractUser):
     def can_see_costs(self):
         """Cashiers cannot see purchase prices or gross margin."""
         return self.role in (RoleChoices.OWNER, RoleChoices.MANAGER)
+
+    def set_pin(self, raw_pin: str):
+        from django.contrib.auth.hashers import make_password
+        raw_pin_str = str(raw_pin).strip()
+        if not raw_pin_str.isdigit() or len(raw_pin_str) not in (4, 6):
+            raise ValueError(_("Le code PIN doit comporter 4 ou 6 chiffres numériques."))
+        self.pin_code = make_password(raw_pin_str)
+
+    def check_pin(self, raw_pin: str) -> bool:
+        from django.contrib.auth.hashers import check_password
+        if not self.pin_code:
+            return False
+        return check_password(str(raw_pin).strip(), self.pin_code)
 
 
 # ─────────────────────────────────────────────
@@ -304,6 +346,21 @@ class StoreSettings(TenantScopedModel):
         _("Autoriser le stock négatif"),
         default=False,
         help_text="Permet de valider une vente même si la quantité en stock est insuffisante ou négative (avec confirmation).",
+    )
+    require_manager_pin_for_returns = models.BooleanField(
+        _("PIN Manager requis pour retours"),
+        default=True,
+        help_text="Exiger le code PIN d'un gérant/propriétaire pour valider un retour ou échange.",
+    )
+    require_manager_pin_for_discounts = models.BooleanField(
+        _("PIN Manager si remise > limite"),
+        default=True,
+        help_text="Exiger le code PIN si la remise accordée dépasse le seuil autorisé du caissier.",
+    )
+    default_max_discount_pct = models.PositiveSmallIntegerField(
+        _("Remise caissier max par défaut (%)"),
+        default=10,
+        help_text="Pourcentage de remise maximum par défaut pour les caissiers.",
     )
 
     class Meta:

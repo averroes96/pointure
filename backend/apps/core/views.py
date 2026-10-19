@@ -9,7 +9,7 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.core.models import AuditLog, Branch, StoreSettings, Tenant, User, Wilaya, Commune
+from apps.core.models import AuditLog, Branch, RoleChoices, StoreSettings, Tenant, User, Wilaya, Commune
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.serializers import (
     AuditLogSerializer,
@@ -117,6 +117,59 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         self.require_owner()
         instance.delete()
+
+    @action(detail=False, methods=["post"], url_path="verify-manager-pin")
+    def verify_manager_pin(self, request):
+        """
+        Verify manager PIN code for authorizing POS actions (returns, excess discounts, voids).
+        """
+        pin = request.data.get("pin")
+        if not pin:
+            return Response({"error": "PIN requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        managers = User.objects.filter(
+            tenant=request.tenant,
+            role__in=[RoleChoices.OWNER, RoleChoices.MANAGER],
+            is_active=True,
+        )
+        matching_manager = None
+        for mgr in managers:
+            if mgr.check_pin(pin):
+                matching_manager = mgr
+                break
+
+        if not matching_manager:
+            return Response({"error": "Code PIN manager incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "valid": True,
+            "manager_id": str(matching_manager.id),
+            "manager_name": matching_manager.get_full_name() or matching_manager.email,
+            "role": matching_manager.role,
+        })
+
+    @action(detail=True, methods=["post"], url_path="set-pin")
+    def set_pin(self, request, pk=None):
+        """
+        Set or update a user's 4-6 digit numeric PIN.
+        Can be done by the user themselves or by a manager/owner.
+        """
+        target_user = self.get_object()
+        if request.user.role not in (RoleChoices.OWNER, RoleChoices.MANAGER) and request.user.id != target_user.id:
+            return Response({"error": "Action non autorisée."}, status=status.HTTP_403_FORBIDDEN)
+
+        pin = request.data.get("pin", "")
+        if not pin:
+            target_user.pin_code = None
+            target_user.save(update_fields=["pin_code"])
+            return Response({"detail": "Code PIN supprimé."})
+
+        try:
+            target_user.set_pin(pin)
+            target_user.save(update_fields=["pin_code"])
+            return Response({"detail": "Code PIN configuré avec succès."})
+        except ValueError as err:
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
