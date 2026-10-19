@@ -265,6 +265,18 @@ function ClientSelector({
 export default function SalesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { currentBranch } = useBranch();
+  const { canAccess } = usePlan();
+
+  // Keep a ref to currentBranch so the scanner keydown handler (stable closure) always
+  // reads the latest selection without being re-registered on every branch change.
+  const currentBranchRef = useRef(currentBranch);
+  useEffect(() => { currentBranchRef.current = currentBranch; }, [currentBranch]);
+  const hasLoyalty = canAccess("pro_retail");
+  const branchQs = currentBranch ? `&branch_id=${currentBranch.id}` : "";
+
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState("");
@@ -299,7 +311,6 @@ export default function SalesPage() {
     quickMode: false,
   });
 
-  const navigate = useNavigate();
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
   const [sessionOpeningFloat, setSessionOpeningFloat] = useState("0");
@@ -368,19 +379,6 @@ export default function SalesPage() {
       clearTimeout(timer);
     };
   }, []);
-
-  const { user } = useAuth();
-  const { currentBranch } = useBranch();
-  const { canAccess } = usePlan();
-
-  // Keep a ref to currentBranch so the scanner keydown handler (stable closure) always
-  // reads the latest selection without being re-registered on every branch change.
-  const currentBranchRef = useRef(currentBranch);
-  useEffect(() => { currentBranchRef.current = currentBranch; }, [currentBranch]);
-  const hasLoyalty = canAccess("pro_retail");
-
-
-  const branchQs = currentBranch ? `&branch_id=${currentBranch.id}` : "";
 
   // Product search
   const { data: productResults } = useQuery<PaginatedResponse<Product>>({
