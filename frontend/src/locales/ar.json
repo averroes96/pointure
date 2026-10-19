@@ -547,6 +547,8 @@
   },
   "payment_method": {
     "cash": "نقداً",
+    "tpe": "بطاقة ذهبية / بنكية (TPE)",
+    "baridimob": "بريدي موب (BaridiMob)",
     "cheque": "شيك",
     "ccp": "CCP",
     "virement": "تحويل بنكي",

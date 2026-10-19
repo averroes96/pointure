@@ -7,7 +7,8 @@ from rest_framework import serializers
 
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
 from .models import (
-    CashReconciliation, Exchange, ExchangeNewItem, ExchangeReturnItem,
+    CashMovement, CashMovementType, CashReconciliation, CashSession,
+    CashSessionStatus, Exchange, ExchangeNewItem, ExchangeReturnItem,
     Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem,
 )
 
@@ -39,6 +40,7 @@ class SaleSerializer(serializers.ModelSerializer):
     loyalty_tier = serializers.SerializerMethodField()
     loyalty_points = serializers.SerializerMethodField()
     exchange_count = serializers.IntegerField(source="exchanges.count", read_only=True)
+    session_number = serializers.IntegerField(source="session.session_number", read_only=True, default=None)
 
     def _loyalty_account(self, obj):
         if not obj.client_id:
@@ -63,7 +65,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "loyalty_tier", "loyalty_points", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due", "is_formal", "timbre_fiscal",
             "receipt_number", "notes", "due_date", "items", "payments",
-            "exchange_count", "created_at",
+            "exchange_count", "session", "session_number", "created_at",
         ]
         read_only_fields = ["id", "created_at", "receipt_number"]
 
@@ -281,9 +283,27 @@ class CreateSaleSerializer(serializers.Serializer):
             sale_status = "completed"
             due_date = None
 
+        active_session = CashSession.objects.filter(
+            tenant=tenant,
+            cashier=cashier,
+            status=CashSessionStatus.OPEN,
+        ).order_by("-opened_at").first()
+        if not active_session and branch:
+            active_session = CashSession.objects.filter(
+                tenant=tenant,
+                branch=branch,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+        if not active_session:
+            active_session = CashSession.objects.filter(
+                tenant=tenant,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+
         sale = Sale.objects.create(
             tenant=tenant,
             branch=branch,
+            session=active_session,
             cashier=cashier,
             client=client,
             total_amount=total,
@@ -500,8 +520,26 @@ class CreateReturnSerializer(serializers.Serializer):
         tenant = sale.tenant
         data = self.validated_data
 
+        active_session = CashSession.objects.filter(
+            tenant=tenant,
+            cashier=processed_by,
+            status=CashSessionStatus.OPEN,
+        ).order_by("-opened_at").first()
+        if not active_session and sale.branch:
+            active_session = CashSession.objects.filter(
+                tenant=tenant,
+                branch=sale.branch,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+        if not active_session:
+            active_session = CashSession.objects.filter(
+                tenant=tenant,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+
         return_obj = Return.objects.create(
             tenant=tenant,
+            session=active_session,
             original_sale=sale,
             processed_by=processed_by,
             reason=data["reason"],
@@ -704,6 +742,111 @@ class CreateReconciliationSerializer(serializers.Serializer):
     actual_ccp = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     actual_virement = serializers.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+# ─── Cash Register Sessions & Movements ───────────────────────────────────────
+
+class CashMovementSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True, default=None)
+
+    class Meta:
+        model = CashMovement
+        fields = [
+            "id", "session", "type", "amount", "category", "notes",
+            "created_by", "created_by_name", "created_at",
+        ]
+        read_only_fields = ["id", "session", "created_by", "created_at"]
+
+
+class CashMovementCreateSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=CashMovementType.choices)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    category = serializers.CharField(max_length=50)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class CashSessionSerializer(serializers.ModelSerializer):
+    cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True, default=None)
+    closed_by_name = serializers.CharField(source="closed_by.get_full_name", read_only=True, default=None)
+    approved_by_name = serializers.CharField(source="approved_by.get_full_name", read_only=True, default=None)
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default=None)
+    session_code = serializers.SerializerMethodField()
+    movements = CashMovementSerializer(many=True, read_only=True)
+    stats = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashSession
+        fields = [
+            "id", "branch", "branch_name", "cashier", "cashier_name",
+            "session_number", "session_code", "status",
+            "opened_at", "closed_at", "closed_by", "closed_by_name",
+            "opening_float",
+            "system_sales_count", "system_total_sales",
+            "system_cash_sales", "system_tpe_sales", "system_baridimob_sales",
+            "system_cheque_sales", "system_ccp_sales", "system_virement_sales",
+            "system_account_sales", "system_refunds_amount", "system_refunds_count",
+            "total_cash_in", "total_cash_out", "expected_cash",
+            "actual_cash", "actual_tpe", "actual_baridimob",
+            "actual_cheque", "actual_ccp", "actual_virement",
+            "cash_gap", "closing_notes",
+            "approved_by", "approved_by_name", "approved_at",
+            "movements", "stats",
+        ]
+        read_only_fields = [
+            "id", "session_number", "session_code", "opened_at", "closed_at",
+            "closed_by", "approved_by", "approved_at",
+        ]
+
+    def get_session_code(self, obj):
+        return f"Z-{obj.session_number:04d}"
+
+    def get_stats(self, obj):
+        from .services.z_report import compute_session_stats
+        if obj.status == CashSessionStatus.OPEN:
+            return compute_session_stats(obj)
+        return {
+            "sales_count": obj.system_sales_count,
+            "total_sales": obj.system_total_sales,
+            "cash_sales": obj.system_cash_sales,
+            "tpe_sales": obj.system_tpe_sales,
+            "baridimob_sales": obj.system_baridimob_sales,
+            "cheque_sales": obj.system_cheque_sales,
+            "ccp_sales": obj.system_ccp_sales,
+            "virement_sales": obj.system_virement_sales,
+            "account_sales": obj.system_account_sales,
+            "refunds_count": obj.system_refunds_count,
+            "refunds_amount": obj.system_refunds_amount,
+            "total_cash_in": obj.total_cash_in,
+            "total_cash_out": obj.total_cash_out,
+            "expected_cash": obj.expected_cash,
+        }
+
+
+class OpenCashSessionSerializer(serializers.Serializer):
+    opening_float = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00")
+    )
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class CloseCashSessionSerializer(serializers.Serializer):
+    actual_cash = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
+    actual_tpe = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"), required=False
+    )
+    actual_baridimob = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"), required=False
+    )
+    actual_cheque = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"), required=False
+    )
+    actual_ccp = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"), required=False
+    )
+    actual_virement = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"), required=False
+    )
+    closing_notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 # ─── Exchange input ───────────────────────────────────────────────────────────

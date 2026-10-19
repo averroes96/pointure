@@ -1,19 +1,31 @@
 /**
- * End-of-day cash reconciliation.
- * Cashier enters opening float, petty expenses, cash drops, and actual counted amounts per payment method;
- * the system computes gaps vs expected cash in drawer.
- * Managers can approve the submission.
+ * Cash Sessions, Movements, and Z-Reports Page (ShoeDZ POS).
+ *
+ * Implements Algerian retail cash shift workflow:
+ * 1. Open shift with opening float (fond de caisse initial).
+ * 2. Real-time cash tracking (Sales in Cash, TPE CIB/Edahabia, BaridiMob, Cheque, CCP, Virement).
+ * 3. Live petty cash movements (apports / dépenses magasin / retraits).
+ * 4. Mid-day Flash Reading (Rapport X) for thermal printer.
+ * 5. End-of-shift cash drawer count with automatic discrepancy/gap detection and sequential Z-Report generation (Z-0001, Z-0002...).
+ * 6. Manager / Owner approval of discrepancies.
+ * 7. Thermal 80mm / 58mm ESC/POS ticket printing for Rapports Z and X.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Clock, AlertTriangle, Check, ChevronDown, ChevronUp, Printer, DollarSign, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import {
+  Coins, ArrowDownUp, Receipt, Printer, Check, CheckCircle, Clock,
+  AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Plus, Minus,
+  X, Eye, ShieldCheck, CreditCard, Smartphone, DollarSign,
+  ArrowDownRight, ArrowUpRight, Search, FileText
+} from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
+import { printTicket } from "@/lib/printerConfig";
 import { openPrintPopup } from "@/lib/printPopup";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { useTranslation } from "react-i18next";
-import type { CashReconciliation } from "@/types";
+import type { CashSession, CashMovement, CashReconciliation } from "@/types";
 
 function todayISO(): string {
   const d = new Date();
@@ -27,15 +39,36 @@ function todayISO(): string {
 const METHODS = ["cash", "cheque", "ccp", "virement"] as const;
 type Method = (typeof METHODS)[number];
 
-// ── Print template ────────────────────────────────────────────────────────────
+// ── Gap Pill ──────────────────────────────────────────────────────────────────
 
-function buildPrintHtml(rec: CashReconciliation): string {
+function GapPill({ gap }: { gap: number }) {
+  if (Math.abs(gap) < 0.01) {
+    return <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs font-bold font-mono">✓ 0 DZD</span>;
+  }
+  if (gap < 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 border border-red-200/80 px-2 py-0.5 rounded-lg text-xs font-bold font-mono">
+        <ArrowDownRight size={12} className="stroke-[2.5]" />
+        {formatDZD(gap)} DZD
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg text-xs font-bold font-mono">
+      <ArrowUpRight size={12} className="stroke-[2.5]" />
+      +{formatDZD(gap)} DZD
+    </span>
+  );
+}
+
+// ── Legacy Print Template (CashReconciliation) ───────────────────────────────
+
+function buildLegacyPrintHtml(rec: CashReconciliation): string {
   const opening = parseFloat(rec.opening_float || "0");
   const exp = parseFloat(rec.expenses || "0");
   const drops = parseFloat(rec.cash_drops || "0");
   const expectedCash = parseFloat(rec.expected_cash || "0");
   const totalGap = parseFloat(rec.total_gap || "0");
-
   const gapColor = totalGap < 0 ? "color:#c0392b;" : totalGap > 0 ? "color:#e67e22;" : "color:#27ae60;";
 
   const rows = METHODS.map((m) => {
@@ -69,30 +102,20 @@ function buildPrintHtml(rec: CashReconciliation): string {
     th,td{padding:6px 8px;border-bottom:1px solid #eee;text-align:left;}
     th{background:#f5f5f5;font-weight:600;font-size:10px;text-transform:uppercase;}
     tfoot td{border-top:2px solid #ccc;font-weight:700;}
-    .notes{margin-top:12px;padding:8px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;font-size:11px;}
-    .status{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;}
-    .approved{background:#d5f5e3;color:#1e8449;}
-    .pending{background:#fef9e7;color:#b7950b;}
-    @media print{@page{margin:0;}body{padding:8mm;}}
   </style>
 </head>
 <body>
-  <h1>Fermeture de caisse (Reconciliation)</h1>
+  <h1>Fermeture de caisse (Journalier)</h1>
   <div class="meta">
     Date : ${rec.date}${rec.branch_name ? ` · Caisse : ${rec.branch_name}` : ""}
     · Soumis par : ${rec.submitted_by_name ?? "—"}
-    · <span class="status ${rec.status === "approved" ? "approved" : "pending"}">
-        ${rec.status === "approved" ? "Approuvé" : "En attente"}
-      </span>
   </div>
-
   <div class="grid">
     <div class="grid-item">Fond de caisse initial<strong>+ ${opening.toLocaleString("fr-DZ")} DZD</strong></div>
     <div class="grid-item">Ventes Espèces<strong>+ ${parseFloat(rec.system_cash).toLocaleString("fr-DZ")} DZD</strong></div>
     <div class="grid-item">Dépenses & Retraits<strong>- ${(exp + drops).toLocaleString("fr-DZ")} DZD</strong></div>
     <div class="grid-item">Caisse Théorique<strong>= ${expectedCash.toLocaleString("fr-DZ")} DZD</strong></div>
   </div>
-
   <table>
     <thead>
       <tr>
@@ -114,146 +137,12 @@ function buildPrintHtml(rec: CashReconciliation): string {
       </tr>
     </tfoot>
   </table>
-
-  <p style="margin-top:8px;font-size:10px;color:#777;">Ventes enregistrées : ${rec.system_sales_count} · Retours : ${parseFloat(rec.system_total_refunds).toLocaleString("fr-DZ")} DZD</p>
-
-  ${rec.notes ? `<div class="notes"><strong>Notes / Observations :</strong> ${rec.notes}</div>` : ""}
-
-  <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:11px;">
-    <div>
-      <div style="border-top:1px solid #000;padding-top:4px;margin-top:24px;">Caissier / Signature</div>
-    </div>
-    <div>
-      <div style="border-top:1px solid #000;padding-top:4px;margin-top:24px;">Manager / Approbation</div>
-    </div>
-  </div>
+  ${rec.notes ? `<p style="margin-top:12px;font-size:11px;"><strong>Notes :</strong> ${rec.notes}</p>` : ""}
 </body>
 </html>`;
 }
 
-// ── Gap pill ──────────────────────────────────────────────────────────────────
-
-function GapPill({ gap }: { gap: number }) {
-  if (gap === 0) return <span className="text-success text-xs font-semibold">✓ 0</span>;
-  return (
-    <span
-      className={cn(
-        "text-xs font-semibold font-mono",
-        gap < 0 ? "text-danger" : "text-warning",
-      )}
-    >
-      {gap > 0 ? "+" : ""}{formatDZD(gap)}
-    </span>
-  );
-}
-
-// ── History row ───────────────────────────────────────────────────────────────
-
-function HistoryRow({
-  rec,
-  canApprove,
-  onApprove,
-}: {
-  rec: CashReconciliation;
-  canApprove: boolean;
-  onApprove: (id: number) => void;
-}) {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const totalGap = parseFloat(rec.total_gap);
-
-  return (
-    <>
-      <tr
-        className="hover:bg-surface cursor-pointer"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <td className="px-3 py-2.5 font-medium text-text-primary">{rec.date}</td>
-        <td className="px-3 py-2.5 text-text-muted">{rec.branch_name ?? "—"}</td>
-        <td className="px-3 py-2.5">
-          <span
-            className={cn(
-              "badge",
-              rec.status === "approved" ? "badge-success" : "badge-warning",
-            )}
-          >
-            {rec.status === "approved" ? t("sales.status_approved") : t("sales.status_pending")}
-          </span>
-        </td>
-        <td className="px-3 py-2.5 text-end font-mono text-sm">
-          {formatDZD(rec.total_system)}
-        </td>
-        <td className="px-3 py-2.5 text-end font-mono text-sm">
-          {formatDZD(rec.total_actual)}
-        </td>
-        <td className="px-3 py-2.5 text-end">
-          <GapPill gap={totalGap} />
-        </td>
-        <td className="px-3 py-2.5 text-text-muted text-sm">{rec.submitted_by_name ?? "—"}</td>
-        <td className="px-3 py-2.5">
-          <div className="flex items-center gap-2 justify-end">
-            <button
-              onClick={(e) => { e.stopPropagation(); openPrintPopup(buildPrintHtml(rec), "210mm", 10); }}
-              className="btn-ghost btn-sm text-text-muted"
-            >
-              <Printer size={13} />
-            </button>
-            {canApprove && rec.status === "pending" && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onApprove(rec.id); }}
-                className="btn-secondary btn-sm"
-              >
-                <Check size={12} />
-                {t("common.approve")}
-              </button>
-            )}
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="bg-surface">
-          <td colSpan={8} className="px-4 py-3">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-2">
-              {METHODS.map((m) => {
-                const sys = m === "cash" ? parseFloat(rec.expected_cash || rec.system_cash) : parseFloat((rec as any)[`system_${m}`]);
-                const act = parseFloat((rec as any)[`actual_${m}`]);
-                const gap = act - sys;
-                return (
-                  <div key={m} className="bg-white rounded-lg p-2.5 border border-border">
-                    <div className="text-xs text-text-muted mb-1">{t(`payment_method.${m}`)}</div>
-                    <div className="flex justify-between items-baseline">
-                      <span className="font-mono text-sm">{formatDZD(act)}</span>
-                      <GapPill gap={gap} />
-                    </div>
-                    <div className="text-2xs text-text-muted mt-0.5">{t("sales.system_colon")}{formatDZD(sys)}</div>
-                  </div>
-                );
-              })}
-            </div>
-            {rec.notes && (
-              <p className="text-xs text-text-muted italic">{t("common.notes_colon")} {rec.notes}</p>
-            )}
-            {rec.approved_by_name && (
-              <p className="text-xs text-text-muted mt-1">
-                {t("sales.approved_by_date", { name: rec.approved_by_name, date: formatDate(rec.approved_at) })}
-              </p>
-            )}
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
-
-interface ActualAmounts {
-  cash: string;
-  cheque: string;
-  ccp: string;
-  virement: string;
-}
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function ReconciliationPage() {
   const { t } = useTranslation();
@@ -261,433 +150,1149 @@ export default function ReconciliationPage() {
   const { currentBranch } = useBranch();
   const queryClient = useQueryClient();
 
-  const [date, setDate] = useState(todayISO());
-  const [openingFloat, setOpeningFloat] = useState("");
-  const [expenses, setExpenses] = useState("");
-  const [cashDrops, setCashDrops] = useState("");
-  const [amounts, setAmounts] = useState<ActualAmounts>({ cash: "", cheque: "", ccp: "", virement: "" });
-  const [notes, setNotes] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const canApprove = user?.role === "owner" || user?.role === "manager";
+  const [activeTab, setActiveTab] = useState<"sessions" | "legacy">("sessions");
+  const [dateFilter, setDateFilter] = useState("");
   const branchId = currentBranch?.id ?? null;
+  const canApprove = user?.role === "owner" || user?.role === "manager";
 
-  // System totals from daily summary
-  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useQuery<{
-    by_payment_method: Record<string, number>;
-    sale_count: number;
-    total_refunds: number;
-  }>({
-    queryKey: ["daily-summary", date, branchId],
+  // Modals state
+  const [showOpenModal, setShowOpenModal] = useState(false);
+  const [openingFloatInput, setOpeningFloatInput] = useState("0");
+
+  const [showMovementModal, setShowMovementModal] = useState(false);
+  const [movementType, setMovementType] = useState<"in" | "out">("out");
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementCategory, setMovementCategory] = useState("Dépense magasin");
+  const [movementNotes, setMovementNotes] = useState("");
+  const [movementError, setMovementError] = useState<string | null>(null);
+
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [actualCashInput, setActualCashInput] = useState("");
+  const [actualTpeInput, setActualTpeInput] = useState("");
+  const [actualBaridimobInput, setActualBaridimobInput] = useState("");
+  const [closingNotesInput, setClosingNotesInput] = useState("");
+  const [closeError, setCloseError] = useState<string | null>(null);
+
+  // Preview modals
+  const [xReportData, setXReportData] = useState<{ session: CashSession; stats: any; x_report_html: string } | null>(null);
+  const [zReportData, setZReportData] = useState<{ session: CashSession; z_report_html: string } | null>(null);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  // ── Queries ──
+  // Current active session
+  const { data: currentSession, isLoading: sessionLoading, refetch: refetchCurrentSession } = useQuery<CashSession | null>({
+    queryKey: ["cash-session-current", branchId],
     queryFn: () =>
-      api.get(`/sales/daily-summary/?date=${date}${branchId ? `&branch_id=${branchId}` : ""}`).then((r) => r.data),
-    enabled: !!date,
+      api.get(`/sales/sessions/current/${branchId ? `?branch=${branchId}` : ""}`).then((r) => r.data),
+    staleTime: 10_000,
   });
 
-  // Existing reconciliation for this date/branch (if any)
-  const { data: existing } = useQuery<CashReconciliation[]>({
-    queryKey: ["reconciliations", "history", date, branchId],
-    queryFn: () =>
-      api.get(`/sales/reconciliations/history/?date=${date}${branchId ? `&branch=${branchId}` : ""}`).then((r) => r.data),
-    enabled: !!date,
+  // History of sessions
+  const { data: sessionsHistory, isLoading: historyLoading, refetch: refetchHistory } = useQuery<CashSession[]>({
+    queryKey: ["cash-sessions", dateFilter, branchId],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (dateFilter) params.set("date", dateFilter);
+      if (branchId) params.set("branch", String(branchId));
+      return api.get(`/sales/sessions/?${params.toString()}`).then((r) => r.data.results || r.data);
+    },
   });
 
-  // All recent history
-  const { data: history } = useQuery<CashReconciliation[]>({
+  // ── Legacy Queries & Mutations ──
+  const [legacyDate, setLegacyDate] = useState(todayISO());
+  const [legacyOpeningFloat, setLegacyOpeningFloat] = useState("");
+  const [legacyExpenses, setLegacyExpenses] = useState("");
+  const [legacyCashDrops, setLegacyCashDrops] = useState("");
+  const [legacyAmounts, setLegacyAmounts] = useState({ cash: "", cheque: "", ccp: "", virement: "" });
+  const [legacyNotes, setLegacyNotes] = useState("");
+  const [legacyFormError, setLegacyFormError] = useState<string | null>(null);
+
+  const { data: legacyHistory, refetch: refetchLegacyHistory } = useQuery<CashReconciliation[]>({
     queryKey: ["reconciliations", "history"],
     queryFn: () => api.get("/sales/reconciliations/history/").then((r) => r.data),
+    enabled: activeTab === "legacy",
   });
 
-  const todayRec = existing?.[0] ?? null;
-  const systemAmounts = summary?.by_payment_method ?? {};
+  // ── Session Mutations ──
 
-  const numOpeningFloat = parseFloat(openingFloat || "0") || 0;
-  const numExpenses = parseFloat(expenses || "0") || 0;
-  const numCashDrops = parseFloat(cashDrops || "0") || 0;
-  const totalRefunds = summary?.total_refunds || 0;
-  const rawCashSales = parseFloat(String(systemAmounts["cash"] ?? "0")) || 0;
-
-  // Expected cash = Opening Float + Sales Cash - Refunds - Expenses - Cash Drops
-  const expectedCash = numOpeningFloat + rawCashSales - totalRefunds - numExpenses - numCashDrops;
-
-  function getActual(m: Method): number {
-    return parseFloat(amounts[m] || "0") || 0;
-  }
-  function getSystem(m: Method): number {
-    if (m === "cash") return expectedCash;
-    return parseFloat(String(systemAmounts[m] ?? "0")) || 0;
-  }
-  function getGap(m: Method): number {
-    return getActual(m) - getSystem(m);
-  }
-
-  const totalSystem = METHODS.reduce((s, m) => s + getSystem(m), 0);
-  const totalActual = METHODS.reduce((s, m) => s + getActual(m), 0);
-  const totalGap = totalActual - totalSystem;
-
-  const submitMutation = useMutation({
+  const openSessionMutation = useMutation({
     mutationFn: () =>
-      api.post("/sales/reconciliations/submit/", {
-        date,
-        branch: branchId,
-        opening_float: openingFloat || "0",
-        expenses: expenses || "0",
-        cash_drops: cashDrops || "0",
-        actual_cash: amounts.cash || "0",
-        actual_cheque: amounts.cheque || "0",
-        actual_ccp: amounts.ccp || "0",
-        actual_virement: amounts.virement || "0",
-        notes,
+      api.post("/sales/sessions/open_session/", {
+        opening_float: openingFloatInput || "0",
+        branch_id: branchId,
       }).then((r) => r.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reconciliations"] });
-      setFormError(null);
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      setShowOpenModal(false);
+      setOpeningFloatInput("0");
     },
-    onError: (err) => setFormError(getApiError(err)),
   });
 
-  const approveMutation = useMutation({
-    mutationFn: (id: number) =>
-      api.post(`/sales/reconciliations/${id}/approve/`).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reconciliations"] }),
-    onError: (err) => setFormError(getApiError(err)),
+  const movementMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/sales/sessions/${currentSession?.id}/movement/`, {
+        type: movementType,
+        amount: movementAmount,
+        category: movementCategory,
+        notes: movementNotes,
+      }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      setShowMovementModal(false);
+      setMovementAmount("");
+      setMovementNotes("");
+      setMovementError(null);
+    },
+    onError: (err) => setMovementError(getApiError(err)),
   });
 
-  // Pre-fill form from existing pending reconciliation
-  function prefillFromRec(rec: CashReconciliation) {
-    setOpeningFloat(rec.opening_float || "");
-    setExpenses(rec.expenses || "");
-    setCashDrops(rec.cash_drops || "");
-    setAmounts({
-      cash: rec.actual_cash,
-      cheque: rec.actual_cheque,
-      ccp: rec.actual_ccp,
-      virement: rec.actual_virement,
-    });
-    setNotes(rec.notes);
-  }
+  const closeSessionMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/sales/sessions/${currentSession?.id}/close/`, {
+        actual_cash: actualCashInput || "0",
+        actual_tpe: actualTpeInput || "0",
+        actual_baridimob: actualBaridimobInput || "0",
+        closing_notes: closingNotesInput,
+      }).then((r) => r.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      setShowCloseModal(false);
+      setActualCashInput("");
+      setClosingNotesInput("");
+      setCloseError(null);
 
-  const isApproved = todayRec?.status === "approved";
+      // Automatically print closing Z-Report on thermal printer
+      if (data.z_report_html) {
+        printTicket(data.z_report_html);
+        setZReportData({ session: data.session, z_report_html: data.z_report_html });
+      }
+    },
+    onError: (err) => setCloseError(getApiError(err)),
+  });
+
+  const approveSessionMutation = useMutation({
+    mutationFn: (sessionId: string) =>
+      api.post(`/sales/sessions/${sessionId}/approve/`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+    },
+  });
+
+  // Fetch X-Report
+  const fetchXReport = async () => {
+    if (!currentSession) return;
+    try {
+      const res = await api.get(`/sales/sessions/${currentSession.id}/x_report/`);
+      setXReportData(res.data);
+    } catch (err) {
+      console.error("Failed to load X-Report:", err);
+    }
+  };
+
+  // Fetch Z-Report
+  const fetchZReport = async (sessionId: string) => {
+    try {
+      const res = await api.get(`/sales/sessions/${sessionId}/z_report/`);
+      setZReportData(res.data);
+    } catch (err) {
+      console.error("Failed to load Z-Report:", err);
+    }
+  };
+
+  // Expected cash for active session
+  const activeExpectedCash = Number(currentSession?.stats?.expected_cash ?? currentSession?.expected_cash ?? 0);
+  const countedCashNumber = parseFloat(actualCashInput || "0") || 0;
+  const liveGap = countedCashNumber - activeExpectedCash;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* ── Page Header & Tabs ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("sales.reconciliation_title")}</h1>
-          <p className="text-sm text-text-muted">{t("sales.reconciliation_desc")}</p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Coins className="text-amber-500 stroke-[2.2]" size={26} />
+            <span>Gestion de Caisse & Rapports Z</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Suivi des shifts, encaissements par moyen de paiement (Espèces, TPE CIB, BaridiMob), mouvements et clôtures Z
+          </p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("sessions")}
+            className={cn(
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
+              activeTab === "sessions"
+                ? "bg-white text-slate-900 shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <Receipt size={14} className="text-amber-600" />
+            <span>Sessions & Rapports Z</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("legacy")}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
+              activeTab === "legacy"
+                ? "bg-white text-slate-900 shadow-xs"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <FileText size={13} />
+            <span>Ancien Journalier</span>
+          </button>
         </div>
       </div>
 
-      {/* Date selector */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-text-primary whitespace-nowrap">{t("sales.date_colon")}</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="form-input max-w-[200px]"
-          max={todayISO()}
-        />
-        {currentBranch && (
-          <span className="badge badge-info">{currentBranch.name}</span>
-        )}
-      </div>
+      {activeTab === "sessions" ? (
+        <>
+          {/* ── Active Session Card / Hero ── */}
+          {currentSession ? (
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-50/40 via-amber-50/20 to-transparent rounded-full -mr-32 -mt-32 pointer-events-none" />
 
-      {/* Status banner when already submitted */}
-      {todayRec && (
-        <div
-          className={cn(
-            "flex items-center justify-between gap-3 rounded-xl px-4 py-3 border",
-            isApproved
-              ? "bg-success-light border-success/30"
-              : "bg-warning-light border-warning/30",
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {isApproved ? (
-              <CheckCircle size={18} className="text-success" />
-            ) : (
-              <Clock size={18} className="text-warning" />
-            )}
-            <span className="text-sm font-medium text-text-primary">
-              {isApproved
-                ? t("sales.approved_by_date", { name: todayRec.approved_by_name, date: formatDate(todayRec.approved_at) })
-                : t("sales.reconciliation_submitted_pending")}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => openPrintPopup(buildPrintHtml(todayRec), "210mm", 10)}
-              className="btn-secondary btn-sm"
-            >
-              <Printer size={13} /> Imprimer
-            </button>
-            {!isApproved && (
-              <button
-                onClick={() => prefillFromRec(todayRec)}
-                className="btn-secondary btn-sm"
-              >
-                {t("common.edit")}
-              </button>
-            )}
-            {canApprove && !isApproved && (
-              <button
-                onClick={() => approveMutation.mutate(todayRec.id)}
-                disabled={approveMutation.isPending}
-                className="btn-primary btn-sm"
-              >
-                <Check size={13} />
-                {t("common.approve")}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+              {/* Status Header & Action Buttons */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Receipt size={24} className="stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 text-white text-xs font-extrabold tracking-wide shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                        SESSION ACTIVE {currentSession.session_code}
+                      </span>
+                      {currentSession.branch_name && (
+                        <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-lg">
+                          {currentSession.branch_name}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Ouverte par <strong>{currentSession.cashier_name}</strong> le {formatDate(currentSession.opened_at)}
+                    </p>
+                  </div>
+                </div>
 
-      {/* Reconciliation form (hidden when approved) */}
-      {!isApproved && (
-        <div className="card space-y-0">
-          <div className="card-header">
-            <h2 className="font-semibold text-text-primary">
-              {t("sales.cash_count_entry")}
-            </h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              {t("sales.cash_count_desc")}
-            </p>
-          </div>
+                {/* Primary Action Buttons */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={fetchXReport}
+                    className="btn-secondary text-xs py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold shadow-2xs"
+                    title="Imprimer un ticket flash mi-journée sans fermer la caisse"
+                  >
+                    <Printer size={14} className="text-slate-600" />
+                    <span>Lecture X (Flash)</span>
+                  </button>
 
-          {/* Cash Drawer Movements (Opening Float, Expenses, Cash Drops) */}
-          <div className="p-4 border-b border-border bg-surface/50 grid sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                {t("sales.opening_float")} (+)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={openingFloat}
-                  onChange={(e) => setOpeningFloat(e.target.value)}
-                  className="form-input font-mono text-end"
-                  placeholder="0.00 DZD"
-                />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMovementType("out");
+                      setMovementCategory("Dépense magasin");
+                      setShowMovementModal(true);
+                    }}
+                    className="btn-secondary text-xs py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold shadow-2xs"
+                    title="Ajouter ou retirer des espèces de la caisse"
+                  >
+                    <ArrowDownUp size={14} className="text-amber-600" />
+                    <span>Mouvement (+ / -)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActualCashInput(String(activeExpectedCash));
+                      setActualTpeInput(String(currentSession.stats?.tpe_sales ?? 0));
+                      setActualBaridimobInput(String(currentSession.stats?.baridimob_sales ?? 0));
+                      setShowCloseModal(true);
+                    }}
+                    className="btn-primary text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
+                  >
+                    <ShieldCheck size={14} className="text-emerald-400" />
+                    <span>Clôturer Caisse (Rapport Z)</span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                {t("sales.expenses")} (-)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={expenses}
-                  onChange={(e) => setExpenses(e.target.value)}
-                  className="form-input font-mono text-end text-danger"
-                  placeholder="0.00 DZD"
-                />
+              {/* Live Shift KPI Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 pt-6">
+                {/* 1. Fond initial */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                  <p className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Fond Initial</p>
+                  <p className="text-base font-black font-mono text-slate-900 mt-1">
+                    {formatDZD(currentSession.opening_float)} <span className="text-2xs text-slate-400 font-sans">DZD</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Espèces au départ</p>
+                </div>
+
+                {/* 2. Ventes Espèces */}
+                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+                  <p className="text-2xs font-bold text-emerald-800 uppercase tracking-wider">Ventes Espèces</p>
+                  <p className="text-base font-black font-mono text-emerald-950 mt-1">
+                    +{formatDZD(currentSession.stats?.cash_sales ?? 0)} <span className="text-2xs text-emerald-600 font-sans">DZD</span>
+                  </p>
+                  <p className="text-[11px] text-emerald-700 mt-0.5">
+                    {currentSession.stats?.sales_count ?? 0} vente(s) au total
+                  </p>
+                </div>
+
+                {/* 3. TPE (CIB / Dahabia) */}
+                <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100">
+                  <p className="text-2xs font-bold text-blue-800 uppercase tracking-wider flex items-center gap-1">
+                    <CreditCard size={11} /> TPE (CIB/Dahabia)
+                  </p>
+                  <p className="text-base font-black font-mono text-blue-950 mt-1">
+                    {formatDZD(currentSession.stats?.tpe_sales ?? 0)} <span className="text-2xs text-blue-600 font-sans">DZD</span>
+                  </p>
+                  <p className="text-[11px] text-blue-700 mt-0.5">Terminal électronique</p>
+                </div>
+
+                {/* 4. BaridiMob */}
+                <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-100">
+                  <p className="text-2xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                    <Smartphone size={11} /> BaridiMob
+                  </p>
+                  <p className="text-base font-black font-mono text-amber-950 mt-1">
+                    {formatDZD(currentSession.stats?.baridimob_sales ?? 0)} <span className="text-2xs text-amber-600 font-sans">DZD</span>
+                  </p>
+                  <p className="text-[11px] text-amber-700 mt-0.5">Virements RIP / CCP</p>
+                </div>
+
+                {/* 5. Mouvements d'espèces */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                  <p className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Mouvements Net</p>
+                  <div className="flex items-baseline gap-1 mt-1 font-mono text-sm font-bold">
+                    <span className="text-emerald-600">+{formatDZD(currentSession.stats?.total_cash_in ?? 0)}</span>
+                    <span className="text-slate-300">/</span>
+                    <span className="text-red-600">-{formatDZD(currentSession.stats?.total_cash_out ?? 0)}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Apports & Dépenses</p>
+                </div>
+
+                {/* 6. Caisse Théorique (Tiroir attendu) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xs">
+                  <p className="text-2xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <Coins size={12} /> Caisse Théorique
+                  </p>
+                  <p className="text-lg font-black font-mono text-white mt-1">
+                    {formatDZD(activeExpectedCash)} <span className="text-2xs text-slate-400 font-sans">DZD</span>
+                  </p>
+                  <p className="text-[10px] text-slate-300 mt-0.5 truncate">Espèces attendues dans tiroir</p>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                {t("sales.cash_drops")} (-)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={cashDrops}
-                  onChange={(e) => setCashDrops(e.target.value)}
-                  className="form-input font-mono text-end text-danger"
-                  placeholder="0.00 DZD"
-                />
-              </div>
-            </div>
-          </div>
-
-          {summaryLoading ? (
-            <div className="card-body text-text-muted text-sm py-8 text-center">
-              {t("sales.loading_system_totals")}
-            </div>
-          ) : summaryError ? (
-            <div className="card-body text-danger text-sm py-8 text-center">
-              {t("sales.error_loading_totals")}
-            </div>
-          ) : summary?.sale_count === 0 ? (
-            <div className="card-body py-8 text-center space-y-1">
-              <p className="text-text-primary font-medium text-sm">{t('sales.no_sales_for_date', { date })}</p>
-              <p className="text-text-muted text-xs">
-                {t("sales.no_sales_hint")}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-surface">
-                    <th className="px-4 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.payment_method")}
-                    </th>
-                    <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.expected_cash")} / Système
-                    </th>
-                    <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.counted_dzd")}
-                    </th>
-                    <th className="px-4 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.gap")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {METHODS.map((m) => {
-                    const sys = getSystem(m);
-                    const gap = getGap(m);
-                    return (
-                      <tr key={m} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3 font-medium text-text-primary">
-                          {t(`payment_method.${m}`)} {m === "cash" && <span className="text-xs text-text-muted font-normal">(Fond + Ventes - Dépenses/Retraits)</span>}
-                        </td>
-                        <td className="px-4 py-3 text-end font-mono text-text-muted">
-                          {formatDZD(sys)}
-                        </td>
-                        <td className="px-4 py-3 text-end">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={amounts[m]}
-                            onChange={(e) =>
-                              setAmounts((prev) => ({ ...prev, [m]: e.target.value }))
-                            }
-                            className="form-input text-end font-mono max-w-[160px] ms-auto"
-                            placeholder="0,00"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-end">
-                          <GapPill gap={gap} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border bg-surface">
-                    <td className="px-4 py-3 font-semibold">{t("common.total")}</td>
-                    <td className="px-4 py-3 text-end font-mono font-semibold">
-                      {formatDZD(totalSystem)} DZD
-                    </td>
-                    <td className="px-4 py-3 text-end font-mono font-semibold">
-                      {formatDZD(totalActual)} DZD
-                    </td>
-                    <td className="px-4 py-3 text-end">
-                      <GapPill gap={totalGap} />
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-
-          {/* Summary chips */}
-          {summary && (
-            <div className="px-4 py-3 border-t border-border flex flex-wrap gap-3 text-xs text-text-muted">
-              <span>{t("sales.sales_registered_count", { count: summary.sale_count })}</span>
-              <span>·</span>
-              <span>{t("sales.refunds_colon")} {formatDZD(summary.total_refunds)} DZD</span>
-              {totalGap !== 0 && (
-                <>
-                  <span>·</span>
-                  <span className={totalGap < 0 ? "text-danger font-medium" : "text-warning font-medium"}>
-                    {totalGap < 0 ? t("sales.missing") : t("sales.excess")} : {formatDZD(Math.abs(totalGap))} DZD
-                  </span>
-                </>
+              {/* Live Shift Movements Drawer Table */}
+              {currentSession.movements && currentSession.movements.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <ArrowDownUp size={13} className="text-amber-500" />
+                      <span>Mouvements d'espèces durant ce shift ({currentSession.movements.length})</span>
+                    </h3>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200/80 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50 text-slate-500 border-b border-slate-200/80">
+                        <tr>
+                          <th className="py-2 px-3 text-start font-bold">Heure</th>
+                          <th className="py-2 px-3 text-start font-bold">Type</th>
+                          <th className="py-2 px-3 text-start font-bold">Motif / Catégorie</th>
+                          <th className="py-2 px-3 text-end font-bold">Montant</th>
+                          <th className="py-2 px-3 text-start font-bold">Par</th>
+                          <th className="py-2 px-3 text-start font-bold">Observations</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {currentSession.movements.map((m) => (
+                          <tr key={m.id} className="hover:bg-slate-50/60">
+                            <td className="py-2 px-3 font-mono text-slate-600">
+                              {new Date(m.created_at).toLocaleTimeString("fr-DZ", { hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                            <td className="py-2 px-3">
+                              {m.type === "in" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-2xs border border-emerald-200/60">
+                                  <Plus size={10} /> Apport
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-bold text-2xs border border-red-200/60">
+                                  <Minus size={10} /> Dépense
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3 font-medium text-slate-900">{m.category}</td>
+                            <td className="py-2 px-3 text-end font-mono font-bold">
+                              <span className={m.type === "in" ? "text-emerald-700" : "text-red-700"}>
+                                {m.type === "in" ? "+" : "-"}{formatDZD(m.amount)} DZD
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">{m.created_by_name ?? "—"}</td>
+                            <td className="py-2 px-3 text-slate-500 italic">{m.notes || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
+          ) : (
+            /* Empty State: No register open */
+            <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-8 text-center shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                <Coins size={32} />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">Aucune session de caisse ouverte</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
+                Ouvrez une session de caisse pour démarrer votre vacation. Les ventes seront rattachées au shift en cours et un Rapport Z numéroté sera généré à la clôture.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowOpenModal(true)}
+                className="btn-primary text-xs py-2.5 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold shadow-sm inline-flex items-center gap-2"
+              >
+                <Plus size={16} />
+                <span>Ouvrir une Session de Caisse</span>
+              </button>
+            </div>
           )}
 
-          {/* Notes */}
-          <div className="px-4 py-3 border-t border-border">
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-              {t("sales.notes_observations")}
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="form-input resize-none h-16 text-sm"
-              placeholder={t("sales.notes_placeholder")}
-            />
+          {/* ── Historical Sessions & Z-Reports Table ── */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40">
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Receipt size={17} className="text-amber-500" />
+                  <span>Historique des Sessions & Rapports Z</span>
+                </h2>
+                <p className="text-2xs text-slate-500 mt-0.5">
+                  Consultez les vacations fermées, réimprimez les tickets Z et validez les écarts
+                </p>
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="form-input text-xs py-1.5 px-2.5 rounded-xl border-slate-200 bg-white"
+                />
+                {dateFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setDateFilter("")}
+                    className="btn-ghost text-xs py-1 px-2 text-slate-500 hover:text-slate-800"
+                  >
+                    Effacer
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => refetchHistory()}
+                  className="btn-secondary text-xs py-1.5 px-2.5 rounded-xl flex items-center gap-1.5"
+                  title="Actualiser"
+                >
+                  <RefreshCw size={13} />
+                  <span>Actualiser</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50/90 text-slate-600 border-b border-slate-200/80 uppercase font-bold text-[11px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4 text-start">N° Rapport Z</th>
+                    <th className="py-3 px-4 text-start">Période / Date</th>
+                    <th className="py-3 px-4 text-start">Caissier</th>
+                    <th className="py-3 px-4 text-end">Ventes Totales</th>
+                    <th className="py-3 px-4 text-end">Caisse Attendue</th>
+                    <th className="py-3 px-4 text-end">Caisse Comptée</th>
+                    <th className="py-3 px-4 text-end">Écart</th>
+                    <th className="py-3 px-4 text-center">Statut</th>
+                    <th className="py-3 px-4 text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {sessionsHistory && sessionsHistory.length > 0 ? (
+                    sessionsHistory.map((s) => {
+                      const isExpanded = expandedSessionId === s.id;
+                      const gap = parseFloat(s.cash_gap || "0");
+                      const isClosed = s.status === "closed";
+
+                      return (
+                        <tr key={s.id} className="group hover:bg-slate-50/80 transition-colors">
+                          {/* Code */}
+                          <td className="py-3 px-4 font-mono font-extrabold text-slate-900">
+                            {s.session_code}
+                          </td>
+
+                          {/* Date */}
+                          <td className="py-3 px-4 text-slate-600">
+                            <div>{formatDate(s.opened_at)}</div>
+                            {s.closed_at && (
+                              <div className="text-2xs text-slate-400">
+                                Clôturé : {new Date(s.closed_at).toLocaleTimeString("fr-DZ", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Cashier */}
+                          <td className="py-3 px-4 font-medium text-slate-800">
+                            {s.cashier_name}
+                            {s.branch_name && (
+                              <span className="block text-2xs text-slate-400">{s.branch_name}</span>
+                            )}
+                          </td>
+
+                          {/* Sales */}
+                          <td className="py-3 px-4 text-end font-mono font-bold text-slate-900">
+                            {formatDZD(s.system_total_sales)} DZD
+                            <span className="block text-2xs text-slate-400 font-normal">
+                              {s.system_sales_count} vente(s)
+                            </span>
+                          </td>
+
+                          {/* Expected Cash */}
+                          <td className="py-3 px-4 text-end font-mono text-slate-600">
+                            {formatDZD(s.expected_cash)} DZD
+                          </td>
+
+                          {/* Counted Cash */}
+                          <td className="py-3 px-4 text-end font-mono font-bold text-slate-900">
+                            {isClosed ? `${formatDZD(s.actual_cash)} DZD` : "—"}
+                          </td>
+
+                          {/* Gap */}
+                          <td className="py-3 px-4 text-end font-mono">
+                            {isClosed ? <GapPill gap={gap} /> : <span className="text-slate-400">—</span>}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4 text-center">
+                            {s.status === "open" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-extrabold text-2xs border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                En cours
+                              </span>
+                            ) : s.approved_by ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-2xs border border-emerald-200">
+                                <Check size={11} /> Approuvé
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-2xs border border-slate-200">
+                                Clôturé
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3 px-4 text-end">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {isClosed && (
+                                <button
+                                  type="button"
+                                  onClick={() => fetchZReport(s.id)}
+                                  className="btn-secondary btn-sm text-xs py-1 px-2 rounded-lg flex items-center gap-1"
+                                  title="Réimprimer le ticket Rapport Z sur imprimante thermique"
+                                >
+                                  <Printer size={13} />
+                                  <span>Ticket Z</span>
+                                </button>
+                              )}
+
+                              {canApprove && isClosed && !s.approved_by && (
+                                <button
+                                  type="button"
+                                  onClick={() => approveSessionMutation.mutate(s.id)}
+                                  className="btn-secondary btn-sm text-xs py-1 px-2 rounded-lg text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                                  title="Approuver la fermeture"
+                                >
+                                  <Check size={13} />
+                                  <span>Approuver</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
+                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              >
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400">
+                        {historyLoading ? "Chargement des sessions..." : "Aucune session de caisse enregistrée."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+        </>
+      ) : (
+        /* ── Legacy Tab (CashReconciliation) ── */
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
+            <h2 className="text-base font-extrabold text-slate-900 mb-1">
+              Historique des Clôtures Journalières (Ancien format)
+            </h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Consultez les anciennes fiches de fermeture par date
+            </p>
 
-          {/* Error */}
-          {formError && (
-            <div className="mx-4 mb-3 text-sm text-danger bg-danger-light rounded-lg px-3 py-2">
-              {formError}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3 text-start">Date</th>
+                    <th className="py-2.5 px-3 text-start">Agence</th>
+                    <th className="py-2.5 px-3 text-end">Ventes Système</th>
+                    <th className="py-2.5 px-3 text-end">Compté Réel</th>
+                    <th className="py-2.5 px-3 text-end">Écart</th>
+                    <th className="py-2.5 px-3 text-start">Soumis par</th>
+                    <th className="py-2.5 px-3 text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {legacyHistory && legacyHistory.length > 0 ? (
+                    legacyHistory.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-slate-50">
+                        <td className="py-2.5 px-3 font-medium text-slate-900">{rec.date}</td>
+                        <td className="py-2.5 px-3 text-slate-600">{rec.branch_name ?? "—"}</td>
+                        <td className="py-2.5 px-3 text-end font-mono">{formatDZD(rec.total_system)} DZD</td>
+                        <td className="py-2.5 px-3 text-end font-mono font-bold">{formatDZD(rec.total_actual)} DZD</td>
+                        <td className="py-2.5 px-3 text-end font-mono">
+                          <GapPill gap={parseFloat(rec.total_gap)} />
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600">{rec.submitted_by_name ?? "—"}</td>
+                        <td className="py-2.5 px-3 text-end">
+                          <button
+                            onClick={() => openPrintPopup(buildLegacyPrintHtml(rec), "210mm", 10)}
+                            className="btn-ghost btn-sm text-slate-500 hover:text-slate-900"
+                            title="Imprimer"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-6 text-center text-slate-400">
+                        Aucun ancien enregistrement trouvé.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-
-          {/* Gap warning before submit */}
-          {totalGap !== 0 && totalActual > 0 && (
-            <div className="mx-4 mb-3 flex items-start gap-2 text-sm bg-warning-light text-warning rounded-lg px-3 py-2">
-              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>
-                {t("sales.gap_warning_text", { amount: formatDZD(Math.abs(totalGap)) })}
-              </span>
-            </div>
-          )}
-
-          {/* Submit */}
-          <div className="px-4 pb-4">
-            <button
-              onClick={() => submitMutation.mutate()}
-              disabled={submitMutation.isPending || summaryLoading}
-              className="btn-primary w-full"
-            >
-              {submitMutation.isPending ? t("sales.recording") : t("sales.submit_reconciliation")}
-            </button>
           </div>
         </div>
       )}
 
-      {/* History */}
-      {history && history.length > 0 && (
-        <div className="card overflow-hidden">
-          <div className="card-header">
-            <h2 className="font-semibold text-text-primary">{t("sales.reconciliation_history")}</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface">
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">Date</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("sales.register")}</th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("common.status")}</th>
-                  <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Système</th>
-                  <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">Compté</th>
-                  <th className="px-3 py-2.5 text-end text-xs font-semibold text-text-muted uppercase tracking-wide">
-                      {t("sales.gap")}
-                    </th>
-                  <th className="px-3 py-2.5 text-start text-xs font-semibold text-text-muted uppercase tracking-wide">{t("sales.submitted_by")}</th>
-                  <th className="px-3 py-2.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((rec) => (
-                  <HistoryRow
-                    key={rec.id}
-                    rec={rec}
-                    canApprove={canApprove}
-                    onApprove={(id) => approveMutation.mutate(id)}
+      {/* ── Modal: Open Cash Session ── */}
+      {showOpenModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Coins size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Ouvrir la session de caisse</h3>
+                  <p className="text-2xs text-slate-500">Démarrer un nouveau shift de vente</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOpenModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Fond de caisse initial (Espèces de départ dans le tiroir)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={openingFloatInput}
+                    onChange={(e) => setOpeningFloatInput(e.target.value)}
+                    placeholder="0.00"
+                    className="form-input text-base font-bold font-mono py-2.5 pl-3 pr-14 rounded-xl w-full"
+                    autoFocus
                   />
-                ))}
-              </tbody>
-            </table>
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                    DZD
+                  </span>
+                </div>
+                {/* Quick Presets */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[0, 2000, 5000, 10000, 20000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setOpeningFloatInput(String(amt))}
+                      className={cn(
+                        "px-2.5 py-1 text-2xs font-bold rounded-lg border transition-colors",
+                        openingFloatInput === String(amt)
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      )}
+                    >
+                      {amt === 0 ? "0 DZD" : `${amt.toLocaleString("fr-DZ")} DZD`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {openSessionMutation.isError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{getApiError(openSessionMutation.error)}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOpenModal(false)}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openSessionMutation.mutate()}
+                  disabled={openSessionMutation.isPending}
+                  className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                >
+                  {openSessionMutation.isPending ? "Ouverture..." : "Confirmer l'ouverture"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Cash Movement (+ / -) ── */}
+      {showMovementModal && currentSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center",
+                  movementType === "in" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                )}>
+                  <ArrowDownUp size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Mouvement d'espèces</h3>
+                  <p className="text-2xs text-slate-500">Session {currentSession.session_code}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowMovementModal(false); setMovementError(null); }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Type Switcher */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementType("out");
+                    setMovementCategory("Dépense magasin");
+                  }}
+                  className={cn(
+                    "py-2 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5",
+                    movementType === "out" ? "bg-red-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Minus size={13} />
+                  <span>Dépense / Retrait (-)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementType("in");
+                    setMovementCategory("Apport monnaie");
+                  }}
+                  className={cn(
+                    "py-2 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5",
+                    movementType === "in" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Plus size={13} />
+                  <span>Apport d'espèces (+)</span>
+                </button>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Montant (DZD) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    step="50"
+                    value={movementAmount}
+                    onChange={(e) => setMovementAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="form-input text-base font-bold font-mono py-2 pl-3 pr-14 rounded-xl w-full"
+                    autoFocus
+                  />
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                    DZD
+                  </span>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Motif / Catégorie *
+                </label>
+                <select
+                  value={movementCategory}
+                  onChange={(e) => setMovementCategory(e.target.value)}
+                  className="form-input text-xs py-2 rounded-xl w-full"
+                >
+                  {movementType === "out" ? (
+                    <>
+                      <option value="Dépense magasin">Dépense magasin (café, transport, fournitures...)</option>
+                      <option value="Paiement fournisseur">Paiement fournisseur direct</option>
+                      <option value="Retrait patron / coffre">Retrait gérant / versement coffre</option>
+                      <option value="Autre retrait">Autre dépense / retrait</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Apport monnaie">Apport de monnaie (pièces / billets)</option>
+                      <option value="Apport fond de caisse">Apport fond de caisse supplémentaire</option>
+                      <option value="Remboursement prêt">Remboursement avance ou prêt</option>
+                      <option value="Autre apport">Autre apport</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Observations / Détails (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={movementNotes}
+                  onChange={(e) => setMovementNotes(e.target.value)}
+                  placeholder="Ex : Facture papier ticket"
+                  className="form-input text-xs py-2 rounded-xl w-full"
+                />
+              </div>
+
+              {movementError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{movementError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowMovementModal(false); setMovementError(null); }}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!movementAmount || parseFloat(movementAmount) <= 0) {
+                      setMovementError("Veuillez saisir un montant valide.");
+                      return;
+                    }
+                    movementMutation.mutate();
+                  }}
+                  disabled={movementMutation.isPending}
+                  className={cn(
+                    "flex-1 py-2.5 text-xs font-bold rounded-xl text-white shadow-xs transition-colors",
+                    movementType === "out" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  )}
+                >
+                  {movementMutation.isPending ? "Enregistrement..." : "Enregistrer le mouvement"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Close Session & Generate Z-Report ── */}
+      {showCloseModal && currentSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Clôture de Caisse · Rapport Z
+                  </h3>
+                  <p className="text-2xs text-slate-500">
+                    Session {currentSession.session_code} · {currentSession.cashier_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowCloseModal(false); setCloseError(null); }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Expected vs Counted Comparison Box */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-600">Espèces Attendues (Théorique) :</span>
+                  <span className="font-mono font-bold text-sm text-slate-900">
+                    {formatDZD(activeExpectedCash)} DZD
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-800 mb-1">
+                    Espèces Physiques Comptées dans le tiroir *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="50"
+                      value={actualCashInput}
+                      onChange={(e) => setActualCashInput(e.target.value)}
+                      placeholder="0.00"
+                      className="form-input text-lg font-black font-mono py-2.5 pl-3 pr-14 rounded-xl w-full border-slate-300"
+                      autoFocus
+                    />
+                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                      DZD
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live Gap Indicator */}
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-slate-700">Écart de Caisse :</span>
+                  <GapPill gap={liveGap} />
+                </div>
+              </div>
+
+              {/* TPE & BaridiMob counts */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-2xs font-bold text-slate-600 mb-1">
+                    Total TPE Réel (Tickets CIB)
+                  </label>
+                  <input
+                    type="number"
+                    value={actualTpeInput}
+                    onChange={(e) => setActualTpeInput(e.target.value)}
+                    className="form-input text-xs font-mono py-2 rounded-xl w-full"
+                    placeholder={formatDZD(currentSession.stats?.tpe_sales ?? 0)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-2xs font-bold text-slate-600 mb-1">
+                    Total BaridiMob Réel
+                  </label>
+                  <input
+                    type="number"
+                    value={actualBaridimobInput}
+                    onChange={(e) => setActualBaridimobInput(e.target.value)}
+                    className="form-input text-xs font-mono py-2 rounded-xl w-full"
+                    placeholder={formatDZD(currentSession.stats?.baridimob_sales ?? 0)}
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Observations de clôture (justification de l'écart si présent)
+                </label>
+                <textarea
+                  value={closingNotesInput}
+                  onChange={(e) => setClosingNotesInput(e.target.value)}
+                  placeholder="Ex : Erreur monnaie client de 100 DZD..."
+                  rows={2}
+                  className="form-input text-xs py-2 rounded-xl w-full"
+                />
+              </div>
+
+              {closeError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{closeError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCloseModal(false)}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => closeSessionMutation.mutate()}
+                  disabled={closeSessionMutation.isPending}
+                  className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Printer size={14} className="text-emerald-400" />
+                  <span>{closeSessionMutation.isPending ? "Clôture..." : "Valider & Imprimer Rapport Z"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: X-Report Preview & Print ── */}
+      {xReportData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                <Printer size={16} className="text-amber-500" />
+                <span>Ticket Lecture X (Flash)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setXReportData(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 flex justify-center">
+              <div
+                className="bg-white p-4 shadow-sm border border-slate-200 text-black text-xs w-full max-w-[80mm] rounded-xl font-mono"
+                dangerouslySetInnerHTML={{ __html: xReportData.x_report_html }}
+              />
+            </div>
+
+            <div className="p-4 border-t border-slate-100 flex items-center gap-2 bg-white">
+              <button
+                type="button"
+                onClick={() => setXReportData(null)}
+                className="btn-secondary flex-1 py-2 text-xs font-bold rounded-xl"
+              >
+                Fermer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  printTicket(xReportData.x_report_html);
+                  setXReportData(null);
+                }}
+                className="btn-primary flex-1 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white flex items-center justify-center gap-1.5"
+              >
+                <Printer size={14} />
+                <span>Imprimer Ticket X</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Z-Report Preview & Print ── */}
+      {zReportData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                <Receipt size={16} className="text-emerald-500" />
+                <span>Ticket Rapport Z ({zReportData.session.session_code})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setZReportData(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 flex justify-center">
+              <div
+                className="bg-white p-4 shadow-sm border border-slate-200 text-black text-xs w-full max-w-[80mm] rounded-xl font-mono"
+                dangerouslySetInnerHTML={{ __html: zReportData.z_report_html }}
+              />
+            </div>
+
+            <div className="p-4 border-t border-slate-100 flex items-center gap-2 bg-white">
+              <button
+                type="button"
+                onClick={() => setZReportData(null)}
+                className="btn-secondary flex-1 py-2 text-xs font-bold rounded-xl"
+              >
+                Fermer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  printTicket(zReportData.z_report_html);
+                  setZReportData(null);
+                }}
+                className="btn-primary flex-1 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white flex items-center justify-center gap-1.5"
+              >
+                <Printer size={14} />
+                <span>Imprimer Ticket Z</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

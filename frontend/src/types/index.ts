@@ -208,7 +208,7 @@ export interface DefectMetrics {
 // Sales
 // ─────────────────────────────────────────────
 
-export type PaymentMethod = "cash" | "cheque" | "ccp" | "virement" | "account";
+export type PaymentMethod = "cash" | "tpe" | "baridimob" | "cheque" | "ccp" | "virement" | "account";
 export type SaleStatus = "completed" | "cancelled" | "refunded" | "partially_paid";
 
 export interface SaleItem {
@@ -251,6 +251,8 @@ export interface Sale {
   items: SaleItem[];
   payments: Payment[];
   exchange_count: number;
+  session?: string;
+  session_number?: number | null;
   created_at: string;
 }
 
@@ -335,6 +337,82 @@ export interface CashReconciliation {
   notes: string;
   approved_at: string | null;
   created_at: string;
+}
+
+export type CashSessionStatus = "open" | "closed";
+export type CashMovementType = "in" | "out";
+
+export interface CashMovement {
+  id: string;
+  session: string;
+  type: CashMovementType;
+  amount: string;
+  category: string;
+  notes: string;
+  created_by: number;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+export interface CashSessionStats {
+  sales_count: number;
+  total_sales: string | number;
+  cash_sales: string | number;
+  tpe_sales: string | number;
+  baridimob_sales: string | number;
+  cheque_sales: string | number;
+  ccp_sales: string | number;
+  virement_sales: string | number;
+  account_sales: string | number;
+  refunds_count: number;
+  refunds_amount: string | number;
+  refunds_cash?: string | number;
+  total_cash_in: string | number;
+  total_cash_out: string | number;
+  expected_cash: string | number;
+}
+
+export interface CashSession {
+  id: string;
+  branch: number | null;
+  branch_name: string | null;
+  cashier: number;
+  cashier_name: string | null;
+  session_number: number;
+  session_code: string;
+  status: CashSessionStatus;
+  opened_at: string;
+  closed_at: string | null;
+  closed_by: number | null;
+  closed_by_name: string | null;
+  opening_float: string;
+  system_sales_count: number;
+  system_total_sales: string;
+  system_cash_sales: string;
+  system_tpe_sales: string;
+  system_baridimob_sales: string;
+  system_cheque_sales: string;
+  system_ccp_sales: string;
+  system_virement_sales: string;
+  system_account_sales: string;
+  system_refunds_amount: string;
+  system_refunds_count: number;
+  total_cash_in: string;
+  total_cash_out: string;
+  expected_cash: string;
+  actual_cash: string;
+  actual_tpe: string;
+  actual_baridimob: string;
+  actual_cheque: string;
+  actual_ccp: string;
+  actual_virement: string;
+  cash_gap: string;
+  closing_notes: string;
+  approved_by: number | null;
+  approved_by_name: string | null;
+  approved_at: string | null;
+  movements: CashMovement[];
+  stats: CashSessionStats;
 }
 
 // ─────────────────────────────────────────────

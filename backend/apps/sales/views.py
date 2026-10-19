@@ -11,11 +11,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
-from .models import CashReconciliation, Payment, Return, Sale
-from .serializers import (
-    AddPaymentSerializer, CashReconciliationSerializer, CreateExchangeSerializer,
-    CreateReconciliationSerializer, CreateReturnSerializer, CreateSaleSerializer, SaleSerializer,
+from .models import (
+    CashMovement, CashMovementType, CashReconciliation, CashSession,
+    CashSessionStatus, Payment, Return, Sale,
 )
+from .serializers import (
+    AddPaymentSerializer, CashMovementCreateSerializer, CashMovementSerializer,
+    CashReconciliationSerializer, CashSessionSerializer, CloseCashSessionSerializer,
+    CreateExchangeSerializer, CreateReconciliationSerializer, CreateReturnSerializer,
+    CreateSaleSerializer, OpenCashSessionSerializer, SaleSerializer,
+)
+from .services.z_report import compute_session_stats, render_thermal_z_report
 
 logger = logging.getLogger(__name__)
 
@@ -344,3 +350,248 @@ class CashReconciliationViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSe
         rec.approved_at = timezone.now()
         rec.save(update_fields=["status", "approved_by", "approved_at"])
         return Response(CashReconciliationSerializer(rec).data)
+
+
+class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """
+    Cash Register Session ViewSet.
+    Handles shift open, movements (in/out), live X-Report, shift close with counted cash,
+    and closing Z-Report generation.
+    """
+    queryset = CashSession.objects.all()
+    serializer_class = CashSessionSerializer
+    ordering = ["-opened_at"]
+
+    def get_queryset(self):
+        qs = CashSession.objects.filter(
+            tenant=self.request.tenant
+        ).select_related("cashier", "closed_by", "approved_by", "branch").prefetch_related("movements__created_by")
+        
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
+        branch_param = self.request.query_params.get("branch")
+        if branch_param:
+            qs = qs.filter(branch_id=branch_param)
+        cashier_param = self.request.query_params.get("cashier")
+        if cashier_param:
+            qs = qs.filter(cashier_id=cashier_param)
+        date_param = self.request.query_params.get("date")
+        if date_param:
+            qs = qs.filter(opened_at__date=date_param)
+
+        return qs
+
+    @action(detail=False, methods=["get"])
+    def current(self, request):
+        """
+        Get the currently active open CashSession for this user or register.
+        """
+        branch_id = request.query_params.get("branch")
+        # 1. Search for active session of this cashier
+        session = CashSession.objects.filter(
+            tenant=request.tenant,
+            cashier=request.user,
+            status=CashSessionStatus.OPEN,
+        ).order_by("-opened_at").first()
+
+        # 2. If not found and branch provided, check open session for branch
+        if not session and branch_id:
+            session = CashSession.objects.filter(
+                tenant=request.tenant,
+                branch_id=branch_id,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+
+        # 3. If still not found, check any open session in tenant
+        if not session:
+            session = CashSession.objects.filter(
+                tenant=request.tenant,
+                status=CashSessionStatus.OPEN,
+            ).order_by("-opened_at").first()
+
+        if not session:
+            return Response(None, status=status.HTTP_200_OK)
+
+        return Response(CashSessionSerializer(session).data)
+
+    @action(detail=False, methods=["post"])
+    def open_session(self, request):
+        """
+        Open a new cash register session (Shift).
+        """
+        serializer = OpenCashSessionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # Check if already open session for this cashier
+        existing = CashSession.objects.filter(
+            tenant=request.tenant,
+            cashier=request.user,
+            status=CashSessionStatus.OPEN,
+        ).first()
+        if existing:
+            return Response(
+                {"detail": f"Une session est déjà ouverte (#{existing.session_number}). Fermez-la avant d'en ouvrir une nouvelle."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        branch = None
+        branch_id = data.get("branch_id")
+        if branch_id:
+            from apps.core.models import Branch
+            branch = Branch.objects.filter(pk=branch_id, tenant=request.tenant).first()
+
+        session = CashSession.objects.create(
+            tenant=request.tenant,
+            branch=branch,
+            cashier=request.user,
+            opening_float=data.get("opening_float", Decimal("0.00")),
+            status=CashSessionStatus.OPEN,
+        )
+        return Response(CashSessionSerializer(session).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def movement(self, request, pk=None):
+        """
+        Record a cash movement (in/out) in this session.
+        """
+        session = self.get_object()
+        if session.status != CashSessionStatus.OPEN:
+            return Response(
+                {"detail": "Impossible d'ajouter un mouvement à une session fermée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CashMovementCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        movement = CashMovement.objects.create(
+            session=session,
+            type=data["type"],
+            amount=data["amount"],
+            category=data["category"],
+            notes=data.get("notes", ""),
+            created_by=request.user,
+        )
+        return Response(CashMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def close(self, request, pk=None):
+        """
+        Close a cash session: record cashier physical count, snapshot system numbers,
+        compute cash gap, and generate closing Z-Report.
+        """
+        session = self.get_object()
+        if session.status == CashSessionStatus.CLOSED:
+            return Response(
+                {"detail": "Cette session est déjà fermée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CloseCashSessionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        stats = compute_session_stats(session)
+
+        actual_cash = data["actual_cash"]
+        actual_tpe = data.get("actual_tpe", Decimal("0.00"))
+        actual_baridimob = data.get("actual_baridimob", Decimal("0.00"))
+        actual_cheque = data.get("actual_cheque", Decimal("0.00"))
+        actual_ccp = data.get("actual_ccp", Decimal("0.00"))
+        actual_virement = data.get("actual_virement", Decimal("0.00"))
+        closing_notes = data.get("closing_notes", "")
+
+        expected_cash = stats["expected_cash"]
+        cash_gap = actual_cash - expected_cash
+
+        session.status = CashSessionStatus.CLOSED
+        session.closed_at = timezone.now()
+        session.closed_by = request.user
+
+        session.system_sales_count = stats["sales_count"]
+        session.system_total_sales = stats["total_sales"]
+        session.system_cash_sales = stats["cash_sales"]
+        session.system_tpe_sales = stats["tpe_sales"]
+        session.system_baridimob_sales = stats["baridimob_sales"]
+        session.system_cheque_sales = stats["cheque_sales"]
+        session.system_ccp_sales = stats["ccp_sales"]
+        session.system_virement_sales = stats["virement_sales"]
+        session.system_account_sales = stats["account_sales"]
+        session.system_refunds_amount = stats["refunds_amount"]
+        session.system_refunds_count = stats["refunds_count"]
+
+        session.total_cash_in = stats["total_cash_in"]
+        session.total_cash_out = stats["total_cash_out"]
+        session.expected_cash = expected_cash
+
+        session.actual_cash = actual_cash
+        session.actual_tpe = actual_tpe
+        session.actual_baridimob = actual_baridimob
+        session.actual_cheque = actual_cheque
+        session.actual_ccp = actual_ccp
+        session.actual_virement = actual_virement
+        session.cash_gap = cash_gap
+        session.closing_notes = closing_notes
+
+        session.save()
+
+        store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
+        html = render_thermal_z_report(session, is_x_report=False, stats=stats, store_name=store_name)
+
+        return Response({
+            "session": CashSessionSerializer(session).data,
+            "z_report_html": html,
+        })
+
+    @action(detail=True, methods=["get"])
+    def x_report(self, request, pk=None):
+        """
+        Instant live flash reading (Rapport X) without closing the session.
+        """
+        session = self.get_object()
+        stats = compute_session_stats(session)
+        store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
+        html = render_thermal_z_report(session, is_x_report=True, stats=stats, store_name=store_name)
+        return Response({
+            "session": CashSessionSerializer(session).data,
+            "stats": stats,
+            "x_report_html": html,
+        })
+
+    @action(detail=True, methods=["get"])
+    def z_report(self, request, pk=None):
+        """
+        Reprint or view thermal Z-Report for a closed session.
+        """
+        session = self.get_object()
+        store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
+        html = render_thermal_z_report(session, is_x_report=False, store_name=store_name)
+        return Response({
+            "session": CashSessionSerializer(session).data,
+            "z_report_html": html,
+        })
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        """
+        Manager approval for cash session discrepancy / closing.
+        """
+        if request.user.role not in ("owner", "manager"):
+            return Response(
+                {"detail": "Seuls les managers peuvent approuver une session de caisse."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        session = self.get_object()
+        if session.approved_by:
+            return Response(
+                {"detail": "Cette session a déjà été approuvée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        session.approved_by = request.user
+        session.approved_at = timezone.now()
+        session.save(update_fields=["approved_by", "approved_at"])
+        return Response(CashSessionSerializer(session).data)
+

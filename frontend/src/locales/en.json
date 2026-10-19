@@ -547,6 +547,8 @@
   },
   "payment_method": {
     "cash": "Cash",
+    "tpe": "CIB / Edahabia Card (POS)",
+    "baridimob": "BaridiMob",
     "cheque": "Cheque",
     "ccp": "CCP",
     "virement": "Wire Transfer",

@@ -5,15 +5,16 @@
  * - Keyboard: F2 = focus search, F10 = confirm sale
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle, Trash2 } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle, Trash2, CreditCard, Smartphone, ArrowDownUp, Receipt, Coins } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement } from "@/lib/versement";
 import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram } from "@/types";
+import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
@@ -27,7 +28,7 @@ interface CartItem {
   promoName?: string;
 }
 
-const PAYMENT_METHOD_KEYS = ["cash", "ccp", "virement", "cheque"] as const;
+const PAYMENT_METHOD_KEYS = ["cash", "tpe", "baridimob", "ccp", "virement", "cheque"] as const;
 type PaymentMethodKey = (typeof PAYMENT_METHOD_KEYS)[number];
 
 interface PaymentLine {
@@ -282,6 +283,57 @@ export default function SalesPage() {
   } | null>(null);
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [stockWarningToast, setStockWarningToast] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const [showMovementModal, setShowMovementModal] = useState(false);
+  const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
+  const [sessionOpeningFloat, setSessionOpeningFloat] = useState("0");
+  const [movementType, setMovementType] = useState<"in" | "out">("out");
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementCategory, setMovementCategory] = useState("Dépense magasin");
+  const [movementNotes, setMovementNotes] = useState("");
+  const [movementError, setMovementError] = useState<string | null>(null);
+
+  // Cash Session Query
+  const { data: currentSession } = useQuery<CashSession | null>({
+    queryKey: ["cash-session-current", currentBranch?.id],
+    queryFn: () =>
+      api.get(`/sales/sessions/current/${currentBranch?.id ? `?branch=${currentBranch.id}` : ""}`).then((r) => r.data),
+    staleTime: 15_000,
+  });
+
+  const openSessionMutation = useMutation({
+    mutationFn: () =>
+      api.post("/sales/sessions/open_session/", {
+        opening_float: sessionOpeningFloat || "0",
+        branch_id: currentBranch?.id ?? null,
+      }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      setShowOpenSessionModal(false);
+      setSessionOpeningFloat("0");
+    },
+  });
+
+  const movementMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/sales/sessions/${currentSession?.id}/movement/`, {
+        type: movementType,
+        amount: movementAmount,
+        category: movementCategory,
+        notes: movementNotes,
+      }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      setShowMovementModal(false);
+      setMovementAmount("");
+      setMovementNotes("");
+      setMovementError(null);
+    },
+    onError: (err) => setMovementError(getApiError(err)),
+  });
 
   // Keep a ref so addToCart (useCallback) can read current cart without stale closure
   const cartRef = useRef<CartItem[]>([]);
@@ -582,6 +634,8 @@ export default function SalesPage() {
       setIsVersement(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
     },
     onSettled: () => {
       isSubmittingRef.current = false;
@@ -1027,6 +1081,57 @@ export default function SalesPage() {
                 <span>{t("sales.shortcut_clear", "Vider panier / Effacer")}</span>
               </span>
             </div>
+          </div>
+
+          {/* Cash Register Shift Status & Quick Action */}
+          <div className="flex items-center gap-2">
+            {currentSession ? (
+              <div className="flex items-center gap-1.5 bg-white border border-emerald-200/90 shadow-2xs rounded-2xl p-1.5 pr-2.5">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{currentSession.session_code}</span>
+                  <span className="text-emerald-300">|</span>
+                  <span className="font-mono">{formatDZD(currentSession.stats?.expected_cash ?? currentSession.expected_cash)} DZD</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMovementModal(true)}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                  title="Ajouter ou retirer des espèces (Dépense magasin / Apport monnaie)"
+                >
+                  <ArrowDownUp size={12} />
+                  <span>Mouvement</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/sales/reconciliation")}
+                  className="px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1 transition-colors"
+                  title="Voir la caisse, lecture X et clôture Z"
+                >
+                  <Receipt size={12} />
+                  <span>Caisse & Z</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-white border border-amber-200 shadow-2xs rounded-2xl p-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowOpenSessionModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                >
+                  <Coins size={13} />
+                  <span>Ouvrir Caisse</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/sales/reconciliation")}
+                  className="px-2 py-1.5 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors"
+                  title="Historique des caisses"
+                >
+                  <Receipt size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1512,8 +1617,53 @@ export default function SalesPage() {
 
                 {/* Multiple payment methods */}
                 <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Mode de règlement
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Mode de règlement
+                    </div>
+                    {/* Quick payment pills */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPayments([{ method: "cash", amount: Math.max(0, total) }])}
+                        className={cn(
+                          "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors",
+                          payments.length === 1 && payments[0].method === "cash"
+                            ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        Espèces
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPayments([{ method: "tpe", amount: Math.max(0, total) }])}
+                        className={cn(
+                          "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors flex items-center gap-1",
+                          payments.length === 1 && payments[0].method === "tpe"
+                            ? "bg-blue-600 text-white border-blue-600 font-bold shadow-2xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                        title="TPE (CIB / Edahabia)"
+                      >
+                        <CreditCard size={11} />
+                        TPE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPayments([{ method: "baridimob", amount: Math.max(0, total) }])}
+                        className={cn(
+                          "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors flex items-center gap-1",
+                          payments.length === 1 && payments[0].method === "baridimob"
+                            ? "bg-amber-600 text-white border-amber-600 font-bold shadow-2xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                        title="BaridiMob"
+                      >
+                        <Smartphone size={11} />
+                        BaridiMob
+                      </button>
+                    </div>
                   </div>
                   {payments.map((payment, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -1781,6 +1931,258 @@ export default function SalesPage() {
                   className="btn-primary bg-red-600 hover:bg-red-700 text-white flex-1 py-2.5 text-xs font-bold rounded-xl shadow-xs"
                 >
                   Vider <span className="opacity-80 text-2xs font-mono">(Entrée)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Open Cash Session Modal ── */}
+      {showOpenSessionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Coins size={18} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Ouvrir la session de caisse</h3>
+                  <p className="text-2xs text-slate-500">Démarrer une nouvelle vacation / shift</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOpenSessionModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Fond de caisse initial (Espèces de départ)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={sessionOpeningFloat}
+                    onChange={(e) => setSessionOpeningFloat(e.target.value)}
+                    placeholder="0.00"
+                    className="form-input text-base font-bold font-mono py-2.5 pl-3 pr-14 rounded-xl w-full"
+                    autoFocus
+                  />
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                    DZD
+                  </span>
+                </div>
+                {/* Presets */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[0, 2000, 5000, 10000, 20000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setSessionOpeningFloat(String(amt))}
+                      className={cn(
+                        "px-2.5 py-1 text-2xs font-bold rounded-lg border transition-colors",
+                        sessionOpeningFloat === String(amt)
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      )}
+                    >
+                      {amt === 0 ? "0 DZD" : `${amt.toLocaleString("fr-DZ")} DZD`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {openSessionMutation.isError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{getApiError(openSessionMutation.error)}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOpenSessionModal(false)}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openSessionMutation.mutate()}
+                  disabled={openSessionMutation.isPending}
+                  className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                >
+                  {openSessionMutation.isPending ? "Ouverture..." : "Confirmer l'ouverture"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Quick Petty Cash Movement Modal ── */}
+      {showMovementModal && currentSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center",
+                  movementType === "in" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                )}>
+                  <ArrowDownUp size={18} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Mouvement d'espèces</h3>
+                  <p className="text-2xs text-slate-500">Session {currentSession.session_code}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowMovementModal(false); setMovementError(null); }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Type Switcher */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementType("out");
+                    setMovementCategory("Dépense magasin");
+                  }}
+                  className={cn(
+                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+                    movementType === "out" ? "bg-red-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Minus size={13} />
+                  <span>Dépense / Retrait (-)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementType("in");
+                    setMovementCategory("Apport monnaie");
+                  }}
+                  className={cn(
+                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+                    movementType === "in" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Plus size={13} />
+                  <span>Apport d'espèces (+)</span>
+                </button>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Montant (DZD) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    step="50"
+                    value={movementAmount}
+                    onChange={(e) => setMovementAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="form-input text-base font-bold font-mono py-2 pl-3 pr-14 rounded-xl w-full"
+                    autoFocus
+                  />
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                    DZD
+                  </span>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Motif / Catégorie *
+                </label>
+                <select
+                  value={movementCategory}
+                  onChange={(e) => setMovementCategory(e.target.value)}
+                  className="form-input text-xs py-2 rounded-xl w-full"
+                >
+                  {movementType === "out" ? (
+                    <>
+                      <option value="Dépense magasin">Dépense magasin (café, transport, fournitures...)</option>
+                      <option value="Paiement fournisseur">Paiement fournisseur direct</option>
+                      <option value="Retrait patron / coffre">Retrait gérant / versement coffre</option>
+                      <option value="Autre retrait">Autre dépense / retrait</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Apport monnaie">Apport de monnaie (pièces / billets)</option>
+                      <option value="Apport fond de caisse">Apport fond de caisse supplémentaire</option>
+                      <option value="Remboursement prêt">Remboursement prêt ou avance</option>
+                      <option value="Autre apport">Autre apport</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Observation / Détails (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={movementNotes}
+                  onChange={(e) => setMovementNotes(e.target.value)}
+                  placeholder="Ex : Achat papier ticket + café caissiers"
+                  className="form-input text-xs py-2 rounded-xl w-full"
+                />
+              </div>
+
+              {movementError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{movementError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowMovementModal(false); setMovementError(null); }}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!movementAmount || parseFloat(movementAmount) <= 0) {
+                      setMovementError("Veuillez saisir un montant valide.");
+                      return;
+                    }
+                    movementMutation.mutate();
+                  }}
+                  disabled={movementMutation.isPending}
+                  className={cn(
+                    "flex-1 py-2.5 text-xs font-bold rounded-xl text-white shadow-xs transition-colors",
+                    movementType === "out" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  )}
+                >
+                  {movementMutation.isPending ? "Enregistrement..." : "Enregistrer le mouvement"}
                 </button>
               </div>
             </div>

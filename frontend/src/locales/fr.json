@@ -576,6 +576,8 @@
   },
   "payment_method": {
     "cash": "Espèces",
+    "tpe": "Carte CIB / Edahabia (TPE)",
+    "baridimob": "BaridiMob",
     "cheque": "Chèque",
     "ccp": "CCP",
     "virement": "Virement",

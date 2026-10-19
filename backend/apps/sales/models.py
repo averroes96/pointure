@@ -17,6 +17,18 @@ class PaymentMethodChoices(models.TextChoices):
     CCP = "ccp", _("CCP (Algérie Poste)")
     VIREMENT = "virement", _("Virement Bancaire")
     ACCOUNT = "account", _("Client Account Balance")
+    TPE = "tpe", _("TPE (Carte CIB / Edahabia)")
+    BARIDIMOB = "baridimob", _("BaridiMob")
+
+
+class CashSessionStatus(models.TextChoices):
+    OPEN = "open", _("Ouverte")
+    CLOSED = "closed", _("Clôturée")
+
+
+class CashMovementType(models.TextChoices):
+    IN = "in", _("Entrée de caisse (Apport)")
+    OUT = "out", _("Sortie de caisse (Dépense / Retrait)")
 
 
 class SaleStatusChoices(models.TextChoices):
@@ -30,6 +42,9 @@ class Sale(TenantScopedModel):
     """Retail sale header."""
     branch = models.ForeignKey(
         Branch, on_delete=models.PROTECT, related_name="sales", null=True, blank=True
+    )
+    session = models.ForeignKey(
+        "sales.CashSession", on_delete=models.SET_NULL, null=True, blank=True, related_name="sales"
     )
     cashier = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="sales"
@@ -115,7 +130,7 @@ class Payment(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(_("Amount"), max_digits=12, decimal_places=2)
     method = models.CharField(
-        _("Method"), max_length=10, choices=PaymentMethodChoices.choices
+        _("Method"), max_length=20, choices=PaymentMethodChoices.choices
     )
     # Cheque-specific fields
     cheque_ref = models.ForeignKey(
@@ -135,6 +150,9 @@ class Payment(models.Model):
 class Return(TenantScopedModel):
     """Customer return linked to original sale."""
     original_sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="returns")
+    session = models.ForeignKey(
+        "sales.CashSession", on_delete=models.SET_NULL, null=True, blank=True, related_name="returns"
+    )
     processed_by = models.ForeignKey(
         "core.User", on_delete=models.SET_NULL, null=True, related_name="returns_processed"
     )
@@ -143,7 +161,7 @@ class Return(TenantScopedModel):
         _("Refund Amount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     refund_method = models.CharField(
-        _("Refund Method"), max_length=10, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH
+        _("Refund Method"), max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -170,6 +188,117 @@ class ReturnItem(models.Model):
 
     class Meta:
         verbose_name = _("Return Item")
+
+
+class CashSession(TenantScopedModel):
+    """
+    Cash Register Session (Shift / Caisse).
+    Represents an active or closed shift with opening float, sales, petty cash movements,
+    and end-of-shift cash drawer count with Z-Report generation.
+    """
+    branch = models.ForeignKey(
+        Branch, on_delete=models.PROTECT, related_name="cash_sessions", null=True, blank=True
+    )
+    cashier = models.ForeignKey(
+        "core.User", on_delete=models.PROTECT, related_name="cash_sessions"
+    )
+    session_number = models.PositiveIntegerField(_("Session / Z Number"), default=0, db_index=True)
+    status = models.CharField(
+        _("Status"), max_length=10, choices=CashSessionStatus.choices, default=CashSessionStatus.OPEN, db_index=True
+    )
+    opened_at = models.DateTimeField(_("Opened At"), auto_now_add=True)
+    closed_at = models.DateTimeField(_("Closed At"), null=True, blank=True)
+    closed_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="closed_cash_sessions"
+    )
+
+    # Initial cash in drawer
+    opening_float = models.DecimalField(
+        _("Opening Cash Float (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+
+    # System snapshot computed on close
+    system_sales_count = models.PositiveIntegerField(default=0)
+    system_total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_cash_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_tpe_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_baridimob_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_cheque_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_ccp_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_virement_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_account_sales = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_refunds_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    system_refunds_count = models.PositiveIntegerField(default=0)
+
+    # Cash drawer movements during shift
+    total_cash_in = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    total_cash_out = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    # Theoretical cash expected in drawer
+    expected_cash = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    # Actual physical count by cashier on close
+    actual_cash = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    actual_tpe = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    actual_baridimob = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    actual_cheque = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    actual_ccp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    actual_virement = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    # Discrepancy (actual_cash - expected_cash)
+    cash_gap = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    closing_notes = models.TextField(_("Closing Notes"), blank=True)
+
+    # Manager / Owner approval
+    approved_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_cash_sessions"
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Cash Session")
+        verbose_name_plural = _("Cash Sessions")
+        ordering = ["-opened_at"]
+
+    def __str__(self):
+        return f"Session Z-{self.session_number:04d} ({self.get_status_display()}) — {self.cashier}"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and (not self.session_number or self.session_number == 0):
+            max_num = (
+                CashSession.objects.filter(tenant=self.tenant)
+                .aggregate(models.Max("session_number"))["session_number__max"]
+                or 0
+            )
+            self.session_number = max_num + 1
+        super().save(*args, **kwargs)
+
+
+class CashMovement(models.Model):
+    """
+    Petty cash movement inside an open cash session (Apport / Dépense / Retrait coffre).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(CashSession, on_delete=models.CASCADE, related_name="movements")
+    type = models.CharField(max_length=5, choices=CashMovementType.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    category = models.CharField(
+        _("Category / Reason"), max_length=50,
+        help_text="e.g. Dépense magasin, Paiement fournisseur, Retrait patron, Apport monnaie"
+    )
+    notes = models.TextField(_("Notes"), blank=True)
+    created_by = models.ForeignKey("core.User", on_delete=models.PROTECT, related_name="cash_movements")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Cash Movement")
+        verbose_name_plural = _("Cash Movements")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        sign = "+" if self.type == "in" else "-"
+        return f"{sign}{self.amount} DZD ({self.category})"
 
 
 class CashReconciliation(TenantScopedModel):
@@ -236,7 +365,7 @@ class Exchange(TenantScopedModel):
         _("Extra Payment"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     extra_payment_method = models.CharField(
-        _("Extra Payment Method"), max_length=10, choices=PaymentMethodChoices.choices, blank=True
+        _("Extra Payment Method"), max_length=20, choices=PaymentMethodChoices.choices, blank=True
     )
     # Positive when store refunds cash (returned items more expensive than new)
     refund_amount = models.DecimalField(
