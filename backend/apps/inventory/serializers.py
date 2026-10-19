@@ -4,7 +4,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.core.models import Branch, RoleChoices
-from .models import DefectItem, Product, StockMovement, StockTransfer, Variant
+from .models import DefectItem, Product, StockMovement, StockTransfer, Variant, StocktakeSession, StocktakeItem
 
 
 class VariantSerializer(serializers.ModelSerializer):
@@ -325,4 +325,81 @@ class DefectItemSerializer(serializers.ModelSerializer):
         if obj.variant and obj.variant.product and obj.variant.product.image:
             return obj.variant.product.image.url
         return ""
+
+
+# ─────────────────────────────────────────────
+# Stocktake Serializers
+# ─────────────────────────────────────────────
+
+class StocktakeItemSerializer(serializers.ModelSerializer):
+    variant_str = serializers.CharField(source="variant.__str__", read_only=True)
+    product_id = serializers.IntegerField(source="variant.product.id", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_brand = serializers.CharField(source="variant.product.brand", read_only=True, default="")
+    product_reference = serializers.CharField(source="variant.product.reference", read_only=True, default="")
+    product_image = serializers.SerializerMethodField()
+    size_eu = serializers.IntegerField(source="variant.size_eu", read_only=True)
+    colour = serializers.CharField(source="variant.colour", read_only=True, default="")
+    barcode = serializers.CharField(source="variant.barcode", read_only=True, default="")
+    variance_qty = serializers.IntegerField(read_only=True)
+    variance_cost = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = StocktakeItem
+        fields = [
+            "id", "session", "variant", "variant_str",
+            "product_id", "product_name", "product_brand", "product_reference", "product_image",
+            "size_eu", "colour", "barcode",
+            "expected_qty", "counted_qty", "variance_qty",
+            "unit_cost", "unit_price", "variance_cost",
+            "last_scanned_at", "notes",
+        ]
+        read_only_fields = ["id", "session", "variant", "expected_qty", "unit_cost", "unit_price"]
+
+    def get_product_image(self, obj) -> str:
+        if obj.variant and obj.variant.product and obj.variant.product.image:
+            try:
+                return obj.variant.product.image.url
+            except Exception:
+                return ""
+        return ""
+
+
+class StocktakeSessionListSerializer(serializers.ModelSerializer):
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default="Toutes succursales")
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True, default="")
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    item_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = StocktakeSession
+        fields = [
+            "id", "title", "branch", "branch_name", "status", "status_display",
+            "scope_brand", "scope_category", "notes",
+            "total_expected", "total_counted", "total_variance", "total_variance_cost",
+            "item_count", "created_by", "created_by_name", "completed_by", "completed_at",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "completed_at"]
+
+
+class StocktakeSessionDetailSerializer(StocktakeSessionListSerializer):
+    items = StocktakeItemSerializer(many=True, read_only=True)
+
+    class Meta(StocktakeSessionListSerializer.Meta):
+        fields = StocktakeSessionListSerializer.Meta.fields + ["items"]
+
+
+class CreateStocktakeSessionSerializer(serializers.ModelSerializer):
+    auto_populate = serializers.BooleanField(default=True, write_only=True, help_text="Pré-charger le stock théorique de tous les articles")
+
+    class Meta:
+        model = StocktakeSession
+        fields = [
+            "id", "title", "branch", "scope_brand", "scope_category", "notes",
+            "status", "total_expected", "total_counted", "total_variance", "auto_populate",
+        ]
+        read_only_fields = ["id", "status", "total_expected", "total_counted", "total_variance"]
+
+
 

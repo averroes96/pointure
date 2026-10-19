@@ -35,6 +35,7 @@
     "promotions": "Promotions",
     "transfers": "Transferts",
     "barcode_scanner": "Scanner code-barres",
+    "stocktake": "Inventaire Physique (Scan)",
     "loyalty": "Fidélité",
     "purchase_orders": "Bons de commande",
     "supplier_payables": "Dettes Fournisseurs",

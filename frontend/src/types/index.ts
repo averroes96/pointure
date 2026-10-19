@@ -108,7 +108,8 @@ export interface Product {
 
 export type MovementReason =
   | "sale" | "reception" | "adjustment" | "return"
-  | "transfer_out" | "transfer_in" | "damaged" | "initial";
+  | "transfer_out" | "transfer_in" | "damaged" | "initial"
+  | "layaway_lock" | "layaway_release" | "stocktake";
 
 export interface StockMovement {
   id: number;
@@ -124,6 +125,55 @@ export interface StockMovement {
   notes: string;
   user_email: string;
   timestamp: string;
+}
+
+export type StocktakeStatus = "draft" | "in_progress" | "paused" | "completed" | "cancelled";
+
+export interface StocktakeItem {
+  id: number;
+  session: string | number;
+  variant: number;
+  variant_str: string;
+  product_id: number;
+  product_name: string;
+  product_brand?: string;
+  product_reference?: string;
+  product_image?: string;
+  size_eu: number;
+  colour: string;
+  barcode: string;
+  expected_qty: number;
+  counted_qty: number;
+  variance_qty: number;
+  unit_cost: string | number;
+  unit_price: string | number;
+  variance_cost: string | number;
+  last_scanned_at?: string | null;
+  notes?: string;
+}
+
+export interface StocktakeSession {
+  id: string | number;
+  title: string;
+  branch?: number | null;
+  branch_name?: string;
+  status: StocktakeStatus;
+  status_display: string;
+  scope_brand?: string;
+  scope_category?: string;
+  notes?: string;
+  total_expected: number;
+  total_counted: number;
+  total_variance: number;
+  total_variance_cost: string | number;
+  item_count?: number;
+  created_by?: number;
+  created_by_name?: string;
+  completed_by?: number;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: StocktakeItem[];
 }
 
 export type TransferStatus = "pending" | "in_transit" | "received" | "cancelled";

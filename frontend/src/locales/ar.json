@@ -35,6 +35,7 @@
     "promotions": "العروض الترويجية",
     "transfers": "التحويلات",
     "barcode_scanner": "قارئ الباركود",
+    "stocktake": "الجرد الفعلي للمخزون (Scan)",
     "loyalty": "برنامج الولاء",
     "purchase_orders": "أوامر الشراء",
     "supplier_payables": "ديون الموردين",

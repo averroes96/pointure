@@ -46,6 +46,8 @@ export function getStatusBadgeClass(status: string): string {
     refunded: "badge-warning",
     partially_paid: "badge-warning",
     layaway: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+    paused: "bg-amber-100 text-amber-800 border-amber-200",
     cancelled: "badge-neutral",
     draft: "badge-neutral",
   };

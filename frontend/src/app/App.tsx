@@ -40,6 +40,7 @@ const StockTransferPage = lazy(() => import("@/features/inventory/StockTransferP
 const LowStockPage = lazy(() => import("@/features/inventory/LowStockPage"));
 const BarcodeScannerPage = lazy(() => import("@/features/inventory/BarcodeScannerPage"));
 const DefectsPage = lazy(() => import("@/features/inventory/DefectsPage"));
+const StocktakePage = lazy(() => import("@/features/inventory/StocktakePage"));
 
 // Sales
 const SalesPage = lazy(() => import("@/features/sales/SalesPage"));
@@ -164,6 +165,7 @@ function AppRoutes() {
             <Route path="defects" element={<DefectsPage />} />
             <Route path="low-stock" element={<LowStockPage />} />
             <Route path="scanner" element={<BarcodeScannerPage />} />
+            <Route path="stocktake" element={<StocktakePage />} />
           </Route>
 
           {/* Clients */}

@@ -35,6 +35,7 @@
     "promotions": "Promotions",
     "transfers": "Transfers",
     "barcode_scanner": "Barcode Scanner",
+    "stocktake": "Physical Stocktake (Scan)",
     "loyalty": "Loyalty",
     "purchase_orders": "Purchase Orders",
     "supplier_payables": "Supplier Payables",

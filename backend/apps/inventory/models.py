@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Branch, TenantScopedModel
@@ -55,6 +56,7 @@ class MovementReasonChoices(models.TextChoices):
     INITIAL = "initial", _("Initial Stock Entry")
     LAYAWAY_LOCK = "layaway_lock", _("Mise de côté (Réservation)")
     LAYAWAY_RELEASE = "layaway_release", _("Annulation réservation (Libération stock)")
+    STOCKTAKE = "stocktake", _("Ajustement inventaire")
 
 
 class TransferStatusChoices(models.TextChoices):
@@ -456,4 +458,146 @@ class DefectItem(TenantScopedModel):
 
     def __str__(self):
         return f"{self.variant} × {self.quantity} ({self.get_defect_reason_display()}) [{self.get_status_display()}]"
+
+
+# ─────────────────────────────────────────────
+# Stocktake / Inventaire Physique Rapide
+# ─────────────────────────────────────────────
+
+class StocktakeStatusChoices(models.TextChoices):
+    DRAFT = "draft", _("Brouillon")
+    IN_PROGRESS = "in_progress", _("En cours")
+    PAUSED = "paused", _("En pause")
+    COMPLETED = "completed", _("Validé & Appliqué")
+    CANCELLED = "cancelled", _("Annulé")
+
+
+class StocktakeSession(TenantScopedModel):
+    """
+    Physical inventory session (stocktake / récolement physique des stocks).
+    Supports rapid continuous barcode scanning, carton multipliers,
+    theoretical vs. counted variance calculation, and atomic stock reconciliation.
+    """
+    title = models.CharField(_("Title"), max_length=200)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stocktake_sessions",
+        help_text="Succursale inventoriée (laisser vide pour inventaire global)",
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=StocktakeStatusChoices.choices,
+        default=StocktakeStatusChoices.IN_PROGRESS,
+        db_index=True,
+    )
+    scope_brand = models.CharField(_("Brand Scope"), max_length=100, blank=True)
+    scope_category = models.CharField(_("Category Scope"), max_length=20, blank=True)
+    notes = models.TextField(_("Notes"), blank=True)
+
+    created_by = models.ForeignKey(
+        "core.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stocktakes_created",
+    )
+    completed_by = models.ForeignKey(
+        "core.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stocktakes_completed",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    total_expected = models.IntegerField(_("Total Expected Qty"), default=0)
+    total_counted = models.IntegerField(_("Total Counted Qty"), default=0)
+    total_variance = models.IntegerField(_("Total Variance Qty"), default=0)
+    total_variance_cost = models.DecimalField(
+        _("Total Variance Cost (DZD)"),
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Stocktake Session")
+        verbose_name_plural = _("Stocktake Sessions")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.get_status_display()})"
+
+    def recalculate_totals(self):
+        """Aggregate totals from items."""
+        aggs = self.items.aggregate(
+            exp=Sum("expected_qty"),
+            cnt=Sum("counted_qty"),
+        )
+        self.total_expected = aggs["exp"] or 0
+        self.total_counted = aggs["cnt"] or 0
+        self.total_variance = self.total_counted - self.total_expected
+
+        cost_sum = Decimal("0.00")
+        for item in self.items.all():
+            variance = item.counted_qty - item.expected_qty
+            cost_sum += Decimal(str(variance)) * item.unit_cost
+        self.total_variance_cost = cost_sum
+        self.save(update_fields=["total_expected", "total_counted", "total_variance", "total_variance_cost", "updated_at"])
+
+
+class StocktakeItem(TenantScopedModel):
+    """
+    Individual SKU/variant counted inside a StocktakeSession.
+    """
+    session = models.ForeignKey(
+        StocktakeSession,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    variant = models.ForeignKey(
+        Variant,
+        on_delete=models.CASCADE,
+        related_name="stocktake_items",
+    )
+    expected_qty = models.IntegerField(_("Expected Qty"), default=0)
+    counted_qty = models.IntegerField(_("Counted Qty"), default=0)
+    unit_cost = models.DecimalField(
+        _("Unit Cost Price (DZD)"),
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    unit_price = models.DecimalField(
+        _("Unit Sale Price (DZD)"),
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    last_scanned_at = models.DateTimeField(null=True, blank=True)
+    notes = models.CharField(_("Notes"), max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = _("Stocktake Item")
+        verbose_name_plural = _("Stocktake Items")
+        unique_together = [["session", "variant"]]
+        ordering = ["variant__product__name", "variant__size_eu"]
+
+    def __str__(self):
+        return f"{self.variant} - Exp: {self.expected_qty}, Cnt: {self.counted_qty}"
+
+    @property
+    def variance_qty(self):
+        return self.counted_qty - self.expected_qty
+
+    @property
+    def variance_cost(self):
+        return Decimal(str(self.variance_qty)) * self.unit_cost
 

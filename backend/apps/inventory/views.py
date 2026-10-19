@@ -17,6 +17,9 @@ from apps.inventory.models import (
     StockMovement,
     StockTransfer,
     Variant,
+    StocktakeItem,
+    StocktakeSession,
+    StocktakeStatusChoices,
 )
 from apps.inventory.serializers import (
     BulkStockAdjustmentSerializer,
@@ -29,6 +32,10 @@ from apps.inventory.serializers import (
     StockMovementSerializer,
     StockTransferSerializer,
     VariantSerializer,
+    StocktakeItemSerializer,
+    StocktakeSessionListSerializer,
+    StocktakeSessionDetailSerializer,
+    CreateStocktakeSessionSerializer,
 )
 
 
@@ -1648,4 +1655,263 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             "claim": SupplierReturnClaimSerializer(claim).data,
             "items_updated": items.count(),
         }, status=status.HTTP_201_CREATED)
+
+
+# ─────────────────────────────────────────────
+# Stocktake ViewSet (Inventaire Rapide par Scan)
+# ─────────────────────────────────────────────
+
+class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """
+    CRUD + Fast continuous barcode scanning and applying physical inventory audits.
+    """
+    queryset = StocktakeSession.objects.select_related("branch", "created_by", "completed_by")
+    filterset_fields = ["status", "branch"]
+    search_fields = ["title", "notes"]
+    ordering_fields = ["created_at", "total_variance", "total_counted"]
+    ordering = ["-created_at"]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CreateStocktakeSessionSerializer
+        elif self.action in ["retrieve", "scan", "update_item", "apply_inventory"]:
+            return StocktakeSessionDetailSerializer
+        return StocktakeSessionListSerializer
+
+    def perform_create(self, serializer):
+        auto_populate = serializer.validated_data.pop("auto_populate", True)
+        branch = serializer.validated_data.get("branch") or getattr(self.request.user, "branch", None)
+        session = serializer.save(
+            tenant=self.request.tenant,
+            branch=branch,
+            created_by=self.request.user,
+            status=StocktakeStatusChoices.IN_PROGRESS,
+        )
+
+        if auto_populate:
+            var_qs = Variant.objects.filter(
+                tenant=self.request.tenant,
+                is_active=True,
+            ).select_related("product")
+
+            if session.scope_brand:
+                var_qs = var_qs.filter(product__brand__iexact=session.scope_brand)
+            if session.scope_category:
+                var_qs = var_qs.filter(product__category=session.scope_category)
+
+            items_to_create = []
+            for var in var_qs:
+                expected = var.refresh_stock(branch=session.branch) if session.branch else var.stock_qty
+                cost = var.product.purchase_price or Decimal("0.00")
+                price = var.product.sale_price or Decimal("0.00")
+                items_to_create.append(
+                    StocktakeItem(
+                        tenant=self.request.tenant,
+                        session=session,
+                        variant=var,
+                        expected_qty=expected,
+                        counted_qty=0,
+                        unit_cost=cost,
+                        unit_price=price,
+                    )
+                )
+            if items_to_create:
+                StocktakeItem.objects.bulk_create(items_to_create)
+                session.recalculate_totals()
+
+    @action(detail=True, methods=["post"], url_path="scan")
+    def scan(self, request, pk=None):
+        """
+        Fast barcode scanning endpoint.
+        Body: { "barcode": "<scanned_code>", "increment": 1 }
+        Increments counted_qty for matching variant and recalculates session totals.
+        """
+        session = self.get_object()
+        if session.status == StocktakeStatusChoices.COMPLETED:
+            return Response(
+                {"error": {"code": "session_completed", "message": "Cette session d'inventaire est déjà clôturée."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        barcode = request.data.get("barcode", "").strip()
+        if not barcode:
+            return Response(
+                {"error": {"code": "missing_barcode", "message": "Code-barres requis."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            increment = int(request.data.get("increment", 1))
+        except (ValueError, TypeError):
+            increment = 1
+
+        base_qs = Variant.objects.filter(
+            tenant=request.tenant, is_active=True
+        ).select_related("product")
+
+        variant = base_qs.filter(barcode=barcode).first()
+        if not variant:
+            variant = base_qs.filter(barcode__startswith=barcode).first()
+        if not variant and len(barcode) >= 13:
+            variant = base_qs.filter(barcode__startswith=barcode[:13]).first()
+        if not variant:
+            variant = base_qs.filter(product__reference__iexact=barcode).first()
+        if not variant:
+            variant = base_qs.filter(product__reference__icontains=barcode).first()
+        if not variant:
+            variant = base_qs.filter(product__name__icontains=barcode).first()
+
+        if not variant:
+            return Response(
+                {
+                    "error": {
+                        "code": "not_found",
+                        "message": f"Aucun article trouvé pour le code « {barcode} ».",
+                        "scanned": barcode,
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        item, created = StocktakeItem.objects.get_or_create(
+            tenant=request.tenant,
+            session=session,
+            variant=variant,
+            defaults={
+                "expected_qty": variant.refresh_stock(branch=session.branch) if session.branch else variant.stock_qty,
+                "counted_qty": 0,
+                "unit_cost": variant.product.purchase_price or Decimal("0.00"),
+                "unit_price": variant.product.sale_price or Decimal("0.00"),
+            },
+        )
+
+        item.counted_qty = max(0, item.counted_qty + increment)
+        from django.utils import timezone
+        item.last_scanned_at = timezone.now()
+        item.save(update_fields=["counted_qty", "last_scanned_at"])
+
+        session.recalculate_totals()
+        session.refresh_from_db()
+
+        return Response({
+            "success": True,
+            "scanned": barcode,
+            "increment": increment,
+            "item": StocktakeItemSerializer(item).data,
+            "session_total_counted": session.total_counted,
+            "session_total_expected": session.total_expected,
+            "session_total_variance": session.total_variance,
+            "session_total_variance_cost": str(session.total_variance_cost),
+        })
+
+    @action(detail=True, methods=["patch"], url_path="update-item")
+    def update_item(self, request, pk=None):
+        """
+        Manually adjust counted quantity or notes for a specific item.
+        Body: { "item_id": <id>, "counted_qty": <int>, "notes": "<text>" }
+        """
+        session = self.get_object()
+        if session.status == StocktakeStatusChoices.COMPLETED:
+            return Response(
+                {"error": {"code": "session_completed", "message": "Cette session d'inventaire est déjà clôturée."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        item_id = request.data.get("item_id")
+        try:
+            item = session.items.get(pk=item_id)
+        except StocktakeItem.DoesNotExist:
+            return Response(
+                {"error": {"code": "not_found", "message": "Article introuvable dans cette session."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if "counted_qty" in request.data:
+            try:
+                item.counted_qty = max(0, int(request.data["counted_qty"]))
+            except (ValueError, TypeError):
+                pass
+        if "notes" in request.data:
+            item.notes = str(request.data["notes"]).strip()
+
+        item.save(update_fields=["counted_qty", "notes"])
+        session.recalculate_totals()
+        session.refresh_from_db()
+
+        return Response({
+            "success": True,
+            "item": StocktakeItemSerializer(item).data,
+            "session_total_counted": session.total_counted,
+            "session_total_expected": session.total_expected,
+            "session_total_variance": session.total_variance,
+            "session_total_variance_cost": str(session.total_variance_cost),
+        })
+
+    @action(detail=True, methods=["post"], url_path="apply")
+    def apply_inventory(self, request, pk=None):
+        """
+        Finalize and apply inventory: adjusts stock via StockMovement records.
+        """
+        session = self.get_object()
+        if session.status == StocktakeStatusChoices.COMPLETED:
+            return Response(
+                {"error": {"code": "already_completed", "message": "Cet inventaire a déjà été appliqué."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check PIN if cashier and store requires manager PIN
+        if request.user.role == RoleChoices.CASHIER:
+            manager_pin = request.data.get("manager_pin")
+            from apps.sales.serializers import verify_manager_pin_helper
+            mgr = verify_manager_pin_helper(request.tenant, manager_pin)
+            if not mgr:
+                return Response(
+                    {"error": {"code": "invalid_pin", "message": "Un code PIN manager valide est requis pour valider l'inventaire."}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        adjusted_count = 0
+        from django.utils import timezone
+        with transaction.atomic():
+            for item in session.items.select_related("variant").all():
+                variance = item.counted_qty - item.expected_qty
+                if variance != 0:
+                    StockMovement.objects.create(
+                        tenant=request.tenant,
+                        variant=item.variant,
+                        branch=session.branch,
+                        quantity_delta=variance,
+                        reason=MovementReasonChoices.STOCKTAKE,
+                        reference_id=str(session.id),
+                        reference_type="StocktakeSession",
+                        notes=f"Inventaire physique: {session.title} (Attendu: {item.expected_qty}, Compté: {item.counted_qty})",
+                        user=request.user,
+                    )
+                    item.variant.refresh_stock(branch=session.branch)
+                    adjusted_count += 1
+
+            session.status = StocktakeStatusChoices.COMPLETED
+            session.completed_by = request.user
+            session.completed_at = timezone.now()
+            session.save(update_fields=["status", "completed_by", "completed_at", "updated_at"])
+            session.recalculate_totals()
+
+        return Response({
+            "success": True,
+            "adjusted_variants_count": adjusted_count,
+            "session": StocktakeSessionDetailSerializer(session).data,
+        })
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel_inventory(self, request, pk=None):
+        session = self.get_object()
+        if session.status == StocktakeStatusChoices.COMPLETED:
+            return Response(
+                {"error": {"code": "cannot_cancel", "message": "Impossible d'annuler un inventaire déjà appliqué."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        session.status = StocktakeStatusChoices.CANCELLED
+        session.save(update_fields=["status", "updated_at"])
+        return Response({"success": True, "status": session.status})
+
 
