@@ -45,6 +45,7 @@ export function getStatusBadgeClass(status: string): string {
     bounced: "badge-danger",
     refunded: "badge-warning",
     partially_paid: "badge-warning",
+    layaway: "bg-indigo-100 text-indigo-800 border-indigo-200",
     cancelled: "badge-neutral",
     draft: "badge-neutral",
   };

@@ -14,7 +14,7 @@ def compute_session_stats(session):
     """
     from apps.sales.models import Payment, Return
 
-    sales_qs = session.sales.filter(status__in=["completed", "partially_paid"])
+    sales_qs = session.sales.filter(status__in=["completed", "partially_paid", "layaway"])
     sales_count = sales_qs.count()
     total_sales = sales_qs.aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
 

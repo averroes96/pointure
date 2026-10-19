@@ -21,6 +21,7 @@ import {
   Lock,
   Key,
   ShieldCheck,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
@@ -1343,6 +1344,9 @@ interface VersementsFormData {
   require_manager_pin_for_returns: boolean;
   require_manager_pin_for_discounts: boolean;
   default_max_discount_pct: number;
+  enable_layaway: boolean;
+  min_layaway_deposit_pct: number;
+  layaway_duration_days: number;
 }
 
 function VersementsTab() {
@@ -1369,6 +1373,9 @@ function VersementsTab() {
           require_manager_pin_for_returns: settings.require_manager_pin_for_returns ?? true,
           require_manager_pin_for_discounts: settings.require_manager_pin_for_discounts ?? true,
           default_max_discount_pct: settings.default_max_discount_pct ?? 10,
+          enable_layaway: settings.enable_layaway ?? true,
+          min_layaway_deposit_pct: settings.min_layaway_deposit_pct ?? 20,
+          layaway_duration_days: settings.layaway_duration_days ?? 14,
         }
       : {
           min_versement_pct: 30,
@@ -1378,6 +1385,9 @@ function VersementsTab() {
           require_manager_pin_for_returns: true,
           require_manager_pin_for_discounts: true,
           default_max_discount_pct: 10,
+          enable_layaway: true,
+          min_layaway_deposit_pct: 20,
+          layaway_duration_days: 14,
         },
   });
 
@@ -1401,6 +1411,9 @@ function VersementsTab() {
       require_manager_pin_for_returns: Boolean(data.require_manager_pin_for_returns),
       require_manager_pin_for_discounts: Boolean(data.require_manager_pin_for_discounts),
       default_max_discount_pct: Number(data.default_max_discount_pct),
+      enable_layaway: Boolean(data.enable_layaway),
+      min_layaway_deposit_pct: Number(data.min_layaway_deposit_pct),
+      layaway_duration_days: Number(data.layaway_duration_days),
     });
   }
 
@@ -1559,6 +1572,79 @@ function VersementsTab() {
           >
             Exiger la sélection d'un client enregistré pour les ventes à crédit
           </label>
+        </div>
+      </div>
+
+      {/* Layaway / Mise de côté Policy */}
+      <div className="pt-6 border-t border-slate-200/80 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <PackageCheck size={16} className="text-indigo-600" />
+            Réservations & Mise de Côté (Stock Consigné)
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Permet aux clients de réserver des paires en magasin avec versement d'un acompte partiel et blocage immédiat du stock.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="enable_layaway"
+            {...register("enable_layaway")}
+            className="w-4 h-4 mt-0.5 accent-indigo-600 rounded border-slate-300"
+          />
+          <div>
+            <label
+              htmlFor="enable_layaway"
+              className="text-sm font-semibold text-slate-900 cursor-pointer"
+            >
+              Activer l'option Mise de Côté à la caisse
+            </label>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Affiche le bouton "Mise de côté" sur le terminal de caisse pour consigner les articles et imprimer un Bon de Réservation avec code-barres.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Acompte minimum obligatoire (%) <span className="text-rose-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={100}
+                {...register("min_layaway_deposit_pct", { required: true, min: 1, max: 100 })}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
+              />
+              <span className="text-xs font-mono font-bold text-slate-400">%</span>
+            </div>
+            <p className="text-2xs text-slate-500">
+              Ex : 20% minimum pour sécuriser la mise de côté.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Durée de validité par défaut (jours) <span className="text-rose-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={365}
+                {...register("layaway_duration_days", { required: true, min: 1, max: 365 })}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
+              />
+              <span className="text-xs font-mono font-bold text-slate-400">jours</span>
+            </div>
+            <p className="text-2xs text-slate-500">
+              Délai après lequel la réservation est marquée comme expirée.
+            </p>
+          </div>
         </div>
       </div>
 

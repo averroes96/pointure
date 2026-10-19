@@ -214,7 +214,7 @@ export interface DefectMetrics {
 // ─────────────────────────────────────────────
 
 export type PaymentMethod = "cash" | "tpe" | "baridimob" | "cheque" | "ccp" | "virement" | "account";
-export type SaleStatus = "completed" | "cancelled" | "refunded" | "partially_paid";
+export type SaleStatus = "completed" | "cancelled" | "refunded" | "partially_paid" | "layaway";
 
 export interface SaleItem {
   id: number;
@@ -260,6 +260,12 @@ export interface Sale {
   session_number?: number | null;
   authorized_by?: number | null;
   authorized_by_name?: string | null;
+  is_layaway?: boolean;
+  layaway_expires_at?: string | null;
+  layaway_collected_at?: string | null;
+  layaway_deposit_forfeited?: boolean;
+  days_until_expiration?: number | null;
+  is_layaway_expired?: boolean;
   created_at: string;
 }
 
@@ -273,6 +279,9 @@ export interface StoreSettings {
   require_manager_pin_for_returns?: boolean;
   require_manager_pin_for_discounts?: boolean;
   default_max_discount_pct?: number;
+  enable_layaway?: boolean;
+  min_layaway_deposit_pct?: number;
+  layaway_duration_days?: number;
 }
 
 // ─────────────────────────────────────────────

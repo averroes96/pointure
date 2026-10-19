@@ -53,6 +53,8 @@ class MovementReasonChoices(models.TextChoices):
     TRANSFER_IN = "transfer_in", _("Transfer In")
     DAMAGED = "damaged", _("Damaged / Written Off")
     INITIAL = "initial", _("Initial Stock Entry")
+    LAYAWAY_LOCK = "layaway_lock", _("Mise de côté (Réservation)")
+    LAYAWAY_RELEASE = "layaway_release", _("Annulation réservation (Libération stock)")
 
 
 class TransferStatusChoices(models.TextChoices):

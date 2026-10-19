@@ -362,6 +362,21 @@ class StoreSettings(TenantScopedModel):
         default=10,
         help_text="Pourcentage de remise maximum par défaut pour les caissiers.",
     )
+    enable_layaway = models.BooleanField(
+        _("Activer la mise de côté"),
+        default=True,
+        help_text="Permet d'enregistrer des réservations (mises de côté) avec acompte et blocage du stock.",
+    )
+    min_layaway_deposit_pct = models.PositiveSmallIntegerField(
+        _("Acompte minimum mise de côté (%)"),
+        default=20,
+        help_text="Pourcentage minimum requis comme premier acompte pour réserver une paire.",
+    )
+    layaway_duration_days = models.PositiveIntegerField(
+        _("Durée de réservation (jours)"),
+        default=14,
+        help_text="Nombre de jours accordés avant expiration de la mise de côté.",
+    )
 
     class Meta:
         verbose_name = _("Store Settings")

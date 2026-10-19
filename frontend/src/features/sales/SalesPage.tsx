@@ -8,10 +8,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle, Trash2, CreditCard, Smartphone, ArrowDownUp, Receipt, Coins } from "lucide-react";
+import { Search, X, Plus, Minus, ShoppingBag, Check, Printer, User, Gift, Medal, Star, Trophy, UserCircle, UserPlus, Tag, AlertTriangle, Trash2, CreditCard, Smartphone, ArrowDownUp, Receipt, Coins, Bookmark, BookmarkCheck } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
-import { printBonVersement } from "@/lib/versement";
+import { printBonVersement, printBonReservation } from "@/lib/versement";
 import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession } from "@/types";
@@ -276,6 +276,8 @@ export default function SalesPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
+  const [isLayaway, setIsLayaway] = useState(false);
+  const [layawayDurationDays, setLayawayDurationDays] = useState<number | undefined>(undefined);
   const [isFormal, setIsFormal] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "found" | "not_found">("idle");
   const [negativeStockAlert, setNegativeStockAlert] = useState<{
@@ -549,14 +551,14 @@ export default function SalesPage() {
     setCart((prev) => prev.filter((i) => i.variant.id !== variantId));
   };
 
-  // Auto-sync first payment line to total (skip in versement mode)
+  // Auto-sync first payment line to total (skip in versement or layaway mode)
   useEffect(() => {
-    if (isVersement) return;
+    if (isVersement || isLayaway) return;
     if (payments.length === 1 && payments[0].method === "cash") {
       setPayments([{ method: "cash", amount: Math.max(0, total) }]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total, isVersement]);
+  }, [total, isVersement, isLayaway]);
 
   const isSubmittingRef = useRef(false);
   const isQuickModeRef = useRef(false);
@@ -605,6 +607,8 @@ export default function SalesPage() {
         cart_discount: Number(cartDiscount || 0).toFixed(2),
         is_formal: isFormal,
         is_versement: isVersement,
+        is_layaway: isLayaway,
+        layaway_duration_days: layawayDurationDays ?? storeSettings?.layaway_duration_days ?? 7,
         ...(managerPinRef.current ? { manager_pin: managerPinRef.current } : {}),
       }).then((r) => r.data);
     },
@@ -635,7 +639,13 @@ export default function SalesPage() {
       try {
         const printerCfg = getPrinterConfig();
         if (printerCfg.ticket.autoPrint) {
-          printReceipt(data, user?.tenant?.name ?? "ShoeDZ");
+          if (data.status === "layaway" || data.is_layaway) {
+            printBonReservation(data, user?.tenant?.name ?? "ShoeDZ");
+          } else if (data.status === "partially_paid") {
+            printBonVersement(data, user?.tenant?.name ?? "ShoeDZ");
+          } else {
+            printReceipt(data, user?.tenant?.name ?? "ShoeDZ");
+          }
         }
       } catch (err) {
         console.warn("Auto-print ticket failed:", err);
@@ -647,6 +657,7 @@ export default function SalesPage() {
       setPayments([{ method: "cash", amount: 0 }]);
       setSelectedClient(null);
       setIsVersement(false);
+      setIsLayaway(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
       queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
@@ -974,6 +985,52 @@ export default function SalesPage() {
     const ptsEarned = receipt.points_earned ?? 0;
     const ptsRedeemed = receipt.points_redeemed ?? 0;
     const isVersementReceipt = receipt.status === "partially_paid";
+    const isLayawayReceipt = receipt.status === "layaway" || !!receipt.is_layaway;
+
+    if (isLayawayReceipt) {
+      return (
+        <div className="max-w-sm mx-auto text-center py-12">
+          <div className="w-16 h-16 bg-indigo-50 border border-indigo-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookmarkCheck size={32} className="text-indigo-600" />
+          </div>
+          <h2 className="text-xl font-bold text-text-primary mb-2">Réservation Enregistrée</h2>
+          <p className="text-text-muted text-sm mb-1">{t('sales.receipt')}: <strong>{receipt.receipt_number}</strong></p>
+          {receipt.client_name ? (
+            <p className="text-text-muted text-sm mb-1">{t('sales.client')}: <strong>{receipt.client_name}</strong></p>
+          ) : receipt.notes ? (
+            <p className="text-text-muted text-sm mb-1">Réf / Note: <strong>{receipt.notes}</strong></p>
+          ) : null}
+          <div className="mb-4 mt-3 rounded-xl bg-indigo-50/80 border border-indigo-200 p-3 text-sm space-y-1.5">
+            <div className="inline-block px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-2xs font-bold uppercase tracking-wider">
+              Stock consigné &amp; mis de côté
+            </div>
+            <p className="text-text-primary text-xs">
+              Acompte versé: <strong className="font-mono text-sm">{formatDZD(receipt.amount_paid)} DZD</strong>
+            </p>
+            <p className="text-indigo-700 font-semibold text-xs">
+              Solde au retrait: <span className="font-mono text-sm">{formatDZD(receipt.balance_due)} DZD</span>
+            </p>
+            {receipt.layaway_expires_at && (
+              <p className="text-indigo-900 text-xs font-medium pt-1 border-t border-indigo-200/60">
+                Date limite de retrait: <strong>{receipt.layaway_expires_at}</strong>
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <button className="btn-secondary" onClick={() => setReceipt(null)}>
+              Nouvelle vente
+            </button>
+            <button
+              className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+              onClick={() => printBonReservation(receipt, user?.tenant?.name ?? "ShoeDZ")}
+            >
+              <Printer size={16} />
+              Bon de réservation
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     if (isVersementReceipt) {
       return (
@@ -1577,13 +1634,13 @@ export default function SalesPage() {
                 onClick={() => setShowOptions(!showOptions)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all font-semibold cursor-pointer",
-                  showOptions || cartDiscount > 0 || isFormal || isVersement
+                  showOptions || cartDiscount > 0 || isFormal || isVersement || isLayaway
                     ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs"
                     : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                 )}
               >
                 <span>⚙️ Options de vente</span>
-                {(cartDiscount > 0 || isFormal || isVersement) && (
+                {(cartDiscount > 0 || isFormal || isVersement || isLayaway) && (
                   <span className="w-2 h-2 rounded-full bg-primary-600"></span>
                 )}
               </button>
@@ -1644,6 +1701,7 @@ export default function SalesPage() {
                       const next = !isVersement;
                       setIsVersement(next);
                       if (next) {
+                        setIsLayaway(false);
                         const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
                         setPayments([{ method: "cash", amount: minAmt }]);
                       } else {
@@ -1664,6 +1722,69 @@ export default function SalesPage() {
                     )} />
                   </button>
                 </div>
+
+                {/* Layaway (Réservation / Mise de côté) switch */}
+                {storeSettings?.enable_layaway !== false && (
+                  <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <Bookmark size={13} className="text-indigo-600" />
+                          <span>Mise de côté (Réservation)</span>
+                        </p>
+                        <p className="text-2xs text-slate-500">
+                          Acompte min: {storeSettings?.min_layaway_deposit_pct ?? 20}% ({formatDZD(Math.ceil(total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100))} DZD) · Stock consigné
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !isLayaway;
+                          setIsLayaway(next);
+                          if (next) {
+                            setIsVersement(false);
+                            const minAmt = Math.ceil(total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100);
+                            setPayments([{ method: "cash", amount: minAmt }]);
+                          } else {
+                            setPayments([{ method: "cash", amount: total }]);
+                          }
+                        }}
+                        className={cn(
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                          isLayaway ? "bg-indigo-600" : "bg-slate-200"
+                        )}
+                        role="switch"
+                        aria-checked={isLayaway}
+                      >
+                        <span className={cn(
+                          "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform",
+                          isLayaway ? "translate-x-4" : "translate-x-0"
+                        )} />
+                      </button>
+                    </div>
+
+                    {isLayaway && (
+                      <div className="flex items-center gap-2 pl-4 text-2xs text-slate-600">
+                        <span>Durée de réservation :</span>
+                        {[3, 7, 14, 30].map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setLayawayDurationDays(d)}
+                            className={cn(
+                              "px-2 py-0.5 rounded border font-mono transition-colors",
+                              (layawayDurationDays ?? storeSettings?.layaway_duration_days ?? 7) === d
+                                ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            {d}j
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Multiple payment methods */}
                 <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
@@ -1768,6 +1889,32 @@ export default function SalesPage() {
               );
             })()}
 
+            {/* Layaway minimum warning & info */}
+            {isLayaway && (() => {
+              const minPct = storeSettings?.min_layaway_deposit_pct ?? 20;
+              const minAmt = total * minPct / 100;
+              const belowMin = paymentTotal < minAmt;
+              const duration = layawayDurationDays ?? storeSettings?.layaway_duration_days ?? 7;
+              return (
+                <div className={cn(
+                  "text-xs px-3 py-2.5 rounded-xl border font-medium space-y-1",
+                  belowMin ? "bg-red-50 text-red-800 border-red-200" : "bg-indigo-50 text-indigo-900 border-indigo-200"
+                )}>
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Bookmark size={13} className="text-indigo-600" />
+                      Mise de côté ({minPct}% min): {formatDZD(Math.ceil(minAmt))} DZD
+                    </span>
+                    <span>Solde au retrait: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
+                  </div>
+                  <div className="flex items-center justify-between text-2xs opacity-80">
+                    <span>Conserve le stock en réserve sans le vendre</span>
+                    <span>Expiration : J+{duration}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── HIGH VISIBILITY GRAND TOTAL DISPLAY ── */}
             <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
@@ -1817,7 +1964,8 @@ export default function SalesPage() {
               disabled={
                 cart.length === 0 ||
                 saleMutation.isPending ||
-                (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100)
+                (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100) ||
+                (isLayaway && paymentTotal < total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100)
               }
               className={cn(
                 "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",
@@ -1828,6 +1976,14 @@ export default function SalesPage() {
             >
               {saleMutation.isPending ? (
                 <span>{t("common.processing")}</span>
+              ) : isLayaway ? (
+                <>
+                  <BookmarkCheck size={20} className="stroke-[2.5]" />
+                  <span>Valider la réservation ({formatDZD(paymentTotal)} DZD)</span>
+                  <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded-lg bg-white/20 text-white border border-white/30">
+                    F10
+                  </kbd>
+                </>
               ) : isVersement ? (
                 <>
                   <Check size={20} className="stroke-[2.5]" />

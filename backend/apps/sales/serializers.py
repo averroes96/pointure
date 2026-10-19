@@ -42,6 +42,8 @@ class SaleSerializer(serializers.ModelSerializer):
     exchange_count = serializers.IntegerField(source="exchanges.count", read_only=True)
     session_number = serializers.IntegerField(source="session.session_number", read_only=True, default=None)
     authorized_by_name = serializers.CharField(source="authorized_by.get_full_name", read_only=True, default=None)
+    days_until_expiration = serializers.SerializerMethodField()
+    is_layaway_expired = serializers.SerializerMethodField()
 
     def _loyalty_account(self, obj):
         if not obj.client_id:
@@ -59,6 +61,19 @@ class SaleSerializer(serializers.ModelSerializer):
         acct = self._loyalty_account(obj)
         return acct.points_balance if acct else None
 
+    def get_days_until_expiration(self, obj):
+        if obj.is_layaway and obj.layaway_expires_at:
+            import datetime
+            today = datetime.date.today()
+            return (obj.layaway_expires_at - today).days
+        return None
+
+    def get_is_layaway_expired(self, obj):
+        if obj.is_layaway and obj.layaway_expires_at and obj.status == "layaway":
+            import datetime
+            return obj.layaway_expires_at < datetime.date.today()
+        return False
+
     class Meta:
         model = Sale
         fields = [
@@ -68,8 +83,13 @@ class SaleSerializer(serializers.ModelSerializer):
             "receipt_number", "notes", "due_date", "items", "payments",
             "exchange_count", "session", "session_number", "created_at",
             "authorized_by", "authorized_by_name",
+            "is_layaway", "layaway_expires_at", "layaway_collected_at", "layaway_deposit_forfeited",
+            "days_until_expiration", "is_layaway_expired",
         ]
-        read_only_fields = ["id", "created_at", "receipt_number", "authorized_by_name"]
+        read_only_fields = [
+            "id", "created_at", "receipt_number", "authorized_by_name",
+            "days_until_expiration", "is_layaway_expired",
+        ]
 
 
 def verify_manager_pin_helper(tenant, raw_pin):
@@ -122,6 +142,8 @@ class CreateSaleSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
     is_versement = serializers.BooleanField(default=False)
+    is_layaway = serializers.BooleanField(default=False)
+    layaway_duration_days = serializers.IntegerField(required=False, allow_null=True)
     manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, data):
@@ -216,9 +238,15 @@ class CreateSaleSerializer(serializers.Serializer):
             timbre_fiscal = min(timbre, Decimal("2500.00")).quantize(Decimal("0.01"))
             items_total += timbre_fiscal
 
+        # Mutual exclusivity: Versement vs Layaway
+        is_versement = data.get("is_versement", False)
+        is_layaway = data.get("is_layaway", False)
+        if is_versement and is_layaway:
+            raise serializers.ValidationError(
+                {"is_layaway": "Une vente ne peut pas être à la fois un versement et une réservation (mise de côté)."}
+            )
 
         # Versement validation
-        is_versement = data.get("is_versement", False)
         if is_versement:
             from apps.core.models import StoreSettings
             tenant = self.context["request"].tenant
@@ -238,6 +266,34 @@ class CreateSaleSerializer(serializers.Serializer):
                 )
             # Stash for create_sale
             data["_versement_due_days"] = due_days
+
+        # Layaway (Réservation / Mise de côté) validation
+        if is_layaway:
+            from apps.core.models import StoreSettings
+            tenant = self.context["request"].tenant
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+            if store_settings and not store_settings.enable_layaway:
+                raise serializers.ValidationError(
+                    {"is_layaway": "Les réservations (mise de côté) ne sont pas activées dans les paramètres de la boutique."}
+                )
+            min_pct = store_settings.min_layaway_deposit_pct if store_settings else 20
+            default_duration = store_settings.layaway_duration_days if store_settings else 7
+
+            min_required = items_total * Decimal(min_pct) / Decimal("100")
+            if payment_total < min_required:
+                raise serializers.ValidationError(
+                    {"payments": f"L'acompte minimum pour une réservation est de {min_pct}% du total ({min_required:.2f} DZD)."}
+                )
+            if not data.get("client_id") and not data.get("notes"):
+                raise serializers.ValidationError(
+                    {"notes": "Veuillez associer un client ou renseigner une note pour identifier la réservation."}
+                )
+            if redeem_points > 0:
+                raise serializers.ValidationError(
+                    {"redeem_points": "Le rachat de points fidélité n'est pas autorisé lors d'une réservation d'acompte."}
+                )
+            duration_days = data.get("layaway_duration_days") or default_duration
+            data["_layaway_duration_days"] = duration_days
 
         # Cashier Permissions & Manager PIN Enforcement
         req = self.context.get("request")
@@ -299,6 +355,8 @@ class CreateSaleSerializer(serializers.Serializer):
         _loyalty_account = validated_data.pop("_loyalty_account", None)
         is_versement = validated_data.pop("is_versement", False)
         versement_due_days = validated_data.pop("_versement_due_days", 90)
+        is_layaway = validated_data.pop("is_layaway", False)
+        layaway_duration_days = validated_data.pop("_layaway_duration_days", 7)
         authorized_by = validated_data.pop("_authorized_by", None)
 
         # Resolve optional FKs
@@ -325,7 +383,7 @@ class CreateSaleSerializer(serializers.Serializer):
         # Generate receipt number
         import datetime
         today = datetime.date.today()
-        prefix = f"RC-{today.strftime('%Y%m%d')}"
+        prefix = f"RES-{today.strftime('%Y%m%d')}" if is_layaway else f"RC-{today.strftime('%Y%m%d')}"
         last = Sale.objects.filter(tenant=tenant, receipt_number__startswith=prefix).order_by("-receipt_number").first()
         if last and last.receipt_number:
             try:
@@ -336,14 +394,20 @@ class CreateSaleSerializer(serializers.Serializer):
             seq = 1
         receipt_number = f"{prefix}-{seq:04d}"
 
-        # Determine status and due_date for versement
+        # Determine status, due_date, and layaway_expires_at
         payment_total = sum(p["amount"] for p in validated_data["payments"])
-        if is_versement and payment_total < total:
+        if is_layaway:
+            sale_status = "layaway"
+            due_date = None
+            layaway_expires_at = today + datetime.timedelta(days=layaway_duration_days)
+        elif is_versement and payment_total < total:
             sale_status = "partially_paid"
             due_date = today + datetime.timedelta(days=versement_due_days)
+            layaway_expires_at = None
         else:
             sale_status = "completed"
             due_date = None
+            layaway_expires_at = None
 
         active_session = CashSession.objects.filter(
             tenant=tenant,
@@ -375,9 +439,12 @@ class CreateSaleSerializer(serializers.Serializer):
             status=sale_status,
             due_date=due_date,
             authorized_by=authorized_by,
+            is_layaway=is_layaway,
+            layaway_expires_at=layaway_expires_at,
         )
 
-        # Create items + stock movements
+        # Create items + stock movements (LAYAWAY_LOCK locks stock for reservation)
+        movement_reason = MovementReasonChoices.LAYAWAY_LOCK if is_layaway else MovementReasonChoices.SALE
         for item_data in validated_data["items"]:
             variant = item_data["variant"]
             SaleItem.objects.create(
@@ -392,7 +459,7 @@ class CreateSaleSerializer(serializers.Serializer):
                 variant=variant,
                 branch=branch,
                 quantity_delta=-item_data["quantity"],
-                reason=MovementReasonChoices.SALE,
+                reason=movement_reason,
                 reference_id=receipt_number or str(sale.pk),
                 reference_type="Sale",
                 user=cashier,
@@ -408,8 +475,8 @@ class CreateSaleSerializer(serializers.Serializer):
             )
 
         # ── Loyalty: redeem then earn ─────────────────────────────────────────
-        # Skip loyalty for versement — points awarded only when sale completes
-        if is_versement and sale_status == "partially_paid":
+        # Skip loyalty for versement or layaway — points awarded only when sale completes/collected
+        if (is_versement and sale_status == "partially_paid") or is_layaway:
             sale._loyalty_summary = {"points_earned": 0, "points_redeemed": 0}
         else:
             loyalty_summary = self._process_loyalty(

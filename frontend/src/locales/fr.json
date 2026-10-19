@@ -785,6 +785,7 @@
   "status": {
     "completed": "Complete",
     "partially_paid": "En versement",
+    "layaway": "Réservée (Mise de côté)",
     "cancelled": "Annulee",
     "refunded": "Remboursee",
     "all": "Tous",

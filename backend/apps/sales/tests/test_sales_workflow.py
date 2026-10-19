@@ -275,10 +275,15 @@ class TestSaleReturns:
 
     @pytest.fixture(autouse=True)
     def setup(self, db):
-        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User, StoreSettings
         from apps.inventory.models import Product, StockMovement, Variant
 
         self.tenant = Tenant.objects.create(name="Return Shop", plan=PlanChoices.PRO_RETAIL)
+        self.settings = StoreSettings.objects.create(
+            tenant=self.tenant,
+            require_manager_pin_for_returns=False,
+            require_manager_pin_for_discounts=False,
+        )
         self.manager = User.objects.create_user(
             email="manager3@test.com",
             password="testpass123",
@@ -290,6 +295,7 @@ class TestSaleReturns:
             password="testpass123",
             tenant=self.tenant,
             role=RoleChoices.CASHIER,
+            can_process_returns=True,
         )
 
         self.product = Product.objects.create(

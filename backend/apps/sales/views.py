@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.inventory.models import MovementReasonChoices, StockMovement
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
     CashSessionStatus, Payment, Return, Sale,
@@ -20,6 +21,7 @@ from .serializers import (
     CashReconciliationSerializer, CashSessionSerializer, CloseCashSessionSerializer,
     CreateExchangeSerializer, CreateReconciliationSerializer, CreateReturnSerializer,
     CreateSaleSerializer, OpenCashSessionSerializer, SaleSerializer,
+    verify_manager_pin_helper,
 )
 from .services.z_report import compute_session_stats, render_thermal_z_report
 
@@ -34,7 +36,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "exchanges",
     )
     serializer_class = SaleSerializer
-    filterset_fields = ["branch", "cashier", "status", "client"]
+    filterset_fields = ["branch", "cashier", "status", "client", "is_layaway"]
     search_fields = ["receipt_number"]
     ordering_fields = ["created_at", "total_amount"]
     ordering = ["-created_at"]
@@ -63,11 +65,11 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="add-payment")
     def add_payment(self, request, pk=None):
-        """Add a payment to a partially_paid sale."""
+        """Add a payment to a partially_paid or layaway sale."""
         sale = self.get_object()
-        if sale.status != "partially_paid":
+        if sale.status not in ("partially_paid", "layaway"):
             return Response(
-                {"detail": "Seules les ventes en cours de versement acceptent des paiements supplementaires."},
+                {"detail": "Seules les ventes en cours de versement ou réservation acceptent des paiements supplémentaires."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = AddPaymentSerializer(data=request.data)
@@ -84,7 +86,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 notes=data.get("notes", ""),
             )
             total_paid = sale.payments.aggregate(t=DjSum("amount"))["t"] or Decimal("0.00")
-            if total_paid >= sale.total_amount:
+            if not sale.is_layaway and total_paid >= sale.total_amount:
                 sale.status = "completed"
                 sale.save(update_fields=["status"])
                 loyalty_summary = CreateSaleSerializer._process_loyalty(
@@ -102,6 +104,136 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         resp_data = SaleSerializer(sale).data
         resp_data["points_earned"] = loyalty_summary.get("points_earned", 0)
         return Response(resp_data)
+
+    @action(detail=True, methods=["post"], url_path="collect-layaway")
+    def collect_layaway(self, request, pk=None):
+        """Complete and collect a layaway sale (customer pays balance and picks up items)."""
+        sale = self.get_object()
+        if not sale.is_layaway or sale.status != "layaway":
+            return Response(
+                {"detail": "Cette vente n'est pas une réservation en attente de retrait."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            # If there's an outstanding balance, check if payment is provided
+            balance = sale.balance_due
+            if balance > Decimal("0.00"):
+                amount_raw = request.data.get("amount")
+                if not amount_raw:
+                    return Response(
+                        {"detail": f"Un règlement du solde restant de {balance:.2f} DZD est requis pour retirer les articles."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                try:
+                    amount = Decimal(str(amount_raw))
+                except Exception:
+                    return Response({"detail": "Montant invalide."}, status=status.HTTP_400_BAD_REQUEST)
+
+                if amount < balance:
+                    return Response(
+                        {"detail": f"Le montant fourni ({amount:.2f} DZD) ne couvre pas la totalité du solde restant ({balance:.2f} DZD)."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                method = request.data.get("method", "cash")
+                notes = request.data.get("notes", "Règlement solde retrait réservation")
+                Payment.objects.create(
+                    sale=sale,
+                    amount=amount,
+                    method=method,
+                    notes=notes,
+                )
+
+            sale.status = "completed"
+            sale.layaway_collected_at = timezone.now()
+            sale.save(update_fields=["status", "layaway_collected_at"])
+
+            # Now that customer has paid and taken the pair, award loyalty points
+            loyalty_summary = CreateSaleSerializer._process_loyalty(
+                sale=sale,
+                tenant=sale.tenant,
+                client=sale.client,
+                receipt_number=sale.receipt_number,
+                redeem_points=0,
+                loyalty_program=None,
+                loyalty_account=None,
+            )
+
+        resp_data = SaleSerializer(sale).data
+        resp_data["points_earned"] = loyalty_summary.get("points_earned", 0)
+        return Response(resp_data)
+
+    @action(detail=True, methods=["post"], url_path="cancel-layaway")
+    def cancel_layaway(self, request, pk=None):
+        """Cancel a layaway sale, releasing locked stock back into shelf inventory."""
+        sale = self.get_object()
+        if not sale.is_layaway or sale.status != "layaway":
+            return Response(
+                {"detail": "Seule une réservation en cours peut être annulée ici."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Cashier check: requires manager PIN or permission
+        if request.user.role == "cashier":
+            pin = request.data.get("manager_pin", "")
+            mgr = verify_manager_pin_helper(request.tenant, pin)
+            if not mgr and not getattr(request.user, "can_process_returns", False):
+                return Response(
+                    {"detail": "Code PIN manager requis pour autoriser l'annulation d'une réservation."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        refund_deposit = request.data.get("refund_deposit", True)
+        deposit_forfeited = request.data.get("deposit_forfeited", False)
+        notes = request.data.get("notes", "")
+
+        with transaction.atomic():
+            # 1. Release reserved stock back into inventory
+            for item in sale.items.all():
+                StockMovement.objects.create(
+                    tenant=sale.tenant,
+                    variant=item.variant,
+                    branch=sale.branch,
+                    quantity_delta=item.quantity,
+                    reason=MovementReasonChoices.LAYAWAY_RELEASE,
+                    reference_id=sale.receipt_number or str(sale.pk),
+                    reference_type="Sale",
+                    user=request.user,
+                )
+
+            # 2. If deposit is refunded in cash, record petty cash out in current cash drawer session
+            if refund_deposit and not deposit_forfeited and sale.amount_paid > Decimal("0.00"):
+                active_session = CashSession.objects.filter(
+                    tenant=request.tenant,
+                    cashier=request.user,
+                    status=CashSessionStatus.OPEN,
+                ).order_by("-opened_at").first()
+                if not active_session and sale.branch:
+                    active_session = CashSession.objects.filter(
+                        tenant=request.tenant,
+                        branch=sale.branch,
+                        status=CashSessionStatus.OPEN,
+                    ).order_by("-opened_at").first()
+
+                if active_session:
+                    CashMovement.objects.create(
+                        session=active_session,
+                        type=CashMovementType.OUT,
+                        amount=sale.amount_paid,
+                        category="Remboursement Réservation",
+                        notes=f"Remboursement acompte réservation {sale.receipt_number}: {notes}".strip(),
+                        created_by=request.user,
+                    )
+
+            # 3. Update sale status
+            sale.status = "cancelled"
+            sale.layaway_deposit_forfeited = bool(deposit_forfeited)
+            if notes:
+                sale.notes = f"{sale.notes}\n[Annulation Réservation] {notes}".strip()
+            sale.save(update_fields=["status", "layaway_deposit_forfeited", "notes"])
+
+        return Response(SaleSerializer(sale).data)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):

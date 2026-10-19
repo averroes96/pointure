@@ -36,6 +36,7 @@ class SaleStatusChoices(models.TextChoices):
     CANCELLED = "cancelled", _("Cancelled")
     REFUNDED = "refunded", _("Refunded")
     PARTIALLY_PAID = "partially_paid", _("Partially Paid")
+    LAYAWAY = "layaway", _("Mise de côté (Réservation)")
 
 
 class Sale(TenantScopedModel):
@@ -74,6 +75,18 @@ class Sale(TenantScopedModel):
     notes = models.TextField(_("Notes"), blank=True)
     receipt_number = models.CharField(_("Receipt Number"), max_length=30, blank=True, db_index=True)
     due_date = models.DateField(_("Payment Due Date"), null=True, blank=True)
+    is_layaway = models.BooleanField(
+        _("Mise de côté (Layaway)"), default=False, db_index=True
+    )
+    layaway_expires_at = models.DateField(
+        _("Date limite de réservation"), null=True, blank=True, db_index=True
+    )
+    layaway_collected_at = models.DateTimeField(
+        _("Date de remise client"), null=True, blank=True
+    )
+    layaway_deposit_forfeited = models.BooleanField(
+        _("Acompte conservé lors de l'annulation"), default=False
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

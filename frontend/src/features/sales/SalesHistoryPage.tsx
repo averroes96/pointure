@@ -5,11 +5,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight, AlertTriangle } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight, AlertTriangle, Bookmark, BookmarkCheck, PackageCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
-import { printBonVersement } from "@/lib/versement";
+import { printBonVersement, printBonReservation } from "@/lib/versement";
 import ExchangeModal from "./ExchangeModal";
 import type { Sale, SaleItem, StoreSettings, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
@@ -473,10 +473,343 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
   );
 }
 
+// ── Collect Layaway Modal ─────────────────────────────────────────────────────
+
+function CollectLayawayModal({
+  sale,
+  onClose,
+  storeName,
+}: {
+  sale: Sale;
+  onClose: () => void;
+  storeName: string;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const balanceDue = parseFloat(sale.balance_due || "0");
+  const [amount, setAmount] = useState(balanceDue > 0 ? String(balanceDue) : "0");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api
+        .post(`/sales/${sale.id}/collect-layaway/`, {
+          ...(balanceDue > 0 ? { amount, method, notes } : {}),
+        })
+        .then((r) => r.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      printReceipt(data, storeName);
+      onClose();
+    },
+    onError: (err) => setError(getApiError(err)),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-indigo-50/50">
+          <div className="flex items-center gap-2">
+            <PackageCheck size={18} className="text-indigo-600" />
+            <h3 className="font-bold text-text-primary">
+              Retirer la réservation — {sale.receipt_number}
+            </h3>
+          </div>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="rounded-xl bg-surface p-3.5 space-y-1.5 text-xs">
+            <div className="flex justify-between">
+              <span className="text-text-muted">Client / Référence :</span>
+              <span className="font-medium">{sale.client_name || sale.notes || "Client de passage"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Total commande :</span>
+              <span className="font-mono font-semibold">{formatDZD(sale.total_amount)} DZD</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Acompte déjà réglé :</span>
+              <span className="font-mono text-emerald-600 font-semibold">{formatDZD(sale.amount_paid)} DZD</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-1.5">
+              <span className="text-text-muted font-bold">Solde restant à percevoir :</span>
+              <span className="font-mono font-extrabold text-indigo-700 text-sm">{formatDZD(sale.balance_due)} DZD</span>
+            </div>
+          </div>
+
+          {/* Reserved items mini-list */}
+          <div className="border border-border rounded-xl p-3 bg-white">
+            <p className="text-2xs font-bold text-text-muted uppercase tracking-wider mb-2">
+              Articles consignés à remettre au client ({sale.items?.length ?? 0})
+            </p>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {sale.items?.map((item) => (
+                <div key={item.id} className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-text-primary truncate max-w-[240px]">{item.variant_str}</span>
+                  <span className="font-mono text-text-muted font-bold">×{item.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2 font-medium">
+              {error}
+            </div>
+          )}
+
+          {balanceDue > 0 && (
+            <div className="space-y-3 pt-1 border-t border-border">
+              <div>
+                <label className="form-label text-xs">Montant du règlement final (DZD)</label>
+                <input
+                  type="number"
+                  min={balanceDue}
+                  step={100}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="form-input font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="form-label text-xs">Mode de paiement du solde</label>
+                <select
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value as PaymentMethod)}
+                  className="form-input text-xs"
+                >
+                  {PAYMENT_METHOD_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {t(o.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label text-xs">Notes (optionnel)</label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="form-input text-xs"
+                  placeholder="Ex : Remis en mains propres"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-2xs text-amber-800 space-y-1">
+            <p className="font-bold">⚠️ Consignes de remise :</p>
+            <p>Vérifiez le bon de réservation physique et remettez les paires au client. La vente sera marquée complétée.</p>
+          </div>
+        </div>
+
+        <div className="px-5 py-3.5 border-t border-border flex gap-2 justify-end bg-surface/50">
+          <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
+            Annuler
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            className="btn-primary btn-sm bg-indigo-600 hover:bg-indigo-700"
+            disabled={mutation.isPending || (balanceDue > 0 && parseFloat(amount) < balanceDue)}
+          >
+            {mutation.isPending ? t("common.processing") : "Confirmer le retrait & Encaisser"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Cancel Layaway Modal ───────────────────────────────────────────────────────
+
+function CancelLayawayModal({
+  sale,
+  onClose,
+}: {
+  sale: Sale;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [refundDeposit, setRefundDeposit] = useState(true);
+  const [depositForfeited, setDepositForfeited] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [managerPin, setManagerPin] = useState("");
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const amountPaid = parseFloat(sale.amount_paid || "0");
+  const isCashier = user?.role === "cashier";
+
+  const mutation = useMutation({
+    mutationFn: (overridePin?: string) =>
+      api
+        .post(`/sales/${sale.id}/cancel-layaway/`, {
+          refund_deposit: refundDeposit && !depositForfeited,
+          deposit_forfeited: depositForfeited,
+          notes,
+          manager_pin: overridePin || managerPin,
+        })
+        .then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      onClose();
+    },
+    onError: (err: any) => {
+      const msg = getApiError(err);
+      if (msg.includes("PIN") && isCashier) {
+        setShowPinModal(true);
+      } else {
+        setError(msg);
+      }
+    },
+  });
+
+  return (
+    <>
+      {showPinModal && (
+        <ManagerPinModal
+          title="Code PIN Manager Requis"
+          message="L'annulation d'une réservation et la libération du stock exigent une autorisation manager."
+          onSuccess={(pin) => {
+            setManagerPin(pin);
+            setShowPinModal(false);
+            mutation.mutate(pin);
+          }}
+          onClose={() => setShowPinModal(false)}
+        />
+      )}
+
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-red-50/50">
+            <div className="flex items-center gap-2">
+              <Ban size={18} className="text-red-600" />
+              <h3 className="font-bold text-text-primary">
+                Annuler la réservation — {sale.receipt_number}
+              </h3>
+            </div>
+            <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1">
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4 text-xs">
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1">
+              <p className="font-semibold text-slate-800">
+                Action : Le stock réservé sera automatiquement réintégré en rayon (Libération stock).
+              </p>
+              <p className="text-text-muted">
+                Acompte enregistré sur cette réservation : <strong className="font-mono text-slate-900">{formatDZD(sale.amount_paid)} DZD</strong>
+              </p>
+            </div>
+
+            {error && (
+              <div className="text-xs text-danger bg-danger-light rounded-lg px-3 py-2 font-medium">
+                {error}
+              </div>
+            )}
+
+            {amountPaid > 0 && (
+              <div className="space-y-2">
+                <label className="form-label font-bold text-slate-800">Gestion de l&apos;acompte perçu :</label>
+
+                <label
+                  onClick={() => { setRefundDeposit(true); setDepositForfeited(false); }}
+                  className={cn(
+                    "flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors",
+                    refundDeposit && !depositForfeited ? "bg-emerald-50/70 border-emerald-300" : "bg-white border-slate-200 hover:bg-slate-50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="depositAction"
+                    checked={refundDeposit && !depositForfeited}
+                    onChange={() => { setRefundDeposit(true); setDepositForfeited(false); }}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="font-bold text-emerald-900">Rembourser l&apos;acompte au client ({formatDZD(amountPaid)} DZD)</p>
+                    <p className="text-2xs text-emerald-700">Enregistre une sortie d&apos;espèces dans la caisse actuelle.</p>
+                  </div>
+                </label>
+
+                <label
+                  onClick={() => { setRefundDeposit(false); setDepositForfeited(true); }}
+                  className={cn(
+                    "flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors",
+                    depositForfeited ? "bg-amber-50/70 border-amber-300" : "bg-white border-slate-200 hover:bg-slate-50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="depositAction"
+                    checked={depositForfeited}
+                    onChange={() => { setRefundDeposit(false); setDepositForfeited(true); }}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="font-bold text-amber-900">Conserver l&apos;acompte (Abandon / Délai expiré)</p>
+                    <p className="text-2xs text-amber-700">Aucun remboursement. La boutique conserve l&apos;acompte à titre d&apos;indemnité.</p>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            <div>
+              <label className="form-label">Motif de l&apos;annulation</label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ex : Client désisté, délai de 7 jours dépassé sans nouvelles..."
+                className="form-input text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="px-5 py-3.5 border-t border-border flex gap-2 justify-end bg-surface/50">
+            <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
+              Fermer
+            </button>
+            <button
+              onClick={() => {
+                if (isCashier && !managerPin) {
+                  setShowPinModal(true);
+                } else {
+                  mutation.mutate();
+                }
+              }}
+              className="btn-danger btn-sm"
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? t("common.processing") : "Confirmer l'annulation & Libérer stock"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 const STATUS_OPTIONS = [
   { value: "", labelKey: "status.all" },
   { value: "completed", labelKey: "status.completed" },
   { value: "partially_paid", labelKey: "status.partially_paid" },
+  { value: "layaway", labelKey: "status.layaway" },
   { value: "cancelled", labelKey: "status.cancelled" },
   { value: "refunded", labelKey: "status.refunded" },
 ];
@@ -500,6 +833,8 @@ export default function SalesHistoryPage() {
   const [returnSale, setReturnSale] = useState<Sale | null>(null);
   const [exchangeSale, setExchangeSale] = useState<Sale | null>(null);
   const [addPaymentSale, setAddPaymentSale] = useState<Sale | null>(null);
+  const [collectLayawaySale, setCollectLayawaySale] = useState<Sale | null>(null);
+  const [cancelLayawaySale, setCancelLayawaySale] = useState<Sale | null>(null);
 
   const cancelVersementMutation = useMutation({
     mutationFn: (saleId: number) =>
@@ -723,6 +1058,31 @@ export default function SalesHistoryPage() {
                       <span className={cn("badge", getStatusBadgeClass(sale.status))}>
                         {STATUS_OPTIONS.find((o) => o.value === sale.status)?.labelKey ? t(STATUS_OPTIONS.find((o) => o.value === sale.status)!.labelKey) : sale.status}
                       </span>
+                      {sale.status === "layaway" && (
+                        <div className="mt-1 space-y-0.5">
+                          {sale.is_layaway_expired ? (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
+                              Expirée
+                            </span>
+                          ) : (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              Consignée
+                            </span>
+                          )}
+                          {sale.layaway_expires_at && (
+                            <p className={cn(
+                              "text-2xs font-mono font-medium",
+                              sale.is_layaway_expired ? "text-red-600 font-bold" : "text-indigo-600"
+                            )}>
+                              {sale.is_layaway_expired
+                                ? `Expirée le ${sale.layaway_expires_at}`
+                                : typeof sale.days_until_expiration === "number"
+                                  ? `Retrait : J-${sale.days_until_expiration}`
+                                  : `Jusqu'au ${sale.layaway_expires_at}`}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {sale.status === "partially_paid" && sale.due_date && (() => {
                         const dueMs = new Date(sale.due_date).getTime() - Date.now();
                         const dueDays = Math.ceil(dueMs / (1000 * 60 * 60 * 24));
@@ -757,14 +1117,43 @@ export default function SalesHistoryPage() {
                         <button
                           className="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer"
                           title={t("common.print")}
-                          onClick={() =>
-                            sale.status === "partially_paid"
-                              ? printBonVersement(sale, storeName)
-                              : printReceipt(sale, storeName)
-                          }
+                          onClick={() => {
+                            if (sale.status === "layaway" || sale.is_layaway) {
+                              printBonReservation(sale, storeName);
+                            } else if (sale.status === "partially_paid") {
+                              printBonVersement(sale, storeName);
+                            } else {
+                              printReceipt(sale, storeName);
+                            }
+                          }}
                         >
                           <Printer size={15} />
                         </button>
+                        {sale.status === "layaway" && (
+                          <>
+                            <button
+                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                              title="Retirer les articles & solder la réservation"
+                              onClick={() => setCollectLayawaySale(sale)}
+                            >
+                              <PackageCheck size={16} />
+                            </button>
+                            <button
+                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                              title="Ajouter un acompte intermédiaire"
+                              onClick={() => setAddPaymentSale(sale)}
+                            >
+                              <Plus size={15} />
+                            </button>
+                            <button
+                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Annuler la réservation & libérer le stock"
+                              onClick={() => setCancelLayawaySale(sale)}
+                            >
+                              <Ban size={15} />
+                            </button>
+                          </>
+                        )}
                         {isManager && sale.status === "completed" && (
                           <>
                             <button
@@ -912,6 +1301,19 @@ export default function SalesHistoryPage() {
       )}
       {addPaymentSale && (
         <AddPaymentModal sale={addPaymentSale} onClose={() => setAddPaymentSale(null)} />
+      )}
+      {collectLayawaySale && (
+        <CollectLayawayModal
+          sale={collectLayawaySale}
+          onClose={() => setCollectLayawaySale(null)}
+          storeName={storeName}
+        />
+      )}
+      {cancelLayawaySale && (
+        <CancelLayawayModal
+          sale={cancelLayawaySale}
+          onClose={() => setCancelLayawaySale(null)}
+        />
       )}
     </div>
   );

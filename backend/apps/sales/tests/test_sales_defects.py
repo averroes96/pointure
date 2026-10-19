@@ -9,7 +9,7 @@ Verifies that returned/exchanged defective items:
 import pytest
 from decimal import Decimal
 from rest_framework.test import APIClient
-from apps.core.models import PlanChoices, RoleChoices, Tenant, User, Branch
+from apps.core.models import PlanChoices, RoleChoices, Tenant, User, Branch, StoreSettings
 from apps.inventory.models import (
     Product,
     Variant,
@@ -29,12 +29,18 @@ class TestSalesDefects:
     @pytest.fixture(autouse=True)
     def setup(self, db):
         self.tenant = Tenant.objects.create(name="ShoeDZ Defect Test Shop", plan=PlanChoices.ENTERPRISE)
+        self.settings = StoreSettings.objects.create(
+            tenant=self.tenant,
+            require_manager_pin_for_returns=False,
+            require_manager_pin_for_discounts=False,
+        )
         self.branch = Branch.objects.create(tenant=self.tenant, name="Main Branch")
         self.cashier = User.objects.create_user(
             email="cashier_defect@test.com",
             password="testpass123",
             tenant=self.tenant,
             role=RoleChoices.CASHIER,
+            can_process_returns=True,
         )
         self.manager = User.objects.create_user(
             email="manager_defect@test.com",
