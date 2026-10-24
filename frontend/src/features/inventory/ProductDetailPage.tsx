@@ -43,6 +43,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import SkuMatrix from "./components/SkuMatrix";
 import BarcodeSvg from "@/components/ui/BarcodeSvg";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 import { usePrintLabels } from "@/hooks/usePrintLabels";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -201,11 +202,10 @@ export default function ProductDetailPage() {
       const res = await api.get(`/inventory/products/${id}/barcode-labels/`, {
         responseType: "arraybuffer",
       });
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      // Revoke the blob URL after the tab has loaded
-      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+      await viewPdfDocument(res.data, {
+        title: `Étiquettes — ${product?.name || "Produit"}`,
+        filename: `etiquettes_${product?.reference || id}`,
+      });
     } catch {
       // silently ignore — extremely unlikely given the user is already authenticated
     } finally {
@@ -221,10 +221,10 @@ export default function ProductDetailPage() {
       const res = await api.get(`/inventory/products/${id}/shelf-labels/?copies=${copies}`, {
         responseType: "blob",
       });
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+      await viewPdfDocument(res.data, {
+        title: `Étiquette Rayon — ${product?.name || "Produit"}`,
+        filename: `rayon_${product?.reference || id}`,
+      });
     } catch {
       alert("Erreur lors de la génération de l'étiquette rayon.");
     } finally {

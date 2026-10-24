@@ -9,6 +9,7 @@
  */
 const { app, BrowserWindow, ipcMain, dialog, Menu, Tray, shell, session } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const http = require('http');
 const os = require('os');
 const { spawn, execFile } = require('child_process');
@@ -695,6 +696,110 @@ ipcMain.handle('print-html', async (_event, options) => {
       resolve({ success: false, failureReason: err.message });
     }
   });
+});
+
+// ── Native PDF Document Viewer IPC ──────────────────────────────────────
+ipcMain.handle('view-pdf', async (_event, options) => {
+  const { base64, title, filename } = options || {};
+  if (!base64) return { success: false, error: 'Données PDF manquantes' };
+
+  try {
+    const tempDir = path.join(os.tmpdir(), 'ShoeDZ_PDFs');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const safeName = (filename || 'document').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const tempPath = path.join(tempDir, `${safeName}_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, Buffer.from(base64, 'base64'));
+
+    const pdfWin = new BrowserWindow({
+      title: title || 'ShoeDZ — Document PDF',
+      width: 1024,
+      height: 850,
+      autoHideMenuBar: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        plugins: true,
+        sandbox: false,
+      },
+    });
+
+    const menuTemplate = [
+      {
+        label: 'Fichier',
+        submenu: [
+          {
+            label: 'Imprimer... (Ctrl+P)',
+            accelerator: 'CmdOrCtrl+P',
+            click: () => {
+              pdfWin.webContents.print();
+            },
+          },
+          {
+            label: 'Ouvrir avec le lecteur Windows (Edge / Acrobat)',
+            click: () => {
+              shell.openPath(tempPath);
+            },
+          },
+          { type: 'separator' },
+          {
+            label: 'Fermer',
+            accelerator: 'CmdOrCtrl+W',
+            click: () => {
+              pdfWin.close();
+            },
+          },
+        ],
+      },
+      {
+        label: 'Affichage',
+        submenu: [
+          { role: 'zoomIn', label: 'Zoomer (+)' },
+          { role: 'zoomOut', label: 'Dézoomer (-)' },
+          { role: 'resetZoom', label: 'Taille normale (100%)' },
+          { type: 'separator' },
+          { role: 'togglefullscreen', label: 'Plein écran' },
+        ],
+      },
+    ];
+    pdfWin.setMenu(Menu.buildFromTemplate(menuTemplate));
+
+    const fileUrl = pathToFileURL(tempPath).href;
+    await pdfWin.loadURL(fileUrl);
+
+    pdfWin.on('closed', () => {
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        } catch (_) {}
+      }, 5000);
+    });
+
+    return { success: true };
+  } catch (err) {
+    log.error('[PDF] view-pdf error:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('open-pdf-external', async (_event, options) => {
+  const { base64, filename } = options || {};
+  if (!base64) return { success: false, error: 'Données PDF manquantes' };
+  try {
+    const tempDir = path.join(os.tmpdir(), 'ShoeDZ_PDFs');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const safeName = (filename || 'document').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const tempPath = path.join(tempDir, `${safeName}_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, Buffer.from(base64, 'base64'));
+    await shell.openPath(tempPath);
+    return { success: true };
+  } catch (err) {
+    log.error('[PDF] open-pdf-external error:', err);
+    return { success: false, error: err.message };
+  }
 });
 
 ipcMain.handle('check-for-updates', async () => {

@@ -11,6 +11,7 @@
  */
 import { useState, useCallback } from "react";
 import api from "@/lib/api";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 
 export function usePrintLabels() {
   const [isPrinting, setIsPrinting] = useState(false);
@@ -25,10 +26,10 @@ export function usePrintLabels() {
           `/inventory/variants/${variantId}/barcode-label/?copies=${n}`,
           { responseType: "arraybuffer" }
         );
-        const blob = new Blob([res.data], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        const win = window.open(url, "_blank");
-        if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+        await viewPdfDocument(res.data, {
+          title: `Étiquettes code-barres (${n})`,
+          filename: `etiquette_variante_${variantId}`,
+        });
       } catch {
         // Silently ignore — PDF is a convenience, not critical path
       } finally {

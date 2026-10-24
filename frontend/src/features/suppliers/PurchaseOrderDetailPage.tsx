@@ -19,6 +19,7 @@ import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
 import type { PurchaseOrder, POLine, POStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, ProductResult } from "./components/CartonPanel";
 import i18n from "@/lib/i18n";
 const t = i18n.t.bind(i18n);
@@ -808,16 +809,10 @@ function PoShareActions({ po }: { po: PurchaseOrder }) {
     setLoadingPdf(true);
     try {
       const res = await api.get(`/suppliers/purchase-orders/${po.id}/pdf/`, { responseType: "blob" });
-      const blob = new Blob([res.data as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const tab = window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      if (!tab) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `commande-${po.reference || po.id}.pdf`;
-        a.click();
-      }
+      await viewPdfDocument(res.data, {
+        title: `Bon de Commande #${po.id}${po.reference ? ` · ${po.reference}` : ""}`,
+        filename: `commande-${po.reference || po.id}`,
+      });
     } finally {
       setLoadingPdf(false);
     }

@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getPrinters: () => ipcRenderer.invoke('get-printers'),
   printHtml: (options) => ipcRenderer.invoke('print-html', options),
+  viewPdf: (options) => ipcRenderer.invoke('view-pdf', options),
+  openPdfExternal: (options) => ipcRenderer.invoke('open-pdf-external', options),
   isDesktop: true,
 });
 

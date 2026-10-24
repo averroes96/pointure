@@ -56,6 +56,8 @@ export interface ElectronAPI {
   onShortcut: (callback: (data: KeyboardShortcutData) => void) => () => void;
   getPrinters?: () => Promise<PrinterInfo[]>;
   printHtml?: (options: PrintHtmlOptions) => Promise<{ success: boolean; failureReason?: string }>;
+  viewPdf?: (options: { base64: string; title?: string; filename?: string }) => Promise<{ success: boolean; error?: string }>;
+  openPdfExternal?: (options: { base64: string; filename?: string }) => Promise<{ success: boolean; error?: string }>;
   isDesktop?: boolean;
 }
 
