@@ -6,6 +6,7 @@ import { Plus, Search, FileText, Download, Loader2, MessageCircle, XCircle, Edit
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Invoice } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 import i18n from "@/lib/i18n";
 const t = i18n.t.bind(i18n);
 
@@ -42,18 +43,10 @@ export default function InvoiceListPage() {
         `/invoicing/invoices/${invoiceId}/pdf/`,
         { responseType: "blob" }
       );
-      const blob = new Blob([response.data as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const tab = window.open(url, "_blank");
-      // Revoke after the browser has had time to load the blob
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      if (!tab) {
-        // Fallback: trigger a direct download if popup was blocked
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `facture-${invoiceId}.pdf`;
-        a.click();
-      }
+      await viewPdfDocument(response.data, {
+        title: `Facture #${invoiceId}`,
+        filename: `facture-${invoiceId}`,
+      });
     } catch (err) {
       setPdfError(getApiError(err));
     } finally {

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Package, AlertTriangle, DollarSign, BarChart2, ExternalLink, Download, type LucideIcon } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { downloadCSV } from "@/lib/csvExport";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 
 interface StockByCategory {
   category: string;
@@ -79,14 +80,10 @@ export default function StockReportPage() {
       const response = await api.get("/reports/stock/pdf/", {
         responseType: "blob",
       });
-      const url = URL.createObjectURL(response.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `rapport-stock-${new Date().toISOString().split("T")[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.open(url, "_blank");
+      await viewPdfDocument(response.data, {
+        title: `Rapport de Stock — ${new Date().toLocaleDateString("fr-FR")}`,
+        filename: `rapport-stock-${new Date().toISOString().split("T")[0]}`,
+      });
     } catch {
       alert("Impossible de générer le PDF — réessayez.");
     }

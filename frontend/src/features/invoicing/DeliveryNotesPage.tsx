@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { DeliveryNote } from "@/types";
 import { cn } from "@/lib/utils";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 
 export default function DeliveryNotesPage() {
   const { t } = useTranslation();
@@ -64,16 +65,10 @@ export default function DeliveryNotesPage() {
       const res = await api.get(`/invoicing/delivery-notes/${noteId}/pdf/`, {
         responseType: "blob",
       });
-      const blob = new Blob([res.data as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const tab = window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      if (!tab) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `bl-${number || noteId}.pdf`;
-        a.click();
-      }
+      await viewPdfDocument(res.data, {
+        title: `Bon de Livraison #${number || noteId}`,
+        filename: `bl-${number || noteId}`,
+      });
     } catch (err) {
       setPdfError(getApiError(err));
     } finally {

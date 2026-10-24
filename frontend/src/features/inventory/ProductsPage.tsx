@@ -9,6 +9,7 @@ import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import ImportModal from "@/components/ui/ImportModal";
 import BulkPriceUpdateModal from "./components/BulkPriceUpdateModal";
+import { viewPdfDocument } from "@/lib/pdfViewer";
 
 const PRODUCT_TEMPLATE = `brand,name,category,gender,sale_price,purchase_price,size_eu,colour,alert_threshold
 Nike,Air Max 90,sneakers,M,8500,5000,42,Noir,3
@@ -76,10 +77,10 @@ export default function ProductsPage() {
         { product_ids: ids, copies: 1 },
         { responseType: "blob" }
       );
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+      await viewPdfDocument(res.data, {
+        title: `Étiquettes Rayon (${ids.length} articles)`,
+        filename: `etiquettes_rayon_lot_${ids.length}`,
+      });
     } catch {
       alert("Erreur lors de la génération des étiquettes rayon.");
     } finally {
@@ -96,10 +97,10 @@ export default function ProductsPage() {
       const res = await api.get(`/inventory/products/${id}/shelf-labels/?copies=1`, {
         responseType: "blob",
       });
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      if (win) win.addEventListener("load", () => URL.revokeObjectURL(url));
+      await viewPdfDocument(res.data, {
+        title: "Étiquette Rayon",
+        filename: `etiquette_rayon_${id}`,
+      });
     } catch {
       alert("Erreur lors de la génération de l'étiquette rayon.");
     }
