@@ -80,7 +80,7 @@ def delete_backup_file(filename: str) -> bool:
     return False
 
 
-def perform_database_backup() -> Path:
+def perform_database_backup(prefix: str = "db_backup") -> Path:
     """
     Perform an online snapshot of db.sqlite3 and rotate old copies.
     Returns the path to the newly created backup file.
@@ -92,7 +92,7 @@ def perform_database_backup() -> Path:
 
     backups_dir = get_backups_dir()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_file = backups_dir / f"db_backup_{timestamp}.sqlite3"
+    backup_file = backups_dir / f"{prefix}_{timestamp}.sqlite3"
 
     logger.info("Starting online backup of %s to %s", db_path, backup_file)
 

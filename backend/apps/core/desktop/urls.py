@@ -7,6 +7,7 @@ from .views import (
     create_backup_view,
     download_backup_view,
     delete_backup_view,
+    factory_reset_view,
 )
 
 urlpatterns = [
@@ -16,4 +17,5 @@ urlpatterns = [
     path("backups/create/", create_backup_view, name="desktop-backups-create"),
     path("backups/<str:filename>/download/", download_backup_view, name="desktop-backups-download"),
     path("backups/<str:filename>/", delete_backup_view, name="desktop-backups-delete"),
+    path("reset/", factory_reset_view, name="desktop-factory-reset"),
 ]

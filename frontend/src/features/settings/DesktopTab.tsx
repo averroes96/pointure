@@ -20,10 +20,13 @@ import {
   Sparkles,
   Info,
   X,
+  ShieldAlert,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTimeSyncStatus } from "@/lib/time";
+import { useAuth } from "@/features/auth/AuthContext";
+import FactoryResetModal from "./components/FactoryResetModal";
 import type { UpdateStatusData } from "@/vite-env";
 
 interface BackupItem {
@@ -58,6 +61,21 @@ export default function DesktopTab() {
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Danger Zone / Factory Reset State
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const handleSuccessPurge = (backupName: string | null) => {
+    queryClient.invalidateQueries();
+    setToast({
+      type: "success",
+      message: backupName
+        ? `Opérations purgées avec succès. Sauvegarde créée : ${backupName}`
+        : "Opérations et transactions purgées avec succès. Les données de catalogue sont conservées.",
+    });
+  };
 
   // Time sync & anti-tamper state
   const {
@@ -802,7 +820,46 @@ export default function DesktopTab() {
             </button>
           </div>
         </div>
+
+        {/* ── 4. Zone de Danger : Réinitialisation ────────────────────────── */}
+        {isOwner && (
+          <div className="p-6 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 border border-rose-200/80 flex items-center justify-center shrink-0">
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-rose-950">Zone de Danger : Réinitialisation des données</h4>
+                    <span className="px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                      Propriétaire uniquement
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-800/80 mt-1 max-w-2xl leading-relaxed">
+                    Remettez votre application à zéro (configuration neuve d'usine) ou purgez uniquement l'historique des ventes et mouvements de stock sans toucher à votre catalogue d'articles. Une sauvegarde automatique est créée avant toute suppression.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowResetModal(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs hover:shadow-md transition-all shrink-0 cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>Réinitialiser la base...</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Factory Reset Modal */}
+      <FactoryResetModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onSuccessPurge={handleSuccessPurge}
+      />
     </div>
   );
 }

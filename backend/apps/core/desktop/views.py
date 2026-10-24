@@ -195,3 +195,67 @@ def delete_backup_view(request, filename):
         return Response({"detail": "Fichier introuvable ou suppression impossible."}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({"status": "ok", "message": f"Sauvegarde {filename} supprimée."})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def factory_reset_view(request):
+    """
+    Executes an in-app database wipe (Factory Reset or Operational Purge).
+    Requires:
+      - Owner role
+      - Correct owner password
+      - Explicit confirmation string ("REINITIALISER")
+    Always performs an automated safety backup prior to data deletion.
+    """
+    user = request.user
+    if getattr(user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire (Owner) peut réinitialiser la base de données."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    password = request.data.get("password", "")
+    if not password or not user.check_password(password):
+        return Response(
+            {"detail": "Mot de passe propriétaire incorrect. Opération refusée."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    confirmation = (request.data.get("confirmation") or "").strip().upper()
+    if confirmation not in ("REINITIALISER", "CONFIRMER", "RESET"):
+        return Response(
+            {"detail": "Confirmation invalide. Veuillez taper 'REINITIALISER'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    mode = request.data.get("mode", "all")
+    if mode not in ("all", "transactions_only"):
+        mode = "all"
+
+    from .backup import perform_database_backup
+    from .reset import perform_database_wipe
+
+    # 1. Automatic safety backup before wipe
+    backup_file = perform_database_backup(prefix="db_backup_pre_reset")
+
+    # 2. Execute wipe
+    try:
+        result = perform_database_wipe(mode=mode)
+    except Exception as exc:
+        return Response(
+            {"detail": f"Erreur lors de la réinitialisation : {str(exc)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response({
+        "status": "ok",
+        "mode": mode,
+        "message": (
+            "Remise à zéro complète effectuée. Vous allez être redirigé vers l'assistant de configuration."
+            if mode == "all"
+            else "Opérations et transactions purgées avec succès. Le catalogue de produits et les utilisateurs sont conservés."
+        ),
+        "backup_created": backup_file.name if backup_file else None,
+        "cleared_tables_count": result.get("cleared_tables_count", 0),
+    })
