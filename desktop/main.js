@@ -700,7 +700,7 @@ ipcMain.handle('print-html', async (_event, options) => {
 
 // ── Native PDF Document Viewer IPC ──────────────────────────────────────
 ipcMain.handle('view-pdf', async (_event, options) => {
-  const { base64, title, filename } = options || {};
+  const { base64, filename } = options || {};
   if (!base64) return { success: false, error: 'Données PDF manquantes' };
 
   try {
@@ -712,69 +712,19 @@ ipcMain.handle('view-pdf', async (_event, options) => {
     const tempPath = path.join(tempDir, `${safeName}_${Date.now()}.pdf`);
     fs.writeFileSync(tempPath, Buffer.from(base64, 'base64'));
 
-    const pdfWin = new BrowserWindow({
-      title: title || 'ShoeDZ — Document PDF',
-      width: 1024,
-      height: 850,
-      autoHideMenuBar: false,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        plugins: true,
-        sandbox: false,
-      },
-    });
+    log.info('[PDF] Opening PDF directly in system viewer (Edge / Acrobat):', tempPath);
+    const openErr = await shell.openPath(tempPath);
+    if (openErr) {
+      log.warn('[PDF] shell.openPath returned warning, attempting openExternal:', openErr);
+      await shell.openExternal(pathToFileURL(tempPath).href);
+    }
 
-    const menuTemplate = [
-      {
-        label: 'Fichier',
-        submenu: [
-          {
-            label: 'Imprimer... (Ctrl+P)',
-            accelerator: 'CmdOrCtrl+P',
-            click: () => {
-              pdfWin.webContents.print();
-            },
-          },
-          {
-            label: 'Ouvrir avec le lecteur Windows (Edge / Acrobat)',
-            click: () => {
-              shell.openPath(tempPath);
-            },
-          },
-          { type: 'separator' },
-          {
-            label: 'Fermer',
-            accelerator: 'CmdOrCtrl+W',
-            click: () => {
-              pdfWin.close();
-            },
-          },
-        ],
-      },
-      {
-        label: 'Affichage',
-        submenu: [
-          { role: 'zoomIn', label: 'Zoomer (+)' },
-          { role: 'zoomOut', label: 'Dézoomer (-)' },
-          { role: 'resetZoom', label: 'Taille normale (100%)' },
-          { type: 'separator' },
-          { role: 'togglefullscreen', label: 'Plein écran' },
-        ],
-      },
-    ];
-    pdfWin.setMenu(Menu.buildFromTemplate(menuTemplate));
-
-    const fileUrl = pathToFileURL(tempPath).href;
-    await pdfWin.loadURL(fileUrl);
-
-    pdfWin.on('closed', () => {
-      setTimeout(() => {
-        try {
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-        } catch (_) {}
-      }, 5000);
-    });
+    // Schedule cleanup of temporary PDF file after 15 minutes
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      } catch (_) {}
+    }, 15 * 60 * 1000);
 
     return { success: true };
   } catch (err) {
