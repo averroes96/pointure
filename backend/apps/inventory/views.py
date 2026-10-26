@@ -1018,36 +1018,17 @@ def _build_pdf_response(html_string: str, filename: str) -> HttpResponse:
 
 def _render_shelf_label(product, location: str = "", variant = None) -> str:
     """
-    Render a horizontal Algerian retail shelf/shoe box label (100mm × 44mm).
-    Displays:
-    - Product Name & Brand (large bold)
-    - Sale Price (huge prominent DZD amount)
-    - Location / Emplacement (if present)
-    - Reference & Barcode
+    Render a 45mm × 35mm retail shelf / shoe box location label.
+    Puts primary emphasis on:
+    - Location / Emplacement (prominent badge for warehouse/store staff)
+    - Sale Price (prominent DZD amount)
+    - Product Name, Brand & Reference
+    (Barcode is removed from this label).
     """
     brand_part = f"{product.brand} · " if product.brand else ""
     formatted_price = f"{product.sale_price:,.0f}".replace(",", " ")
-    barcode_val = variant.barcode if (variant and variant.barcode) else ""
-    svg_barcode = _barcode_svg(barcode_val, height=45, module_w=1.6) if barcode_val else ""
-
-    location_html = ""
-    if location and location.strip():
-        location_html = f"""
-        <div class="loc-badge">
-            <span class="loc-label">EMPLACEMENT</span>
-            <span class="loc-val">{location.strip()}</span>
-        </div>
-        """
-
+    loc_val = location.strip() if (location and location.strip()) else "—"
     ref_html = f'<span class="ref">RÉF: {product.reference}</span>' if product.reference else ""
-    barcode_section = ""
-    if svg_barcode:
-        barcode_section = f"""
-        <div class="bc-wrap">
-            <div class="bc-svg">{svg_barcode}</div>
-            <span class="bc-code">{barcode_val}</span>
-        </div>
-        """
 
     return f"""
     <div class="shelf-label">
@@ -1056,20 +1037,20 @@ def _render_shelf_label(product, location: str = "", variant = None) -> str:
                 <span class="brand">{brand_part}</span>
                 <span class="p-name">{product.name}</span>
             </div>
-            {location_html}
-        </div>
-        
-        <div class="middle-row">
-            <div class="price-box">
-                <span class="price-tag">PRIX VENTE T.T.C</span>
-                <div class="price-val">{formatted_price} <span class="dzd">DZD</span></div>
-            </div>
-            {barcode_section}
+            {ref_html}
         </div>
 
-        <div class="bottom-row">
-            {ref_html}
-            <span class="store-mark">Pointure / ShoeDZ</span>
+        <div class="loc-card">
+            <span class="loc-label">EMPLACEMENT</span>
+            <span class="loc-val">{loc_val}</span>
+        </div>
+
+        <div class="price-card">
+            <span class="price-label">PRIX VENTE T.T.C</span>
+            <div class="price-val-row">
+                <span class="price-amount">{formatted_price}</span>
+                <span class="dzd">DZD</span>
+            </div>
         </div>
     </div>
     """
@@ -1077,8 +1058,7 @@ def _render_shelf_label(product, location: str = "", variant = None) -> str:
 
 def _shelf_labels_page(title: str, labels_html: str) -> str:
     """
-    HTML container for shelf labels.
-    Page size 100mm × 48mm (standard thermal shelf label / sticker roll).
+    HTML container for shelf / location labels calibrated for 45mm × 35mm thermal rolls.
     """
     return f"""<!DOCTYPE html>
 <html lang="fr">
@@ -1087,8 +1067,8 @@ def _shelf_labels_page(title: str, labels_html: str) -> str:
 <title>{title}</title>
 <style>
   @page {{
-    size: 100mm 48mm;
-    margin: 2mm 3mm;
+    size: 45mm 35mm;
+    margin: 1mm 1.5mm;
   }}
 
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -1096,148 +1076,143 @@ def _shelf_labels_page(title: str, labels_html: str) -> str:
   body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: white;
-    color: #111;
+    color: #000;
   }}
 
   .shelf-label {{
     page-break-after: always;
-    width: 100%;
-    height: 44mm;
-    border: 1.5pt solid #000;
-    border-radius: 4px;
-    padding: 2.5mm 3.5mm;
+    width: 42mm;
+    height: 32.5mm;
+    border: 1.2pt solid #000;
+    border-radius: 3px;
+    padding: 1.2mm 2mm;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    overflow: hidden;
   }}
+
   .shelf-label:last-child {{
     page-break-after: avoid;
   }}
 
+  /* ── 1. Top row: Product Name & Ref ── */
   .top-row {{
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    border-bottom: 1pt solid #ddd;
-    padding-bottom: 1.5mm;
-    gap: 3mm;
+    border-bottom: 0.8pt solid #ccc;
+    padding-bottom: 0.8mm;
+    gap: 1.5mm;
+    overflow: hidden;
   }}
 
   .title-block {{
     flex: 1;
     overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }}
 
   .brand {{
-    font-size: 7.5pt;
+    font-size: 6pt;
     font-weight: 700;
     text-transform: uppercase;
     color: #444;
   }}
 
   .p-name {{
-    font-size: 11pt;
+    font-size: 8pt;
     font-weight: 800;
     color: #000;
-    line-height: 1.15;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.1;
   }}
 
-  .loc-badge {{
+  .ref {{
+    font-size: 6pt;
+    font-weight: 800;
+    font-family: monospace, sans-serif;
+    color: #333;
+    white-space: nowrap;
+  }}
+
+  /* ── 2. Location Box (Emphasis 1) ── */
+  .loc-card {{
+    background: #f4f4f5;
     border: 1.2pt solid #000;
     border-radius: 3px;
-    padding: 1mm 2.5mm;
+    padding: 1mm 1.5mm;
     text-align: center;
-    background: #f4f4f5;
-    shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }}
 
   .loc-label {{
     display: block;
     font-size: 5pt;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: #555;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #444;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 0.4mm;
   }}
 
   .loc-val {{
     display: block;
-    font-size: 8.5pt;
-    font-weight: 800;
+    font-size: 13pt;
+    font-weight: 900;
+    letter-spacing: 0.04em;
     color: #000;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }}
 
-  .middle-row {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.5mm 0;
-  }}
-
-  .price-box {{
+  /* ── 3. Price Section (Emphasis 2) ── */
+  .price-card {{
+    border-top: 1pt solid #000;
+    padding-top: 0.8mm;
+    text-align: center;
     display: flex;
     flex-direction: column;
+    align-items: center;
   }}
 
-  .price-tag {{
-    font-size: 5.5pt;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+  .price-label {{
+    font-size: 4.8pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
     color: #555;
     text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 0.4mm;
   }}
 
-  .price-val {{
-    font-size: 20pt;
-    font-weight: 900;
-    font-family: monospace, sans-serif;
-    letter-spacing: -0.03em;
-    color: #000;
+  .price-val-row {{
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 1.5mm;
     line-height: 1;
   }}
 
+  .price-amount {{
+    font-size: 16pt;
+    font-weight: 900;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #000;
+    letter-spacing: -0.02em;
+  }}
+
   .dzd {{
-    font-size: 10pt;
-    font-weight: 700;
-    color: #333;
-  }}
-
-  .bc-wrap {{
-    text-align: right;
-    line-height: 0;
-  }}
-
-  .bc-code {{
-    display: block;
-    font-size: 6.5pt;
-    font-family: monospace;
-    letter-spacing: 0.05em;
-    margin-top: 1mm;
-    color: #444;
-  }}
-
-  .bottom-row {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 0.8pt solid #eee;
-    padding-top: 1mm;
-    font-size: 6.5pt;
-    color: #666;
-  }}
-
-  .ref {{
-    font-weight: 700;
-    font-family: monospace;
-  }}
-
-  .store-mark {{
-    font-size: 6pt;
-    font-style: italic;
-    color: #888;
+    font-size: 8.5pt;
+    font-weight: 800;
+    color: #222;
   }}
 </style>
 </head>
