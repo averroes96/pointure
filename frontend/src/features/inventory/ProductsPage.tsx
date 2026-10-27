@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import ImportModal from "@/components/ui/ImportModal";
 import BulkPriceUpdateModal from "./components/BulkPriceUpdateModal";
 import { viewPdfDocument } from "@/lib/pdfViewer";
+import { triggerLabelPrint } from "./components/labelPrintStore";
 
 const PRODUCT_TEMPLATE = `brand,name,category,gender,sale_price,purchase_price,size_eu,colour,alert_threshold
 Nike,Air Max 90,sneakers,M,8500,5000,42,Noir,3
@@ -72,14 +73,17 @@ export default function ProductsPage() {
     if (ids.length === 0 || bulkShelfLoading) return;
     setBulkShelfLoading(true);
     try {
-      const res = await api.post(
-        "/inventory/products/shelf-labels/",
-        { product_ids: ids, copies: 1 },
-        { responseType: "blob" }
-      );
-      await viewPdfDocument(res.data, {
+      await triggerLabelPrint({
         title: `Étiquettes Rayon (${ids.length} articles)`,
-        filename: `etiquettes_rayon_lot_${ids.length}`,
+        defaultCopies: 1,
+        fetchHtml: async ({ w, h, copies }) => {
+          const res = await api.post(
+            `/inventory/products/shelf-labels/?output=html&w=${w}&h=${h}`,
+            { product_ids: ids, copies },
+            { responseType: "text" }
+          );
+          return res.data;
+        },
       });
     } catch {
       alert("Erreur lors de la génération des étiquettes rayon.");
@@ -94,12 +98,16 @@ export default function ProductsPage() {
 
   async function handleSingleShelfLabel(id: number) {
     try {
-      const res = await api.get(`/inventory/products/${id}/shelf-labels/?copies=1`, {
-        responseType: "blob",
-      });
-      await viewPdfDocument(res.data, {
+      await triggerLabelPrint({
         title: "Étiquette Rayon",
-        filename: `etiquette_rayon_${id}`,
+        defaultCopies: 1,
+        fetchHtml: async ({ w, h, copies }) => {
+          const res = await api.get(
+            `/inventory/products/${id}/shelf-labels/?output=html&w=${w}&h=${h}&copies=${copies}`,
+            { responseType: "text" }
+          );
+          return res.data;
+        },
       });
     } catch {
       alert("Erreur lors de la génération de l'étiquette rayon.");

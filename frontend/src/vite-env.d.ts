@@ -34,8 +34,18 @@ export interface PrintHtmlOptions {
   html: string;
   deviceName?: string;
   silent?: boolean;
-  pageSize?: any;
+  /** Named size ("A4") or custom size in microns. */
+  pageSize?: string | { width: number; height: number };
   copies?: number;
+  margins?: {
+    marginType?: "default" | "none" | "printableArea" | "custom";
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  };
+  landscape?: boolean;
+  scaleFactor?: number;
 }
 
 export interface ElectronAPI {

@@ -449,13 +449,15 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="barcode-labels")
     def barcode_labels(self, request, pk=None):
         """
-        Return a PDF of barcode labels — one label per page, page sized to
-        the label (82 mm × 40 mm) so the printer doesn't add blank space.
+        Return barcode labels — one label per page, page sized exactly to
+        the label so the printer doesn't add blank space or scale it.
 
-        Rendered via WeasyPrint (already used for invoices in this project).
-        The frontend fetches the PDF via axios (JWT header), creates a blob URL
-        and opens it in a new tab where the browser renders it inline.
+        Query params:
+          w, h     label size in mm (default 45 × 35)
+          output   "html" → raw HTML for the desktop native print dialog,
+                   otherwise a PDF.
         """
+        w_mm, h_mm = _label_dims(request)
         product = self.get_object()
         variants = list(
             product.variants
@@ -468,47 +470,33 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 v.barcode = generate_barcode(v)
                 Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
 
-        labels_html = "\n".join(_render_label(product, v) for v in variants if v.barcode)
+        labels_html = "\n".join(
+            _render_label(product, v, w_mm, h_mm) for v in variants if v.barcode
+        )
 
         if not labels_html:
             labels_html = (
-                '<p style="font-family:sans-serif;color:#888;padding:4mm;">'
-                "Aucune variante active avec code-barres.</p>"
+                '<div class="page"><p style="font-family:sans-serif;color:#888;">'
+                "Aucune variante active avec code-barres.</p></div>"
             )
 
         html_string = _barcode_page(
             title=f"{product.name} — Étiquettes",
             labels_html=labels_html,
+            w_mm=w_mm,
+            h_mm=h_mm,
         )
 
-        try:
-            from django.conf import settings
-            if getattr(settings, "DESKTOP_MODE", False):
-                from apps.core.desktop.pdf_client import render_html_to_pdf
-                pdf_bytes = render_html_to_pdf(html_string)
-            else:
-                from weasyprint import HTML as WeasyHTML
-                pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
-        except Exception as exc:
-            # Rendering error — surface the message
-            return HttpResponse(
-                f"PDF generation failed: {exc}",
-                content_type="text/plain",
-                status=500,
-            )
-
         safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in product.name)
-        response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        response["Content-Disposition"] = f'inline; filename="barcodes_{safe_name}.pdf"'
-        return response
+        return _label_response(request, html_string, filename=f"barcodes_{safe_name}.pdf")
 
     @action(detail=True, methods=["get"], url_path="shelf-labels")
     def shelf_labels(self, request, pk=None):
         """
-        Return a PDF of shelf/product labels for Algerian stores.
-        Includes Name, Sale Price, Location (if present), and Barcode.
-        Query param: ?copies=N (default 1).
+        Return shelf/location labels (reference, location, sale price).
+        Query params: ?copies=N (default 1), ?w=&h= (mm), ?output=html.
         """
+        w_mm, h_mm = _label_dims(request)
         product = self.get_object()
         try:
             copies = max(1, min(int(request.query_params.get("copies", 1)), 200))
@@ -527,16 +515,20 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             variant.barcode = generate_barcode(variant)
             Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
-        single_html = _render_shelf_label(product, location=location_str, variant=variant)
+        single_html = _render_shelf_label(
+            product, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm
+        )
         labels_html = "\n".join(single_html for _ in range(copies))
 
         html_string = _shelf_labels_page(
             title=f"{product.name} — Étiquette Rayon",
             labels_html=labels_html,
+            w_mm=w_mm,
+            h_mm=h_mm,
         )
 
         safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in product.name)
-        return _build_pdf_response(html_string, filename=f"etiquette_rayon_{safe_name}.pdf")
+        return _label_response(request, html_string, filename=f"etiquette_rayon_{safe_name}.pdf")
 
     @action(detail=False, methods=["get", "post"], url_path="shelf-labels")
     def bulk_shelf_labels(self, request):
@@ -545,7 +537,9 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Accepts:
           POST JSON: {"product_ids": [1, 2, ...], "copies": 1}
           or GET ?product_ids=1,2,3&copies=1
+        Label size via ?w=&h= (mm); ?output=html returns raw HTML.
         """
+        w_mm, h_mm = _label_dims(request)
         if request.method == "POST":
             product_ids = request.data.get("product_ids", [])
             copies = request.data.get("copies", 1)
@@ -582,7 +576,9 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 variant.barcode = generate_barcode(variant)
                 Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
-            single_html = _render_shelf_label(p, location=location_str, variant=variant)
+            single_html = _render_shelf_label(
+                p, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm
+            )
             for _ in range(copies):
                 labels_list.append(single_html)
 
@@ -590,9 +586,11 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         html_string = _shelf_labels_page(
             title=f"Étiquettes Rayon ({len(products)} produits)",
             labels_html=labels_html,
+            w_mm=w_mm,
+            h_mm=h_mm,
         )
 
-        return _build_pdf_response(html_string, filename="etiquettes_rayon_selection.pdf")
+        return _label_response(request, html_string, filename="etiquettes_rayon_selection.pdf")
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -845,11 +843,20 @@ _CODE128_STOP = "1100011101011"   # Stop character: 13 modules
 _CODE128_START_C = 105
 
 
-def _barcode_svg(value: str, height: int = 60, module_w: float = 2.0) -> str:
+def _barcode_svg(
+    value: str,
+    height: int = 60,
+    module_w: float = 2.0,
+    width_mm: float = 76.0,
+    height_mm: float | None = None,
+) -> str:
     """
     Encode a numeric string of even length as a CODE-128C SVG barcode.
     Returns bare SVG bars only — no embedded text (caller adds human-readable number).
-    Uses width="76mm" so WeasyPrint scales it to exactly 76 mm regardless of pixel DPI.
+    Uses a physical width (``width_mm``) so the renderer scales it to the exact
+    millimetre size regardless of pixel DPI. When ``height_mm`` is given the bars
+    are stretched vertically to that exact height (bars only scale, so this is
+    safe for scanners).
     Falls back gracefully: returns "" if value is invalid.
     """
     if not value or not value.isdigit() or len(value) % 2 != 0:
@@ -889,42 +896,138 @@ def _barcode_svg(value: str, height: int = 60, module_w: float = 2.0) -> str:
                 f'<rect x="{x:.2f}" y="0" width="{w:.2f}" height="{height}" fill="black"/>'
             )
 
-    # width="76mm" tells WeasyPrint the physical size; viewBox scales the coordinates.
-    # No height attribute → WeasyPrint derives it from viewBox aspect ratio.
+    # Physical width tells the renderer the real size; viewBox scales the coordinates.
+    size_attrs = f' width="{width_mm:.2f}mm"'
+    aspect = "xMidYMid meet"
+    if height_mm:
+        size_attrs += f' height="{height_mm:.2f}mm"'
+        aspect = "none"
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg"'
         f' viewBox="0 0 {total_w:.2f} {height}"'
-        f' width="76mm"'
-        f' preserveAspectRatio="xMidYMid meet">'
+        f'{size_attrs}'
+        f' preserveAspectRatio="{aspect}">'
         + "".join(bar_rects)
         + "</svg>"
     )
 
 
-def _render_label(product, variant) -> str:
+# ── Label geometry helpers ──────────────────────────────────────────────────
+# Default label roll: 45 mm × 35 mm (Gprinter GP-3150TN / Xprinter style rolls).
+DEFAULT_LABEL_W_MM = 45.0
+DEFAULT_LABEL_H_MM = 35.0
+_LABEL_INSET_MM = 1.2
+
+
+def _label_dims(request, default_w: float = DEFAULT_LABEL_W_MM, default_h: float = DEFAULT_LABEL_H_MM):
+    """Read ``w`` / ``h`` (millimetres) from the query string, clamped to sane bounds."""
+    def _read(key: str, default: float) -> float:
+        try:
+            val = float(request.query_params.get(key, default))
+        except (TypeError, ValueError):
+            val = default
+        return max(15.0, min(val, 150.0))
+
+    return _read("w", default_w), _read("h", default_h)
+
+
+def _fit_pt(text: str, base_pt: float, max_chars: int) -> float:
+    """Shrink a font size so that long strings still fit on a single line."""
+    n = len(text or "")
+    if n <= max_chars:
+        return base_pt
+    return max(base_pt * max_chars / n, base_pt * 0.45)
+
+
+def _label_base_css(w_mm: float, h_mm: float) -> str:
     """
-    One label = one PDF page.
+    Shared page CSS for all thermal labels.
+
+    * Page is exactly the label size with zero margins → no scaling by the
+      print pipeline, no shifting.
+    * Each label lives in its own ``.page`` box (one label = one page).
+    * ``--ox`` / ``--oy`` are calibration offsets (mm) the desktop print dialog
+      can override to compensate for printer-head misalignment.
+    """
+    # Slightly shorter than the page to avoid Chromium emitting a blank page
+    # from sub-pixel rounding.
+    page_h = h_mm - 0.3
+    return f"""
+  @page {{
+    size: {w_mm:.2f}mm {h_mm:.2f}mm;
+    margin: 0;
+  }}
+  :root {{ --ox: 0mm; --oy: 0mm; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  html, body {{
+    width: {w_mm:.2f}mm;
+    background: white;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }}
+  body {{
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }}
+  .page {{
+    width: {w_mm:.2f}mm;
+    height: {page_h:.2f}mm;
+    padding: {_LABEL_INSET_MM}mm;
+    overflow: hidden;
+    page-break-after: always;
+    break-after: page;
+  }}
+  .page:last-child {{
+    page-break-after: auto;
+    break-after: auto;
+  }}
+  .page > * {{
+    transform: translate(var(--ox), var(--oy));
+  }}
+"""
+
+
+def _render_label(product, variant, w_mm: float = DEFAULT_LABEL_W_MM, h_mm: float = DEFAULT_LABEL_H_MM) -> str:
+    """
+    One barcode label = one page.
     No text inside the SVG — avoids double-printing the barcode number.
-    Simple block layout (no flexbox) for reliable WeasyPrint rendering.
     """
-    svg = _barcode_svg(variant.barcode, height=80, module_w=2.5)
-    brand_part = f" · {product.brand}" if product.brand else ""
+    s = min(w_mm / DEFAULT_LABEL_W_MM, h_mm / DEFAULT_LABEL_H_MM)
+    inner_w = w_mm - 2 * _LABEL_INSET_MM
+    inner_h = h_mm - 2 * _LABEL_INSET_MM
+
+    name = f"{product.name}{' · ' + product.brand if product.brand else ''}"
+    info = f"EU {variant.size_eu} · {variant.colour}"
+
+    name_pt = _fit_pt(name, 8.5 * s, int(26 * w_mm / DEFAULT_LABEL_W_MM))
+    info_pt = 7.5 * s
+    code_pt = 7 * s
+
+    # Remaining vertical room for the bars (1pt ≈ 0.3528 mm, ×1.2 line-height)
+    text_mm = (name_pt + info_pt + code_pt) * 0.3528 * 1.2 + 2.0
+    bc_h = max(6.0, min(inner_h - text_mm, 18.0 * s))
+    bc_w = inner_w - 1.0
+
+    svg = _barcode_svg(variant.barcode, height=80, module_w=2.5, width_mm=bc_w, height_mm=bc_h)
     return (
-        f'<div class="label">'
-        f'<p class="name">{product.name}{brand_part}</p>'
-        f'<p class="info">EU {variant.size_eu} · {variant.colour}</p>'
+        f'<div class="page"><div class="label">'
+        f'<p class="name" style="font-size:{name_pt:.2f}pt">{name}</p>'
+        f'<p class="info" style="font-size:{info_pt:.2f}pt">{info}</p>'
         f'<div class="bc">{svg}</div>'
-        f'<p class="code">{variant.barcode}</p>'
-        f'</div>'
+        f'<p class="code" style="font-size:{code_pt:.2f}pt">{variant.barcode}</p>'
+        f'</div></div>'
     )
 
 
-def _barcode_page(title: str, labels_html: str) -> str:
+def _barcode_page(
+    title: str,
+    labels_html: str,
+    w_mm: float = DEFAULT_LABEL_W_MM,
+    h_mm: float = DEFAULT_LABEL_H_MM,
+) -> str:
     """
-    HTML string optimised for WeasyPrint PDF output.
-    Each @page is 82 mm × 40 mm — a standard small barcode label.
-    Every .label div triggers a new page; the last one avoids a trailing blank.
-    No JavaScript: WeasyPrint ignores it anyway.
+    HTML document for barcode labels. Each @page is exactly ``w_mm × h_mm``
+    (default 45 × 35 mm) with zero margins.
     """
     return f"""<!DOCTYPE html>
 <html lang="fr">
@@ -932,60 +1035,39 @@ def _barcode_page(title: str, labels_html: str) -> str:
 <meta charset="UTF-8">
 <title>{title}</title>
 <style>
-  @page {{
-    /* Each label is exactly one page — no leftover blank space */
-    size: 82mm 46mm;
-    margin: 2mm 3mm;
-  }}
-
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-
-  body {{
-    font-family: Helvetica, Arial, sans-serif;
-    background: white;
-    color: black;
-  }}
-
-  /* ── One label per page ── */
+{_label_base_css(w_mm, h_mm)}
   .label {{
-    page-break-after: always;
     width: 100%;
+    height: 100%;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }}
-  .label:last-child {{ page-break-after: avoid; }}
-
   .name {{
-    font-size: 8pt;
-    font-weight: bold;
-    margin-bottom: 1mm;
+    font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
   }}
-
   .info {{
-    font-size: 7pt;
-    color: #555;
-    margin-bottom: 2mm;
+    font-weight: 600;
+    color: #222;
+    margin-bottom: 0.8mm;
+    line-height: 1.2;
   }}
-
-  /* Wrapper centres the fixed-width SVG */
   .bc {{
-    display: block;
-    text-align: center;
-    line-height: 0;   /* collapse inline gap below SVG */
+    line-height: 0;
   }}
-
-  .bc svg {{
-    /* width is already "76mm" in the SVG attribute; no override needed */
-    display: inline-block;
-  }}
-
+  .bc svg {{ display: block; }}
   .code {{
-    font-size: 7pt;
     font-family: monospace;
     letter-spacing: 0.06em;
-    margin-top: 1mm;
+    margin-top: 0.6mm;
+    line-height: 1.2;
   }}
 </style>
 </head>
@@ -1016,49 +1098,64 @@ def _build_pdf_response(html_string: str, filename: str) -> HttpResponse:
     return response
 
 
-def _render_shelf_label(product, location: str = "", variant = None) -> str:
+def _label_response(request, html_string: str, filename: str) -> HttpResponse:
     """
-    Render a 45mm × 35mm retail shelf / shoe box location label.
-    Puts primary emphasis on:
-    - Location / Emplacement (prominent badge for warehouse/store staff)
-    - Sale Price (prominent DZD amount)
-    - Product Name, Brand & Reference
-    (Barcode is removed from this label).
+    Return label output either as raw HTML (``?output=html`` — used by the
+    desktop integrated print dialog, which prints the HTML natively at the
+    exact label size) or as a PDF (default / web fallback).
     """
-    brand_part = f"{product.brand} · " if product.brand else ""
-    formatted_price = f"{product.sale_price:,.0f}".replace(",", " ")
-    loc_val = location.strip() if (location and location.strip()) else "—"
-    ref_html = f'<span class="ref">RÉF: {product.reference}</span>' if product.reference else ""
+    if request.query_params.get("output") == "html":
+        return HttpResponse(html_string, content_type="text/html; charset=utf-8")
+    return _build_pdf_response(html_string, filename=filename)
+
+
+def _render_shelf_label(
+    product,
+    location: str = "",
+    variant=None,
+    w_mm: float = DEFAULT_LABEL_W_MM,
+    h_mm: float = DEFAULT_LABEL_H_MM,
+) -> str:
+    """
+    Render a shelf / shoe-box location label (default 45 mm × 35 mm).
+
+    Three lines only, no captions, so every millimetre goes to the text:
+      1. Reference (falls back to product name) — shown once
+      2. Location / emplacement — largest text
+      3. Sale price in DZD
+    """
+    s = min(w_mm / DEFAULT_LABEL_W_MM, h_mm / DEFAULT_LABEL_H_MM)
+    width_factor = w_mm / DEFAULT_LABEL_W_MM
+
+    ref_text = (product.reference or "").strip() or (product.name or "").strip()
+    loc_text = location.strip() if (location and location.strip()) else "—"
+    price_text = f"{product.sale_price:,.0f}".replace(",", " ")
+
+    ref_pt = _fit_pt(ref_text, 13 * s, int(13 * width_factor))
+    loc_pt = _fit_pt(loc_text, 26 * s, int(7 * width_factor))
+    price_pt = _fit_pt(price_text, 22 * s, int(7 * width_factor))
+    dzd_pt = max(price_pt * 0.45, 6 * s)
 
     return f"""
-    <div class="shelf-label">
-        <div class="top-row">
-            <div class="title-block">
-                <span class="brand">{brand_part}</span>
-                <span class="p-name">{product.name}</span>
-            </div>
-            {ref_html}
-        </div>
-
-        <div class="loc-card">
-            <span class="loc-label">EMPLACEMENT</span>
-            <span class="loc-val">{loc_val}</span>
-        </div>
-
-        <div class="price-card">
-            <span class="price-label">PRIX VENTE T.T.C</span>
-            <div class="price-val-row">
-                <span class="price-amount">{formatted_price}</span>
-                <span class="dzd">DZD</span>
-            </div>
-        </div>
+    <div class="page">
+      <div class="shelf-label">
+        <div class="ref" style="font-size:{ref_pt:.2f}pt">{ref_text}</div>
+        <div class="loc" style="font-size:{loc_pt:.2f}pt">{loc_text}</div>
+        <div class="price" style="font-size:{price_pt:.2f}pt">{price_text}<span class="dzd" style="font-size:{dzd_pt:.2f}pt">DZD</span></div>
+      </div>
     </div>
     """
 
 
-def _shelf_labels_page(title: str, labels_html: str) -> str:
+def _shelf_labels_page(
+    title: str,
+    labels_html: str,
+    w_mm: float = DEFAULT_LABEL_W_MM,
+    h_mm: float = DEFAULT_LABEL_H_MM,
+) -> str:
     """
-    HTML container for shelf / location labels calibrated for 45mm × 35mm thermal rolls.
+    HTML document for shelf / location labels. Each @page is exactly
+    ``w_mm × h_mm`` (default 45 × 35 mm) with zero margins.
     """
     return f"""<!DOCTYPE html>
 <html lang="fr">
@@ -1066,153 +1163,45 @@ def _shelf_labels_page(title: str, labels_html: str) -> str:
 <meta charset="UTF-8">
 <title>{title}</title>
 <style>
-  @page {{
-    size: 45mm 35mm;
-    margin: 1mm 1.5mm;
-  }}
-
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-
-  body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: white;
-    color: #000;
-  }}
-
+{_label_base_css(w_mm, h_mm)}
   .shelf-label {{
-    page-break-after: always;
-    width: 42mm;
-    height: 32.5mm;
+    width: 100%;
+    height: 100%;
     border: 1.2pt solid #000;
-    border-radius: 3px;
-    padding: 1.2mm 2mm;
+    border-radius: 2.5mm;
+    padding: 0.8mm 1.5mm;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    align-items: stretch;
+    text-align: center;
     overflow: hidden;
   }}
-
-  .shelf-label:last-child {{
-    page-break-after: avoid;
-  }}
-
-  /* ── 1. Top row: Product Name & Ref ── */
-  .top-row {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 0.8pt solid #ccc;
-    padding-bottom: 0.8mm;
-    gap: 1.5mm;
-    overflow: hidden;
-  }}
-
-  .title-block {{
-    flex: 1;
-    overflow: hidden;
+  .ref, .loc, .price {{
     white-space: nowrap;
-    text-overflow: ellipsis;
-  }}
-
-  .brand {{
-    font-size: 6pt;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #444;
-  }}
-
-  .p-name {{
-    font-size: 8pt;
-    font-weight: 800;
+    overflow: hidden;
+    line-height: 1.05;
     color: #000;
-    line-height: 1.1;
   }}
-
   .ref {{
-    font-size: 6pt;
     font-weight: 800;
-    font-family: monospace, sans-serif;
-    color: #333;
-    white-space: nowrap;
+    letter-spacing: 0.02em;
+    border-bottom: 0.8pt solid #000;
+    padding-bottom: 0.6mm;
   }}
-
-  /* ── 2. Location Box (Emphasis 1) ── */
-  .loc-card {{
-    background: #f4f4f5;
-    border: 1.2pt solid #000;
-    border-radius: 3px;
-    padding: 1mm 1.5mm;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }}
-
-  .loc-label {{
-    display: block;
-    font-size: 5pt;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    color: #444;
-    text-transform: uppercase;
-    line-height: 1;
-    margin-bottom: 0.4mm;
-  }}
-
-  .loc-val {{
-    display: block;
-    font-size: 13pt;
+  .loc {{
     font-weight: 900;
-    letter-spacing: 0.04em;
-    color: #000;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    letter-spacing: 0.03em;
   }}
-
-  /* ── 3. Price Section (Emphasis 2) ── */
-  .price-card {{
-    border-top: 1pt solid #000;
-    padding-top: 0.8mm;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }}
-
-  .price-label {{
-    font-size: 4.8pt;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    color: #555;
-    text-transform: uppercase;
-    line-height: 1;
-    margin-bottom: 0.4mm;
-  }}
-
-  .price-val-row {{
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 1.5mm;
-    line-height: 1;
-  }}
-
-  .price-amount {{
-    font-size: 16pt;
+  .price {{
     font-weight: 900;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #000;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
+    border-top: 0.8pt solid #000;
+    padding-top: 0.6mm;
   }}
-
   .dzd {{
-    font-size: 8.5pt;
     font-weight: 800;
-    color: #222;
+    margin-left: 1mm;
   }}
 </style>
 </head>
@@ -1258,47 +1247,38 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="barcode-label")
     def barcode_label(self, request, pk=None):
         """
-        Return a PDF of barcode labels for a single variant.
+        Return barcode labels for a single variant.
 
         Query params:
-          copies=N  (int, default 1) — repeat the label N times in the PDF.
+          copies=N  (int, default 1) — repeat the label N times.
                     Use this to print exactly as many stickers as items received.
+          w, h      label size in mm (default 45 × 35)
+          output    "html" → raw HTML for the desktop native print dialog.
         """
+        w_mm, h_mm = _label_dims(request)
         variant = self.get_object()
         if not variant.barcode:
             variant.barcode = generate_barcode(variant)
             Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
-        copies = max(1, min(int(request.query_params.get("copies", 1) or 1), 200))
+        try:
+            copies = max(1, min(int(request.query_params.get("copies", 1) or 1), 200))
+        except (TypeError, ValueError):
+            copies = 1
 
         product = variant.product
-        single_label = _render_label(product, variant)
+        single_label = _render_label(product, variant, w_mm, h_mm)
         labels_html = "\n".join([single_label] * copies)
 
         html_string = _barcode_page(
             title=f"{product.name} EU{variant.size_eu} {variant.colour} — étiquettes",
             labels_html=labels_html,
+            w_mm=w_mm,
+            h_mm=h_mm,
         )
 
-        try:
-            from django.conf import settings
-            if getattr(settings, "DESKTOP_MODE", False):
-                from apps.core.desktop.pdf_client import render_html_to_pdf
-                pdf_bytes = render_html_to_pdf(html_string)
-            else:
-                from weasyprint import HTML as WeasyHTML
-                pdf_bytes = WeasyHTML(string=html_string, base_url=".").write_pdf()
-        except Exception as exc:
-            return HttpResponse(
-                f"PDF generation failed: {exc}",
-                content_type="text/plain",
-                status=500,
-            )
-
         safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in f"{product.name}_EU{variant.size_eu}_{variant.colour}")
-        response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        response["Content-Disposition"] = f'inline; filename="{safe}.pdf"'
-        return response
+        return _label_response(request, html_string, filename=f"{safe}.pdf")
 
 
 class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):

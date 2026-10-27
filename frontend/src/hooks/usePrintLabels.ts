@@ -11,7 +11,7 @@
  */
 import { useState, useCallback } from "react";
 import api from "@/lib/api";
-import { viewPdfDocument } from "@/lib/pdfViewer";
+import { triggerLabelPrint } from "@/features/inventory/components/labelPrintStore";
 
 export function usePrintLabels() {
   const [isPrinting, setIsPrinting] = useState(false);
@@ -22,16 +22,19 @@ export function usePrintLabels() {
       setIsPrinting(true);
       try {
         const n = Math.max(1, Math.min(Math.round(Number(copies)), 200));
-        const res = await api.get(
-          `/inventory/variants/${variantId}/barcode-label/?copies=${n}`,
-          { responseType: "arraybuffer" }
-        );
-        await viewPdfDocument(res.data, {
+        await triggerLabelPrint({
           title: `Étiquettes code-barres (${n})`,
-          filename: `etiquette_variante_${variantId}`,
+          defaultCopies: n,
+          fetchHtml: async ({ w, h, copies: count }) => {
+            const res = await api.get(
+              `/inventory/variants/${variantId}/barcode-label/?output=html&w=${w}&h=${h}&copies=${count}`,
+              { responseType: "text" }
+            );
+            return res.data;
+          },
         });
       } catch {
-        // Silently ignore — PDF is a convenience, not critical path
+        // Silently ignore
       } finally {
         setIsPrinting(false);
       }

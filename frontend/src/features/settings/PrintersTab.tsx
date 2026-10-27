@@ -14,7 +14,10 @@ import {
   getPrinterConfig,
   savePrinterConfig,
   testPrintTicket,
+  testPrintLabel,
   printDocumentA4,
+  LABEL_SIZE_PRESETS,
+  type LabelSizePreset,
   type PrinterConfig,
 } from "@/lib/printerConfig";
 import type { PrinterInfo } from "@/vite-env";
@@ -114,6 +117,36 @@ export default function PrintersTab() {
       showToast(err?.message || "Erreur test A4", "error");
     } finally {
       setTestingA4(false);
+    }
+  };
+
+  const [testingLabel, setTestingLabel] = useState(false);
+  const handleTestLabel = async () => {
+    setTestingLabel(true);
+    try {
+      const res = await testPrintLabel({
+        printerName: config.labels.printerName,
+        labelSize: config.labels.labelSize,
+        customWidth: config.labels.customWidth,
+        customHeight: config.labels.customHeight,
+        offsetX: config.labels.offsetX,
+        offsetY: config.labels.offsetY,
+        landscape: config.labels.landscape,
+      });
+      if (res.success) {
+        showToast("Test d'étiquette 45×35 mm envoyé à l'imprimante !");
+      } else {
+        showToast(
+          res.failureReason
+            ? `Erreur d'impression : ${res.failureReason}`
+            : "Impossible d'imprimer l'étiquette test. Vérifiez que l'imprimante est allumée.",
+          "error"
+        );
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Erreur lors du test d'impression.", "error");
+    } finally {
+      setTestingLabel(false);
     }
   };
 
@@ -435,20 +468,32 @@ export default function PrintersTab() {
         </div>
       </div>
 
-      {/* ── Section 3: Étiquettes Code-barres ─────────────────────────────────── */}
+      {/* ── Section 3: Étiquettes Rayon & Code-barres ─────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4 shadow-xs">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center shadow-2xs">
-            <Tag size={18} />
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center shadow-2xs">
+              <Tag size={18} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-900">
+                Étiquettes Rayon & Code-barres
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Imprimante thermique d'étiquettes adhésives pour rayons et boîtes (ex: Gprinter GP-3150TN, Xprinter, Zebra).
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-sm text-slate-900">
-              Étiquettes Code-barres & Pointures
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Imprimante d'étiquettes adhésives pour boîtes de chaussures et articles (ex: Xprinter 365B, Zebra).
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={handleTestLabel}
+            disabled={testingLabel}
+            className="btn-secondary text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 hover:border-emerald-400"
+          >
+            <Zap size={13} className="text-emerald-600" />
+            <span>{testingLabel ? "Impression..." : "Tester l'étiquette (45×35 mm)"}</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
@@ -473,10 +518,13 @@ export default function PrintersTab() {
                 </option>
               ))}
             </select>
+            <p className="text-2xs text-slate-400 mt-1">
+              Sélectionnez votre imprimante thermique à étiquettes (ex: Gprinter GP-3150TN).
+            </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Format des étiquettes</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Format du rouleau d'étiquettes</label>
             <select
               value={config.labels.labelSize}
               onChange={(e) =>
@@ -484,16 +532,178 @@ export default function PrintersTab() {
                   ...config,
                   labels: {
                     ...config.labels,
-                    labelSize: e.target.value as any,
+                    labelSize: e.target.value as LabelSizePreset,
                   },
                 })
               }
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
-              <option value="82x40">82 × 40 mm (Standard boîte de chaussure)</option>
-              <option value="50x30">50 × 30 mm (Compact)</option>
-              <option value="38x25">38 × 25 mm (Mini)</option>
+              {LABEL_SIZE_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+              <option value="custom">Format Personnalisé (mm)...</option>
             </select>
+
+            {config.labels.labelSize === "custom" && (
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
+                <div>
+                  <span className="text-2xs text-slate-500 block mb-1">Largeur (mm)</span>
+                  <input
+                    type="number"
+                    min={15}
+                    max={150}
+                    value={config.labels.customWidth}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        labels: {
+                          ...config.labels,
+                          customWidth: Number(e.target.value) || 45,
+                        },
+                      })
+                    }
+                    className="input w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <span className="text-2xs text-slate-500 block mb-1">Hauteur (mm)</span>
+                  <input
+                    type="number"
+                    min={15}
+                    max={150}
+                    value={config.labels.customHeight}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        labels: {
+                          ...config.labels,
+                          customHeight: Number(e.target.value) || 35,
+                        },
+                      })
+                    }
+                    className="input w-full text-xs"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mode d'impression étiquettes & Calibrage */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-2">Mode d'impression étiquettes</label>
+            <div className="space-y-2.5">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="labels_silent"
+                  checked={config.labels.silent}
+                  onChange={() =>
+                    setConfig({
+                      ...config,
+                      labels: { ...config.labels, silent: true },
+                    })
+                  }
+                  className="mt-0.5 text-primary-600 focus:ring-primary-500/20"
+                />
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    Impression directe instantanée (Silencieuse)
+                  </div>
+                  <div className="text-2xs text-slate-400 mt-0.5">
+                    L'étiquette s'imprime immédiatement sans ouvrir de boîte de dialogue (comme les tickets de caisse).
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="labels_silent"
+                  checked={!config.labels.silent}
+                  onChange={() =>
+                    setConfig({
+                      ...config,
+                      labels: { ...config.labels, silent: false },
+                    })
+                  }
+                  className="mt-0.5 text-primary-600 focus:ring-primary-500/20"
+                />
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    Boîte de dialogue intégrée ShoeDZ
+                  </div>
+                  <div className="text-2xs text-slate-400 mt-0.5">
+                    Affiche la prévisualisation de l'étiquette et permet de choisir l'imprimante ou le nombre d'exemplaires.
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-2">
+              Calibrage d'alignement (Tête d'impression)
+            </label>
+            <p className="text-2xs text-slate-400 mb-2">
+              Si le papier physique est légèrement décalé vers la gauche ou le haut, ajustez en millimètres :
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-2xs text-slate-600 block mb-1 font-medium">Décalage horizontal (X)</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="-10"
+                    max="10"
+                    value={config.labels.offsetX}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        labels: {
+                          ...config.labels,
+                          offsetX: parseFloat(e.target.value) || 0,
+                        },
+                      })
+                    }
+                    className="input w-full text-xs"
+                    placeholder="0"
+                  />
+                  <span className="text-2xs text-slate-400">mm</span>
+                </div>
+                <span className="text-3xs text-slate-400 mt-0.5 block">+2 mm décale vers la droite</span>
+              </div>
+
+              <div>
+                <span className="text-2xs text-slate-600 block mb-1 font-medium">Décalage vertical (Y)</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="-10"
+                    max="10"
+                    value={config.labels.offsetY}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        labels: {
+                          ...config.labels,
+                          offsetY: parseFloat(e.target.value) || 0,
+                        },
+                      })
+                    }
+                    className="input w-full text-xs"
+                    placeholder="0"
+                  />
+                  <span className="text-2xs text-slate-400">mm</span>
+                </div>
+                <span className="text-3xs text-slate-400 mt-0.5 block">+ vers le bas / - vers le haut</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

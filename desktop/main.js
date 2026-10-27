@@ -653,7 +653,16 @@ ipcMain.handle('get-printers', async () => {
 });
 
 ipcMain.handle('print-html', async (_event, options) => {
-  const { html, deviceName, silent, pageSize, copies } = options || {};
+  const {
+    html,
+    deviceName,
+    silent,
+    pageSize,
+    copies,
+    margins,
+    landscape,
+    scaleFactor,
+  } = options || {};
   return new Promise((resolve) => {
     try {
       const printWin = new BrowserWindow({
@@ -667,16 +676,36 @@ ipcMain.handle('print-html', async (_event, options) => {
         },
       });
 
-      printWin.webContents.on('did-finish-load', () => {
+      printWin.webContents.on('did-finish-load', async () => {
         const printOptions = {
           silent: !!silent,
           printBackground: true,
           deviceName: deviceName || '',
-          copies: copies || 1,
+          copies: Math.max(1, Number(copies) || 1),
         };
+
         if (pageSize) {
-          printOptions.pageSize = pageSize;
+          if (typeof pageSize === 'object' && pageSize.width && pageSize.height) {
+            // Custom size in microns — Chromium requires integers ≥ 353.
+            printOptions.pageSize = {
+              width: Math.max(353, Math.round(Number(pageSize.width))),
+              height: Math.max(353, Math.round(Number(pageSize.height))),
+            };
+          } else {
+            printOptions.pageSize = pageSize;
+          }
         }
+        if (margins) printOptions.margins = margins;
+        if (typeof landscape === 'boolean') printOptions.landscape = landscape;
+        if (scaleFactor) printOptions.scaleFactor = Number(scaleFactor);
+
+        // Give web fonts / SVG a moment to settle before rasterising.
+        try {
+          await printWin.webContents.executeJavaScript(
+            'document.fonts ? document.fonts.ready.then(() => true) : true',
+            true
+          );
+        } catch (_) {}
 
         printWin.webContents.print(printOptions, (success, failureReason) => {
           printWin.destroy();

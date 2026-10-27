@@ -45,6 +45,7 @@ import SkuMatrix from "./components/SkuMatrix";
 import BarcodeSvg from "@/components/ui/BarcodeSvg";
 import { viewPdfDocument } from "@/lib/pdfViewer";
 import { usePrintLabels } from "@/hooks/usePrintLabels";
+import { triggerLabelPrint } from "./components/labelPrintStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -199,15 +200,19 @@ export default function ProductDetailPage() {
     if (!id || printLoading) return;
     setPrintLoading(true);
     try {
-      const res = await api.get(`/inventory/products/${id}/barcode-labels/`, {
-        responseType: "arraybuffer",
-      });
-      await viewPdfDocument(res.data, {
+      await triggerLabelPrint({
         title: `Étiquettes — ${product?.name || "Produit"}`,
-        filename: `etiquettes_${product?.reference || id}`,
+        defaultCopies: 1,
+        fetchHtml: async ({ w, h }) => {
+          const res = await api.get(
+            `/inventory/products/${id}/barcode-labels/?output=html&w=${w}&h=${h}`,
+            { responseType: "text" }
+          );
+          return res.data;
+        },
       });
     } catch {
-      // silently ignore — extremely unlikely given the user is already authenticated
+      // silently ignore
     } finally {
       setPrintLoading(false);
     }
@@ -218,12 +223,16 @@ export default function ProductDetailPage() {
     if (!id || shelfLabelLoading) return;
     setShelfLabelLoading(true);
     try {
-      const res = await api.get(`/inventory/products/${id}/shelf-labels/?copies=${copies}`, {
-        responseType: "blob",
-      });
-      await viewPdfDocument(res.data, {
+      await triggerLabelPrint({
         title: `Étiquette Rayon — ${product?.name || "Produit"}`,
-        filename: `rayon_${product?.reference || id}`,
+        defaultCopies: copies,
+        fetchHtml: async ({ w, h, copies: n }) => {
+          const res = await api.get(
+            `/inventory/products/${id}/shelf-labels/?output=html&w=${w}&h=${h}&copies=${n}`,
+            { responseType: "text" }
+          );
+          return res.data;
+        },
       });
     } catch {
       alert("Erreur lors de la génération de l'étiquette rayon.");

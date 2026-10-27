@@ -511,7 +511,7 @@ export default function BulkPriceUpdateModal({
                   className="rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
                 />
                 <span className="font-bold text-xs text-amber-950">
-                  Réimprimer immédiatement les étiquettes de rayon (100mm × 44mm)
+                  Réimprimer immédiatement les étiquettes de rayon (45mm × 35mm)
                 </span>
               </div>
               <p className="text-2xs text-amber-800 mt-1 ps-5">
