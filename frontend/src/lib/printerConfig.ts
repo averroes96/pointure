@@ -129,7 +129,10 @@ export function applyLabelOffsets(html: string, offsetX: number, offsetY: number
   const ox = Number(offsetX) || 0;
   const oy = Number(offsetY) || 0;
   if (!ox && !oy) return html;
-  const style = `<style>:root{--ox:${ox}mm !important;--oy:${oy}mm !important;}</style>`;
+  const style = `<style id="label-offsets">:root{--ox:${ox}mm !important;--oy:${oy}mm !important;}</style>`;
+  if (html.includes('id="label-offsets"')) {
+    return html.replace(/<style id="label-offsets">.*?<\/style>/, style);
+  }
   return html.includes("</head>") ? html.replace("</head>", `${style}</head>`) : style + html;
 }
 

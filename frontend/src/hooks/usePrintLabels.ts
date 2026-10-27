@@ -1,9 +1,9 @@
 /**
- * usePrintLabels — shared hook for printing barcode label PDFs.
+ * usePrintLabels — shared hook for printing barcode labels.
  *
- * Calls GET /inventory/variants/{id}/barcode-label/?copies=N,
- * wraps the response in a blob URL, and opens it in a new tab.
- * The backend PDF has N identical pages (one per item received).
+ * Uses triggerLabelPrint() to either open the integrated thermal label
+ * print dialog or print instantly/silently (depending on the user's
+ * configured preference in Settings > Imprimantes).
  *
  * Usage:
  *   const { printLabels, isPrinting } = usePrintLabels();

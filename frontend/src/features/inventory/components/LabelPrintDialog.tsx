@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Minus,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getPrinterConfig,
@@ -103,11 +105,65 @@ export default function LabelPrintDialog() {
     }
   }, [w, h, isOpen, refreshHtml, copies]);
 
-  // Live preview HTML with calibration offset injected
+  // Live preview HTML with calibration offset injected + preview smoothing
   const previewHtml = useMemo(() => {
     if (!htmlContent) return "";
-    return applyLabelOffsets(htmlContent, offsetX, offsetY);
-  }, [htmlContent, offsetX, offsetY]);
+    const htmlWithOffsets = applyLabelOffsets(htmlContent, offsetX, offsetY);
+    // Inject preview helpers: eliminate scrollbars in iframe and ensure page matches h exactly
+    const previewStyles = `<style id="preview-scaling-fix">
+      html, body {
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: ${w}mm !important;
+        background: white !important;
+      }
+      .page {
+        height: ${h}mm !important;
+        max-height: ${h}mm !important;
+        width: ${w}mm !important;
+        margin: 0 !important;
+      }
+      ::-webkit-scrollbar { display: none !important; }
+    </style>`;
+    return htmlWithOffsets.includes("</head>")
+      ? htmlWithOffsets.replace("</head>", `${previewStyles}</head>`)
+      : previewStyles + htmlWithOffsets;
+  }, [htmlContent, offsetX, offsetY, w, h]);
+
+  // Count pages in preview HTML (e.g. for bulk printing)
+  const pageCount = useMemo(() => {
+    if (!previewHtml) return 1;
+    const matches = previewHtml.match(/class=["']page["']/g);
+    return matches && matches.length > 0 ? matches.length : 1;
+  }, [previewHtml]);
+
+  const [currentPage, setCurrentPage] = useState<number>(0);
+
+  // Reset/clamp current page when pageCount changes
+  useEffect(() => {
+    setCurrentPage((curr) => Math.min(curr, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
+
+  // Screen DPI conversion (CSS standard: 96 CSS px per 25.4 mm)
+  const MM_TO_PX = 96 / 25.4; // ~3.779528 px/mm
+  const baseW = w * MM_TO_PX;
+  const baseH = h * MM_TO_PX;
+
+  // Outer mockup dimensions on screen (proportional to sticker aspect ratio)
+  const isWide = w >= h;
+  const maxCardW = isWide ? 380 : 280;
+  const maxCardH = isWide ? 300 : 380;
+
+  let cardW = maxCardW;
+  let cardH = Math.round(cardW * (h / w));
+  if (cardH > maxCardH) {
+    cardH = maxCardH;
+    cardW = Math.round(cardH * (w / h));
+  }
+
+  // Exact scale factor to stretch physical mm size to fill the card
+  const scale = cardW / baseW;
 
   if (!isOpen) return null;
 
@@ -135,7 +191,7 @@ export default function LabelPrintDialog() {
       };
       savePrinterConfig(updatedConfig);
 
-      const res = await printLabelHtml(previewHtml, {
+      const res = await printLabelHtml(htmlContent, {
         printerName: selectedPrinter,
         labelSize,
         customWidth,
@@ -474,7 +530,7 @@ export default function LabelPrintDialog() {
           {/* ── RIGHT: Physical Label Preview Board (7 cols) ── */}
           <div className="md:col-span-7 bg-slate-950/90 flex flex-col items-center justify-center p-6 relative overflow-hidden select-none">
             {/* Aspect Ratio Live Label Simulator */}
-            <div className="flex flex-col items-center justify-center w-full h-full max-h-[500px]">
+            <div className="flex flex-col items-center justify-center w-full h-full max-h-[520px]">
               <div className="text-2xs text-slate-400 font-mono mb-3 flex items-center gap-2">
                 <span>Aperçu physique réel :</span>
                 <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
@@ -489,11 +545,8 @@ export default function LabelPrintDialog() {
               <div
                 className="relative bg-white shadow-2xl rounded-sm border border-slate-300 overflow-hidden transition-all duration-150 flex items-center justify-center"
                 style={{
-                  // Keep true aspect ratio while scaling to fit viewport
-                  aspectRatio: `${w} / ${h}`,
-                  maxWidth: "92%",
-                  maxHeight: "75%",
-                  width: w >= h ? "360px" : "260px",
+                  width: `${cardW}px`,
+                  height: `${cardH}px`,
                 }}
               >
                 {isLoadingHtml ? (
@@ -502,18 +555,61 @@ export default function LabelPrintDialog() {
                     <span>Génération de l'aperçu...</span>
                   </div>
                 ) : previewHtml ? (
-                  <iframe
-                    title="Aperçu Étiquette"
-                    srcDoc={previewHtml}
-                    className="w-full h-full border-0 pointer-events-none"
-                    sandbox="allow-same-origin"
-                  />
+                  <div
+                    style={{
+                      width: `${cardW}px`,
+                      height: `${cardH}px`,
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                  >
+                    <iframe
+                      title="Aperçu Étiquette"
+                      srcDoc={previewHtml}
+                      scrolling="no"
+                      className="border-0 pointer-events-none select-none absolute top-0 left-0"
+                      sandbox="allow-same-origin"
+                      style={{
+                        width: `${baseW}px`,
+                        height: `${baseH * Math.max(pageCount, 1)}px`,
+                        transform: `scale(${scale}) translateY(-${currentPage * baseH}px)`,
+                        transformOrigin: "top left",
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="text-slate-400 text-xs p-4 text-center">
                     Aucun aperçu disponible
                   </div>
                 )}
               </div>
+
+              {/* Pagination controls for multiple labels/pages */}
+              {pageCount > 1 && (
+                <div className="mt-3 flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                    disabled={currentPage === 0}
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    title="Étiquette précédente"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="font-mono text-3xs text-slate-300">
+                    Étiquette {currentPage + 1} / {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
+                    disabled={currentPage >= pageCount - 1}
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    title="Étiquette suivante"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
 
               {/* Status Note */}
               <div className="mt-4 text-center">
