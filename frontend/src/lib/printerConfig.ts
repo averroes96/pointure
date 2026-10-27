@@ -223,6 +223,7 @@ export async function printTicket(
         deviceName: ticketCfg.printerName || undefined,
         silent: ticketCfg.silent,
         copies: ticketCfg.copies || 1,
+        margins: { marginType: "none" },
       });
       if (res && res.success) {
         return { success: true };
@@ -307,15 +308,15 @@ export async function testPrintTicket(
   <title>Test Impression ShoeDZ</title>
   <style>
     @media print {
-      @page { size: ${paperWidth} auto; margin: 0; }
-      body { margin: 0; padding: 2mm 3mm; }
+      @page { margin: 0; }
+      body { margin: 0; padding: 2mm; width: ${bodyWidth}; }
     }
     body {
       font-family: 'Courier New', Courier, monospace;
       font-size: ${is58mm ? "10px" : "12px"};
       width: ${bodyWidth};
       color: #000;
-      margin: 0 auto;
+      margin: 0;
       padding: 4mm 2mm;
       text-align: center;
       line-height: 1.35;

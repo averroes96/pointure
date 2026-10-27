@@ -1218,10 +1218,13 @@ export default function ReconciliationPage() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 flex justify-center">
-              <div
-                className="bg-white p-4 shadow-sm border border-slate-200 text-black text-xs w-full max-w-[80mm] rounded-xl font-mono"
-                dangerouslySetInnerHTML={{ __html: xReportData.x_report_html }}
-              />
+              <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
+                <iframe
+                  title="Ticket Lecture X"
+                  srcDoc={xReportData.x_report_html}
+                  className="w-full h-full border-0 select-none bg-white"
+                />
+              </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 flex items-center gap-2 bg-white">
@@ -1267,10 +1270,13 @@ export default function ReconciliationPage() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 flex justify-center">
-              <div
-                className="bg-white p-4 shadow-sm border border-slate-200 text-black text-xs w-full max-w-[80mm] rounded-xl font-mono"
-                dangerouslySetInnerHTML={{ __html: zReportData.z_report_html }}
-              />
+              <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
+                <iframe
+                  title="Ticket Rapport Z"
+                  srcDoc={zReportData.z_report_html}
+                  className="w-full h-full border-0 select-none bg-white"
+                />
+              </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 flex items-center gap-2 bg-white">

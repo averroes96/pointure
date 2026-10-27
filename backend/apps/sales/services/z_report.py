@@ -192,17 +192,34 @@ def render_thermal_z_report(session, is_x_report=False, stats=None, store_name="
     <title>{report_type} — {z_number}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        html, body {{
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #000;
+        }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
-            width: 76mm;
-            margin: 0 auto;
-            padding: 4mm 2mm;
+            width: 72mm;
+            max-width: 80mm;
+            margin: 0;
+            padding: 3mm 2mm;
             color: #000;
-            background: #fff;
             font-size: 11px;
             line-height: 1.35;
         }}
-        @page {{ size: 80mm auto; margin: 0mm; }}
+        @page {{
+            margin: 0;
+        }}
+        @media print {{
+            @page {{ margin: 0; }}
+            body {{
+                margin: 0;
+                padding: 2mm 1mm;
+                width: 72mm;
+                max-width: 80mm;
+            }}
+        }}
         .header {{ text-align: center; margin-bottom: 8px; }}
         .store-name {{ font-size: 16px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }}
         .report-badge {{
