@@ -14,6 +14,9 @@ class VariantSerializer(serializers.ModelSerializer):
     product_sale_price = serializers.DecimalField(
         source="product.sale_price", max_digits=12, decimal_places=2, read_only=True
     )
+    purchase_price = serializers.DecimalField(
+        source="product.purchase_price", max_digits=12, decimal_places=2, read_only=True
+    )
     stock_qty = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
@@ -37,7 +40,7 @@ class VariantSerializer(serializers.ModelSerializer):
         model = Variant
         fields = [
             "id", "product", "product_name", "product_brand", "product_reference", "product_sale_price",
-            "size_eu", "colour", "barcode",
+            "purchase_price", "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]
         read_only_fields = ["id"]

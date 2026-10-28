@@ -17,9 +17,9 @@ import {
   X, Search, Plus, Trash2, ShoppingBag, Factory, Upload,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
-import type { Supplier } from "@/types";
+import type { Supplier, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
-import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange } from "./components/CartonPanel";
+import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, distributeCartonQuantities } from "./components/CartonPanel";
 import { useBranch } from "@/features/auth/BranchContext";
 
 // ── Supplier search dropdown ───────────────────────────────────────────────────
@@ -208,7 +208,15 @@ let _lineCounter = 0;
 function localId() { return ++_lineCounter; }
 
 function emptyLine(): LineItem {
-  return { _id: localId(), variant_id: null, description: "", quantity_ordered: "1", agreed_unit_price: "", is_carton: true, carton_config: { ...DEFAULT_CARTON } };
+  return {
+    _id: localId(),
+    variant_id: null,
+    description: "",
+    quantity_ordered: String(DEFAULT_CARTON.cartons_received * DEFAULT_CARTON.pairs_per_carton),
+    agreed_unit_price: "",
+    is_carton: true,
+    carton_config: { ...DEFAULT_CARTON },
+  };
 }
 
 function lineTotal(line: LineItem): number {
@@ -229,6 +237,13 @@ export default function PurchaseOrderFormPage() {
 
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const enableVariants = storeSettings?.enable_variants ?? false;
+
   const { data: poToEdit, isSuccess: isPOLoaded } = useQuery<any>({
     queryKey: ["purchase-order", id],
     queryFn: () => api.get(`/suppliers/purchase-orders/${id}/`).then((r) => r.data),
@@ -296,43 +311,33 @@ export default function PurchaseOrderFormPage() {
       const parsedLines = res.data.lines;
       
       if (parsedLines && parsedLines.length > 0) {
-        const newLines = parsedLines.map((pl: any) => ({
-          _id: localId(),
-          variant_id: null,
-          description: pl.reference,
-          quantity_ordered: String(pl.total_pairs || (pl.cartons * pl.pairs_per_carton) || 1),
-          agreed_unit_price: String(pl.price || ""),
-          is_carton: true,
-          carton_config: {
-            ...DEFAULT_CARTON,
-            product_name: pl.reference,
-            size_from: pl.size_from || 36,
-            size_to: pl.size_to || 41,
-            cartons_received: pl.cartons || 1,
-            pairs_per_carton: pl.pairs_per_carton || 10,
-            purchase_price: String(pl.price || ""),
-            // Automatically distribute the total pairs across sizes
-            quantities: {
-              "": Object.fromEntries((() => {
-                const range = getSizeRange(pl.size_from || 36, pl.size_to || 41);
-                const totalPairs = (pl.cartons || 1) * (pl.pairs_per_carton || 1);
-                const basePerSize = Math.floor(totalPairs / (range.length || 1));
-                let remainder = totalPairs % (range.length || 1);
-                
-                return range.map((s, idx) => {
-                  // Distribute the remainder starting from the middle sizes (typical shoe distribution)
-                  // Or simply from the beginning for simplicity
-                  let qty = basePerSize;
-                  if (remainder > 0) {
-                    qty += 1;
-                    remainder -= 1;
-                  }
-                  return [s, qty];
-                });
-              })())
-            }
-          }
-        }));
+        const newLines = parsedLines.map((pl: any) => {
+          const cartons = pl.cartons || 1;
+          const ppc = pl.pairs_per_carton || 10;
+          const totalPairs = pl.total_pairs || cartons * ppc || 1;
+          const sFrom = pl.size_from || 36;
+          const sTo = pl.size_to || 41;
+          return {
+            _id: localId(),
+            variant_id: null,
+            description: pl.reference,
+            quantity_ordered: String(totalPairs),
+            agreed_unit_price: String(pl.price || ""),
+            is_carton: true,
+            carton_config: {
+              ...DEFAULT_CARTON,
+              product_name: pl.reference,
+              reference: pl.reference,
+              size_from: sFrom,
+              size_to: sTo,
+              cartons_received: cartons,
+              pairs_per_carton: ppc,
+              total_quantity: totalPairs,
+              purchase_price: String(pl.price || ""),
+              quantities: distributeCartonQuantities([], getSizeRange(sFrom, sTo), cartons, ppc),
+            },
+          };
+        });
         setLines(newLines);
         setReceiveImmediately(true);
       }
@@ -381,35 +386,67 @@ export default function PurchaseOrderFormPage() {
         confirm: isConfirm,
         lines: lines.map((l) => {
           let carton_sizes: any[] = [];
+          const unitPrice = parseFloat(l.agreed_unit_price || l.carton_config.purchase_price) || 0;
           if (isDirectReception && l.is_carton) {
             const cfg = l.carton_config;
-            const sizes = getSizeRange(cfg.size_from, cfg.size_to);
-            const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
-            carton_sizes = effectColours.flatMap((colour) =>
-              sizes
-                .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
-                .map((s) => ({
-                  size_eu: s,
-                  quantity: cfg.quantities[colour][s],
+            if (!enableVariants) {
+              const totalQty =
+                cfg.total_quantity ??
+                (parseInt(l.quantity_ordered) || cfg.cartons_received * cfg.pairs_per_carton || 1);
+              carton_sizes = [
+                {
+                  size_eu: 0,
+                  quantity: Math.max(1, totalQty),
                   new_variant: {
                     product_id: cfg.product_id ?? null,
-                    product_name: cfg.product_name,
+                    product_name: cfg.product_name || l.description,
+                    reference: cfg.reference || "",
                     brand: cfg.brand,
                     category: cfg.category,
-                    size_eu: s,
-                    colour: colour || "N/A",
-                    purchase_price: parseFloat(cfg.purchase_price) || 0,
+                    size_eu: 0,
+                    colour: "Standard",
+                    purchase_price: unitPrice,
                     sale_price: parseFloat(cfg.sale_price) || 0,
                     pairs_per_carton: cfg.pairs_per_carton || 10,
                   },
-                }))
-            );
+                },
+              ];
+            } else {
+              const sizes = getSizeRange(cfg.size_from, cfg.size_to);
+              const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
+              carton_sizes = effectColours.flatMap((colour) =>
+                sizes
+                  .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
+                  .map((s) => ({
+                    size_eu: s,
+                    quantity: cfg.quantities[colour][s],
+                    new_variant: {
+                      product_id: cfg.product_id ?? null,
+                      product_name: cfg.product_name,
+                      reference: cfg.reference || "",
+                      brand: cfg.brand,
+                      category: cfg.category,
+                      size_eu: s,
+                      colour: colour || "Standard",
+                      purchase_price: unitPrice,
+                      sale_price: parseFloat(cfg.sale_price) || 0,
+                      pairs_per_carton: cfg.pairs_per_carton || 10,
+                    },
+                  }))
+              );
+            }
           }
           return {
             variant: l.variant_id,
-            description: l.description || (l.is_carton ? `Assortiment ${l.carton_config.product_name}` : ""),
+            description:
+              l.description ||
+              (l.is_carton
+                ? enableVariants
+                  ? `Assortiment ${l.carton_config.product_name}`
+                  : l.carton_config.product_name
+                : ""),
             quantity_ordered: parseInt(l.quantity_ordered) || 1, // backend recalculates in carton mode
-            agreed_unit_price: parseFloat(l.agreed_unit_price) || 0,
+            agreed_unit_price: unitPrice,
             cartons: l.is_carton ? l.carton_config.cartons_received : 0,
             pairs_per_carton: l.is_carton ? l.carton_config.pairs_per_carton : 10,
             carton_sizes: carton_sizes.length > 0 ? carton_sizes : undefined,
@@ -439,7 +476,12 @@ export default function PurchaseOrderFormPage() {
     for (const l of lines) {
       if (isDirectReception && !l.variant_id && !l.is_carton) { setFormError(t("supplier.error_direct_reception_variant")); return; }
       if (!l.is_carton && !l.description.trim()) { setFormError(t("supplier.error_line_description")); return; }
-      if (!l.agreed_unit_price || parseFloat(l.agreed_unit_price) <= 0) {
+      if (l.is_carton && !l.carton_config.product_name.trim() && !l.description.trim()) {
+        setFormError("Veuillez saisir ou sélectionner un produit pour chaque ligne.");
+        return;
+      }
+      const priceVal = parseFloat(l.agreed_unit_price || l.carton_config.purchase_price);
+      if (!priceVal || priceVal <= 0) {
         setFormError(t("supplier.error_unit_price")); return;
       }
       if (!l.is_carton && (!l.quantity_ordered || parseInt(l.quantity_ordered) < 1)) {
@@ -619,8 +661,10 @@ export default function PurchaseOrderFormPage() {
                         {receiveImmediately ? (
                           <div className="flex flex-col gap-2">
                             <label className="flex items-center gap-2 cursor-pointer text-sm">
-                              <input type="checkbox" checked={line.is_carton} onChange={(e) => updateLine(line._id, "is_carton", e.target.checked)} className="rounded border-border text-primary-500 focus:ring-primary-500" />
-                              <span className="font-medium text-text-primary">{t("supplier.po_carton_mode")}</span>
+                              <input type="checkbox" checked={line.is_carton} onChange={(e) => updateLine(line._id, "is_carton", e.target.checked as any)} className="rounded border-border text-primary-500 focus:ring-primary-500" />
+                              <span className="font-medium text-text-primary">
+                                {enableVariants ? t("supplier.po_carton_mode") : "Mode Carton / Fiche article"}
+                              </span>
                             </label>
                             
                             {!line.is_carton && (
@@ -636,7 +680,9 @@ export default function PurchaseOrderFormPage() {
                                     ? `${v.product_name} - EU${v.size_eu}${v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? ` ${v.colour}` : ""}`
                                     : (v.colour && v.colour !== "Standard" && v.colour !== "N/A" ? `${v.product_name} (${v.colour})` : v.product_name);
                                   updateLine(line._id, "description", desc);
-                                  if (!line.agreed_unit_price && v.purchase_price) updateLine(line._id, "agreed_unit_price", v.purchase_price);
+                                  if (!line.agreed_unit_price && v.purchase_price && Number(v.purchase_price) > 0) {
+                                    updateLine(line._id, "agreed_unit_price", String(v.purchase_price));
+                                  }
                                 }} />
                               )
                             )}
@@ -656,11 +702,26 @@ export default function PurchaseOrderFormPage() {
                         <input
                           type="number"
                           value={line.quantity_ordered}
-                          onChange={(e) => updateLine(line._id, "quantity_ordered", e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l._id === line._id
+                                  ? {
+                                      ...l,
+                                      quantity_ordered: val,
+                                      carton_config: !enableVariants
+                                        ? { ...l.carton_config, total_quantity: parseInt(val) || 1 }
+                                        : l.carton_config,
+                                    }
+                                  : l
+                              )
+                            );
+                          }}
                           className="form-input py-1.5 text-sm w-24 text-center disabled:opacity-50"
                           min="1"
                           step="1"
-                          disabled={receiveImmediately && line.is_carton}
+                          disabled={receiveImmediately && line.is_carton && enableVariants}
                           required={!line.is_carton}
                         />
                       </td>
@@ -668,7 +729,20 @@ export default function PurchaseOrderFormPage() {
                         <input
                           type="number"
                           value={line.agreed_unit_price}
-                          onChange={(e) => updateLine(line._id, "agreed_unit_price", e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l._id === line._id
+                                  ? {
+                                      ...l,
+                                      agreed_unit_price: val,
+                                      carton_config: { ...l.carton_config, purchase_price: val },
+                                    }
+                                  : l
+                              )
+                            );
+                          }}
                           className="form-input py-1.5 text-sm font-mono"
                           placeholder="0.00"
                           min="0"
@@ -695,16 +769,31 @@ export default function PurchaseOrderFormPage() {
                       <tr>
                         <td colSpan={5} className="pb-4 pt-1 pr-1">
                           <CartonPanel
-                            description={`Article ${idx + 1} (Assortiment)`}
+                            description={`Article ${idx + 1}${enableVariants ? " (Assortiment)" : ""}`}
                             config={line.carton_config}
                             onChange={(cfg) => {
-                               updateLine(line._id, "carton_config", cfg);
-                               // Automatically update quantity and price if possible
-                               const sizes = getSizeRange(cfg.size_from, cfg.size_to);
-                               const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
-                               const grandTotal = effectColours.reduce((sum, c) => sum + sizes.reduce((s, sz) => s + (cfg.quantities[c]?.[sz] ?? 0), 0), 0);
-                               updateLine(line._id, "quantity_ordered", String(grandTotal));
-                               if (cfg.purchase_price) updateLine(line._id, "agreed_unit_price", cfg.purchase_price);
+                              const total = enableVariants
+                                ? (() => {
+                                    const sizes = getSizeRange(cfg.size_from, cfg.size_to);
+                                    const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
+                                    return effectColours.reduce(
+                                      (sum, c) => sum + sizes.reduce((s, sz) => s + (cfg.quantities[c]?.[sz] ?? 0), 0),
+                                      0
+                                    );
+                                  })()
+                                : (cfg.total_quantity ?? cfg.cartons_received * cfg.pairs_per_carton);
+                              setLines((prev) =>
+                                prev.map((l) =>
+                                  l._id === line._id
+                                    ? {
+                                        ...l,
+                                        carton_config: cfg,
+                                        quantity_ordered: String(total),
+                                        agreed_unit_price: cfg.purchase_price || l.agreed_unit_price,
+                                      }
+                                    : l
+                                )
+                              );
                             }}
                           />
                         </td>

@@ -17,7 +17,7 @@ import {
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
-import type { PurchaseOrder, POLine, POStatus } from "@/types";
+import type { PurchaseOrder, POLine, POStatus, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
 import { viewPdfDocument } from "@/lib/pdfViewer";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, ProductResult } from "./components/CartonPanel";
@@ -171,10 +171,12 @@ function VariantSearch({
 function LineResolutionRow({
   line,
   resolution,
+  enableVariants,
   onChange,
 }: {
   line: POLine;
   resolution: LineResolution | undefined;
+  enableVariants: boolean;
   onChange: (r: LineResolution) => void;
 }) {
   const { t } = useTranslation();
@@ -190,7 +192,18 @@ function LineResolutionRow({
               <button
                 key={m}
                 type="button"
-                onClick={() => onChange({ mode: m as ResolutionMode, newVariant: EMPTY_NEW_VARIANT })}
+                onClick={() =>
+                  onChange({
+                    mode: m as ResolutionMode,
+                    newVariant: {
+                      ...EMPTY_NEW_VARIANT,
+                      product_name: line.description || "",
+                      purchase_price: line.agreed_unit_price ? String(line.agreed_unit_price) : "",
+                      size_eu: enableVariants ? "" : "0",
+                      colour: enableVariants ? "" : "Standard",
+                    },
+                  })
+                }
                 className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition-colors ${
                   mode === m
                     ? "bg-primary-600 text-white border-primary-600"
@@ -213,7 +226,9 @@ function LineResolutionRow({
 
       {mode === "create" && (
         <div className="grid grid-cols-2 gap-2">
-          {(["product_name", "brand", "size_eu", "purchase_price", "sale_price"] as const).map((field) => (
+          {((enableVariants
+            ? ["product_name", "brand", "size_eu", "purchase_price", "sale_price"]
+            : ["product_name", "brand", "purchase_price", "sale_price"]) as const).map((field) => (
             <input
               key={field}
               type={field === "size_eu" || field.includes("price") ? "number" : "text"}
@@ -227,12 +242,14 @@ function LineResolutionRow({
               }
             />
           ))}
-          <ColourPicker
-            value={resolution?.newVariant?.colour ?? ""}
-            onChange={(v) => onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, colour: v } })}
-            placeholder={t("supplier.colour")}
-            className="col-span-1"
-          />
+          {enableVariants && (
+            <ColourPicker
+              value={resolution?.newVariant?.colour ?? ""}
+              onChange={(v) => onChange({ mode: "create", newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, colour: v } })}
+              placeholder={t("supplier.colour")}
+              className="col-span-1"
+            />
+          )}
           <select
             className="form-input text-xs py-1.5 col-span-2"
             value={resolution?.newVariant?.category ?? "sneakers"}
@@ -264,6 +281,13 @@ function LineResolutionRow({
 function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { data: storeSettings } = useQuery<StoreSettings>({
+    queryKey: ["store-settings"],
+    queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const enableVariants = storeSettings?.enable_variants ?? false;
+
   const [quantities, setQuantities] = useState<Record<number, number>>(
     Object.fromEntries(po.lines.map((l) => [l.id, l.quantity_received]))
   );
@@ -302,25 +326,52 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
         if (cartonMode) {
           const cfg = cartonConfigs[l.id];
           if (!cfg) return base;
-          const sizes = getSizeRange(cfg.size_from, cfg.size_to);
-          const carton_sizes = cfg.colours.flatMap((colour) =>
-            sizes
-              .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
-              .map((s) => ({
-                size_eu: s,
-                quantity: cfg.quantities[colour][s],
+          let carton_sizes: any[] = [];
+          if (!enableVariants) {
+            const totalQty =
+              cfg.total_quantity ?? (cfg.cartons_received * cfg.pairs_per_carton || base.quantity_received || 1);
+            carton_sizes = [
+              {
+                size_eu: 0,
+                quantity: Math.max(1, totalQty),
                 new_variant: {
                   product_id: cfg.product_id ?? null,
-                  product_name: cfg.product_name,
+                  product_name: cfg.product_name || l.description,
+                  reference: cfg.reference || "",
                   brand: cfg.brand,
                   category: cfg.category,
-                  size_eu: s,
-                  colour,
-                  purchase_price: parseFloat(cfg.purchase_price) || 0,
+                  size_eu: 0,
+                  colour: "Standard",
+                  purchase_price: parseFloat(cfg.purchase_price) || Number(l.agreed_unit_price) || 0,
                   sale_price: parseFloat(cfg.sale_price) || 0,
+                  pairs_per_carton: cfg.pairs_per_carton || 10,
                 },
-              }))
-          );
+              },
+            ];
+          } else {
+            const sizes = getSizeRange(cfg.size_from, cfg.size_to);
+            const effectColours = cfg.colours.length > 0 ? cfg.colours : [""];
+            carton_sizes = effectColours.flatMap((colour) =>
+              sizes
+                .filter((s) => (cfg.quantities[colour]?.[s] ?? 0) > 0)
+                .map((s) => ({
+                  size_eu: s,
+                  quantity: cfg.quantities[colour][s],
+                  new_variant: {
+                    product_id: cfg.product_id ?? null,
+                    product_name: cfg.product_name,
+                    reference: cfg.reference || "",
+                    brand: cfg.brand,
+                    category: cfg.category,
+                    size_eu: s,
+                    colour: colour || "Standard",
+                    purchase_price: parseFloat(cfg.purchase_price) || Number(l.agreed_unit_price) || 0,
+                    sale_price: parseFloat(cfg.sale_price) || 0,
+                    pairs_per_carton: cfg.pairs_per_carton || 10,
+                  },
+                }))
+            );
+          }
           const total = carton_sizes.reduce((sum, cs) => sum + cs.quantity, 0);
           return { id: l.id, quantity_received: total, carton_sizes };
         }
@@ -342,6 +393,8 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
             ...defectData,
             new_variant: {
               ...res.newVariant,
+              size_eu: enableVariants ? parseInt(res.newVariant.size_eu) || 36 : 0,
+              colour: enableVariants ? res.newVariant.colour || "Standard" : "Standard",
               purchase_price: parseFloat(res.newVariant.purchase_price) || 0,
               sale_price: parseFloat(res.newVariant.sale_price) || 0,
             },
@@ -645,6 +698,7 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                     <LineResolutionRow
                       key={line.id}
                       line={line}
+                      enableVariants={enableVariants}
                       resolution={resolutions[line.id]}
                       onChange={(r) => setResolutions((prev) => ({ ...prev, [line.id]: r }))}
                     />

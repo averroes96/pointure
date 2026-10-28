@@ -83,12 +83,13 @@ class NewVariantInputSerializer(serializers.Serializer):
     """
     product_id     = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_name   = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    reference      = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
     brand          = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     category       = serializers.ChoiceField(
         choices=["sneakers", "boots", "sandals", "formal", "sport", "kids", "slippers", "other"],
         default="other",
     )
-    size_eu        = serializers.IntegerField(min_value=1, max_value=60)
+    size_eu        = serializers.IntegerField(min_value=0, max_value=60, required=False, default=0)
     colour         = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
     purchase_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
     sale_price     = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
@@ -97,7 +98,7 @@ class NewVariantInputSerializer(serializers.Serializer):
 
 class CartonSizeInputSerializer(serializers.Serializer):
     """One entry per EU size in a carton-mode receive. quantity is the total pairs for this size."""
-    size_eu   = serializers.IntegerField(min_value=15, max_value=60)
+    size_eu   = serializers.IntegerField(min_value=0, max_value=60, required=False, default=0)
     quantity  = serializers.IntegerField(min_value=0)
     # Defect tracking during reception
     defect_quantity = serializers.IntegerField(min_value=0, required=False, default=0)

@@ -35,28 +35,55 @@ def _resolve_product(tenant, nv: dict):
     If nv["product_id"] is set, returns the existing product directly.
     Otherwise, searches by name+brand or creates a new one.
     """
+    from decimal import Decimal
     from apps.inventory.models import Product
 
     product_id = nv.get("product_id")
+    product = None
     if product_id:
-        return Product.objects.filter(tenant=tenant, id=product_id).first()
+        product = Product.objects.filter(tenant=tenant, id=product_id).first()
 
-    return (
-        Product.objects.filter(
-            tenant=tenant,
-            name__iexact=nv.get("product_name", ""),
-            brand__iexact=nv.get("brand", ""),
-        ).first()
-        or Product.objects.create(
-            tenant=tenant,
-            name=nv.get("product_name", ""),
-            brand=nv.get("brand", ""),
-            category=nv.get("category", "other"),
-            purchase_price=nv.get("purchase_price", 0),
-            sale_price=nv.get("sale_price", 0),
-            pairs_per_carton=nv.get("pairs_per_carton", 10),
-            is_active=True,
-        )
+    if not product:
+        ref = (nv.get("reference") or "").strip()
+        name = (nv.get("product_name") or "").strip()
+        brand = (nv.get("brand") or "").strip()
+        if ref:
+            product = Product.objects.filter(tenant=tenant, reference__iexact=ref).first()
+        if not product and name:
+            product = Product.objects.filter(
+                tenant=tenant,
+                name__iexact=name,
+                brand__iexact=brand,
+            ).first()
+
+    if product:
+        update_fields = []
+        sale_price = nv.get("sale_price")
+        if sale_price and Decimal(str(sale_price)) > Decimal("0") and product.sale_price != Decimal(str(sale_price)):
+            product.sale_price = Decimal(str(sale_price))
+            update_fields.append("sale_price")
+        ppc = nv.get("pairs_per_carton")
+        if ppc and int(ppc) > 0 and product.pairs_per_carton != int(ppc):
+            product.pairs_per_carton = int(ppc)
+            update_fields.append("pairs_per_carton")
+        ref = (nv.get("reference") or "").strip()
+        if ref and not product.reference:
+            product.reference = ref
+            update_fields.append("reference")
+        if update_fields:
+            product.save(update_fields=update_fields)
+        return product
+
+    return Product.objects.create(
+        tenant=tenant,
+        name=nv.get("product_name", "") or nv.get("reference", "Article"),
+        reference=(nv.get("reference") or "").strip(),
+        brand=nv.get("brand", ""),
+        category=nv.get("category", "other"),
+        purchase_price=nv.get("purchase_price", 0),
+        sale_price=nv.get("sale_price", 0),
+        pairs_per_carton=nv.get("pairs_per_carton", 10),
+        is_active=True,
     )
 
 
@@ -64,13 +91,26 @@ def _resolve_variant(tenant, product, size_eu: int, colour: str):
     """Find an existing variant or create it."""
     from apps.inventory.models import Variant
 
+    if not size_eu or int(size_eu) <= 0:
+        size_eu = 0
+        colour_clean = (colour or "").strip()
+        if not colour_clean or colour_clean in ("N/A", "Standard"):
+            colour_clean = "Standard"
+            existing = (
+                Variant.objects.filter(product=product, size_eu=0).first()
+                or Variant.objects.filter(product=product, is_active=True).first()
+            )
+            if existing:
+                return existing
+        colour = colour_clean
+
     return (
         Variant.objects.filter(product=product, size_eu=size_eu, colour=colour).first()
         or Variant.objects.create(
             product=product,
             tenant=tenant,
             size_eu=size_eu,
-            colour=colour,
+            colour=colour or "Standard",
             is_active=True,
         )
     )
@@ -339,7 +379,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                                 reference_id=bl_reference or po.reference or f"PO-{str(po.id)[:8]}",
                                 reference_type="PurchaseOrder",
                                 bl_reference=bl_reference,
-                                notes=f"{notes_base} | EU{cs['size_eu']}",
+                                notes=f"{notes_base} | EU{cs['size_eu']}" if cs.get("size_eu", 0) > 0 else notes_base,
                                 user=user,
                             )
                             movements_created += 1
