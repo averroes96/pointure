@@ -69,7 +69,10 @@ const EMPTY: Omit<Promotion, "id" | "uses_count" | "product_name"> = {
 function ConditionSummary({ promo }: { promo: Promotion }) {
   const parts: string[] = [];
   if (promo.product_name) parts.push(promo.product_name);
-  else if (promo.category) parts.push(promo.category);
+  else if (promo.category) {
+    const catLabel = CATEGORIES.find((c) => c.value === promo.category)?.label ?? promo.category;
+    parts.push(catLabel);
+  }
   else parts.push("Tous articles");
   if (promo.min_quantity) parts.push(`≥ ${promo.min_quantity} unités`);
   if (promo.min_amount) parts.push(`≥ ${promo.min_amount} DZD`);

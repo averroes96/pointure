@@ -42,8 +42,8 @@ from apps.inventory.serializers import (
 class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Product.objects.prefetch_related("variants")
     filterset_fields = ["category", "gender", "season", "is_active", "brand"]
-    search_fields = ["name", "brand", "reference", "branch_locations__location"]
-    ordering_fields = ["name", "sale_price", "purchase_price", "created_at"]
+    search_fields = ["name", "brand", "reference", "variants__barcode", "branch_locations__location"]
+    ordering_fields = ["name", "sale_price", "purchase_price", "created_at", "total_stock_qty"]
     ordering = ["name"]
 
     def get_serializer_class(self):
@@ -52,11 +52,70 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return ProductSerializer
 
     def get_queryset(self):
-        from django.db.models import IntegerField, OuterRef, Prefetch, Subquery, Sum, Value
+        from django.db.models import F, IntegerField, OuterRef, Prefetch, Subquery, Sum, Value
         from django.db.models.functions import Coalesce
 
         qs = super().get_queryset()
-        branch_id = self.request.query_params.get("branch_id")
+        params = self.request.query_params
+        branch_id = params.get("branch_id")
+
+        # Annotate total stock via subquery so filtering and ordering by stock work cleanly
+        if branch_id:
+            product_stock_subq = (
+                StockMovement.objects
+                .filter(variant__product_id=OuterRef("pk"), branch_id=branch_id)
+                .order_by()
+                .values("variant__product_id")
+                .annotate(total=Sum("quantity_delta"))
+                .values("total")
+            )
+        else:
+            product_stock_subq = (
+                Variant.objects
+                .filter(product_id=OuterRef("pk"))
+                .order_by()
+                .values("product_id")
+                .annotate(total=Sum("stock_qty"))
+                .values("total")
+            )
+
+        qs = qs.annotate(
+            total_stock_qty=Coalesce(
+                Subquery(product_stock_subq, output_field=IntegerField()),
+                Value(0),
+            )
+        )
+
+        # Stock status filter: in_stock | low_stock | out_of_stock
+        stock_status = params.get("stock_status")
+        if stock_status == "in_stock":
+            qs = qs.filter(total_stock_qty__gt=0)
+        elif stock_status == "out_of_stock":
+            qs = qs.filter(total_stock_qty__lte=0)
+        elif stock_status == "low_stock":
+            qs = qs.filter(
+                total_stock_qty__gt=0,
+                total_stock_qty__lte=F("alert_threshold"),
+                alert_threshold__gt=0,
+            )
+
+        # Price range filters
+        min_price = params.get("min_price")
+        if min_price:
+            try:
+                qs = qs.filter(sale_price__gte=Decimal(min_price))
+            except Exception:
+                pass
+
+        max_price = params.get("max_price")
+        if max_price:
+            try:
+                qs = qs.filter(sale_price__lte=Decimal(max_price))
+            except Exception:
+                pass
+
+        qs = qs.distinct()
+
         if not branch_id:
             return qs
 
@@ -81,6 +140,18 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return qs.prefetch_related(None).prefetch_related(
             Prefetch("variants", queryset=branch_variant_qs)
         )
+
+    @action(detail=False, methods=["get"], url_path="brands")
+    def brands(self, request):
+        """Return distinct non-empty brands for this tenant."""
+        brands_list = (
+            Product.objects.filter(tenant=request.tenant)
+            .exclude(brand="")
+            .values_list("brand", flat=True)
+            .distinct()
+            .order_by("brand")
+        )
+        return Response(list(brands_list))
 
     def perform_create(self, serializer):
         from apps.core.plan_permissions import check_quota

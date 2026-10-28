@@ -481,7 +481,10 @@ export default function BarcodeScannerPage() {
                 </div>
                 <div>
                   <div className="font-bold text-text-primary text-base leading-tight">{p.name}</div>
-                  <div className="text-sm text-text-muted">{p.brand}{p.category && ` · ${p.category}`}</div>
+                  <div className="text-sm text-text-muted">
+                    {p.brand}
+                    {p.category && `${p.brand ? " · " : ""}${t(`category.${p.category}`, p.category)}`}
+                  </div>
                 </div>
               </div>
               <Link

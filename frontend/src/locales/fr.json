@@ -597,7 +597,8 @@
     "sport": "Sport",
     "kids": "Enfants",
     "slippers": "Pantoufles",
-    "other": "Autres"
+    "accessories": "Accessoires",
+    "other": "Autre"
   },
   "notification": {
     "title": "Notifications",

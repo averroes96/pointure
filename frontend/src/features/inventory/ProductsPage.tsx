@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer, CheckCircle2, X } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer, CheckCircle2, X, Filter } from "lucide-react";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import ImportModal from "@/components/ui/ImportModal";
 import BulkPriceUpdateModal from "./components/BulkPriceUpdateModal";
 import { viewPdfDocument } from "@/lib/pdfViewer";
@@ -18,12 +19,59 @@ Cuir Dz,Sacoche Bandoulière,accessories,U,3500,2000,,,3
 Adidas,Stan Smith,sneakers,U,7500,4500,,,3
 `;
 
+const CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: "sneakers", label: "Sneakers" },
+  { value: "boots", label: "Bottes" },
+  { value: "sandals", label: "Sandales" },
+  { value: "formal", label: "Chaussures formelles" },
+  { value: "sport", label: "Sport" },
+  { value: "kids", label: "Enfants" },
+  { value: "slippers", label: "Pantoufles" },
+  { value: "other", label: "Autre" },
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  sneakers: "Sneakers",
+  boots: "Bottes",
+  sandals: "Sandales",
+  formal: "Chaussures formelles",
+  sport: "Sport",
+  kids: "Enfants",
+  slippers: "Pantoufles",
+  accessories: "Accessoires",
+  other: "Autre",
+};
+
+const GENDER_OPTIONS: { value: string; label: string }[] = [
+  { value: "M", label: "Homme" },
+  { value: "F", label: "Femme" },
+  { value: "K", label: "Enfant" },
+  { value: "U", label: "Unisexe" },
+];
+
+const SEASON_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "Toutes saisons" },
+  { value: "summer", label: "Été" },
+  { value: "winter", label: "Hiver" },
+  { value: "spring_fall", label: "Mi-saison" },
+];
+
 export default function ProductsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { currentBranch } = useBranch();
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  // Filter & Sort states
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [stockStatus, setStockStatus] = useState<"" | "in_stock" | "low_stock" | "out_of_stock">("");
+  const [brand, setBrand] = useState("");
+  const [gender, setGender] = useState("");
+  const [season, setSeason] = useState("");
+  const [isActiveFilter, setIsActiveFilter] = useState("");
+  const [ordering, setOrdering] = useState("name");
   const [page, setPage] = useState(1);
   const [showImport, setShowImport] = useState(false);
 
@@ -40,13 +88,62 @@ export default function ProductsPage() {
   const [priceUpdateSuccessMessage, setPriceUpdateSuccessMessage] = useState<string | null>(null);
   const [lastUpdatedProductIds, setLastUpdatedProductIds] = useState<(number | string)[]>([]);
 
+  // Fetch distinct brands for filter dropdown
+  const { data: brandsList = [] } = useQuery<string[]>({
+    queryKey: ["product-brands"],
+    queryFn: () => api.get("/inventory/products/brands/").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ["products", { search, page }],
-    queryFn: () =>
-      api.get(`/inventory/products/?search=${search}&page=${page}`).then((r) => r.data),
+    queryKey: [
+      "products",
+      {
+        search,
+        category,
+        stockStatus,
+        brand,
+        gender,
+        season,
+        isActiveFilter,
+        ordering,
+        branchId: currentBranch?.id ?? "all",
+        page,
+      },
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (category) params.set("category", category);
+      if (stockStatus) params.set("stock_status", stockStatus);
+      if (brand) params.set("brand", brand);
+      if (gender) params.set("gender", gender);
+      if (season) params.set("season", season);
+      if (isActiveFilter) params.set("is_active", isActiveFilter);
+      if (ordering) params.set("ordering", ordering);
+      if (currentBranch?.id) params.set("branch_id", String(currentBranch.id));
+      params.set("page", String(page));
+      return api.get(`/inventory/products/?${params.toString()}`).then((r) => r.data);
+    },
   });
 
   const products = data?.results ?? [];
+
+  const hasActiveFilters = Boolean(
+    search || category || stockStatus || brand || gender || season || isActiveFilter || ordering !== "name"
+  );
+
+  const resetAllFilters = () => {
+    setSearch("");
+    setCategory("");
+    setStockStatus("");
+    setBrand("");
+    setGender("");
+    setSeason("");
+    setIsActiveFilter("");
+    setOrdering("name");
+    setPage(1);
+  };
 
   const allCurrentPageSelected =
     products.length > 0 && products.every((p) => selectedIds.includes(p.id));
@@ -206,21 +303,166 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Search & Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="relative w-full max-w-md">
-          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            data-shortcut-search="true"
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
-            placeholder={t("common.search")}
-          />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
-            F2
-          </kbd>
+      {/* Search & Filters Panel */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        {/* Row 1: Search Input + Quick Stock Status Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              data-shortcut-search="true"
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="form-input ps-9 pe-12 py-2 text-xs bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
+              placeholder="Nom, référence, marque, code-barres ou emplacement…"
+            />
+            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+              F2
+            </kbd>
+          </div>
+
+          {/* Quick Stock Status Pills */}
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
+            {(
+              [
+                { id: "", label: "Tout le stock" },
+                { id: "in_stock", label: "En stock (> 0)" },
+                { id: "low_stock", label: "Stock bas" },
+                { id: "out_of_stock", label: "En rupture (0)" },
+              ] as const
+            ).map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => {
+                  setStockStatus(pill.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  stockStatus === pill.id
+                    ? pill.id === "out_of_stock"
+                      ? "bg-red-600 text-white shadow-2xs"
+                      : pill.id === "low_stock"
+                        ? "bg-amber-500 text-white shadow-2xs"
+                        : "bg-white text-slate-900 shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                )}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: Detailed Dropdown Filters */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
+            <Filter size={13} />
+            <span>Filtres :</span>
+          </div>
+
+          {/* Category Filter */}
+          <select
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
+            title="Catégorie"
+          >
+            <option value="">Toutes les catégories</option>
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {t(`category.${c.value}`, c.label)}
+              </option>
+            ))}
+          </select>
+
+          {/* Brand Filter */}
+          {brandsList.length > 0 && (
+            <select
+              value={brand}
+              onChange={(e) => { setBrand(e.target.value); setPage(1); }}
+              className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium"
+              title="Marque"
+            >
+              <option value="">Toutes les marques</option>
+              {brandsList.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Gender Filter */}
+          <select
+            value={gender}
+            onChange={(e) => { setGender(e.target.value); setPage(1); }}
+            className="form-input w-auto min-w-[130px] py-1.5 rounded-xl text-xs font-medium"
+            title="Genre"
+          >
+            <option value="">Tous les genres</option>
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Season Filter */}
+          <select
+            value={season}
+            onChange={(e) => { setSeason(e.target.value); setPage(1); }}
+            className="form-input w-auto min-w-[135px] py-1.5 rounded-xl text-xs font-medium"
+            title="Saison"
+          >
+            <option value="">Toutes les saisons</option>
+            {SEASON_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Active Status Filter */}
+          <select
+            value={isActiveFilter}
+            onChange={(e) => { setIsActiveFilter(e.target.value); setPage(1); }}
+            className="form-input w-auto min-w-[130px] py-1.5 rounded-xl text-xs font-medium"
+            title="Statut"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="true">Actifs uniquement</option>
+            <option value="false">Inactifs</option>
+          </select>
+
+          {/* Sort Order */}
+          <select
+            value={ordering}
+            onChange={(e) => { setOrdering(e.target.value); setPage(1); }}
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium ms-auto"
+            title="Trier par"
+          >
+            <option value="name">Tri : Nom (A → Z)</option>
+            <option value="-name">Tri : Nom (Z → A)</option>
+            <option value="-created_at">Tri : Plus récents</option>
+            <option value="created_at">Tri : Plus anciens</option>
+            <option value="-sale_price">Tri : Prix décroissant</option>
+            <option value="sale_price">Tri : Prix croissant</option>
+            <option value="-total_stock_qty">Tri : Stock décroissant</option>
+            <option value="total_stock_qty">Tri : Stock croissant</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
+            >
+              Réinitialiser
+            </button>
+          )}
         </div>
       </div>
 
@@ -384,7 +626,7 @@ export default function ProductsPage() {
                   </td>
                   <td className="py-3.5 px-4">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                      {product.category}
+                      {t(`category.${product.category}`, CATEGORY_LABELS[product.category] ?? product.category)}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-end">
