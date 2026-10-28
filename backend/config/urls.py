@@ -59,7 +59,7 @@ api_v1 = [
     path("loyalty/", include("apps.loyalty.urls")),
     path("promotions/", include("apps.promotions.urls")),
     path("events/", include("apps.events.urls")),
-    # path("webhooks/", include("apps.webhooks.urls")),
+    path("webhooks/", include("apps.webhooks.urls")),
     path("deliveries/", include("apps.delivery_integrations.urls")),
     path("desktop/", include("apps.core.desktop.urls")),
     # OpenAPI

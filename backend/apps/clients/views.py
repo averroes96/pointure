@@ -247,55 +247,11 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         Debt ageing report. Returns per-client breakdown into buckets:
         current / 30 / 60 / 90 / 90+ days overdue.
-        Computed via a single optimised query using CASE WHEN.
         """
-        from apps.core.plan_permissions import PlanRequired
-        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
-        perm = PlanRequired("pro_wholesale")()
-        if not perm.has_permission(request, self):
-            raise DRFPermissionDenied(perm.message)
-
-        from django.db.models import Case, F, Q, Sum, When
         from django.utils import timezone
 
+        self.require_manager()
         today = timezone.now().date()
-
-        # Get all overdue invoices for this tenant's clients
-        from apps.invoicing.models import Invoice
-
-        rows = (
-            Invoice.objects.filter(
-                tenant=request.tenant,
-                status__in=["partial", "sent", "overdue"],
-                client__isnull=False,
-            )
-            .values("client_id", "client__name", "client__phone", "client__wilaya")
-            .annotate(
-                current=Sum(
-                    Case(
-                        When(due_date__gte=today, then=F("total_ttc")),
-                        default=Decimal("0.00"),
-                        output_field=models.DecimalField(),
-                    )
-                ),
-                days_30=Sum(
-                    Case(
-                        When(
-                            due_date__lt=today,
-                            due_date__gte=today - models.ExpressionWrapper(
-                                models.Value(30), output_field=models.IntegerField()
-                            ),
-                            then=F("total_ttc"),
-                        ),
-                        default=Decimal("0.00"),
-                        output_field=models.DecimalField(),
-                    )
-                ),
-            )
-            .order_by("client__name")
-        )
-
-        # Simplified ageing calculation using raw annotated approach
         ageing_data = self._compute_ageing(today)
         return Response(ageing_data)
 
@@ -305,16 +261,11 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Same debt-ageing data as /clients/ageing/ but returned as a CSV file
         for download in spreadsheet applications.
         """
-        from apps.core.plan_permissions import PlanRequired
-        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
         from django.http import HttpResponse
         from django.utils import timezone
         import csv, io
 
-        perm = PlanRequired("pro_wholesale")()
-        if not perm.has_permission(request, self):
-            raise DRFPermissionDenied(perm.message)
-
+        self.require_manager()
         today = timezone.now().date()
         rows = self._compute_ageing(today)
 
