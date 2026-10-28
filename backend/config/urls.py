@@ -55,7 +55,7 @@ api_v1 = [
     path("suppliers/", include("apps.suppliers.urls")),
     path("reports/", include("apps.reports.urls")),
     path("notifications/", include("apps.notifications.urls")),
-    # path("mobile/", include("apps.mobile.urls")),
+    path("mobile/", include("apps.mobile.urls")),
     path("loyalty/", include("apps.loyalty.urls")),
     path("promotions/", include("apps.promotions.urls")),
     path("events/", include("apps.events.urls")),

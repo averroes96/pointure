@@ -44,13 +44,9 @@ def _setup_tenant(request):
     """Replicate TenantScopedViewSetMixin.initial() for plain APIViews."""
     from apps.core.managers import set_current_tenant
     user = request.user
-    if user.is_authenticated and not user.is_superuser:
-        tenant = getattr(user, "tenant", None)
-        request.tenant = tenant
-        set_current_tenant(tenant)
-    else:
-        request.tenant = None
-        set_current_tenant(None)
+    tenant = getattr(user, "tenant", None) if user.is_authenticated else None
+    request.tenant = tenant
+    set_current_tenant(tenant if not getattr(user, "is_superuser", False) else None)
 
 
 class BarcodeScanView(APIView):
@@ -67,7 +63,8 @@ class BarcodeScanView(APIView):
     def get(self, request):
         _setup_tenant(request)
         barcode = request.query_params.get("barcode", "").strip()
-        if not barcode:
+        variant_id = request.query_params.get("variant_id", "").strip()
+        if not barcode and not variant_id:
             return Response(
                 {"error": "barcode query parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -79,20 +76,29 @@ class BarcodeScanView(APIView):
         # The stored barcode is 14 digits (13-digit base + EAN check digit).
         # Some phone cameras decode only 13 digits in EAN-13 mode; others read
         # all 14 via CODE-128. Try exact match first, then prefix match.
-        base_qs = Variant.objects.filter(
-            tenant=request.tenant, is_active=True
-        ).select_related("product")
+        if request.tenant:
+            base_qs = Variant.objects.filter(
+                tenant=request.tenant, is_active=True
+            ).select_related("product")
+        else:
+            base_qs = Variant.objects.unscoped().filter(
+                is_active=True
+            ).select_related("product")
 
-        variant = base_qs.filter(barcode=barcode).first()
-        if not variant:
+        variant = None
+        if variant_id.isdigit():
+            variant = base_qs.filter(pk=int(variant_id)).first()
+        if not variant and barcode:
+            variant = base_qs.filter(barcode=barcode).first()
+        if not variant and barcode:
             variant = base_qs.filter(barcode__startswith=barcode).first()
         if not variant and len(barcode) >= 13:
             variant = base_qs.filter(barcode__startswith=barcode[:13]).first()
-        if not variant:
+        if not variant and barcode:
             variant = base_qs.filter(product__reference__iexact=barcode).first()
-        if not variant:
+        if not variant and barcode:
             variant = base_qs.filter(product__reference__icontains=barcode).first()
-        if not variant:
+        if not variant and barcode:
             variant = base_qs.filter(product__name__icontains=barcode).first()
 
         if not variant:
@@ -104,7 +110,7 @@ class BarcodeScanView(APIView):
         product = variant.product
 
         # Per-branch stock: aggregate StockMovement quantities
-        branches = Branch.objects.filter(tenant=request.tenant)
+        branches = Branch.objects.filter(tenant=variant.tenant)
         stock_by_branch = []
         for branch in branches:
             qty = (
@@ -125,6 +131,7 @@ class BarcodeScanView(APIView):
         product_data = {
             "id": product.id,
             "name": product.name,
+            "reference": product.reference,
             "brand": product.brand,
             "category": product.category,
             "sale_price": str(product.sale_price),

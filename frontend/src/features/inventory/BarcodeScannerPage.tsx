@@ -144,15 +144,18 @@ export default function BarcodeScannerPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function lookup(barcodeOrRef: string) {
+  async function lookup(barcodeOrRef: string, variantId?: number) {
     const code = barcodeOrRef.trim();
-    if (!code) return;
+    if (!code && !variantId) return;
     setShowSuggestions(false);
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const res = await api.get(`/mobile/scan/?barcode=${encodeURIComponent(code)}`);
+      const params = new URLSearchParams();
+      if (code) params.set("barcode", code);
+      if (variantId) params.set("variant_id", String(variantId));
+      const res = await api.get(`/mobile/scan/?${params.toString()}`);
       setResult(res.data as ScanResult);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -168,14 +171,9 @@ export default function BarcodeScannerPage() {
 
   function handleSelectSuggestion(item: VariantSuggestion) {
     setShowSuggestions(false);
-    setQuery(item.barcode || item.product_reference || item.product_name);
-    if (item.barcode) {
-      lookup(item.barcode);
-    } else if (item.product_reference) {
-      lookup(item.product_reference);
-    } else {
-      lookup(item.product_name);
-    }
+    const displayQuery = item.barcode || item.product_reference || item.product_name;
+    setQuery(displayQuery);
+    lookup(displayQuery, item.id);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

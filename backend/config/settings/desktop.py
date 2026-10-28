@@ -273,6 +273,7 @@ REST_FRAMEWORK = {
         "user": "5000/hour",
         "login": "20/minute",
         "password_reset": "10/hour",
+        "mobile": "5000/hour",
     },
 }
 
