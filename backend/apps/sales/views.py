@@ -23,13 +23,21 @@ from .serializers import (
     CreateSaleSerializer, OpenCashSessionSerializer, SaleSerializer,
     verify_manager_pin_helper,
 )
-from .services.z_report import compute_session_stats, render_thermal_z_report
+from .services.z_report import (
+    compute_session_stats,
+    render_daily_detailed_report,
+    render_thermal_z_report,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    queryset = Sale.objects.prefetch_related(
+    queryset = Sale.objects.select_related(
+        "cashier",
+        "client",
+        "branch",
+    ).prefetch_related(
         "items__variant__product",
         "payments",
         "client__loyalty_accounts",
@@ -37,10 +45,69 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     )
     serializer_class = SaleSerializer
     filterset_fields = ["branch", "cashier", "status", "client", "is_layaway"]
-    search_fields = ["receipt_number"]
+    search_fields = [
+        "receipt_number",
+        "client__name",
+        "client__phone",
+        "cashier__first_name",
+        "cashier__last_name",
+        "cashier__email",
+        "items__variant__product__name",
+        "items__variant__product__reference",
+        "items__variant__barcode",
+        "notes",
+    ]
     ordering_fields = ["created_at", "total_amount"]
     ordering = ["-created_at"]
     http_method_names = ["get", "post", "head", "options"]  # No PUT/PATCH/DELETE
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = self.request.query_params
+
+        date_from = params.get("from") or params.get("date_from")
+        if date_from:
+            try:
+                qs = qs.filter(created_at__date__gte=datetime.date.fromisoformat(date_from))
+            except ValueError:
+                pass
+
+        date_to = params.get("to") or params.get("date_to")
+        if date_to:
+            try:
+                qs = qs.filter(created_at__date__lte=datetime.date.fromisoformat(date_to))
+            except ValueError:
+                pass
+
+        payment_method = params.get("payment_method")
+        if payment_method:
+            qs = qs.filter(payments__method=payment_method)
+
+        client_type = params.get("client_type")
+        if client_type == "walk_in":
+            qs = qs.filter(client__isnull=True)
+        elif client_type == "registered":
+            qs = qs.filter(client__isnull=False)
+
+        has_balance = params.get("has_balance")
+        if has_balance in ("true", "1"):
+            qs = qs.filter(status__in=["partially_paid", "layaway"])
+
+        min_amount = params.get("min_amount")
+        if min_amount:
+            try:
+                qs = qs.filter(total_amount__gte=Decimal(str(min_amount)))
+            except Exception:
+                pass
+
+        max_amount = params.get("max_amount")
+        if max_amount:
+            try:
+                qs = qs.filter(total_amount__lte=Decimal(str(max_amount)))
+            except Exception:
+                pass
+
+        return qs.distinct()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -362,17 +429,79 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             outstanding_versements_qs = outstanding_versements_qs.filter(branch_id=branch_id)
         outstanding_versements = outstanding_versements_qs.count()
 
+        # All active sales today (completed + partially_paid + layaway)
+        today_active_qs = Sale.objects.filter(
+            tenant=request.tenant,
+            created_at__date=target_date,
+            status__in=["completed", "partially_paid", "layaway"],
+        )
+        if branch_id:
+            today_active_qs = today_active_qs.filter(branch_id=branch_id)
+
+        today_active_revenue = today_active_qs.aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+        today_active_count = today_active_qs.count()
+
+        from .models import SaleItem
+        today_items_sold = (
+            SaleItem.objects.filter(sale__in=today_active_qs)
+            .aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+
         return Response(
             {
                 "date": str(target_date),
                 "branch_id": branch_id,
                 "total_revenue": total_revenue,
                 "sale_count": sale_count,
+                "today_active_revenue": today_active_revenue,
+                "today_active_count": today_active_count,
+                "today_items_sold": today_items_sold,
                 "total_refunds": total_refunds,
                 "net_revenue": total_revenue - total_refunds,
                 "by_payment_method": method_breakdown,
                 "versement_collected_today": versement_collected,
                 "outstanding_versements": outstanding_versements,
+            }
+        )
+
+    @action(detail=False, methods=["get"], url_path="daily-detailed-report")
+    def daily_detailed_report(self, request):
+        """
+        Returns an 80mm thermal HTML report of all sales, returns, cash movements,
+        and stock movements for the given date (defaults to today).
+        Query params: ?date=YYYY-MM-DD&branch_id=<uuid>
+        """
+        date_str = request.query_params.get("date")
+        branch_id = request.query_params.get("branch_id")
+
+        if date_str:
+            try:
+                target_date = datetime.date.fromisoformat(date_str)
+            except ValueError:
+                return Response(
+                    {"error": {"code": "invalid_date", "message": "Date must be YYYY-MM-DD."}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            target_date = timezone.localdate()
+
+        branch = None
+        if branch_id:
+            from apps.core.models import Branch
+            branch = Branch.objects.filter(tenant=request.tenant, id=branch_id).first()
+
+        html = render_daily_detailed_report(
+            tenant=request.tenant,
+            target_date=target_date,
+            branch=branch,
+            user=request.user,
+        )
+        return Response(
+            {
+                "date": str(target_date),
+                "branch_id": branch_id,
+                "report_html": html,
             }
         )
 

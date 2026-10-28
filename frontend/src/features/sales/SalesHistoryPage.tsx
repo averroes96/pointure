@@ -5,16 +5,35 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight, AlertTriangle, Bookmark, BookmarkCheck, PackageCheck } from "lucide-react";
+import { Search, Receipt, TrendingUp, ShoppingBag, Plus, Printer, RotateCcw, X, Star, Trophy, Medal, Ban, ArrowLeftRight, AlertTriangle, Bookmark, BookmarkCheck, PackageCheck, Clock, Filter, FileText, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement, printBonReservation } from "@/lib/versement";
+import { printTicket } from "@/lib/printerConfig";
 import ExchangeModal from "./ExchangeModal";
 import type { Sale, SaleItem, StoreSettings, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
+
+function formatTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("fr-DZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function toISODate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon: typeof Star }> = {
   bronze: { label: "Bronze", className: "text-amber-700 bg-amber-100", Icon: Medal },
@@ -22,12 +41,14 @@ const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon:
   gold:   { label: "Gold",   className: "text-yellow-600 bg-yellow-100", Icon: Trophy },
 };
 
-const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
-  { value: "cash", labelKey: "payment.cash" },
-  { value: "cheque", labelKey: "payment.cheque" },
-  { value: "ccp", labelKey: "payment.ccp" },
-  { value: "virement", labelKey: "payment.virement" },
-  { value: "account", labelKey: "payment.account" },
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; labelKey: string; fallback: string }[] = [
+  { value: "cash", labelKey: "payment.cash", fallback: "Espèces" },
+  { value: "tpe", labelKey: "payment.tpe", fallback: "TPE (CIB/Edahabia)" },
+  { value: "baridimob", labelKey: "payment.baridimob", fallback: "BaridiMob" },
+  { value: "cheque", labelKey: "payment.cheque", fallback: "Chèque" },
+  { value: "ccp", labelKey: "payment.ccp", fallback: "CCP" },
+  { value: "virement", labelKey: "payment.virement", fallback: "Virement" },
+  { value: "account", labelKey: "payment.account", fallback: "À Crédit (Compte)" },
 ];
 
 const DEFECT_REASONS: { value: DefectReason; labelKey: string }[] = [
@@ -818,17 +839,45 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
   PAYMENT_METHOD_OPTIONS.map((o) => [o.value, o.labelKey])
 );
 
+const PAYMENT_METHOD_FALLBACKS: Record<string, string> = Object.fromEntries(
+  PAYMENT_METHOD_OPTIONS.map((o) => [o.value, o.fallback])
+);
+
+interface DailySummaryResponse {
+  date: string;
+  branch_id: string | null;
+  total_revenue: string | number;
+  sale_count: number;
+  today_active_revenue?: string | number;
+  today_active_count?: number;
+  today_items_sold?: number;
+  total_refunds: string | number;
+  net_revenue: string | number;
+  by_payment_method: Record<string, string | number>;
+  versement_collected_today: string | number;
+  outstanding_versements: number;
+}
+
 export default function SalesHistoryPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { selectedBranch } = useBranch();
   const queryClient = useQueryClient();
   const storeName = user?.tenant?.name ?? "ShoeDZ";
   const isManager = user?.role === "owner" || user?.role === "manager";
+
+  // Filter states
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [clientFilter, setClientFilter] = useState(""); // "" | "walk_in" | "registered" | "has_balance"
+  const [cashierId, setCashierId] = useState("");
+  const [ordering, setOrdering] = useState("-created_at");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [datePreset, setDatePreset] = useState<"all" | "today" | "yesterday" | "week" | "month" | "custom">("all");
   const [page, setPage] = useState(1);
+
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [returnSale, setReturnSale] = useState<Sale | null>(null);
   const [exchangeSale, setExchangeSale] = useState<Sale | null>(null);
@@ -836,22 +885,100 @@ export default function SalesHistoryPage() {
   const [collectLayawaySale, setCollectLayawaySale] = useState<Sale | null>(null);
   const [cancelLayawaySale, setCancelLayawaySale] = useState<Sale | null>(null);
 
+  // Detailed Daily Thermal Ticket state
+  const [reportDate, setReportDate] = useState(() => toISODate(new Date()));
+  const [reportPreview, setReportPreview] = useState<{ title: string; html: string } | null>(null);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+
+  const applyDatePreset = (preset: "all" | "today" | "yesterday" | "week" | "month") => {
+    setDatePreset(preset);
+    setPage(1);
+    const now = new Date();
+    if (preset === "all") {
+      setDateFrom("");
+      setDateTo("");
+    } else if (preset === "today") {
+      const iso = toISODate(now);
+      setDateFrom(iso);
+      setDateTo(iso);
+      setReportDate(iso);
+    } else if (preset === "yesterday") {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      const iso = toISODate(y);
+      setDateFrom(iso);
+      setDateTo(iso);
+      setReportDate(iso);
+    } else if (preset === "week") {
+      const w = new Date(now);
+      w.setDate(w.getDate() - 6);
+      setDateFrom(toISODate(w));
+      setDateTo(toISODate(now));
+    } else if (preset === "month") {
+      const m = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDateFrom(toISODate(m));
+      setDateTo(toISODate(now));
+    }
+  };
+
+  // Today's global KPI summary (independent of current pagination)
+  const { data: dailySummary } = useQuery<DailySummaryResponse>({
+    queryKey: ["sales-daily-summary", selectedBranch?.id ?? "all"],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (selectedBranch?.id) params.set("branch_id", String(selectedBranch.id));
+      return api.get(`/sales/daily-summary/?${params.toString()}`).then((r) => r.data);
+    },
+  });
+
+  // Users list for cashier filter
+  const { data: usersData } = useQuery<PaginatedResponse<{ id: number; first_name: string; last_name: string; email: string }>>({
+    queryKey: ["users-cashiers-filter"],
+    queryFn: () => api.get("/auth/users/?page_size=100").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+  const cashiersList = usersData?.results ?? [];
+
   const cancelVersementMutation = useMutation({
     mutationFn: (saleId: number) =>
       api.post(`/sales/${saleId}/cancel/`).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-daily-summary"] });
     },
   });
 
   const { data, isLoading } = useQuery<PaginatedResponse<Sale>>({
-    queryKey: ["sales", { search, status, dateFrom, dateTo, page }],
+    queryKey: [
+      "sales",
+      {
+        search,
+        status,
+        paymentMethod,
+        clientFilter,
+        cashierId,
+        ordering,
+        dateFrom,
+        dateTo,
+        branchId: selectedBranch?.id ?? "all",
+        page,
+      },
+    ],
     queryFn: () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (status) params.set("status", status);
+      if (paymentMethod) params.set("payment_method", paymentMethod);
+      if (clientFilter === "walk_in" || clientFilter === "registered") {
+        params.set("client_type", clientFilter);
+      } else if (clientFilter === "has_balance") {
+        params.set("has_balance", "true");
+      }
+      if (cashierId) params.set("cashier", cashierId);
+      if (ordering) params.set("ordering", ordering);
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
+      if (selectedBranch?.id) params.set("branch", String(selectedBranch.id));
       params.set("page", String(page));
       return api.get(`/sales/?${params.toString()}`).then((r) => r.data);
     },
@@ -859,11 +986,48 @@ export default function SalesHistoryPage() {
 
   const sales = data?.results ?? [];
 
-  // Summary totals from current page
-  const pageTotalRevenue = sales
-    .filter((s) => s.status === "completed")
-    .reduce((sum, s) => sum + parseFloat(s.total_amount || "0"), 0);
-  const partiallyPaidCount = sales.filter((s) => s.status === "partially_paid").length;
+  const todayRevenue = parseFloat(
+    String(dailySummary?.today_active_revenue ?? dailySummary?.total_revenue ?? "0")
+  );
+  const todaySalesCount = dailySummary?.today_active_count ?? dailySummary?.sale_count ?? 0;
+  const todayItemsSold = dailySummary?.today_items_sold ?? 0;
+  const outstandingVersements = dailySummary?.outstanding_versements ?? 0;
+
+  const hasActiveFilters = Boolean(
+    search || status || paymentMethod || clientFilter || cashierId || dateFrom || dateTo || ordering !== "-created_at"
+  );
+
+  const resetAllFilters = () => {
+    setSearch("");
+    setStatus("");
+    setPaymentMethod("");
+    setClientFilter("");
+    setCashierId("");
+    setOrdering("-created_at");
+    setDateFrom("");
+    setDateTo("");
+    setDatePreset("all");
+    setPage(1);
+  };
+
+  const handleOpenDetailedReport = async (targetDate?: string) => {
+    const chosenDate = targetDate || (dateFrom && (!dateTo || dateTo === dateFrom) ? dateFrom : reportDate);
+    setIsLoadingReport(true);
+    try {
+      const params = new URLSearchParams();
+      if (chosenDate) params.set("date", chosenDate);
+      if (selectedBranch?.id) params.set("branch_id", String(selectedBranch.id));
+      const res = await api.get(`/sales/daily-detailed-report/?${params.toString()}`);
+      setReportPreview({
+        title: `Rapport Détaillé du Jour (${chosenDate})`,
+        html: res.data.report_html,
+      });
+    } catch {
+      alert("Impossible de générer le rapport détaillé du jour.");
+    } finally {
+      setIsLoadingReport(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -875,103 +1039,272 @@ export default function SalesHistoryPage() {
             {data?.count ?? 0} {t("sales.sale", { count: data?.count ?? 0, defaultValue: "ventes" })} enregistrées
           </p>
         </div>
-        <Link to="/sales/new" className="btn-primary shadow-xs">
-          <Plus size={16} className="stroke-[2.5]" />
-          <span>Nouvelle vente</span>
-        </Link>
+
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Print Detailed Daily Sales (Ticket Z style) */}
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-2xs p-1 gap-1.5">
+            <div className="flex items-center gap-1.5 ps-2">
+              <Calendar size={14} className="text-slate-400 shrink-0" />
+              <input
+                type="date"
+                value={reportDate}
+                onChange={(e) => setReportDate(e.target.value)}
+                className="text-xs font-semibold text-slate-700 bg-transparent border-none focus:outline-none cursor-pointer"
+                title="Date du rapport détaillé"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => handleOpenDetailedReport(reportDate)}
+              disabled={isLoadingReport}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              title="Imprimer le rapport détaillé des ventes et mouvements du jour (Format Ticket Z 80mm)"
+            >
+              <Printer size={14} />
+              <span>{isLoadingReport ? "Chargement…" : "Imprimer Détail du Jour"}</span>
+            </button>
+          </div>
+
+          <Link to="/sales/new" className="btn-primary shadow-xs">
+            <Plus size={16} className="stroke-[2.5]" />
+            <span>Nouvelle vente</span>
+          </Link>
+        </div>
       </div>
 
-      {/* KPI strip */}
-      {!isLoading && sales.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
-              <TrendingUp size={18} />
+      {/* Today's KPI strip (Always shows Today's Totals & Count instead of paginated slice) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+            <TrendingUp size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              CA DU JOUR (AUJOURD'HUI)
             </div>
-            <div>
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.page_revenue")}</div>
-              <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
-                {formatDZD(pageTotalRevenue)} <span className="text-xs text-slate-400 font-bold">DZD</span>
-              </div>
+            <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight truncate">
+              {formatDZD(todayRevenue)} <span className="text-xs text-slate-400 font-bold">DZD</span>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shrink-0">
-              <ShoppingBag size={18} />
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shrink-0">
+            <ShoppingBag size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              VENTES DU JOUR (AUJOURD'HUI)
             </div>
-            <div>
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.page_sales")}</div>
-              <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
-                {sales.filter((s) => s.status === "completed").length}
-              </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
+                {todaySalesCount}
+              </span>
+              {todayItemsSold > 0 && (
+                <span className="text-xs font-semibold text-slate-400">
+                  ({todayItemsSold} article{todayItemsSold > 1 ? "s" : ""})
+                </span>
+              )}
             </div>
           </div>
+        </div>
 
-          {partiallyPaidCount > 0 && (
-            <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
-                <Receipt size={18} />
-              </div>
-              <div>
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("sales.in_installment")}</div>
-                <div className="font-mono font-extrabold text-lg text-amber-700 tracking-tight">
-                  {partiallyPaidCount}
-                </div>
-              </div>
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+            <Receipt size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {t("sales.in_installment", "Versements en cours")}
             </div>
+            <div className="font-mono font-extrabold text-lg text-amber-700 tracking-tight">
+              {outstandingVersements}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Filters Panel */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        {/* Row 1: Quick Date Presets + Search + Reset */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          {/* Quick Date Pills */}
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
+            {(
+              [
+                { id: "all", label: "Toutes les dates" },
+                { id: "today", label: "Aujourd'hui" },
+                { id: "yesterday", label: "Hier" },
+                { id: "week", label: "7 derniers jours" },
+                { id: "month", label: "Ce mois" },
+              ] as const
+            ).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyDatePreset(preset.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  datePreset === preset.id
+                    ? "bg-white text-slate-900 shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search box */}
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="form-input ps-9 py-1.5 rounded-xl text-xs w-full"
+              placeholder="N° reçu, client, caissier, produit, réf ou code-barres…"
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Detailed Filter Controls */}
+        <div className="flex flex-wrap gap-2.5 items-center pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
+            <Filter size={13} />
+            <span>Filtres :</span>
+          </div>
+
+          {/* Status */}
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium"
+            title="Statut de la vente"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.labelKey)}
+              </option>
+            ))}
+          </select>
+
+          {/* Payment Method */}
+          <select
+            value={paymentMethod}
+            onChange={(e) => {
+              setPaymentMethod(e.target.value);
+              setPage(1);
+            }}
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
+            title="Mode de paiement"
+          >
+            <option value="">Tous les règlements</option>
+            {PAYMENT_METHOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.labelKey, opt.fallback)}
+              </option>
+            ))}
+          </select>
+
+          {/* Client / Balance Filter */}
+          <select
+            value={clientFilter}
+            onChange={(e) => {
+              setClientFilter(e.target.value);
+              setPage(1);
+            }}
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
+            title="Type de client / Solde"
+          >
+            <option value="">Tous les clients</option>
+            <option value="walk_in">Client comptoir</option>
+            <option value="registered">Client enregistré</option>
+            <option value="has_balance">Avec reste à payer (&gt; 0)</option>
+          </select>
+
+          {/* Cashier Filter */}
+          {cashiersList.length > 0 && (
+            <select
+              value={cashierId}
+              onChange={(e) => {
+                setCashierId(e.target.value);
+                setPage(1);
+              }}
+              className="form-input w-auto min-w-[145px] py-1.5 rounded-xl text-xs font-medium"
+              title="Caissier"
+            >
+              <option value="">Tous les caissiers</option>
+              {cashiersList.map((u) => {
+                const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
+                return (
+                  <option key={u.id} value={String(u.id)}>
+                    {fullName}
+                  </option>
+                );
+              })}
+            </select>
+          )}
+
+          {/* Sort Order */}
+          <select
+            value={ordering}
+            onChange={(e) => {
+              setOrdering(e.target.value);
+              setPage(1);
+            }}
+            className="form-input w-auto min-w-[150px] py-1.5 rounded-xl text-xs font-medium"
+            title="Tri"
+          >
+            <option value="-created_at">Plus récentes d'abord</option>
+            <option value="created_at">Plus anciennes d'abord</option>
+            <option value="-total_amount">Montant décroissant</option>
+            <option value="total_amount">Montant croissant</option>
+          </select>
+
+          {/* Date Range */}
+          <div className="flex items-center gap-1.5 ms-auto">
+            <label className="text-xs text-slate-500 font-semibold whitespace-nowrap">{t("common.from")}</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setDatePreset("custom");
+                if (e.target.value) setReportDate(e.target.value);
+                setPage(1);
+              }}
+              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto"
+            />
+            <label className="text-xs text-slate-500 font-semibold">{t("common.to")}</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setDatePreset("custom");
+                setPage(1);
+              }}
+              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
+            >
+              Réinitialiser
+            </button>
           )}
         </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2.5 items-end bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9 py-2 rounded-xl text-xs"
-            placeholder={t("sales.search_receipt_cashier")}
-          />
-        </div>
-
-        <select
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="form-input max-w-[160px] py-2 rounded-xl text-xs font-medium"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
-          ))}
-        </select>
-
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-500 font-semibold whitespace-nowrap">{t("common.from")}</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="form-input text-xs py-2 rounded-xl font-medium"
-          />
-          <label className="text-xs text-slate-500 font-semibold">{t("common.to")}</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="form-input text-xs py-2 rounded-xl font-medium"
-          />
-        </div>
-
-        {(search || status || dateFrom || dateTo) && (
-          <button
-            onClick={() => { setSearch(""); setStatus(""); setDateFrom(""); setDateTo(""); setPage(1); }}
-            className="btn-ghost btn-sm text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
-          >
-            Réinitialiser
-          </button>
-        )}
       </div>
 
       {/* Table */}
@@ -981,7 +1314,7 @@ export default function SalesHistoryPage() {
             <thead>
               <tr>
                 <th>{t("sales.receipt_no")}</th>
-                <th>{t("common.date")}</th>
+                <th>DATE &amp; HEURE</th>
                 <th>{t("sales.cashier")}</th>
                 <th>{t("sales.client")}</th>
                 <th>{t("sales.payment_methods")}</th>
@@ -1024,7 +1357,17 @@ export default function SalesHistoryPage() {
                         <span className="font-mono font-bold text-slate-900">{sale.receipt_number || `#${sale.id}`}</span>
                       </div>
                     </td>
-                    <td className="text-slate-500 text-xs font-medium">{formatDate(sale.created_at)}</td>
+                    <td className="text-slate-600 text-xs font-medium whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-slate-800">{formatDate(sale.created_at)}</span>
+                        {formatTime(sale.created_at) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold">
+                            <Clock size={10} className="text-slate-400" />
+                            {formatTime(sale.created_at)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="text-xs font-semibold text-slate-700">{sale.cashier_name || "—"}</td>
                     <td className="text-xs">
                       <div className="flex flex-col gap-0.5">
@@ -1049,7 +1392,9 @@ export default function SalesHistoryPage() {
                       <div className="flex flex-wrap gap-1">
                         {sale.payments?.map((p, i) => (
                           <span key={i} className="badge badge-neutral text-2xs">
-                            {PAYMENT_METHOD_LABELS[p.method] ? t(PAYMENT_METHOD_LABELS[p.method]) : p.method}
+                            {PAYMENT_METHOD_LABELS[p.method]
+                              ? t(PAYMENT_METHOD_LABELS[p.method], PAYMENT_METHOD_FALLBACKS[p.method] || p.method)
+                              : p.method}
                           </span>
                         ))}
                       </div>
@@ -1314,6 +1659,58 @@ export default function SalesHistoryPage() {
           sale={cancelLayawaySale}
           onClose={() => setCancelLayawaySale(null)}
         />
+      )}
+
+      {/* Detailed Daily Report Preview Modal (Ticket Z 80mm format) */}
+      {reportPreview && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          onClick={() => setReportPreview(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden flex flex-col max-h-[88vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-primary-600" />
+                <h3 className="font-extrabold text-slate-900 text-sm">{reportPreview.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReportPreview(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-100/70 flex justify-center">
+              <iframe
+                title={reportPreview.title}
+                srcDoc={reportPreview.html}
+                className="bg-white shadow-md border border-slate-200 rounded-md w-[320px] min-h-[540px]"
+              />
+            </div>
+
+            <div className="px-5 py-3 border-t border-slate-100 flex justify-end gap-2 bg-white">
+              <button
+                type="button"
+                onClick={() => setReportPreview(null)}
+                className="btn-secondary btn-sm"
+              >
+                Fermer
+              </button>
+              <button
+                type="button"
+                onClick={() => printTicket(reportPreview.html)}
+                className="btn-primary btn-sm flex items-center gap-1.5"
+              >
+                <Printer size={14} /> Imprimer Ticket Détaillé
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
