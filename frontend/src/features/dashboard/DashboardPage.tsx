@@ -257,13 +257,23 @@ export default function DashboardPage() {
     refetchInterval: isEnterprise ? false : 120_000,
   });
 
-  const { data: salesData } = useQuery<SalesByPeriodRow[]>({
+  const { data: salesData } = useQuery({
     queryKey: ["reports", "sales-by-period", "day"],
     queryFn: () =>
-      api.get(
-        "/reports/sales-by-period/?period=day&from=" +
-          new Date(Date.now() - 30 * 86_400_000).toISOString().split("T")[0],
-      ).then((r) => r.data),
+      api
+        .get(
+          "/reports/sales-by-period/?period=day&from=" +
+            new Date(Date.now() - 30 * 86_400_000).toISOString().split("T")[0],
+        )
+        .then((r) => {
+          const rawRows: SalesByPeriodRow[] = Array.isArray(r.data)
+            ? r.data
+            : r.data?.rows ?? [];
+          return rawRows.map((row) => ({
+            ...row,
+            revenue: parseFloat(String(row.revenue)) || 0,
+          }));
+        }),
   });
 
   const { data: bestSellers } = useQuery<BestSellerRow[]>({
