@@ -48,10 +48,12 @@ const TIER_COLOUR = {
 
 function CreateClientModal({
   prefillName,
+  subtitle,
   onCreated,
   onClose,
 }: {
   prefillName: string;
+  subtitle?: string;
   onCreated: (c: Client) => void;
   onClose: () => void;
 }) {
@@ -60,6 +62,13 @@ function CreateClientModal({
   const [name, setName] = useState(prefillName);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+
+  const { data: existingClients } = useQuery<PaginatedResponse<Client>>({
+    queryKey: ["clients", "modal-search", name],
+    queryFn: () =>
+      api.get(`/clients/?search=${encodeURIComponent(name.trim())}&page_size=4`).then((r) => r.data),
+    enabled: name.trim().length >= 2,
+  });
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -80,20 +89,30 @@ function CreateClientModal({
 
   // Close on Escape
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-          <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
-            <UserPlus size={16} className="text-primary-500" />
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-slate-50/70">
+          <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center shrink-0">
+            <UserPlus size={17} className="text-primary-600" />
           </div>
-          <h3 className="font-semibold text-text-primary">{t("sales.new_client")}</h3>
-          <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-slate-900 text-sm">{t("sales.new_client")}</h3>
+            {subtitle && (
+              <p className="text-2xs text-amber-700 font-semibold truncate">{subtitle}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -123,6 +142,28 @@ function CreateClientModal({
               placeholder="0x xx xx xx xx"
             />
           </div>
+
+          {existingClients && existingClients.results.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+                Clients existants (cliquer pour sélectionner)
+              </div>
+              <div className="max-h-28 overflow-y-auto divide-y divide-slate-200/60">
+                {existingClients.results.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => onCreated(c)}
+                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-primary-50 rounded-lg flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold text-slate-800 truncate">{c.name}</span>
+                    {c.phone && <span className="text-2xs font-mono text-slate-500 ms-2">{c.phone}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Annuler
@@ -313,6 +354,7 @@ export default function SalesPage() {
 
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
+  const [showVersementClientModal, setShowVersementClientModal] = useState(false);
   const [sessionOpeningFloat, setSessionOpeningFloat] = useState("0");
   const [movementType, setMovementType] = useState<"in" | "out">("out");
   const [movementAmount, setMovementAmount] = useState("");
@@ -763,7 +805,44 @@ export default function SalesPage() {
     }, 40);
   }, []);
 
-  // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale, Escape = clear/empty)
+  const activateVersementWithClient = useCallback((client: Client) => {
+    setSelectedClient(client);
+    setRedeemPoints(0);
+    setIsVersement(true);
+    setIsLayaway(false);
+    setShowOptions(true);
+    const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
+    setPayments([{ method: "cash", amount: minAmt }]);
+    setShowVersementClientModal(false);
+  }, [total, storeSettings?.min_versement_pct]);
+
+  const handleVersementShortcut = useCallback(() => {
+    if (isVersement) {
+      setIsVersement(false);
+      setPayments([{ method: "cash", amount: Math.max(0, total) }]);
+      return;
+    }
+    if (!selectedClient) {
+      setShowVersementClientModal(true);
+    } else {
+      setIsVersement(true);
+      setIsLayaway(false);
+      setShowOptions(true);
+      const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
+      setPayments([{ method: "cash", amount: minAmt }]);
+    }
+  }, [isVersement, selectedClient, total, storeSettings?.min_versement_pct]);
+
+  const handleMovementShortcut = useCallback(() => {
+    if (currentSession) {
+      setMovementError(null);
+      setShowMovementModal((prev) => !prev);
+    } else {
+      setShowOpenSessionModal(true);
+    }
+  }, [currentSession]);
+
+  // Keyboard shortcuts integration (F2 = search, F10 = confirm sale, F1 = new sale, V = versement, M = mouvement, Escape = clear/empty)
   useEffect(() => {
     const onSearch = () => {
       window.electronAPI?.focusWindow?.();
@@ -800,7 +879,14 @@ export default function SalesPage() {
     };
 
     const onEscape = () => {
-      if (showClearCartModal) {
+      if (showVersementClientModal) {
+        setShowVersementClientModal(false);
+      } else if (showMovementModal) {
+        setShowMovementModal(false);
+        setMovementError(null);
+      } else if (showOpenSessionModal) {
+        setShowOpenSessionModal(false);
+      } else if (showClearCartModal) {
         cancelClearCart();
       } else if (negativeStockAlert) {
         setNegativeStockAlert(null);
@@ -838,6 +924,15 @@ export default function SalesPage() {
         }
       }
 
+      const anyDialogOpen =
+        showVersementClientModal ||
+        showMovementModal ||
+        showOpenSessionModal ||
+        showClearCartModal ||
+        !!negativeStockAlert ||
+        !!receipt ||
+        managerPinPrompt.isOpen;
+
       // Direct local F2 / Alt+2 handler inside SalesPage
       if (e.key === "F2" || (e.altKey && e.key === "2")) {
         e.preventDefault();
@@ -852,10 +947,33 @@ export default function SalesPage() {
         return;
       }
 
-      // POS Type-to-Search: if cashier starts typing characters while focus is outside inputs, seamlessly redirect to search
+      if (anyDialogOpen) return;
+
       const target = e.target as HTMLElement;
-      const isOtherInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable || target.tagName === "SELECT");
-      if (!isOtherInput && target !== searchRef.current && !receipt && !negativeStockAlert && !showClearCartModal) {
+      const isOtherInput =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable ||
+          target.tagName === "SELECT");
+      const isSearch = target === searchRef.current;
+
+      // V = Versement (creates/selects client & toggles versement), M = Mouvements (opens quick movement popup)
+      const keyLower = e.key.toLowerCase();
+      if (!e.ctrlKey && !e.metaKey && (keyLower === "v" || keyLower === "m")) {
+        if (e.altKey || !isOtherInput || (isSearch && search.trim() === "")) {
+          e.preventDefault();
+          if (keyLower === "v") {
+            handleVersementShortcut();
+          } else {
+            handleMovementShortcut();
+          }
+          return;
+        }
+      }
+
+      // POS Type-to-Search: if cashier starts typing characters while focus is outside inputs, seamlessly redirect to search
+      if (!isOtherInput && target !== searchRef.current) {
         if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== " " && e.key !== ".") {
           e.preventDefault();
           window.electronAPI?.focusWindow?.();
@@ -868,8 +986,6 @@ export default function SalesPage() {
       const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
 
       if (isPoint) {
-        const isSearch = target === searchRef.current;
-
         // Allow '.' or NumpadDecimal to confirm sale if:
         // 1. Focus is outside any input field (cart, table, buttons)
         // 2. OR focus is inside the search box and search is empty (common right after barcode scan)
@@ -913,7 +1029,25 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-escape", onEscape);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [receipt, cart, saleMutation.isPending, search, negativeStockAlert, allowNegativeStock, selectedProduct, handleClearCart, showClearCartModal, confirmClearCart, cancelClearCart]);
+  }, [
+    receipt,
+    cart,
+    saleMutation.isPending,
+    search,
+    negativeStockAlert,
+    allowNegativeStock,
+    selectedProduct,
+    handleClearCart,
+    showClearCartModal,
+    confirmClearCart,
+    cancelClearCart,
+    showVersementClientModal,
+    showMovementModal,
+    showOpenSessionModal,
+    managerPinPrompt.isOpen,
+    handleVersementShortcut,
+    handleMovementShortcut,
+  ]);
 
   // React-Query barcode path: fires when the search input contains a full barcode
   useEffect(() => {
@@ -938,7 +1072,9 @@ export default function SalesPage() {
     let lastAt = 0;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement === searchRef.current) return;
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl === searchRef.current) return;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")) return;
       if (e.ctrlKey || e.altKey || e.metaKey) return;
 
       const now = Date.now();
@@ -1185,6 +1321,34 @@ export default function SalesPage() {
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">Échap</kbd>
                 <span>{t("sales.shortcut_clear", "Vider panier / Effacer")}</span>
               </span>
+              <button
+                type="button"
+                onClick={handleVersementShortcut}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border shadow-2xs text-xs font-semibold transition-colors cursor-pointer",
+                  isVersement
+                    ? "bg-amber-50 border-amber-300 text-amber-800"
+                    : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50"
+                )}
+                title="Raccourci V : Créer / sélectionner un client et activer le mode Versement"
+              >
+                <kbd className={cn(
+                  "px-1.5 py-0.5 text-[10px] font-mono font-bold border rounded",
+                  isVersement
+                    ? "bg-amber-200/70 border-amber-300 text-amber-900"
+                    : "bg-slate-100 border-slate-200 text-slate-600"
+                )}>V</kbd>
+                <span>Versement</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleMovementShortcut}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                title="Raccourci M : Ouvrir le popup rapide des mouvements d'espèces"
+              >
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">M</kbd>
+                <span>Mouvements</span>
+              </button>
             </div>
           </div>
 
@@ -1201,11 +1365,12 @@ export default function SalesPage() {
                 <button
                   type="button"
                   onClick={() => setShowMovementModal(true)}
-                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                  title="Ajouter ou retirer des espèces (Dépense magasin / Apport monnaie)"
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Ajouter ou retirer des espèces (Raccourci : M)"
                 >
                   <ArrowDownUp size={12} />
                   <span>Mouvement</span>
+                  <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">M</kbd>
                 </button>
                 <button
                   type="button"
@@ -1624,39 +1789,114 @@ export default function SalesPage() {
           </div>
 
           {/* ── Cart Footer (Pinned: Grand Total & Confirm) ── */}
-          <div className="border-t border-slate-100 p-4 bg-white space-y-3.5">
+          <div className="border-t border-slate-100 p-4 bg-white space-y-3">
             {/* Quick options toolbar */}
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setShowOptions(!showOptions)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all font-semibold cursor-pointer",
-                  showOptions || cartDiscount > 0 || isFormal || isVersement || isLayaway
-                    ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs"
-                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                )}
-              >
-                <span>⚙️ Options de vente</span>
-                {(cartDiscount > 0 || isFormal || isVersement || isLayaway) && (
-                  <span className="w-2 h-2 rounded-full bg-primary-600"></span>
-                )}
-              </button>
-
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                {/* Remise input */}
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                  <span>Remise:</span>
-                  <input
-                    type="number"
-                    value={cartDiscount || ""}
-                    onChange={(e) => setCartDiscount(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
-                    className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg font-mono text-end font-bold"
-                    min="0"
-                  />
-                  <span className="font-mono text-2xs text-slate-400">DZD</span>
+                <button
+                  type="button"
+                  onClick={() => setShowOptions(!showOptions)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-bold cursor-pointer",
+                    showOptions || cartDiscount > 0 || isFormal || isVersement || isLayaway
+                      ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  )}
+                >
+                  <span>⚙️ Options de vente</span>
+                  {(cartDiscount > 0 || isFormal || isVersement || isLayaway) && (
+                    <span className="w-2 h-2 rounded-full bg-primary-600"></span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleVersementShortcut}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-bold cursor-pointer",
+                    isVersement
+                      ? "bg-amber-500 border-amber-600 text-white shadow-xs"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  )}
+                  title="Raccourci V : Nouveau client + activer Versement"
+                >
+                  <span>Versement</span>
+                  <kbd className={cn(
+                    "px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border",
+                    isVersement
+                      ? "bg-white/20 border-white/30 text-white"
+                      : "bg-white border-slate-200 text-slate-500"
+                  )}>
+                    V
+                  </kbd>
+                </button>
+              </div>
+            </div>
+
+            {/* ── PROMINENT DISCOUNT (REMISE) BAR ── */}
+            <div
+              className={cn(
+                "flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border-2 transition-all",
+                cartDiscount > 0
+                  ? "bg-emerald-50/70 border-emerald-400 shadow-xs"
+                  : "bg-slate-50/90 border-slate-200 hover:border-slate-300"
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={cn(
+                    "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+                    cartDiscount > 0
+                      ? "bg-emerald-500 text-white border-emerald-600 shadow-2xs"
+                      : "bg-white text-slate-600 border-slate-200"
+                  )}
+                >
+                  <Tag size={17} className="stroke-[2.2]" />
                 </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <span>Remise</span>
+                    {cartDiscount > 0 && itemsTotal > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-black">
+                        −{Math.min(100, Math.round((cartDiscount / itemsTotal) * 100))}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium truncate">
+                    Réduction directe sur le total
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative flex items-center shrink-0">
+                <input
+                  type="number"
+                  value={cartDiscount || ""}
+                  onChange={(e) => setCartDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  placeholder="0"
+                  min="0"
+                  step="50"
+                  className={cn(
+                    "w-36 sm:w-44 pl-3 pr-14 py-2 text-lg font-black font-mono text-end rounded-xl border-2 transition-all focus:outline-none focus:ring-4",
+                    cartDiscount > 0
+                      ? "bg-white border-emerald-500 text-emerald-900 focus:ring-emerald-500/20"
+                      : "bg-white border-slate-300 text-slate-900 focus:border-primary-500 focus:ring-primary-500/15"
+                  )}
+                />
+                {cartDiscount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCartDiscount(0)}
+                    className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 transition-colors cursor-pointer"
+                    title="Effacer la remise"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : (
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 font-mono text-xs font-extrabold text-slate-400 pointer-events-none">
+                    DZD
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1682,34 +1922,22 @@ export default function SalesPage() {
                 </div>
 
                 {/* Versement (Acompte) switch */}
-                <div className={cn(
-                  "flex items-center justify-between pt-2.5 border-t border-slate-200/60",
-                  storeSettings?.versement_requires_client && !selectedClient ? "opacity-50" : ""
-                )}>
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60">
                   <div>
-                    <p className="text-xs font-bold text-slate-900">{t("sales.versement_acompte")}</p>
+                    <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>{t("sales.versement_acompte")}</span>
+                      <kbd className="px-1.5 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">V</kbd>
+                    </p>
                     <p className="text-2xs text-slate-500">
                       {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (storeSettings?.versement_requires_client && !selectedClient) return;
-                      const next = !isVersement;
-                      setIsVersement(next);
-                      if (next) {
-                        setIsLayaway(false);
-                        const minAmt = Math.ceil(total * (storeSettings?.min_versement_pct ?? 30) / 100);
-                        setPayments([{ method: "cash", amount: minAmt }]);
-                      } else {
-                        setPayments([{ method: "cash", amount: total }]);
-                      }
-                    }}
+                    onClick={handleVersementShortcut}
                     className={cn(
                       "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                      isVersement ? "bg-amber-500" : "bg-slate-200",
-                      storeSettings?.versement_requires_client && !selectedClient ? "cursor-not-allowed" : ""
+                      isVersement ? "bg-amber-500" : "bg-slate-200"
                     )}
                     role="switch"
                     aria-checked={isVersement}
@@ -2233,7 +2461,17 @@ export default function SalesPage() {
         </div>
       )}
 
-      {/* ── Quick Petty Cash Movement Modal ── */}
+      {/* ── Versement Quick-Create Client Modal (Shortcut V) ── */}
+      {showVersementClientModal && (
+        <CreateClientModal
+          prefillName=""
+          subtitle="Créez ou sélectionnez un client pour activer le Versement"
+          onCreated={activateVersementWithClient}
+          onClose={() => setShowVersementClientModal(false)}
+        />
+      )}
+
+      {/* ── Quick Petty Cash Movement Modal (Shortcut M) ── */}
       {showMovementModal && currentSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
@@ -2259,7 +2497,17 @@ export default function SalesPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!movementAmount || parseFloat(movementAmount) <= 0) {
+                  setMovementError("Veuillez saisir un montant valide.");
+                  return;
+                }
+                movementMutation.mutate();
+              }}
+              className="p-6 space-y-4"
+            >
               {/* Type Switcher */}
               <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
                 <button
@@ -2372,14 +2620,7 @@ export default function SalesPage() {
                   Annuler
                 </button>
                 <button
-                  type="button"
-                  onClick={() => {
-                    if (!movementAmount || parseFloat(movementAmount) <= 0) {
-                      setMovementError("Veuillez saisir un montant valide.");
-                      return;
-                    }
-                    movementMutation.mutate();
-                  }}
+                  type="submit"
                   disabled={movementMutation.isPending}
                   className={cn(
                     "flex-1 py-2.5 text-xs font-bold rounded-xl text-white shadow-xs transition-colors",
@@ -2389,7 +2630,7 @@ export default function SalesPage() {
                   {movementMutation.isPending ? "Enregistrement..." : "Enregistrer le mouvement"}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
