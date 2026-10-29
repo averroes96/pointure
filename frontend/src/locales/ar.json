@@ -216,7 +216,18 @@
     "apply_tva": "تطبيق الضريبة ({{rate}}%)",
     "cash_payment_stamp": "الدفع نقدًا (الطابع الضريبي 1%)",
     "notes_placeholder": "ملاحظات داخلية أو معلومات إضافية...",
-    "edit_invoice": "تعديل الفاتورة"
+    "edit_invoice": "تعديل الفاتورة",
+    "total_balance_due_page": "إجمالي الرصيد المتبقي للتحصيل في هذه الصفحة:",
+    "cancel_invoice": "إلغاء الفاتورة",
+    "lines_count": "{{count}} بند/بنود",
+    "bl_info": "معلومات وصل التسليم",
+    "create_bl": "إنشاء وصل التسليم",
+    "unit_price_dzd": "سعر الوحدة (دج)",
+    "stock_label": "المخزون: {{count}}",
+    "total_billed_item": "الإجمالي المفوتر لهذه السلعة:",
+    "stock_exceeded_error": "الكمية تتجاوز المخزون المتوفر.",
+    "search_product_min2": "البحث عن منتج (حرفان على الأقل)...",
+    "delete_item": "حذف هذا العنصر"
   },
   "client": {
     "new": "زبون جديد",
@@ -1010,7 +1021,8 @@
     "page": "صفحة",
     "add": "إضافة",
     "select": "تحديد",
-    "escape": "هروب"
+    "escape": "هروب",
+    "creation": "تاريخ الإنشاء"
   },
   "status": {
     "completed": "مكتمل",

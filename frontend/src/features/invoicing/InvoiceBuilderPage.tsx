@@ -501,7 +501,7 @@ export default function InvoiceBuilderPage() {
             className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl shadow-xs"
           >
             <Save size={15} />
-            {mutation.isPending ? t("app.saving") : t("common.save")}
+            {mutation.isPending ? t("common.saving") : t("common.save")}
           </button>
         </div>
       </div>
@@ -810,7 +810,7 @@ export default function InvoiceBuilderPage() {
               {/* Total TTC */}
               <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 <span className="font-bold text-sm text-slate-900">
-                  Total {applyTva ? "TTC" : "HT"}
+                  {applyTva ? t("invoice.total_ttc") : t("invoice.total_ht")}
                 </span>
                 <span className="font-mono font-bold text-xl text-primary-600 tabular-nums">
                   {formatDZD(totalTTC)} <span className="text-xs text-primary-400 font-normal">DZD</span>
@@ -842,8 +842,8 @@ export default function InvoiceBuilderPage() {
 
               {/* Lines count */}
               <div className="pt-3 text-2xs text-slate-400 border-t border-slate-100">
-                {getFlatLines().length} ligne(s)
-                · Client: <span className="font-medium text-slate-600">{client?.name ?? t("invoice.not_defined")}</span>
+                {t("invoice.lines_count", { count: getFlatLines().length })}
+                · {t("invoice.client")}: <span className="font-medium text-slate-600">{client?.name ?? t("invoice.not_defined")}</span>
               </div>
             </div>
 
@@ -856,14 +856,14 @@ export default function InvoiceBuilderPage() {
                 className="btn-primary w-full justify-center py-2.5 rounded-xl font-semibold shadow-xs"
               >
                 <Save size={15} />
-                {mutation.isPending ? t("app.saving") : t("invoice.save_invoice")}
+                {mutation.isPending ? t("common.saving") : t("invoice.save_invoice")}
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/invoices")}
                 className="btn-secondary w-full justify-center py-2 rounded-xl text-xs"
               >
-                {t("app.cancel")}
+                {t("common.cancel")}
               </button>
             </div>
           </div>

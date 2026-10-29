@@ -261,11 +261,11 @@ export default function DeliveryNoteFormPage() {
                 </span>
               </div>
               <div className="text-sm text-slate-600">
-                Client : <strong className="text-slate-900">{selectedInvoice.client_name || "—"}</strong>
+                {t("invoice.client")} : <strong className="text-slate-900">{selectedInvoice.client_name || "—"}</strong>
               </div>
               <div className="flex gap-4 text-xs text-slate-500 font-mono">
-                <span>Date : <strong className="text-slate-700">{formatDate(selectedInvoice.date)}</strong></span>
-                <span>Total TTC : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ttc)} DZD</strong></span>
+                <span>{t("invoice.date")} : <strong className="text-slate-700">{formatDate(selectedInvoice.date)}</strong></span>
+                <span>{t("invoice.total_ttc")} : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ttc)} DZD</strong></span>
               </div>
             </div>
           )}
@@ -275,13 +275,13 @@ export default function DeliveryNoteFormPage() {
         <div className="card bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
           <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
             <Truck size={16} className="text-primary-600" />
-            Informations du BL
+            {t("invoice.bl_info")}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                N° BL <span className="text-rose-500">*</span>
+                {t("invoice.bl_number")} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -333,7 +333,7 @@ export default function DeliveryNoteFormPage() {
             to="/delivery-notes"
             className="btn-secondary px-4 py-2 text-sm font-medium rounded-xl"
           >
-            Annuler
+            {t("common.cancel")}
           </Link>
           <button
             type="submit"
@@ -341,9 +341,9 @@ export default function DeliveryNoteFormPage() {
             className="btn-primary inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-xl shadow-xs disabled:opacity-50"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={15} className="animate-spin" /> Création…</>
+              <><Loader2 size={15} className="animate-spin" /> {t("common.saving")}</>
             ) : (
-              <><Save size={15} /> Créer le BL</>
+              <><Save size={15} /> {t("invoice.create_bl")}</>
             )}
           </button>
         </div>

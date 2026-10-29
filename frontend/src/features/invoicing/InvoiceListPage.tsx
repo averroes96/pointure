@@ -44,7 +44,7 @@ export default function InvoiceListPage() {
         { responseType: "blob" }
       );
       await viewPdfDocument(response.data, {
-        title: `Facture #${invoiceId}`,
+        title: `${t("invoice.invoice")} #${invoiceId}`,
         filename: `facture-${invoiceId}`,
       });
     } catch (err) {
@@ -133,7 +133,7 @@ export default function InvoiceListPage() {
         <div className="rounded-2xl border border-amber-200/90 bg-amber-50/70 px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-900">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            Solde total restant à percevoir sur cette page :
+            {t("invoice.total_balance_due_page")}
           </div>
           <span className="font-mono font-bold text-base text-amber-900 tabular-nums">
             {formatDZD(totalDue)} <span className="text-xs font-normal text-amber-700">DZD</span>
@@ -149,10 +149,10 @@ export default function InvoiceListPage() {
               <tr className="border-b border-slate-200/80 bg-slate-50/70">
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.number")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.client")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Création</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.creation")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.date")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.due_date")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Statut</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.status")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("invoice.total_ttc")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("invoice.balance_due")}</th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
@@ -279,7 +279,7 @@ export default function InvoiceListPage() {
                         <button
                           onClick={() => cancelInvoice(invoice.id)}
                           className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Annuler la facture"
+                          title={t("invoice.cancel_invoice")}
                         >
                           <XCircle size={13} />
                         </button>

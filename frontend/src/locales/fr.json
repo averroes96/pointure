@@ -216,7 +216,18 @@
     "apply_tva": "Appliquer TVA ({{rate}}%)",
     "cash_payment_stamp": "Paiement en espèces (Timbre Fiscal 1%)",
     "notes_placeholder": "Notes internes ou informations complémentaires...",
-    "edit_invoice": "Modifier la facture"
+    "edit_invoice": "Modifier la facture",
+    "total_balance_due_page": "Solde total restant à percevoir sur cette page :",
+    "cancel_invoice": "Annuler la facture",
+    "lines_count": "{{count}} ligne(s)",
+    "bl_info": "Informations du BL",
+    "create_bl": "Créer le BL",
+    "unit_price_dzd": "Prix unitaire (DZD)",
+    "stock_label": "Stock: {{count}}",
+    "total_billed_item": "Total facturé pour cet article :",
+    "stock_exceeded_error": "Quantité supérieure au stock disponible.",
+    "search_product_min2": "Rechercher un produit (min. 2 lettres)...",
+    "delete_item": "Supprimer cet article"
   },
   "client": {
     "new": "Nouveau client",
@@ -1010,7 +1021,8 @@
     "page": "Page",
     "add": "Ajouter",
     "select": "Sélectionner",
-    "escape": "Échap"
+    "escape": "Échap",
+    "creation": "Création"
   },
   "topbar": {
     "just_now": "à l'instant",

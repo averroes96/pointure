@@ -44,7 +44,7 @@ function InvoiceSearchInput({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (value) setQuery(value.number || `Facture #${value.id}`);
+    if (value) setQuery(value.number || `${t("invoice.invoice")} #${value.id}`);
   }, [value?.id]);
 
   function search(q: string) {
@@ -69,7 +69,7 @@ function InvoiceSearchInput({
   }
 
   function pick(inv: Invoice) {
-    setQuery(inv.number || `Facture #${inv.id}`);
+    setQuery(inv.number || `${t("invoice.invoice")} #${inv.id}`);
     setResults([]);
     setOpen(false);
     onSelect(inv);
@@ -223,7 +223,7 @@ export default function CreditNoteFormPage() {
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Nouvel Avoir</h1>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("invoice.new_credit_note")}</h1>
           <p className="text-xs font-medium text-slate-500 mt-0.5">{t("invoice.credit_note_desc")}</p>
         </div>
       </div>
@@ -257,7 +257,7 @@ export default function CreditNoteFormPage() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Facture <span className="text-rose-500">*</span>
+              {t("invoice.invoice")} <span className="text-rose-500">*</span>
             </label>
             <InvoiceSearchInput value={selectedInvoice} onSelect={handleInvoiceSelect} />
           </div>
@@ -273,11 +273,11 @@ export default function CreditNoteFormPage() {
                 </span>
               </div>
               <div className="text-sm text-slate-600">
-                Client : <strong className="text-slate-900">{selectedInvoice.client_name || "—"}</strong>
+                {t("invoice.client")} : <strong className="text-slate-900">{selectedInvoice.client_name || "—"}</strong>
               </div>
               <div className="flex gap-4 text-xs text-slate-500 font-mono">
-                <span>Total HT : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ht)} DZD</strong></span>
-                <span>Total TTC : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ttc)} DZD</strong></span>
+                <span>{t("invoice.total_ht")} : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ht)} DZD</strong></span>
+                <span>{t("invoice.total_ttc")} : <strong className="text-slate-700">{formatDZD(selectedInvoice.total_ttc)} DZD</strong></span>
               </div>
             </div>
           )}
@@ -319,7 +319,7 @@ export default function CreditNoteFormPage() {
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Montant HT (DZD) <span className="text-rose-500">*</span>
+                {t("invoice.total_ht")} (DZD) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -337,7 +337,7 @@ export default function CreditNoteFormPage() {
               {selectedInvoice && (
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                   <Info size={12} className="text-slate-400" />
-                  Maximum : <span className="font-mono font-semibold text-slate-700">{formatDZD(maxHt)} DZD</span> (total HT de la facture)
+                  Maximum : <span className="font-mono font-semibold text-slate-700">{formatDZD(maxHt)} DZD</span> ({t("invoice.total_ht")} {t("invoice.invoice")})
                 </p>
               )}
             </div>
@@ -356,7 +356,7 @@ export default function CreditNoteFormPage() {
                   </div>
                 )}
                 <div className="flex justify-between items-center px-4 py-2.5 bg-rose-50/60">
-                  <span className="font-semibold text-xs text-slate-900">Total TTC avoir</span>
+                  <span className="font-semibold text-xs text-slate-900">{t("invoice.total_ttc")}</span>
                   <span className="font-mono font-bold text-sm text-rose-600 tabular-nums">
                     − {formatDZD(totalTtc)} DZD
                   </span>
@@ -372,7 +372,7 @@ export default function CreditNoteFormPage() {
             to="/credit-notes"
             className="btn-secondary px-4 py-2 text-sm font-medium rounded-xl"
           >
-            Annuler
+            {t("common.cancel")}
           </Link>
           <button
             type="submit"

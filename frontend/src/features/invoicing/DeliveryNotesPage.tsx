@@ -234,7 +234,7 @@ export default function DeliveryNotesPage() {
         {data && data.total_pages > 1 && (
           <div className="px-4 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
             <span className="text-xs font-medium text-slate-500">
-              Page <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count} BL
+              {t("common.page")} <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count} {t("invoice.bl_number")}
             </span>
             <div className="flex gap-2">
               <button

@@ -216,7 +216,18 @@
     "apply_tva": "Apply VAT ({{rate}}%)",
     "cash_payment_stamp": "Cash Payment (Fiscal Stamp 1%)",
     "notes_placeholder": "Internal notes or additional information...",
-    "edit_invoice": "Edit invoice"
+    "edit_invoice": "Edit invoice",
+    "total_balance_due_page": "Total balance due to collect on this page:",
+    "cancel_invoice": "Cancel invoice",
+    "lines_count": "{{count}} line(s)",
+    "bl_info": "Delivery Note Details",
+    "create_bl": "Create Delivery Note",
+    "unit_price_dzd": "Unit price (DZD)",
+    "stock_label": "Stock: {{count}}",
+    "total_billed_item": "Total billed for this item:",
+    "stock_exceeded_error": "Quantity exceeds available stock.",
+    "search_product_min2": "Search product (min. 2 letters)...",
+    "delete_item": "Delete this item"
   },
   "client": {
     "new": "New Client",
@@ -1010,7 +1021,8 @@
     "page": "Page",
     "add": "Add",
     "select": "Select",
-    "escape": "Esc"
+    "escape": "Esc",
+    "creation": "Created At"
   },
   "status": {
     "completed": "Completed",
