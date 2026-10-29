@@ -227,9 +227,42 @@ export function useGlobalShortcuts() {
 
     // 2. DOM keydown listener (fallback for web / when Electron before-input-event did not intercept)
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+
+      // Global French AZERTY support for <input type="number">:
+      // On AZERTY laptops without Numpad, top-row keys Digit0..Digit9 emit &é"'(-è_çà when unshifted,
+      // which native <input type="number"> silently rejects. Translate them into digits 0..9 automatically.
+      if (
+        target &&
+        target.tagName === "INPUT" &&
+        (target as HTMLInputElement).type === "number" &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        /^Digit[0-9]$/.test(e.code) &&
+        !/^[0-9]$/.test(e.key)
+      ) {
+        e.preventDefault();
+        const inputEl = target as HTMLInputElement;
+        const digit = e.code.slice(5);
+        const nextValue = `${inputEl.value || ""}${digit}`;
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        if (nativeSetter) {
+          nativeSetter.call(inputEl, nextValue);
+          inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        } else {
+          inputEl.value = nextValue;
+          inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        return;
+      }
+
       const isFKey = /^F([1-9]|1[0-2])$/.test(e.key);
       const isAltNumber = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
-      const isAltM = e.altKey && !e.ctrlKey && (e.key === "m" || e.key === "M" || e.code === "KeyM");
+      const isAltM = (e.altKey || e.ctrlKey) && !e.metaKey && (e.key === "m" || e.key === "M" || e.code === "KeyM");
       const isAltV = e.altKey && !e.ctrlKey && (e.key === "v" || e.key === "V" || e.code === "KeyV");
       const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P" || e.code === "KeyP");
       const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S" || e.code === "KeyS");
@@ -237,7 +270,6 @@ export function useGlobalShortcuts() {
 
       // Never ignore Function keys or Alt shortcuts or Ctrl+, or Escape, even when typing inside an input or textarea!
       if (!isFKey && !isAltNumber && !isAltM && !isAltV && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
-        const target = e.target as HTMLElement;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
         }

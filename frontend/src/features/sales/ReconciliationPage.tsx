@@ -21,7 +21,7 @@ import {
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
 import { printTicket } from "@/lib/printerConfig";
 import { openPrintPopup } from "@/lib/printPopup";
-import { cn } from "@/lib/utils";
+import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { useTranslation } from "react-i18next";
@@ -840,11 +840,10 @@ export default function ReconciliationPage() {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="100"
+                    type="text"
+                    inputMode="decimal"
                     value={openingFloatInput}
-                    onChange={(e) => setOpeningFloatInput(e.target.value)}
+                    onChange={(e) => setOpeningFloatInput(normalizeNumericInput(e.target.value))}
                     placeholder="0.00"
                     className="form-input text-base font-bold font-mono py-2.5 pl-3 pr-14 rounded-xl w-full"
                     autoFocus
@@ -968,18 +967,55 @@ export default function ReconciliationPage() {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="1"
-                    step="50"
+                    type="text"
+                    inputMode="decimal"
                     value={movementAmount}
-                    onChange={(e) => setMovementAmount(e.target.value)}
+                    onChange={(e) => {
+                      setMovementAmount(normalizeNumericInput(e.target.value));
+                      if (movementError) setMovementError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                        const digit = extractDigitFromKeyEvent(e);
+                        if (digit !== null && !/^[0-9]$/.test(e.key)) {
+                          e.preventDefault();
+                          setMovementAmount((prev) => `${prev}${digit}`);
+                          if (movementError) setMovementError(null);
+                        }
+                      }
+                    }}
                     placeholder="0.00"
                     className="form-input text-base font-bold font-mono py-2 pl-3 pr-14 rounded-xl w-full"
                     autoFocus
                   />
-                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none">
                     DZD
                   </span>
+                </div>
+                {/* Quick amount pills */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {[100, 200, 500, 1000, 2000, 5000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setMovementAmount((prev) => String((parseFloat(prev) || 0) + preset));
+                        if (movementError) setMovementError(null);
+                      }}
+                      className="px-2 py-1 text-2xs font-mono font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      +{preset.toLocaleString("fr-DZ")}
+                    </button>
+                  ))}
+                  {movementAmount && (
+                    <button
+                      type="button"
+                      onClick={() => setMovementAmount("")}
+                      className="px-2 py-1 text-2xs font-bold rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer ms-auto"
+                    >
+                      Effacer
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1106,10 +1142,10 @@ export default function ReconciliationPage() {
                   </label>
                   <div className="relative">
                     <input
-                      type="number"
-                      step="50"
+                      type="text"
+                      inputMode="decimal"
                       value={actualCashInput}
-                      onChange={(e) => setActualCashInput(e.target.value)}
+                      onChange={(e) => setActualCashInput(normalizeNumericInput(e.target.value))}
                       placeholder="0.00"
                       className="form-input text-lg font-black font-mono py-2.5 pl-3 pr-14 rounded-xl w-full border-slate-300"
                       autoFocus
@@ -1134,9 +1170,10 @@ export default function ReconciliationPage() {
                     Total TPE Réel (Tickets CIB)
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={actualTpeInput}
-                    onChange={(e) => setActualTpeInput(e.target.value)}
+                    onChange={(e) => setActualTpeInput(normalizeNumericInput(e.target.value))}
                     className="form-input text-xs font-mono py-2 rounded-xl w-full"
                     placeholder={formatDZD(currentSession.stats?.tpe_sales ?? 0)}
                   />
@@ -1146,9 +1183,10 @@ export default function ReconciliationPage() {
                     Total BaridiMob Réel
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={actualBaridimobInput}
-                    onChange={(e) => setActualBaridimobInput(e.target.value)}
+                    onChange={(e) => setActualBaridimobInput(normalizeNumericInput(e.target.value))}
                     className="form-input text-xs font-mono py-2 rounded-xl w-full"
                     placeholder={formatDZD(currentSession.stats?.baridimob_sales ?? 0)}
                   />

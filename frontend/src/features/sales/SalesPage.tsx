@@ -15,7 +15,7 @@ import { printBonVersement, printBonReservation } from "@/lib/versement";
 import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
@@ -365,6 +365,20 @@ export default function SalesPage() {
   const [movementCategory, setMovementCategory] = useState("Dépense magasin");
   const [movementNotes, setMovementNotes] = useState("");
   const [movementError, setMovementError] = useState<string | null>(null);
+  const movementAmountRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showMovementModal) return;
+    const focusAmount = () => {
+      movementAmountRef.current?.focus();
+    };
+    const raf = requestAnimationFrame(focusAmount);
+    const timer = setTimeout(focusAmount, 40);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [showMovementModal]);
 
   // Cash Session Query
   const { data: currentSession } = useQuery<CashSession | null>({
@@ -960,8 +974,6 @@ export default function SalesPage() {
         return;
       }
 
-      if (anyDialogOpen) return;
-
       const target = e.target as HTMLElement;
       const isOtherInput =
         target &&
@@ -969,30 +981,34 @@ export default function SalesPage() {
           target.tagName === "TEXTAREA" ||
           target.isContentEditable ||
           target.tagName === "SELECT");
-      const isSearch = target === searchRef.current;
 
-      // Alt+V (or Ctrl+Shift+V, or Ctrl/Cmd+V outside inputs) = Versement
-      // Alt+M (or Ctrl+M) = Mouvements
-      // Requiring a modifier key prevents bare 'v' and 'm' from interfering with search typing.
-      const keyLower = e.key.toLowerCase();
-      const isKeyV = e.code === "KeyV" || keyLower === "v";
-      const isKeyM = e.code === "KeyM" || keyLower === "m";
-      const hasModifier = e.altKey || e.ctrlKey || e.metaKey;
-
-      if (hasModifier && (isKeyV || isKeyM)) {
-        if (isKeyM && (e.altKey || e.ctrlKey)) {
+      // When Mouvements modal is open, if cashier starts typing numbers while focus is on a button/backdrop,
+      // automatically direct keystrokes into the Montant input.
+      if (showMovementModal && !isOtherInput && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const digit = extractDigitFromKeyEvent(e);
+        if (digit !== null) {
           e.preventDefault();
-          handleMovementShortcut();
+          movementAmountRef.current?.focus();
+          setMovementAmount((prev) => `${prev}${digit}`);
           return;
         }
-        if (isKeyV) {
-          // Allow Alt+V or Ctrl/Cmd+Shift+V anywhere; allow Ctrl/Cmd+V when not focused in a text input (so paste still works in inputs)
-          const isPasteInInput = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && isOtherInput;
-          if (!isPasteInInput) {
-            e.preventDefault();
-            handleVersementShortcut();
-            return;
-          }
+      }
+
+      if (anyDialogOpen) return;
+
+      const isSearch = target === searchRef.current;
+
+      // Alt+V and Alt+M / Ctrl+M are dispatched globally by useGlobalShortcuts.
+      // Here we additionally allow Ctrl/Cmd+Shift+V anywhere, or Ctrl/Cmd+V outside inputs, for Versement.
+      const keyLower = e.key.toLowerCase();
+      const isKeyV = e.code === "KeyV" || keyLower === "v";
+
+      if (isKeyV && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        const isPasteInInput = !e.shiftKey && isOtherInput;
+        if (!isPasteInInput) {
+          e.preventDefault();
+          handleVersementShortcut();
+          return;
         }
       }
 
@@ -1868,7 +1884,7 @@ export default function SalesPage() {
                       ? "bg-amber-500 border-amber-600 text-white shadow-xs"
                       : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                   )}
-                  title="Raccourci V : Nouveau client + activer Versement"
+                  title="Raccourci Alt+V : Nouveau client + activer Versement"
                 >
                   <span>Versement</span>
                   <kbd className={cn(
@@ -1877,7 +1893,7 @@ export default function SalesPage() {
                       ? "bg-white/20 border-white/30 text-white"
                       : "bg-white border-slate-200 text-slate-500"
                   )}>
-                    V
+                    Alt+V
                   </kbd>
                 </button>
               </div>
@@ -1920,12 +1936,14 @@ export default function SalesPage() {
 
               <div className="relative flex items-center shrink-0">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={cartDiscount || ""}
-                  onChange={(e) => setCartDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(e) => {
+                    const cleaned = normalizeNumericInput(e.target.value);
+                    setCartDiscount(Math.max(0, parseFloat(cleaned) || 0));
+                  }}
                   placeholder="0"
-                  min="0"
-                  step="50"
                   className={cn(
                     "w-36 sm:w-44 pl-3 pr-14 py-2 text-lg font-black font-mono text-end rounded-xl border-2 transition-all focus:outline-none focus:ring-4",
                     cartDiscount > 0
@@ -2545,11 +2563,10 @@ export default function SalesPage() {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="100"
+                    type="text"
+                    inputMode="decimal"
                     value={sessionOpeningFloat}
-                    onChange={(e) => setSessionOpeningFloat(e.target.value)}
+                    onChange={(e) => setSessionOpeningFloat(normalizeNumericInput(e.target.value))}
                     placeholder="0.00"
                     className="form-input text-base font-bold font-mono py-2.5 pl-3 pr-14 rounded-xl w-full"
                     autoFocus
@@ -2644,9 +2661,11 @@ export default function SalesPage() {
             </div>
 
             <form
+              noValidate
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!movementAmount || parseFloat(movementAmount) <= 0) {
+                const parsedAmount = parseFloat(normalizeNumericInput(movementAmount));
+                if (!parsedAmount || parsedAmount <= 0) {
                   setMovementError("Veuillez saisir un montant valide.");
                   return;
                 }
@@ -2661,9 +2680,10 @@ export default function SalesPage() {
                   onClick={() => {
                     setMovementType("out");
                     setMovementCategory("Dépense magasin");
+                    movementAmountRef.current?.focus();
                   }}
                   className={cn(
-                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer",
                     movementType === "out" ? "bg-red-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
                   )}
                 >
@@ -2675,9 +2695,10 @@ export default function SalesPage() {
                   onClick={() => {
                     setMovementType("in");
                     setMovementCategory("Apport monnaie");
+                    movementAmountRef.current?.focus();
                   }}
                   className={cn(
-                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+                    "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer",
                     movementType === "in" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
                   )}
                 >
@@ -2693,18 +2714,60 @@ export default function SalesPage() {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="1"
-                    step="50"
+                    ref={movementAmountRef}
+                    type="text"
+                    inputMode="decimal"
                     value={movementAmount}
-                    onChange={(e) => setMovementAmount(e.target.value)}
+                    onChange={(e) => {
+                      setMovementAmount(normalizeNumericInput(e.target.value));
+                      if (movementError) setMovementError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                        const digit = extractDigitFromKeyEvent(e);
+                        if (digit !== null && !/^[0-9]$/.test(e.key)) {
+                          e.preventDefault();
+                          setMovementAmount((prev) => `${prev}${digit}`);
+                          if (movementError) setMovementError(null);
+                        }
+                      }
+                    }}
                     placeholder="0.00"
                     className="form-input text-base font-bold font-mono py-2 pl-3 pr-14 rounded-xl w-full"
                     autoFocus
                   />
-                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none">
                     DZD
                   </span>
+                </div>
+                {/* Quick amount pills */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {[100, 200, 500, 1000, 2000, 5000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setMovementAmount((prev) => String((parseFloat(prev) || 0) + preset));
+                        if (movementError) setMovementError(null);
+                        movementAmountRef.current?.focus();
+                      }}
+                      className="px-2 py-1 text-2xs font-mono font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      +{preset.toLocaleString("fr-DZ")}
+                    </button>
+                  ))}
+                  {movementAmount && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMovementAmount("");
+                        movementAmountRef.current?.focus();
+                      }}
+                      className="px-2 py-1 text-2xs font-bold rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer ms-auto"
+                    >
+                      Effacer
+                    </button>
+                  )}
                 </div>
               </div>
 

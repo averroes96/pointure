@@ -320,7 +320,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
               <input
                 type="number"
                 min={0}
-                step={100}
+                step="any"
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 className="form-input font-mono"
@@ -448,7 +448,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
             <input
               type="number"
               min={0.01}
-              step={100}
+              step="any"
               max={parseFloat(sale.balance_due || "0")}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -593,7 +593,7 @@ function CollectLayawayModal({
                 <input
                   type="number"
                   min={balanceDue}
-                  step={100}
+                  step="any"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="form-input font-mono font-bold"
