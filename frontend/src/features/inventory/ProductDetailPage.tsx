@@ -449,16 +449,16 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-4">
           {/* Pricing Card */}
           <div className="card rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3.5 bg-white">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tarification</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t("inventory.pricing_card_title")}</h3>
             <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-slate-500">Prix de vente</span>
+              <span className="text-xs font-medium text-slate-500">{t("inventory.sale_price")}</span>
               <span className="font-mono font-bold text-xl text-slate-900 tabular-nums">
                 {formatDZD(product.sale_price)} <span className="text-xs font-sans text-slate-400 font-normal">DZD</span>
               </span>
             </div>
             {parseFloat(product.wholesale_price || "0") > 0 && (
               <div className="flex items-baseline justify-between">
-                <span className="text-xs font-medium text-slate-500">Prix de gros</span>
+                <span className="text-xs font-medium text-slate-500">{t("inventory.wholesale_price")}</span>
                 <span className="font-mono font-bold text-base text-primary-600 tabular-nums">
                   {formatDZD(product.wholesale_price)} <span className="text-xs font-sans text-slate-400 font-normal">DZD</span>
                 </span>
@@ -484,7 +484,7 @@ export default function ProductDetailPage() {
                 )}
                 {product.margin_pct != null && (
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
-                    <span className="text-xs font-medium text-slate-500">Marge brute</span>
+                    <span className="text-xs font-medium text-slate-500">{t("inventory.gross_margin")}</span>
                     <span
                       className={cn(
                         "font-mono font-bold text-xs px-2 py-0.5 rounded-full border tabular-nums",
@@ -517,7 +517,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xs text-slate-400 font-bold uppercase tracking-wider mb-1">
-                  Stock total
+                  {t("inventory.total_stock")}
                 </p>
                 <p
                   className={cn(
@@ -644,7 +644,7 @@ export default function ProductDetailPage() {
                   >
                     {defaultVariant?.stock_qty ?? product.total_stock}
                   </span>
-                  <span className="text-xs font-medium text-slate-400">unités</span>
+                  <span className="text-xs font-medium text-slate-400">{t("inventory.units")}</span>
                 </div>
               </div>
 
@@ -723,7 +723,7 @@ export default function ProductDetailPage() {
                     className="max-w-full"
                   />
                 ) : (
-                  <span className="text-xs text-slate-400">Aucun code-barres assigné</span>
+                  <span className="text-xs text-slate-400">{t("inventory.no_barcode_assigned")}</span>
                 )}
               </div>
             </div>
@@ -732,18 +732,18 @@ export default function ProductDetailPage() {
             <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/70 flex flex-col justify-between">
               <div>
                 <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">
-                  Stockage & Emplacement
+                  {t("inventory.storage_and_location")}
                 </span>
                 <div className="mt-2 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Emplacement :</span>
+                    <span className="text-slate-500">{t("inventory.shelf_location")}</span>
                     <span className="font-semibold text-slate-800">
                       {product.location ? (
                         <span className="inline-flex items-center gap-1 text-primary-600 font-medium">
                           <MapPin size={11} /> {product.location}
                         </span>
                       ) : (
-                        "Non renseigné"
+                        t("inventory.not_specified")
                       )}
                     </span>
                   </div>
@@ -754,7 +754,7 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Référence SKU :</span>
+                    <span className="text-slate-500">{t("inventory.sku_ref")}</span>
                     <span className="font-mono font-semibold text-slate-800">
                       {product.reference || "—"}
                     </span>
@@ -812,17 +812,17 @@ export default function ProductDetailPage() {
           <div className="border-t border-slate-200/80 px-5 py-4">
             {branchLoading ? (
               <div className="flex items-center gap-2 text-slate-400 text-sm py-4 justify-center">
-                <Loader2 size={16} className="animate-spin text-primary-500" /> Chargement...
+                <Loader2 size={16} className="animate-spin text-primary-500" /> {t("common.loading")}
               </div>
             ) : !branchStock || branchStock.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Aucune succursale configurée.</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t("inventory.no_branch_configured")}</p>
             ) : isSimpleProduct ? (
               <div className="overflow-x-auto">
                 <table className="data-table text-xs">
                   <thead>
                     <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">Succursale</th>
-                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">Stock disponible</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.branch_col")}</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.available_stock_col")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -851,7 +851,7 @@ export default function ProductDetailPage() {
                 <table className="data-table text-xs">
                   <thead>
                     <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">Succursale</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.branch_col")}</th>
                       {/* Collect unique sizes across all branches */}
                       {Array.from(
                         new Set(branchStock.flatMap((b) => b.variants.map((v) => `${v.size_eu}_${v.colour === "N/A" ? t("common.na") : v.colour}`)))
@@ -866,7 +866,7 @@ export default function ProductDetailPage() {
                             </th>
                           );
                         })}
-                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">Total</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.total")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1028,7 +1028,7 @@ export default function ProductDetailPage() {
           <div className="card rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col bg-white overflow-hidden">
             {/* Modal header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between font-bold text-slate-900 bg-slate-50/50 flex-shrink-0">
-              <h2>Ajustement de stock multiple</h2>
+              <h2>{t("inventory.multi_stock_adjust_title")}</h2>
               <button
                 onClick={() => {
                   setAdjustOpen(false);
@@ -1053,7 +1053,7 @@ export default function ProductDetailPage() {
               <div className="grid grid-cols-2 gap-4 flex-shrink-0">
                 {/* Reason */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Motif *</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">{t("inventory.adjust_reason")}</label>
                   <select
                     value={adjustForm.reason}
                     onChange={(e) =>
@@ -1074,7 +1074,7 @@ export default function ProductDetailPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Notes</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">{t("common.notes")}</label>
                   <input
                     type="text"
                     value={adjustForm.notes}
@@ -1082,7 +1082,7 @@ export default function ProductDetailPage() {
                       setAdjustForm((f) => ({ ...f, notes: e.target.value }))
                     }
                     className="form-input bg-white border-slate-200 shadow-2xs rounded-xl focus:ring-primary-500/20"
-                    placeholder="Commentaire optionnel..."
+                    placeholder={t("inventory.optional_comment")}
                   />
                 </div>
               </div>
@@ -1092,9 +1092,9 @@ export default function ProductDetailPage() {
                 <table className="data-table text-sm w-full">
                   <thead className="bg-slate-50/90 sticky top-0 z-10 border-b border-slate-200/80">
                     <tr>
-                      <th className="w-1/3 py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{isSimpleProduct ? "Article" : "Variante"}</th>
-                      <th className="w-1/4 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock actuel</th>
-                      <th className="w-5/12 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ajustement (±)</th>
+                      <th className="w-1/3 py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{isSimpleProduct ? t("inventory.product") : t("inventory.variant", "Variante")}</th>
+                      <th className="w-1/4 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.current_stock")}</th>
+                      <th className="w-5/12 py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.adjust_diff")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

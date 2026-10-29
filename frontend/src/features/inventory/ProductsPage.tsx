@@ -325,7 +325,7 @@ export default function ProductsPage() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="form-input ps-9 pe-12 py-2 text-xs bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
-              placeholder="Nom, référence, marque, code-barres ou emplacement…"
+              placeholder={t("inventory.search_placeholder")}
             />
             <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
               F2
@@ -336,10 +336,10 @@ export default function ProductsPage() {
           <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
             {(
               [
-                { id: "", label: "Tout le stock" },
-                { id: "in_stock", label: "En stock (> 0)" },
-                { id: "low_stock", label: "Stock bas" },
-                { id: "out_of_stock", label: "En rupture (0)" },
+                { id: "", label: t("inventory.all_stock") },
+                { id: "in_stock", label: t("inventory.in_stock_gt_zero") },
+                { id: "low_stock", label: t("inventory.low_stock") },
+                { id: "out_of_stock", label: t("inventory.out_of_stock_zero") },
               ] as const
             ).map((pill) => (
               <button
@@ -370,7 +370,7 @@ export default function ProductsPage() {
         <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
             <Filter size={13} />
-            <span>Filtres :</span>
+            <span>{t("inventory.filters")}</span>
           </div>
 
           {/* Category Filter */}
@@ -378,9 +378,9 @@ export default function ProductsPage() {
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
             className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
-            title="Catégorie"
+            title={t("inventory.category")}
           >
-            <option value="">Toutes les catégories</option>
+            <option value="">{t("inventory.all_categories")}</option>
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>
                 {t(`category.${c.value}`, c.label)}
@@ -394,9 +394,9 @@ export default function ProductsPage() {
               value={brand}
               onChange={(e) => { setBrand(e.target.value); setPage(1); }}
               className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium"
-              title="Marque"
+              title={t("inventory.brand")}
             >
-              <option value="">Toutes les marques</option>
+              <option value="">{t("inventory.all_brands")}</option>
               {brandsList.map((b) => (
                 <option key={b} value={b}>
                   {b}
@@ -410,9 +410,9 @@ export default function ProductsPage() {
             value={gender}
             onChange={(e) => { setGender(e.target.value); setPage(1); }}
             className="form-input w-auto min-w-[130px] py-1.5 rounded-xl text-xs font-medium"
-            title="Genre"
+            title={t("inventory.gender")}
           >
-            <option value="">Tous les genres</option>
+            <option value="">{t("inventory.all_genders")}</option>
             {GENDER_OPTIONS.map((g) => (
               <option key={g.value} value={g.value}>
                 {g.label}
@@ -425,9 +425,9 @@ export default function ProductsPage() {
             value={season}
             onChange={(e) => { setSeason(e.target.value); setPage(1); }}
             className="form-input w-auto min-w-[135px] py-1.5 rounded-xl text-xs font-medium"
-            title="Saison"
+            title={t("inventory.season")}
           >
-            <option value="">Toutes les saisons</option>
+            <option value="">{t("inventory.all_seasons")}</option>
             {SEASON_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -440,11 +440,11 @@ export default function ProductsPage() {
             value={isActiveFilter}
             onChange={(e) => { setIsActiveFilter(e.target.value); setPage(1); }}
             className="form-input w-auto min-w-[130px] py-1.5 rounded-xl text-xs font-medium"
-            title="Statut"
+            title={t("common.status")}
           >
-            <option value="">Tous les statuts</option>
-            <option value="true">Actifs uniquement</option>
-            <option value="false">Inactifs</option>
+            <option value="">{t("inventory.all_statuses")}</option>
+            <option value="true">{t("inventory.status_active")}</option>
+            <option value="false">{t("inventory.status_inactive")}</option>
           </select>
 
           {/* Sort Order */}
@@ -452,16 +452,16 @@ export default function ProductsPage() {
             value={ordering}
             onChange={(e) => { setOrdering(e.target.value); setPage(1); }}
             className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium ms-auto"
-            title="Trier par"
+            title={t("inventory.sort_by")}
           >
-            <option value="name">Tri : Nom (A → Z)</option>
-            <option value="-name">Tri : Nom (Z → A)</option>
-            <option value="-created_at">Tri : Plus récents</option>
-            <option value="created_at">Tri : Plus anciens</option>
-            <option value="-sale_price">Tri : Prix décroissant</option>
-            <option value="sale_price">Tri : Prix croissant</option>
-            <option value="-total_stock_qty">Tri : Stock décroissant</option>
-            <option value="total_stock_qty">Tri : Stock croissant</option>
+            <option value="name">{t("inventory.sort_name_asc")}</option>
+            <option value="-name">{t("inventory.sort_name_desc")}</option>
+            <option value="-created_at">{t("inventory.sort_newest")}</option>
+            <option value="created_at">{t("inventory.sort_oldest")}</option>
+            <option value="-sale_price">{t("inventory.sort_price_desc")}</option>
+            <option value="sale_price">{t("inventory.sort_price_asc")}</option>
+            <option value="-total_stock_qty">{t("inventory.sort_stock_desc")}</option>
+            <option value="total_stock_qty">{t("inventory.sort_stock_asc")}</option>
           </select>
 
           {hasActiveFilters && (
@@ -470,7 +470,7 @@ export default function ProductsPage() {
               onClick={resetAllFilters}
               className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
             >
-              Réinitialiser
+              {t("common.reset")}
             </button>
           )}
         </div>
@@ -484,7 +484,7 @@ export default function ProductsPage() {
               {selectedIds.length}
             </span>
             <span className="text-sm font-semibold">
-              produit{selectedIds.length > 1 ? "s" : ""} sélectionné{selectedIds.length > 1 ? "s" : ""}
+              {t("inventory.selected_products")}
             </span>
           </div>
 
@@ -525,7 +525,7 @@ export default function ProductsPage() {
                 className="btn-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors"
               >
                 <Trash2 size={14} />
-                Supprimer ({selectedIds.length})
+                {t("common.delete")} ({selectedIds.length})
               </button>
             )}
 
@@ -534,7 +534,7 @@ export default function ProductsPage() {
               onClick={() => setSelectedIds([])}
               className="btn-ghost btn-sm text-slate-300 hover:text-white hover:bg-slate-800 text-xs"
             >
-              Désélectionner
+              {t("inventory.deselect")}
             </button>
           </div>
         </div>
@@ -555,7 +555,7 @@ export default function ProductsPage() {
                     }}
                     onChange={toggleSelectAll}
                     className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                    title="Tout sélectionner sur cette page"
+                    title={t("inventory.select_all_page")}
                   />
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
@@ -689,7 +689,7 @@ export default function ProductsPage() {
                         type="button"
                         onClick={() => handleSingleShelfLabel(product.id)}
                         className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
-                        title="Imprimer l'étiquette rayon"
+                        title={t("inventory.print_shelf_label")}
                       >
                         <Tag size={15} />
                       </button>
@@ -711,7 +711,7 @@ export default function ProductsPage() {
         {data && data.total_pages > 1 && (
           <div className="px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/40 flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">
-              Page <span className="font-mono font-semibold text-slate-700">{data.current_page}</span> sur{" "}
+              {t("common.page")} <span className="font-mono font-semibold text-slate-700">{data.current_page}</span> {t("common.from", "sur")}{" "}
               <span className="font-mono font-semibold text-slate-700">{data.total_pages}</span>
             </span>
             <div className="flex gap-2">
@@ -744,10 +744,10 @@ export default function ProductsPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Supprimer définitivement {selectedIds.length} produit{selectedIds.length > 1 ? "s" : ""} ?
+                  {t("inventory.bulk_delete_title", { count: selectedIds.length })}
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Cette action est irréversible. Les produits sélectionnés et leurs déclinaisons seront définitivement effacés.
+                  {t("inventory.bulk_delete_desc")}
                 </p>
               </div>
             </div>
@@ -768,7 +768,7 @@ export default function ProductsPage() {
                   className="rounded border-amber-400 text-red-600 focus:ring-red-500 mt-0.5"
                 />
                 <span>
-                  <strong>Forcer la suppression</strong> : Supprimer même si des produits ont des historiques de vente ou de facturation.
+                  <strong>{t("inventory.force_delete")}</strong> : {t("inventory.force_delete_desc")}
                 </span>
               </label>
             </div>
@@ -784,7 +784,7 @@ export default function ProductsPage() {
                 disabled={bulkDeleteLoading}
                 className="btn-secondary btn-sm"
               >
-                Annuler
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -795,12 +795,12 @@ export default function ProductsPage() {
                 {bulkDeleteLoading ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Suppression…
+                    {t("inventory.deleting")}
                   </>
                 ) : (
                   <>
                     <Trash2 size={14} />
-                    Supprimer définitivement
+                    {t("inventory.delete_permanently")}
                   </>
                 )}
               </button>

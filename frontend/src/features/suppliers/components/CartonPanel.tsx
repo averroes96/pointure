@@ -39,7 +39,7 @@ export function ProductSearch({
   onSelect: (p: ProductResult) => void;
   onClear: () => void;
 }) {
-  useTranslation();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -64,14 +64,14 @@ export function ProductSearch({
             </span>
           )}
           <span className="text-2xs text-primary-600 bg-primary-100/80 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-            Catalogue lié
+            {t("inventory.linked_catalog", "Catalogue lié")}
           </span>
         </div>
         <button
           type="button"
           onClick={onClear}
           className="text-text-muted hover:text-danger p-0.5 rounded transition-colors"
-          title="Dissocier le produit"
+          title={t("inventory.unlink_product")}
         >
           <X size={14} />
         </button>
@@ -85,7 +85,7 @@ export function ProductSearch({
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           className="form-input pl-9 text-xs py-2 w-full bg-white"
-          placeholder="Rechercher un produit existant par nom, référence ou code-barres (optionnel)…"
+          placeholder={t("inventory.search_product_placeholder")}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -97,10 +97,10 @@ export function ProductSearch({
       </div>
       {open && query.length >= 2 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-border/60">
-          {isFetching && <div className="p-3 text-xs text-text-muted">Recherche en cours…</div>}
+          {isFetching && <div className="p-3 text-xs text-text-muted">{t("inventory.searching")}</div>}
           {!isFetching && results.length === 0 && (
             <div className="p-3 text-xs text-text-muted">
-              Aucun produit existant trouvé — remplissez les champs ci-dessous pour créer un nouvel article automatiquement.
+              {t("inventory.no_product_matching_create_hint")}
             </div>
           )}
           {results.map((p) => (
@@ -235,6 +235,7 @@ export function CartonPanel({
   config: CartonConfig;
   onChange: (c: CartonConfig) => void;
 }) {
+  const { t } = useTranslation();
   const { data: storeSettings } = useQuery<StoreSettings>({
     queryKey: ["store-settings"],
     queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
@@ -454,7 +455,7 @@ export function CartonPanel({
         </div>
         <div>
           <label className="block text-2xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-            Prix de vente (DZD) <span className="text-danger">*</span>
+            {t("inventory.sale_price")} (DZD) <span className="text-danger">*</span>
           </label>
           <input
             type="number"
@@ -468,7 +469,7 @@ export function CartonPanel({
         </div>
         <div className="sm:col-span-2">
           <label className="block text-2xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-            Catégorie
+            {t("inventory.category")}
           </label>
           <select
             value={config.category}
@@ -487,7 +488,7 @@ export function CartonPanel({
       {/* Quantity / Carton bar */}
       <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white border border-border rounded-lg text-sm">
         <div className="flex items-center gap-1.5">
-          <span className="text-text-muted text-xs font-medium">Cartons</span>
+          <span className="text-text-muted text-xs font-medium">{t("inventory.cartons_label")}</span>
           <input
             type="number"
             min={1}
@@ -498,7 +499,7 @@ export function CartonPanel({
         </div>
         <span className="text-text-muted text-xs">×</span>
         <div className="flex items-center gap-1.5">
-          <span className="text-text-muted text-xs font-medium">Paires / Carton</span>
+          <span className="text-text-muted text-xs font-medium">{t("product.pairs_per_carton", "Paires / Carton")}</span>
           <input
             type="number"
             min={1}
@@ -511,7 +512,7 @@ export function CartonPanel({
         {enableVariants ? (
           <>
             <div className="flex items-center gap-1.5 border-l border-border pl-3">
-              <span className="text-text-muted text-xs font-medium">Pointures EU</span>
+              <span className="text-text-muted text-xs font-medium">{t("inventory.eu_sizes")}</span>
               <input
                 type="number"
                 min={15}
@@ -545,19 +546,19 @@ export function CartonPanel({
                   })
                 }
                 className="btn-secondary btn-sm text-xs py-1 px-2 flex items-center gap-1"
-                title="Répartir automatiquement les paires sur les pointures"
+                title={t("inventory.auto_distribute_pairs")}
               >
                 <Sparkles size={12} />
-                Auto-répartir
+                {t("inventory.auto_distribute", "Auto-répartir")}
               </button>
               <div className="px-2.5 py-1 bg-primary-50 border border-primary-200 rounded-md text-xs font-semibold text-primary-700 font-mono">
-                = {cartonTotal} paires
+                = {cartonTotal} {t("inventory.pairs", "paires")}
               </div>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-2 border-l border-border pl-3 ms-auto">
-            <span className="text-text-secondary text-xs font-semibold">= Total paires :</span>
+            <span className="text-text-secondary text-xs font-semibold">{t("inventory.total_pairs_label")}</span>
             <input
               type="number"
               min={1}
@@ -602,7 +603,7 @@ export function CartonPanel({
                 </span>
               ))}
               <div className="w-44">
-                <ColourPicker value="" onChange={addColour} placeholder="+ Ajouter couleur" />
+                <ColourPicker value="" onChange={addColour} placeholder={t("inventory.add_colour")} />
               </div>
             </div>
           </div>
@@ -612,13 +613,13 @@ export function CartonPanel({
               <table className="text-xs border-collapse w-full">
                 <thead>
                   <tr>
-                    <th className="text-left py-1 pr-3 text-text-muted font-semibold w-28">Couleur</th>
+                    <th className="text-left py-1 pr-3 text-text-muted font-semibold w-28">{t("inventory.colour_col")}</th>
                     {sizes.map((s) => (
                       <th key={s} className="text-center px-1 py-1 text-text-muted font-semibold w-10">
                         EU{s}
                       </th>
                     ))}
-                    <th className="text-right pl-2 py-1 text-text-muted font-semibold">Total</th>
+                    <th className="text-right pl-2 py-1 text-text-muted font-semibold">{t("common.total")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -660,7 +661,7 @@ export function CartonPanel({
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border">
-                    <td className="py-1 pr-3 text-xs text-text-muted font-semibold">Total / taille</td>
+                    <td className="py-1 pr-3 text-xs text-text-muted font-semibold">{t("inventory.total_per_size")}</td>
                     {sizes.map((s) => (
                       <td key={s} className="px-0.5 py-1 text-center text-xs font-semibold text-text-primary font-mono">
                         {effectiveColours.reduce((sum, c) => sum + (quantities[c]?.[s] ?? 0), 0)}

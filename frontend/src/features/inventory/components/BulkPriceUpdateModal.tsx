@@ -189,11 +189,11 @@ export default function BulkPriceUpdateModal({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">Prix de vente détail (TTC)</span>
+                  <span className="font-bold text-sm">{t("inventory.retail_price_ttc")}</span>
                   {targetField === "sale_price" && <CheckCircle2 size={16} className="text-primary-600" />}
                 </div>
                 <span className="text-2xs text-slate-500 mt-1">
-                  Prix affiché au magasin et imprimé sur l'étiquette de rayon
+                  {t("inventory.retail_price_desc", "Prix affiché au magasin et imprimé sur l'étiquette de rayon")}
                 </span>
               </button>
 
@@ -208,11 +208,11 @@ export default function BulkPriceUpdateModal({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">Prix de gros (B2B)</span>
+                  <span className="font-bold text-sm">{t("inventory.wholesale_price_b2b")}</span>
                   {targetField === "wholesale_price" && <CheckCircle2 size={16} className="text-primary-600" />}
                 </div>
                 <span className="text-2xs text-slate-500 mt-1">
-                  Prix appliqué pour les commandes par cartons / clients gros
+                  {t("inventory.wholesale_price_desc", "Prix appliqué pour les commandes par cartons / clients gros")}
                 </span>
               </button>
             </div>
@@ -336,7 +336,7 @@ export default function BulkPriceUpdateModal({
 
             {/* Quick Presets */}
             <div className="flex items-center gap-1.5 flex-wrap pt-1">
-              <span className="text-2xs font-semibold text-slate-400 me-1">Préréglages :</span>
+              <span className="text-2xs font-semibold text-slate-400 me-1">{t("inventory.presets")}</span>
               {updateType === "percentage" && (
                 <>
                   {[5, 10, 15, 20].map((pct) => (
@@ -408,9 +408,9 @@ export default function BulkPriceUpdateModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                3. Arrondi de vente (Pratique retail algérienne)
+                3. {t("inventory.retail_rounding", "Arrondi de vente (Pratique retail algérienne)")}
               </label>
-              <span className="text-2xs text-slate-400 font-medium">Évite les centimes et pièces rares</span>
+              <span className="text-2xs text-slate-400 font-medium">{t("inventory.round_hint")}</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

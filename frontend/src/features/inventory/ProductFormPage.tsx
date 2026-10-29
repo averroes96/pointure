@@ -452,7 +452,7 @@ export default function ProductFormPage() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 className="form-input"
-                placeholder="Ex: Air Max 90"
+                placeholder={t("inventory.form_name_placeholder")}
                 autoFocus
               />
             </Field>
@@ -464,16 +464,16 @@ export default function ProductFormPage() {
                   value={form.brand}
                   onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
                   className="form-input"
-                  placeholder="Ex: Nike"
+                  placeholder={t("inventory.form_brand_placeholder")}
                 />
               </Field>
-              <Field label="Référence / SKU">
+              <Field label={t("inventory.sku", "Référence / SKU")}>
                 <input
                   type="text"
                   value={form.reference}
                   onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
                   className="form-input"
-                  placeholder="Ex: AM90-BLK"
+                  placeholder={t("inventory.form_ref_placeholder")}
                 />
               </Field>
             </div>
@@ -481,8 +481,8 @@ export default function ProductFormPage() {
             {/* Code-barres & Stock initial */}
             <div className={cn("grid gap-3", !isEditing ? "grid-cols-2" : "grid-cols-1")}>
               <Field
-                label="Code-barres"
-                hint="Scannable par douchette ou généré automatiquement si vide"
+                label={t("inventory.barcode")}
+                hint={t("inventory.barcode_hint", "Scannable par douchette ou généré automatiquement si vide")}
               >
                 <div className="relative">
                   <input
@@ -490,7 +490,7 @@ export default function ProductFormPage() {
                     value={form.barcode}
                     onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))}
                     className="form-input font-mono ps-9 text-xs"
-                    placeholder="Ex: 6130001234567"
+                    placeholder={t("inventory.form_barcode_placeholder")}
                   />
                   <Barcode
                     size={16}
@@ -501,8 +501,8 @@ export default function ProductFormPage() {
 
               {!isEditing && (
                 <Field
-                  label="Stock initial"
-                  hint="Quantité en magasin disponible immédiatement"
+                  label={t("inventory.initial_stock", "Stock initial")}
+                  hint={t("inventory.initial_stock_hint", "Quantité en magasin disponible immédiatement")}
                 >
                   <input
                     type="number"
@@ -516,14 +516,14 @@ export default function ProductFormPage() {
               )}
             </div>
 
-            <Field label="Rayonnage / Emplacement" hint={canUseLocation ? "Lieu de stockage pour l'agence actuelle" : "Disponible à partir du plan PRO"}>
+            <Field label={t("inventory.shelf_location_label", "Rayonnage / Emplacement")} hint={canUseLocation ? t("inventory.storage_location_hint", "Lieu de stockage pour l'agence actuelle") : t("inventory.pro_plan_hint", "Disponible à partir du plan PRO")}>
               <div className="relative">
                 <input
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                   className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
-                  placeholder="Ex: Rayon 3, Étagère B"
+                  placeholder={t("inventory.form_location_placeholder")}
                   disabled={!canUseLocation}
                 />
                 {!canUseLocation && (
@@ -540,15 +540,15 @@ export default function ProductFormPage() {
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 className="form-input resize-none"
                 rows={3}
-                placeholder="Description courte du produit..."
+                placeholder={t("inventory.form_desc_placeholder")}
               />
             </Field>
 
             {/* Active toggle */}
             <div className="flex items-center justify-between py-2 border-t border-border">
               <div>
-                <p className="text-sm font-medium text-text-primary">Produit actif</p>
-                <p className="text-xs text-text-muted">Les produits inactifs ne sont pas affichés en caisse.</p>
+                <p className="text-sm font-medium text-text-primary">{t("inventory.active_switch")}</p>
+                <p className="text-xs text-text-muted">{t("inventory.active_switch_desc")}</p>
               </div>
               <button
                 type="button"
@@ -701,7 +701,7 @@ export default function ProductFormPage() {
                 parseFloat(form.sale_price) > 0 &&
                 parseFloat(form.purchase_price) >= 0 && (
                   <div className="text-xs text-text-muted bg-surface rounded-md px-3 py-2 flex justify-between">
-                    <span>Marge estimée</span>
+                    <span>{t("inventory.estimated_margin")}</span>
                     <span
                       className={cn(
                         "font-semibold font-mono",
@@ -964,7 +964,7 @@ export default function ProductFormPage() {
                             value={colourSearch}
                             onChange={(e) => setColourSearch(e.target.value)}
                             className="form-input text-xs py-1.5"
-                            placeholder="Rechercher une couleur…"
+                            placeholder={t("inventory.search_colour")}
                             autoFocus
                           />
                         </div>
@@ -1013,7 +1013,7 @@ export default function ProductFormPage() {
                   onChange={(e) => setCustomColour(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomColour(); } }}
                   className="form-input text-xs flex-1"
-                  placeholder="Couleur personnalisée…"
+                  placeholder={t("inventory.custom_colour")}
                 />
                 <button
                   type="button"
@@ -1022,7 +1022,7 @@ export default function ProductFormPage() {
                   className="btn-secondary btn-sm"
                 >
                   <Plus size={12} />
-                  Ajouter
+                  {t("common.add")}
                 </button>
               </div>
 

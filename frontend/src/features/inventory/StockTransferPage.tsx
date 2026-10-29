@@ -449,7 +449,7 @@ export default function StockTransferPage() {
                         {formatDate(transfer.created_at)}
                         {transfer.received_at && (
                           <div className="text-xs text-success">
-                            Reçu {formatDate(transfer.received_at)}
+                            {t("inventory.received_at_date", { date: formatDate(transfer.received_at) })}
                           </div>
                         )}
                       </td>

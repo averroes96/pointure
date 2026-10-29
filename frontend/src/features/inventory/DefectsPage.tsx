@@ -307,7 +307,7 @@ export default function DefectsPage() {
           )}
         >
           <ShieldAlert size={16} />
-          Articles Défectueux ({metrics?.quarantined_pairs ?? 0})
+          {t("inventory.defects_tab", { count: metrics?.quarantined_pairs ?? 0 })}
         </button>
         <button
           onClick={() => setTab("claims")}
@@ -319,7 +319,7 @@ export default function DefectsPage() {
           )}
         >
           <FileText size={16} />
-          Bons de Retour Fournisseurs
+          {t("inventory.claims_tab")}
         </button>
       </div>
 
@@ -503,12 +503,12 @@ export default function DefectsPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>N° Bon de Retour</th>
+                    <th>{t("inventory.return_slip_no")}</th>
                     <th>{t("defects.filter_supplier")}</th>
-                    <th className="text-center">Articles / Paires</th>
-                    <th className="text-end">Montant Total (Avoir)</th>
+                    <th className="text-center">{t("inventory.items_pairs")}</th>
+                    <th className="text-end">{t("inventory.total_credit_amount")}</th>
                     <th className="text-center">{t("defects.status")}</th>
-                    <th>Date d'émission</th>
+                    <th>{t("inventory.issue_date")}</th>
                     <th className="text-center">{t("defects.actions")}</th>
                   </tr>
                 </thead>
@@ -516,7 +516,7 @@ export default function DefectsPage() {
                   {loadingClaims && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-text-muted">
-                        Chargement des réclamations...
+                        {t("common.loading")}
                       </td>
                     </tr>
                   )}
@@ -524,7 +524,7 @@ export default function DefectsPage() {
                     <tr>
                       <td colSpan={7} className="text-center py-12 text-text-muted">
                         <FileText className="mx-auto text-text-muted/40 mb-2" size={36} />
-                        Aucun bon de retour émis pour l'instant.
+                        {t("inventory.no_claim_slips", "Aucun bon de retour émis pour l'instant.")}
                       </td>
                     </tr>
                   )}
@@ -567,10 +567,10 @@ export default function DefectsPage() {
                             <button
                               onClick={() => applyCreditMutation.mutate(claim.id)}
                               className="btn-primary btn-sm flex items-center gap-1"
-                              title="Déduire de la dette fournisseur"
+                              title={t("inventory.deduct_supplier_debt")}
                             >
                               <CheckCircle2 size={13} />
-                              Valider Avoir
+                              {t("inventory.validate_credit", "Valider Avoir")}
                             </button>
                           )}
                         </div>
@@ -696,7 +696,7 @@ function LogDefectModal({
           )}
 
           <div>
-            <label className="form-label mb-1 block">Sélectionner l'article / pointure *</label>
+            <label className="form-label mb-1 block">{t("inventory.select_item_size")}</label>
             <VariantSearchInput value={selectedVariant} onSelect={setSelectedVariant} />
           </div>
 
@@ -879,26 +879,26 @@ function CreateClaimModal({
               <span className="font-mono font-bold text-text-primary">{selectedItems.length} article(s)</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-text-muted">Total paires :</span>
+              <span className="text-text-muted">{t("inventory.total_pairs")}</span>
               <span className="font-mono font-bold text-text-primary">
-                {selectedItems.reduce((acc, i) => acc + i.quantity, 0)} paires
+                {selectedItems.reduce((acc, i) => acc + i.quantity, 0)} {t("inventory.pairs", "paires")}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-              <span className="font-semibold text-text-primary">Montant estimé de l'avoir :</span>
+              <span className="font-semibold text-text-primary">{t("inventory.estimated_credit_amount")}</span>
               <span className="font-mono font-bold text-danger text-base">{formatDZD(totalAmount)} DZD</span>
             </div>
           </div>
 
           <div>
-            <label className="form-label mb-1 block">Fournisseur destinataire *</label>
+            <label className="form-label mb-1 block">{t("inventory.target_supplier")}</label>
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
               className="form-input w-full"
               required
             >
-              <option value="">Sélectionnez un fournisseur...</option>
+              <option value="">{t("inventory.select_supplier")}</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}

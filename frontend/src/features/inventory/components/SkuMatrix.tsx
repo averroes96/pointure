@@ -286,7 +286,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
               className="btn-secondary btn-sm"
             >
               <Plus size={14} />
-              Nouvelle variante
+              {t("inventory.new_variant")}
             </button>
           </div>
           {dirty && (
@@ -296,7 +296,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
               className="btn-primary btn-sm"
             >
               <Save size={14} />
-              {saveMutation.isPending ? "Sauvegarde…" : "Sauvegarder seuils"}
+              {saveMutation.isPending ? t("common.saving") : t("common.save")}
             </button>
           )}
         </div>
@@ -331,7 +331,7 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
           <thead>
             <tr className="bg-surface">
               <th className="px-3 py-2 text-start font-semibold text-text-primary border-e border-border whitespace-nowrap">
-                Pointure EU
+                {t("inventory.eu_sizes", "Pointure EU")}
               </th>
               {colours.map((colour) => (
                 <th
@@ -490,11 +490,11 @@ function AddVariantForm({
   const { t } = useTranslation();
   return (
     <div className="card p-4 border-primary-200 bg-primary-50/30">
-      <h3 className="text-sm font-semibold text-text-primary mb-3">Nouvelle variante</h3>
+      <h3 className="text-sm font-semibold text-text-primary mb-3">{t("inventory.new_variant")}</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Size */}
         <div>
-          <label className="block text-xs font-medium text-text-muted mb-1">Pointure EU *</label>
+          <label className="block text-xs font-medium text-text-muted mb-1">{t("inventory.size_eu")}</label>
           <input
             type="number"
             value={form.size_eu}
@@ -508,7 +508,7 @@ function AddVariantForm({
 
         {/* Colour — select from existing or type new */}
         <div>
-          <label className="block text-xs font-medium text-text-muted mb-1">Couleur *</label>
+          <label className="block text-xs font-medium text-text-muted mb-1">{t("inventory.colour", "Couleur")} *</label>
           <select
             value={form.colour}
             onChange={(e) => {
@@ -517,24 +517,24 @@ function AddVariantForm({
             }}
             className="form-input text-sm py-1.5"
           >
-            <option value="">— Choisir —</option>
+            <option value="">{t("inventory.choose_colour")}</option>
             {existingColours.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
-            <option value="__new__">+ Autre couleur…</option>
+            <option value="__new__">{t("inventory.other_colour")}</option>
           </select>
         </div>
 
         {/* New colour text input */}
         {form.colour === "__new__" && (
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Nom couleur</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">{t("inventory.colour_name")}</label>
             <input
               type="text"
               value={newColourInput}
               onChange={(e) => setNewColourInput(e.target.value)}
               className="form-input text-sm py-1.5"
-              placeholder="Ex: Vert militaire"
+              placeholder={t("inventory.colour_name_placeholder")}
               autoFocus
             />
           </div>
@@ -542,7 +542,7 @@ function AddVariantForm({
 
         {/* Alert threshold */}
         <div>
-          <label className="block text-xs font-medium text-text-muted mb-1">Seuil alerte</label>
+          <label className="block text-xs font-medium text-text-muted mb-1">{t("inventory.stock_threshold", "Seuil alerte")}</label>
           <input
             type="number"
             value={form.alert_threshold}
@@ -565,10 +565,10 @@ function AddVariantForm({
           className="btn-primary btn-sm"
         >
           <Plus size={14} />
-          {isPending ? "Création…" : "Créer variante"}
+          {isPending ? t("common.creating") : t("inventory.create_variant")}
         </button>
         <button onClick={onCancel} className="btn-secondary btn-sm">
-          Annuler
+          {t("common.cancel")}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Printer,
   X,
@@ -28,6 +29,7 @@ import type { PrinterInfo } from "@/vite-env";
 import { cn } from "@/lib/utils";
 
 export default function LabelPrintDialog() {
+  const { t } = useTranslation();
   const { isOpen, request, htmlContent, isLoadingHtml, copies, closeDialog, setCopies, refreshHtml } =
     useLabelPrintStore();
 
@@ -232,7 +234,7 @@ export default function LabelPrintDialog() {
             </div>
             <div>
               <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
-                {request?.title || "Imprimer l'étiquette"}
+                {request?.title || t("inventory.print_label")}
                 <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">
                   {w} × {h} mm
                 </span>
@@ -334,7 +336,7 @@ export default function LabelPrintDialog() {
               {/* Label Size Preset */}
               <div>
                 <label className="block text-2xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
-                  Format du rouleau d'étiquettes
+                  {t("inventory.roll_format")}
                 </label>
                 <select
                   value={labelSize}
@@ -346,7 +348,7 @@ export default function LabelPrintDialog() {
                       {p.label}
                     </option>
                   ))}
-                  <option value="custom">Format Personnalisé (mm)...</option>
+                  <option value="custom">{t("inventory.custom_format")}</option>
                 </select>
 
                 {labelSize === "custom" && (
@@ -519,7 +521,7 @@ export default function LabelPrintDialog() {
                   ) : (
                     <>
                       <Printer size={14} />
-                      <span>Imprimer</span>
+                      <span>{t("common.print")}</span>
                     </>
                   )}
                 </button>
@@ -564,7 +566,7 @@ export default function LabelPrintDialog() {
                     }}
                   >
                     <iframe
-                      title="Aperçu Étiquette"
+                      title={t("inventory.label_preview")}
                       srcDoc={previewHtml}
                       scrolling="no"
                       className="border-0 pointer-events-none select-none absolute top-0 left-0"
@@ -579,7 +581,7 @@ export default function LabelPrintDialog() {
                   </div>
                 ) : (
                   <div className="text-slate-400 text-xs p-4 text-center">
-                    Aucun aperçu disponible
+                    {t("inventory.no_preview_available", "Aucun aperçu disponible")}
                   </div>
                 )}
               </div>
@@ -592,19 +594,19 @@ export default function LabelPrintDialog() {
                     onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
                     className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                    title="Étiquette précédente"
+                    title={t("inventory.prev_label")}
                   >
                     <ChevronLeft size={14} />
                   </button>
                   <span className="font-mono text-3xs text-slate-300">
-                    Étiquette {currentPage + 1} / {pageCount}
+                    {t("inventory.label_page_counter", { current: currentPage + 1, total: pageCount })}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
                     disabled={currentPage >= pageCount - 1}
                     className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                    title="Étiquette suivante"
+                    title={t("inventory.next_label")}
                   >
                     <ChevronRight size={14} />
                   </button>
