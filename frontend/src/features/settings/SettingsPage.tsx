@@ -22,6 +22,9 @@ import {
   Key,
   ShieldCheck,
   PackageCheck,
+  Sun,
+  Moon,
+  Check,
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
@@ -33,6 +36,7 @@ import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useWilayas } from "@/hooks/useLocationData";
+import { useTheme } from "@/hooks/useTheme";
 import i18n from "@/lib/i18n";
 
 const t = i18n.t.bind(i18n);
@@ -77,6 +81,7 @@ interface ProfileFormData {
 
 function ProfileTab({ user }: { user: UserType }) {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const {
     register,
@@ -109,26 +114,26 @@ function ProfileTab({ user }: { user: UserType }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("user.first_name")} <span className="text-rose-500">*</span>
           </label>
           <input
             type="text"
             {...register("first_name", { required: "Obligatoire" })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
           />
           {errors.first_name && (
             <p className="text-xs text-rose-600 mt-1">{errors.first_name.message}</p>
           )}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("user.last_name")} <span className="text-rose-500">*</span>
           </label>
           <input
             type="text"
             {...register("last_name", { required: "Obligatoire" })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
           />
           {errors.last_name && (
             <p className="text-xs text-rose-600 mt-1">{errors.last_name.message}</p>
@@ -137,24 +142,24 @@ function ProfileTab({ user }: { user: UserType }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("user.phone")}
         </label>
         <input
           type="tel"
           {...register("phone")}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           placeholder="0550 000 000"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("user.language")}
         </label>
         <select
           {...register("language_preference")}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
         >
           <option value="fr">{t("user.lang_fr")}</option>
           <option value="ar">{t("user.lang_ar")}</option>
@@ -162,7 +167,99 @@ function ProfileTab({ user }: { user: UserType }) {
         </select>
       </div>
 
-      <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+      {/* ── Apparence & Thème de l'interface ── */}
+      <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+          {t("settings.theme_title", "Apparence & Thème de l'interface")}
+        </label>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3.5">
+          {t("settings.theme_desc", "Personnalisez l'affichage pour réduire la fatigue visuelle selon vos conditions d'éclairage en magasin.")}
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              id: "light" as const,
+              label: "Mode Clair",
+              badge: "Standard",
+              icon: Sun,
+              desc: "Fond lumineux, contraste optimal de jour",
+              previewBg: "bg-slate-50 border-slate-200",
+              accentBar: "bg-blue-600",
+            },
+            {
+              id: "dark" as const,
+              label: "Mode Sombre",
+              badge: "Obsidian",
+              icon: Moon,
+              desc: "Fond sombre, reposant pour les yeux en soirée",
+              previewBg: "bg-slate-900 border-slate-700",
+              accentBar: "bg-blue-500",
+            },
+            {
+              id: "system" as const,
+              label: "Automatique",
+              badge: "Recommandé",
+              icon: Monitor,
+              desc: "S'adapte automatiquement à l'OS (Windows / macOS)",
+              previewBg: "bg-gradient-to-r from-slate-100 to-slate-900 border-slate-300 dark:border-slate-700",
+              accentBar: "bg-primary-500",
+            },
+          ].map((item) => {
+            const isSelected = theme === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTheme(item.id)}
+                className={cn(
+                  "relative flex flex-col text-start p-3.5 rounded-2xl border-2 transition-all cursor-pointer group",
+                  isSelected
+                    ? "border-primary-600 bg-primary-50/20 dark:bg-primary-950/30 shadow-xs ring-4 ring-primary-500/10"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40"
+                )}
+              >
+                {/* Visual miniature mockup */}
+                <div className={cn("w-full h-14 rounded-xl border mb-3 overflow-hidden p-2 relative flex flex-col justify-between shadow-2xs", item.previewBg)}>
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-1.5 rounded-full bg-slate-400/40" />
+                    <Icon size={14} className={item.id === "dark" ? "text-amber-400" : item.id === "light" ? "text-amber-500" : "text-primary-500"} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className={cn("h-1.5 w-16 rounded-full", item.accentBar)} />
+                    <div className="h-1 w-10 rounded-full bg-slate-400/30" />
+                  </div>
+                  {isSelected && (
+                    <div className="absolute end-1.5 bottom-1.5 w-4 h-4 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-xs">
+                      <Check size={10} className="stroke-[3]" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                        isSelected
+                          ? "bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{item.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="submit"
           disabled={mutation.isPending || !isDirty}
@@ -1728,7 +1825,7 @@ export default function SettingsPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar nav */}
         <div className="lg:w-64 flex-shrink-0">
-          <div className="rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white p-2">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900 p-2">
             <nav className="space-y-1">
               {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
@@ -1740,13 +1837,13 @@ export default function SettingsPage() {
                     className={cn(
                       "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer",
                       isActive
-                        ? "bg-primary-50 text-primary-700 border border-primary-200/60 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        ? "bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/80 shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                   >
                     <Icon
                       size={16}
-                      className={cn(isActive ? "text-primary-600" : "text-slate-400")}
+                      className={cn(isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-400")}
                     />
                     <span className="truncate">{tab.label}</span>
                   </button>
@@ -1758,8 +1855,8 @@ export default function SettingsPage() {
 
         {/* Tab content */}
         <div className="flex-1 min-w-0">
-          <div className="rounded-2xl border border-slate-200/80 shadow-xs bg-white p-6 sm:p-8">
-            <h2 className="text-lg font-bold text-slate-900 pb-4 mb-6 border-b border-slate-100 flex items-center gap-2.5">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900 p-6 sm:p-8">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 pb-4 mb-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
               {(() => {
                 const current = visibleTabs.find((t) => t.key === activeTab);
                 if (!current) return null;

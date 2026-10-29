@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -36,11 +36,17 @@ export function applyThemeToDom(mode: ThemeMode): ResolvedTheme {
   return resolved;
 }
 
-/**
- * React hook for accessing and controlling the application theme.
- * Supports "light", "dark", and "system" (auto OS preference).
- */
-export function useTheme() {
+export interface ThemeContextType {
+  theme: ThemeMode;
+  resolvedTheme: ResolvedTheme;
+  setTheme: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
+  isDark: boolean;
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return "system";
     return (localStorage.getItem(STORAGE_KEY) as ThemeMode) || "system";
@@ -80,12 +86,33 @@ export function useTheme() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme]);
 
-  return {
-    theme,
-    resolvedTheme,
-    setTheme,
-    toggleTheme,
-    isDark: resolvedTheme === "dark",
-  };
+  return (
+    <ThemeContext.Provider
+      value={{
+        theme,
+        resolvedTheme,
+        setTheme,
+        toggleTheme,
+        isDark: resolvedTheme === "dark",
+      }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme(): ThemeContextType {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+    return {
+      theme: "system",
+      resolvedTheme: isDark ? "dark" : "light",
+      setTheme: (m) => applyThemeToDom(m),
+      toggleTheme: () => {},
+      isDark,
+    };
+  }
+  return context;
 }
 

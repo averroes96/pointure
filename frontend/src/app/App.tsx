@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-route
 import { Suspense, lazy, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
 import { BranchProvider } from "@/features/auth/BranchContext";
+import { ThemeProvider } from "@/hooks/useTheme";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import LabelPrintDialog from "@/features/inventory/components/LabelPrintDialog";
 import api from "@/lib/api";
@@ -234,12 +235,14 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <BranchProvider>
-          <AppRoutes />
-          <LabelPrintDialog />
-        </BranchProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BranchProvider>
+            <AppRoutes />
+            <LabelPrintDialog />
+          </BranchProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
