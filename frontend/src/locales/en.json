@@ -1035,5 +1035,18 @@
     "escape": "Cancel, clear search or close dialog",
     "help": "Open shortcuts guide",
     "store_note": "These function keys work seamlessly on Windows, even while typing inside search, quantity, or barcode input fields."
+  },
+  "v14": {
+    "print_language": "Printed Receipts & Slips Language",
+    "print_lang_ui": "Automatic (follow UI language)",
+    "print_lang_fr": "French only",
+    "print_lang_ar": "Arabic only (RTL)",
+    "print_lang_en": "English only",
+    "print_lang_bilingual": "Bilingual (French / Arabic)",
+    "backup_title": "Local Database Backup & Data Safety",
+    "backup_desc": "Download a complete, consistent snapshot of the local database (.sqlite3) to your computer or USB drive.",
+    "backup_btn": "Download Database Backup (.sqlite3)",
+    "whatsapp_reminder": "Send WhatsApp Reminder",
+    "print_po_labels": "Print Reception Labels"
   }
 }

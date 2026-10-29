@@ -1362,6 +1362,54 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in f"{product.name}_EU{variant.size_eu}_{variant.colour}")
         return _label_response(request, html_string, filename=f"{safe}.pdf")
 
+    @action(detail=False, methods=["post"], url_path="batch-barcode-labels")
+    def batch_barcode_labels(self, request):
+        """
+        POST /inventory/variants/batch-barcode-labels/
+        Body: { "items": [{ "variant_id": 12, "copies": 5 }, ...], "w": 45, "h": 35, "output": "html" }
+        Generates a combined barcode label sheet for a Purchase Order reception or multi-variant batch.
+        """
+        w_mm = float(request.data.get("w") or request.query_params.get("w") or DEFAULT_LABEL_W_MM)
+        h_mm = float(request.data.get("h") or request.query_params.get("h") or DEFAULT_LABEL_H_MM)
+        w_mm = min(max(w_mm, 15.0), 150.0)
+        h_mm = min(max(h_mm, 15.0), 150.0)
+
+        raw_items = request.data.get("items") or []
+        if not isinstance(raw_items, list) or not raw_items:
+            return Response({"detail": "Aucun article fourni."}, status=status.HTTP_400_BAD_REQUEST)
+
+        variant_ids = [int(it.get("variant_id")) for it in raw_items if it.get("variant_id")]
+        variants_map = {
+            v.id: v
+            for v in Variant.objects.filter(tenant=request.tenant, id__in=variant_ids).select_related("product")
+        }
+
+        labels_chunks = []
+        for it in raw_items:
+            vid = it.get("variant_id")
+            v = variants_map.get(int(vid)) if vid else None
+            if not v:
+                continue
+            if not v.barcode:
+                v.barcode = generate_barcode(v)
+                Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
+            copies = max(1, min(int(it.get("copies") or 1), 100))
+            single_html = _render_label(v.product, v, w_mm, h_mm)
+            labels_chunks.extend([single_html] * copies)
+
+        if not labels_chunks:
+            return Response({"detail": "Aucune variante liée à imprimer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        html_string = _barcode_page(
+            title="Étiquettes Réception Commande",
+            labels_html="\n".join(labels_chunks),
+            w_mm=w_mm,
+            h_mm=h_mm,
+        )
+        if request.data.get("output") == "html" or request.query_params.get("output") == "html":
+            return HttpResponse(html_string, content_type="text/html; charset=utf-8")
+        return _build_pdf_response(html_string, filename="etiquettes_reception.pdf")
+
 
 class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Read-only view of all stock movements. Adjustments go via /adjust endpoint."""

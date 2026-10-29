@@ -372,6 +372,31 @@ export default function PrintersTab() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                {t("v14.print_language", "Langue des tickets & reçus imprimés")}
+              </label>
+              <select
+                value={config.ticket.printLanguage || "ui"}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    ticket: {
+                      ...config.ticket,
+                      printLanguage: e.target.value as any,
+                    },
+                  })
+                }
+                className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              >
+                <option value="ui">{t("v14.print_lang_ui", "Automatique (suivre la langue de l'interface)")}</option>
+                <option value="fr">{t("v14.print_lang_fr", "Français uniquement")}</option>
+                <option value="ar">{t("v14.print_lang_ar", "Arabe uniquement (RTL)")}</option>
+                <option value="bilingual">{t("v14.print_lang_bilingual", "Bilingue (Français / Arabe)")}</option>
+                <option value="en">{t("v14.print_lang_en", "Anglais uniquement")}</option>
+              </select>
+            </div>
+
             <div className="pt-1">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input

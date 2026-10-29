@@ -11,11 +11,32 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Download, AlertCircle, MapPin } from "lucide-react";
+import { Download, AlertCircle, MapPin, MessageCircle, Search, ExternalLink } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import type { DebtAgeingRow } from "@/types";
 import { cn } from "@/lib/utils";
 import { wilayaName } from "@/lib/wilayas";
+
+function sendDebtReminderWhatsApp(row: DebtAgeingRow) {
+  const rawPhone = (row.phone || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+  let intlPhone = rawPhone;
+  if (intlPhone.startsWith("0")) {
+    intlPhone = "213" + intlPhone.slice(1);
+  } else if (intlPhone.startsWith("+")) {
+    intlPhone = intlPhone.slice(1);
+  }
+  const formattedTotal = formatDZD(row.total);
+  const msg =
+    `Bonjour ${row.client_name},\n` +
+    `Sauf erreur ou omission de notre part, votre solde restant dû en magasin s'élève à *${formattedTotal} DZD*.\n` +
+    `Merci de votre confiance !\n` +
+    `---\n` +
+    `مرحباً ${row.client_name}، نود تذكيركم بأن الرصيد المتبقي في حسابكم هو *${formattedTotal} د.ج*. شكراً لثقتكم!`;
+  const url = intlPhone
+    ? `https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 // ── Toast (inline, no external lib assumed) ────────────────────────────────
 
@@ -85,6 +106,7 @@ export default function DebtAgeingPage() {
   const toast = useToast();
 
   const [wilayaFilter, setWilayaFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const { data: rows = [], isLoading, isError } = useQuery<DebtAgeingRow[]>({
     queryKey: ["reports", "ageing"],
@@ -98,13 +120,18 @@ export default function DebtAgeingPage() {
   );
 
   // Filtered rows
-  const filtered = useMemo(
-    () =>
-      wilayaFilter
-        ? rows.filter((r) => r.wilaya === wilayaFilter)
-        : rows,
-    [rows, wilayaFilter]
-  );
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (wilayaFilter && r.wilaya !== wilayaFilter) return false;
+      if (q) {
+        const matchName = (r.client_name || "").toLowerCase().includes(q);
+        const matchPhone = (r.phone || "").toLowerCase().includes(q);
+        if (!matchName && !matchPhone) return false;
+      }
+      return true;
+    });
+  }, [rows, wilayaFilter, searchQuery]);
 
   // Totals per bucket
   const totals = useMemo(() => {
@@ -202,7 +229,17 @@ export default function DebtAgeingPage() {
 
       {/* Filter bar & Legend */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher client ou tél..."
+              className="form-input ps-9 pe-3 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 w-56"
+            />
+          </div>
           <div className="relative">
             <MapPin size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
@@ -217,12 +254,15 @@ export default function DebtAgeingPage() {
             </select>
           </div>
 
-          {wilayaFilter && (
+          {(wilayaFilter || searchQuery) && (
             <button
-              onClick={() => setWilayaFilter("")}
+              onClick={() => {
+                setWilayaFilter("");
+                setSearchQuery("");
+              }}
               className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Effacer le filtre
+              Effacer les filtres
             </button>
           )}
         </div>
@@ -281,6 +321,7 @@ export default function DebtAgeingPage() {
                     <span className="text-rose-700">+90j</span>
                   </th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Total Dû</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Actions</th>
                 </tr>
               </thead>
 
@@ -292,7 +333,7 @@ export default function DebtAgeingPage() {
                 {/* Empty state */}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
+                    <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
                       Aucune créance trouvée
                       {wilayaFilter ? ` pour la wilaya "${wilayaFilter}"` : ""}.
                     </td>
@@ -350,6 +391,27 @@ export default function DebtAgeingPage() {
                         <span className="text-2xs text-slate-400 font-normal">DZD</span>
                       </span>
                     </td>
+                    <td className="py-3 px-4 text-end">
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => sendDebtReminderWhatsApp(row)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                          title={t("v14.whatsapp_reminder")}
+                        >
+                          <MessageCircle size={13} />
+                          WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/clients/${row.client_id}`)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-slate-100 transition-colors"
+                          title="Voir la fiche client"
+                        >
+                          <ExternalLink size={14} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -377,6 +439,7 @@ export default function DebtAgeingPage() {
                       {formatDZD(totals.total)}{" "}
                       <span className="text-2xs text-slate-500 font-normal">DZD</span>
                     </td>
+                    <td />
                   </tr>
                 </tfoot>
               )}

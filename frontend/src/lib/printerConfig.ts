@@ -11,12 +11,15 @@
  */
 import { openPrintPopup } from "./printPopup";
 
+export type PrintLanguageOption = "ui" | "fr" | "ar" | "en" | "bilingual";
+
 export interface TicketPrinterConfig {
   printerName: string; // "" means default system printer
   paperWidth: "80mm" | "58mm";
   silent: boolean; // Direct print without Windows print preview dialog
   autoPrint: boolean; // Automatically print ticket on sale confirmation
   copies: number;
+  printLanguage?: PrintLanguageOption; // "ui" = follow current UI language, or force fr/ar/en/bilingual
 }
 
 export interface InvoicePrinterConfig {
@@ -61,6 +64,7 @@ export const DEFAULT_PRINTER_CONFIG: PrinterConfig = {
     silent: true, // Default to direct print in desktop mode (Algerian caisse standard)
     autoPrint: false,
     copies: 1,
+    printLanguage: "ui",
   },
   invoice: {
     printerName: "",

@@ -12,9 +12,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, AlertTriangle, X,
   Factory, Calendar, FileText, Truck, ChevronDown,
-  Search, Plus, SkipForward, Download, MessageCircle, ShieldAlert,
+  Search, Plus, SkipForward, Download, MessageCircle, ShieldAlert, Printer,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
+import { getPrinterConfig, getLabelDimensions, printLabelHtml } from "@/lib/printerConfig";
 import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
 import type { PurchaseOrder, POLine, POStatus, StoreSettings } from "@/types";
@@ -858,6 +859,32 @@ function StatusActions({ po }: { po: PurchaseOrder }) {
 
 function PoShareActions({ po }: { po: PurchaseOrder }) {
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [loadingLabels, setLoadingLabels] = useState(false);
+
+  const linkedLines = po.lines.filter((l) => Boolean(l.variant));
+
+  async function printReceptionLabels() {
+    if (linkedLines.length === 0) return;
+    setLoadingLabels(true);
+    try {
+      const cfg = getPrinterConfig();
+      const { w, h } = getLabelDimensions(cfg.labels);
+      const items = linkedLines.map((l) => ({
+        variant_id: l.variant,
+        copies: Math.max(1, l.quantity_received > 0 ? l.quantity_received : l.quantity_ordered),
+      }));
+      const res = await api.post(
+        "/inventory/variants/batch-barcode-labels/",
+        { items, w, h, output: "html" },
+        { responseType: "text" }
+      );
+      await printLabelHtml(res.data, { copies: 1 });
+    } catch (err) {
+      alert(getApiError(err));
+    } finally {
+      setLoadingLabels(false);
+    }
+  }
 
   async function openPdf() {
     setLoadingPdf(true);
@@ -894,6 +921,17 @@ function PoShareActions({ po }: { po: PurchaseOrder }) {
 
   return (
     <div className="flex items-center gap-2">
+      {linkedLines.length > 0 && (
+        <button
+          onClick={printReceptionLabels}
+          disabled={loadingLabels}
+          className="btn-secondary btn-sm flex items-center gap-1.5"
+          title={t("v14.print_po_labels")}
+        >
+          {loadingLabels ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+          {t("v14.print_po_labels")}
+        </button>
+      )}
       <button
         onClick={openPdf}
         disabled={loadingPdf}

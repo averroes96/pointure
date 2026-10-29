@@ -1086,5 +1086,18 @@
     "escape": "Annuler, effacer recherche ou fermer modale",
     "help": "Ouvrir ce guide des raccourcis",
     "store_note": "Ces touches de fonction sont actives en permanence sous Windows, même lorsque votre curseur est positionné à l'intérieur d'un champ de saisie (recherche, quantité ou code-barres)."
+  },
+  "v14": {
+    "print_language": "Langue des tickets & reçus imprimés",
+    "print_lang_ui": "Automatique (suivre la langue de l'interface)",
+    "print_lang_fr": "Français uniquement",
+    "print_lang_ar": "Arabe uniquement (RTL)",
+    "print_lang_en": "Anglais uniquement",
+    "print_lang_bilingual": "Bilingue (Français / Arabe)",
+    "backup_title": "Sauvegarde Locale & Sécurité des Données",
+    "backup_desc": "Téléchargez une copie complète et intègre de la base de données locale (.sqlite3) sur votre ordinateur ou clé USB.",
+    "backup_btn": "Télécharger une sauvegarde (.sqlite3)",
+    "whatsapp_reminder": "Relancer sur WhatsApp",
+    "print_po_labels": "Imprimer étiquettes réception"
   }
 }
