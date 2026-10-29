@@ -35,6 +35,9 @@ type PaymentMethodKey = (typeof PAYMENT_METHOD_KEYS)[number];
 interface PaymentLine {
   method: PaymentMethodKey;
   amount: number;
+  chequeNumber?: string;
+  chequeBank?: string;
+  chequeDueDate?: string;
 }
 
 const TIER_ICON = { bronze: Medal, silver: Star, gold: Trophy } as const;
@@ -325,6 +328,7 @@ export default function SalesPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartDiscount, setCartDiscount] = useState(0);
   const [payments, setPayments] = useState<PaymentLine[]>([{ method: "cash", amount: 0 }]);
+  const [cashTendered, setCashTendered] = useState<string>("");
   const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [redeemPoints, setRedeemPoints] = useState(0);
@@ -643,6 +647,13 @@ export default function SalesPage() {
         payments: paymentLines.map((p: PaymentLine) => ({
           method: p.method,
           amount: Number(p.amount).toFixed(2),
+          ...(p.method === "cheque"
+            ? {
+                cheque_number: p.chequeNumber || "",
+                cheque_bank: p.chequeBank || "",
+                ...(p.chequeDueDate ? { cheque_due_date: p.chequeDueDate } : {}),
+              }
+            : {}),
         })),
         cart_discount: Number(cartDiscount || 0).toFixed(2),
         is_formal: isFormal,
@@ -694,6 +705,7 @@ export default function SalesPage() {
       setCart([]);
       setCartDiscount(0);
       setRedeemPoints(0);
+      setCashTendered("");
       setPayments([{ method: "cash", amount: 0 }]);
       setSelectedClient(null);
       setIsVersement(false);
@@ -702,6 +714,7 @@ export default function SalesPage() {
       queryClient.invalidateQueries({ queryKey: ["loyalty-account-summary"] });
       queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
       queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["cheques"] });
     },
     onSettled: () => {
       isSubmittingRef.current = false;
@@ -1630,37 +1643,56 @@ export default function SalesPage() {
 
             {/* Loyalty points banner if client has loyalty */}
             {loyaltyAccount && loyaltyProgram?.is_active && (
-              <div className="mt-2.5 flex items-center justify-between gap-2 text-xs bg-primary-50/80 border border-primary-100 rounded-xl px-3 py-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-primary-800 font-bold font-mono">
-                    {loyaltyAccount.points_balance.toLocaleString()}
-                  </span>
-                  <span className="text-slate-500 text-[11px] font-medium">pts fidélité</span>
-                </div>
-                {canRedeem && (
+              <div className="mt-2.5 flex flex-col gap-1.5 text-xs bg-primary-50/80 border border-primary-100 rounded-xl px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <Gift size={13} className="text-primary-600" />
-                    <input
-                      type="number"
-                      value={redeemPoints || ""}
-                      onChange={(e) => {
-                        const v = Math.min(
-                          parseInt(e.target.value) || 0,
-                          loyaltyAccount.points_balance
-                        );
-                        setRedeemPoints(v);
-                      }}
-                      min={0}
-                      max={loyaltyAccount.points_balance}
-                      step={loyaltyProgram.min_redemption_points}
-                      placeholder="Pts"
-                      className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg text-center font-mono font-semibold"
-                    />
-                    {redeemPoints > 0 && (
-                      <span className="text-2xs text-primary-700 font-bold font-mono">
-                        −{formatDZD(redemptionDzd)} DZD
-                      </span>
-                    )}
+                    <span className="text-primary-800 font-bold font-mono">
+                      {loyaltyAccount.points_balance.toLocaleString("fr-DZ")}
+                    </span>
+                    <span className="text-slate-500 text-[11px] font-medium">pts fidélité</span>
+                    <span className="text-2xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      ≈ {formatDZD(Math.floor((loyaltyAccount.points_balance / (loyaltyProgram.redemption_value || 100)) * 100))} DZD
+                    </span>
+                  </div>
+                  {canRedeem && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRedeemPoints(
+                            redeemPoints === loyaltyAccount.points_balance
+                              ? 0
+                              : loyaltyAccount.points_balance,
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-2xs font-bold transition-colors cursor-pointer"
+                      >
+                        {redeemPoints === loyaltyAccount.points_balance ? "Annuler" : "Utiliser Max"}
+                      </button>
+                      <input
+                        type="number"
+                        value={redeemPoints || ""}
+                        onChange={(e) => {
+                          const v = Math.min(
+                            parseInt(e.target.value) || 0,
+                            loyaltyAccount.points_balance
+                          );
+                          setRedeemPoints(v);
+                        }}
+                        min={0}
+                        max={loyaltyAccount.points_balance}
+                        step={loyaltyProgram.min_redemption_points}
+                        placeholder="Pts"
+                        className="w-16 px-2 py-0.5 text-xs bg-white border border-slate-200 rounded-lg text-center font-mono font-semibold"
+                      />
+                    </div>
+                  )}
+                </div>
+                {redeemPoints > 0 && (
+                  <div className="flex items-center justify-between text-2xs text-primary-800 font-bold border-t border-primary-100 pt-1">
+                    <span>Remise fidélité appliquée :</span>
+                    <span className="font-mono text-emerald-700">−{formatDZD(redemptionDzd)} DZD</span>
                   </div>
                 )}
               </div>
@@ -2063,36 +2095,132 @@ export default function SalesPage() {
                     </div>
                   </div>
                   {payments.map((payment, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <select
-                        value={payment.method}
-                        onChange={(e) =>
-                          setPayments((prev) =>
-                            prev.map((p, idx) =>
-                              idx === i ? { ...p, method: e.target.value as PaymentLine["method"] } : p
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={payment.method}
+                          onChange={(e) =>
+                            setPayments((prev) =>
+                              prev.map((p, idx) =>
+                                idx === i ? { ...p, method: e.target.value as PaymentLine["method"] } : p
+                              )
                             )
-                          )
-                        }
-                        className="form-input text-xs py-1.5 flex-1 rounded-xl"
-                      >
-                        {PAYMENT_METHOD_KEYS.map((key) => (
-                          <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        value={payment.amount || ""}
-                        onChange={(e) =>
-                          setPayments((prev) =>
-                            prev.map((p, idx) =>
-                              idx === i ? { ...p, amount: parseFloat(e.target.value) || 0 } : p
+                          }
+                          className="form-input text-xs py-1.5 flex-1 rounded-xl"
+                        >
+                          {PAYMENT_METHOD_KEYS.map((key) => (
+                            <option key={key} value={key}>{t(`payment_method.${key}`)}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          value={payment.amount || ""}
+                          onChange={(e) =>
+                            setPayments((prev) =>
+                              prev.map((p, idx) =>
+                                idx === i ? { ...p, amount: parseFloat(e.target.value) || 0 } : p
+                              )
                             )
-                          )
-                        }
-                        className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded-xl font-mono text-end font-bold"
-                        placeholder={formatDZD(total)}
-                      />
-                      <span className="text-2xs text-slate-400 font-mono">DZD</span>
+                          }
+                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded-xl font-mono text-end font-bold"
+                          placeholder={formatDZD(total)}
+                        />
+                        <span className="text-2xs text-slate-400 font-mono">DZD</span>
+                      </div>
+
+                      {/* Inline Cheque Details when method === 'cheque' */}
+                      {payment.method === "cheque" && (
+                        <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={payment.chequeNumber || ""}
+                            onChange={(e) =>
+                              setPayments((prev) =>
+                                prev.map((p, idx) =>
+                                  idx === i ? { ...p, chequeNumber: e.target.value } : p
+                                )
+                              )
+                            }
+                            placeholder="N° Chèque *"
+                            className="form-input h-8 text-2xs font-mono font-bold bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={payment.chequeBank || ""}
+                            onChange={(e) =>
+                              setPayments((prev) =>
+                                prev.map((p, idx) =>
+                                  idx === i ? { ...p, chequeBank: e.target.value } : p
+                                )
+                              )
+                            }
+                            placeholder="Banque (ex: BNA, CPA...)"
+                            className="form-input h-8 text-2xs bg-white"
+                          />
+                          <input
+                            type="date"
+                            value={payment.chequeDueDate || ""}
+                            onChange={(e) =>
+                              setPayments((prev) =>
+                                prev.map((p, idx) =>
+                                  idx === i ? { ...p, chequeDueDate: e.target.value } : p
+                                )
+                              )
+                            }
+                            title="Date d'échéance"
+                            className="form-input h-8 text-2xs font-mono bg-white"
+                          />
+                        </div>
+                      )}
+
+                      {/* Cash Change Calculator (Monnaie à rendre) when method === 'cash' */}
+                      {payment.method === "cash" && total > 0 && (
+                        <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-2xs font-bold text-slate-600">Espèces reçues :</span>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {[500, 1000, 2000, 5000].map((bill) => (
+                                <button
+                                  key={bill}
+                                  type="button"
+                                  onClick={() =>
+                                    setCashTendered(
+                                      String((parseFloat(cashTendered) || 0) + bill),
+                                    )
+                                  }
+                                  className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-100 border border-emerald-200 text-2xs font-mono font-bold text-emerald-800 cursor-pointer"
+                                >
+                                  +{bill}
+                                </button>
+                              ))}
+                              <input
+                                type="number"
+                                value={cashTendered}
+                                onChange={(e) => setCashTendered(e.target.value)}
+                                placeholder={String(total)}
+                                className="w-20 h-7 px-2 rounded-lg bg-white border border-slate-200 font-mono font-bold text-xs text-end"
+                              />
+                              {cashTendered && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCashTendered("")}
+                                  className="text-slate-400 hover:text-slate-700"
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {parseFloat(cashTendered) > total && (
+                            <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 border-t border-emerald-200/70 pt-1.5">
+                              <span>Monnaie à rendre :</span>
+                              <span className="font-mono text-sm">
+                                {formatDZD(parseFloat(cashTendered) - total)} DZD
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

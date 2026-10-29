@@ -125,6 +125,9 @@ class CreatePaymentInput(serializers.Serializer):
     method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
+    cheque_number = serializers.CharField(required=False, allow_blank=True)
+    cheque_bank = serializers.CharField(required=False, allow_blank=True)
+    cheque_due_date = serializers.DateField(required=False, allow_null=True)
 
 
 class CreateSaleSerializer(serializers.Serializer):
@@ -465,7 +468,8 @@ class CreateSaleSerializer(serializers.Serializer):
                 user=cashier,
             )
 
-        # Create payments
+        # Create payments (and auto-record Cheque in Cheque tracker when method == 'cheque')
+        from apps.clients.models import Cheque
         for payment_data in validated_data["payments"]:
             Payment.objects.create(
                 sale=sale,
@@ -473,6 +477,17 @@ class CreateSaleSerializer(serializers.Serializer):
                 method=payment_data["method"],
                 notes=payment_data.get("notes", ""),
             )
+            if payment_data["method"] == "cheque" and payment_data["amount"] > Decimal("0.00"):
+                Cheque.objects.create(
+                    tenant=tenant,
+                    client=client,
+                    direction="receivable",
+                    number=(payment_data.get("cheque_number") or "").strip() or f"CHQ-{receipt_number}",
+                    bank=(payment_data.get("cheque_bank") or "").strip(),
+                    amount=payment_data["amount"],
+                    due_date=payment_data.get("cheque_due_date") or today,
+                    notes=payment_data.get("notes") or f"Vente caisse {receipt_number}",
+                )
 
         # ── Loyalty: redeem then earn ─────────────────────────────────────────
         # Skip loyalty for versement or layaway — points awarded only when sale completes/collected

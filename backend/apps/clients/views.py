@@ -486,9 +486,34 @@ class ClientLedgerViewSet(viewsets.ReadOnlyModelViewSet):
 class ChequeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Cheque.objects.select_related("client", "supplier")
     serializer_class = ChequeSerializer
-    filterset_fields = ["status", "direction", "client"]
-    ordering_fields = ["due_date", "amount"]
+    filterset_fields = ["status", "direction", "client", "supplier"]
+    ordering_fields = ["due_date", "amount", "created_at"]
     ordering = ["due_date"]
+
+    def get_queryset(self):
+        from django.db.models import Q
+        qs = super().get_queryset()
+        params = self.request.query_params
+        search = (params.get("search") or "").strip()
+        bank = (params.get("bank") or "").strip()
+        from_date = params.get("from")
+        to_date = params.get("to")
+
+        if search:
+            qs = qs.filter(
+                Q(number__icontains=search)
+                | Q(bank__icontains=search)
+                | Q(notes__icontains=search)
+                | Q(client__name__icontains=search)
+                | Q(supplier__name__icontains=search)
+            )
+        if bank:
+            qs = qs.filter(bank__iexact=bank)
+        if from_date:
+            qs = qs.filter(due_date__gte=from_date)
+        if to_date:
+            qs = qs.filter(due_date__lte=to_date)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.tenant)
@@ -506,6 +531,14 @@ class ChequeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         cheque = self.get_object()
         self.require_manager()
         cheque.status = "bounced"
+        cheque.save(update_fields=["status"])
+        return Response(ChequeSerializer(cheque).data)
+
+    @action(detail=True, methods=["post"], url_path="mark-pending")
+    def mark_pending(self, request, pk=None):
+        cheque = self.get_object()
+        self.require_manager()
+        cheque.status = "pending"
         cheque.save(update_fields=["status"])
         return Response(ChequeSerializer(cheque).data)
 
