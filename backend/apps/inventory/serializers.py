@@ -395,12 +395,16 @@ class StocktakeSessionDetailSerializer(StocktakeSessionListSerializer):
 
 class CreateStocktakeSessionSerializer(serializers.ModelSerializer):
     auto_populate = serializers.BooleanField(default=True, write_only=True, help_text="Pré-charger le stock théorique de tous les articles")
+    scope_location = serializers.CharField(required=False, allow_blank=True, write_only=True, help_text="Rayon / Emplacement ciblé")
+    scope_reference = serializers.CharField(required=False, allow_blank=True, write_only=True, help_text="Préfixe de référence ou nom ciblé")
+    only_in_stock = serializers.BooleanField(default=False, write_only=True, help_text="Inclure uniquement les articles ayant un stock théorique > 0")
 
     class Meta:
         model = StocktakeSession
         fields = [
             "id", "title", "branch", "scope_brand", "scope_category", "notes",
-            "status", "total_expected", "total_counted", "total_variance", "auto_populate",
+            "status", "total_expected", "total_counted", "total_variance",
+            "auto_populate", "scope_location", "scope_reference", "only_in_stock",
         ]
         read_only_fields = ["id", "status", "total_expected", "total_counted", "total_variance"]
 

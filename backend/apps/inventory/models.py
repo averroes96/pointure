@@ -536,20 +536,27 @@ class StocktakeSession(TenantScopedModel):
         return f"{self.title} ({self.get_status_display()})"
 
     def recalculate_totals(self):
-        """Aggregate totals from items."""
+        """Aggregate totals from items in a single SQL query."""
+        from django.db.models import DecimalField, ExpressionWrapper, F
+        from django.db.models.functions import Coalesce
+
         aggs = self.items.aggregate(
-            exp=Sum("expected_qty"),
-            cnt=Sum("counted_qty"),
+            exp=Coalesce(Sum("expected_qty"), 0),
+            cnt=Coalesce(Sum("counted_qty"), 0),
+            var_cost=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        (F("counted_qty") - F("expected_qty")) * F("unit_cost"),
+                        output_field=DecimalField(max_digits=14, decimal_places=2),
+                    )
+                ),
+                Decimal("0.00"),
+            ),
         )
         self.total_expected = aggs["exp"] or 0
         self.total_counted = aggs["cnt"] or 0
         self.total_variance = self.total_counted - self.total_expected
-
-        cost_sum = Decimal("0.00")
-        for item in self.items.all():
-            variance = item.counted_qty - item.expected_qty
-            cost_sum += Decimal(str(variance)) * item.unit_cost
-        self.total_variance_cost = cost_sum
+        self.total_variance_cost = aggs["var_cost"] or Decimal("0.00")
         self.save(update_fields=["total_expected", "total_counted", "total_variance", "total_variance_cost", "updated_at"])
 
 

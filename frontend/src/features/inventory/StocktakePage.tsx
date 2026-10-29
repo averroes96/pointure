@@ -237,6 +237,15 @@ export default function StocktakePage() {
   // Fast Scan Station state
   const [barcodeInput, setBarcodeInput] = useState("");
   const [multiplier, setMultiplier] = useState<number>(1);
+  const [scanMode, setScanMode] = useState<"auto" | "prompt_qty">("auto");
+  const [promptQtyModal, setPromptQtyModal] = useState<{
+    barcode: string;
+    item: StocktakeItem;
+    inputQty: string;
+    mode: "add" | "set";
+  } | null>(null);
+  const [unknownBarcode, setUnknownBarcode] = useState<string | null>(null);
+  const [bindSearch, setBindSearch] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastScannedItem, setLastScannedItem] = useState<{
     item: StocktakeItem;
@@ -246,11 +255,18 @@ export default function StocktakePage() {
   const [scanFlash, setScanFlash] = useState<"success" | "error" | null>(null);
   const [scanErrorMsg, setScanErrorMsg] = useState<string | null>(null);
 
-  // Table filtering and search in active session
+  // Validation modal options
+  const [applyOnlyScanned, setApplyOnlyScanned] = useState<boolean>(true);
+  const [applyKeepOpen, setApplyKeepOpen] = useState<boolean>(false);
+
+  // Table filtering, search and pagination in active session
   const [searchFilter, setSearchFilter] = useState("");
-  const [triageFilter, setTriageFilter] = useState<"all" | "variance" | "shortage" | "surplus" | "uncounted" | "exact">("all");
+  const [triageFilter, setTriageFilter] = useState<"all" | "scanned" | "variance" | "shortage" | "surplus" | "uncounted" | "exact">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const scanInputRef = useRef<HTMLInputElement>(null);
+  const promptQtyInputRef = useRef<HTMLInputElement>(null);
 
   // Query: Sessions list
   const { data: sessions, isLoading: sessionsLoading } = useQuery<StocktakeSession[]>({
@@ -267,10 +283,24 @@ export default function StocktakePage() {
 
   // Always keep scan input focused when in active session
   useEffect(() => {
-    if (activeSessionId && activeSession?.status !== "completed") {
+    if (activeSessionId && activeSession?.status !== "completed" && !promptQtyModal && !unknownBarcode) {
       scanInputRef.current?.focus();
     }
-  }, [activeSessionId, activeSession?.status, lastScannedItem]);
+  }, [activeSessionId, activeSession?.status, lastScannedItem, promptQtyModal, unknownBarcode]);
+
+  useEffect(() => {
+    if (promptQtyModal) {
+      setTimeout(() => {
+        promptQtyInputRef.current?.focus();
+        promptQtyInputRef.current?.select();
+      }, 30);
+    }
+  }, [promptQtyModal]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchFilter, triageFilter, activeSessionId]);
 
   // Flash reset timer
   useEffect(() => {
@@ -279,12 +309,29 @@ export default function StocktakePage() {
     return () => clearTimeout(timer);
   }, [scanFlash]);
 
+  // Search variants to bind an unknown barcode
+  const { data: bindCandidates } = useQuery<any[]>({
+    queryKey: ["stocktake-bind-candidates", bindSearch],
+    queryFn: () =>
+      api
+        .get("/inventory/variants/", { params: { search: bindSearch.trim(), page_size: 8 } })
+        .then((r) => r.data.results || r.data),
+    enabled: !!unknownBarcode && bindSearch.trim().length >= 2,
+  });
+
   // Fast Scan Mutation
   const scanMutation = useMutation({
-    mutationFn: ({ barcode, increment }: { barcode: string; increment: number }) =>
-      api.post(`/inventory/stocktakes/${activeSessionId}/scan/`, { barcode, increment }).then((r) => r.data),
+    mutationFn: ({ barcode, increment, setQty }: { barcode: string; increment: number; setQty?: number }) =>
+      api
+        .post(`/inventory/stocktakes/${activeSessionId}/scan/`, {
+          barcode,
+          increment,
+          ...(setQty !== undefined ? { set_qty: setQty } : {}),
+        })
+        .then((r) => r.data),
     onSuccess: (data, vars) => {
       setScanErrorMsg(null);
+      setUnknownBarcode(null);
       setScanFlash("success");
       if (soundEnabled) {
         playAudioFeedback(vars.increment > 1 ? "carton" : "success");
@@ -295,15 +342,55 @@ export default function StocktakePage() {
         timestamp: Date.now(),
       });
       setBarcodeInput("");
+      if (scanMode === "prompt_qty" && vars.increment === 0 && vars.setQty === undefined) {
+        setPromptQtyModal({
+          barcode: vars.barcode,
+          item: data.item,
+          inputQty: String(multiplier > 1 ? multiplier : 1),
+          mode: "add",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["stocktake-session", activeSessionId] });
       queryClient.invalidateQueries({ queryKey: ["stocktake-sessions"] });
     },
-    onError: (err: any) => {
+    onError: (err: any, vars) => {
       const msg = getApiError(err);
       setScanErrorMsg(msg);
+      if (err?.response?.status === 404) {
+        setUnknownBarcode(vars.barcode);
+        setBindSearch("");
+      }
       setScanFlash("error");
       if (soundEnabled) playAudioFeedback("error");
       setBarcodeInput("");
+    },
+  });
+
+  // Bind Unknown Barcode Mutation
+  const bindBarcodeMutation = useMutation({
+    mutationFn: ({ variantId, barcode, increment }: { variantId: number | string; barcode: string; increment: number }) =>
+      api
+        .post(`/inventory/stocktakes/${activeSessionId}/bind-barcode/`, {
+          variant_id: variantId,
+          barcode,
+          increment,
+        })
+        .then((r) => r.data),
+    onSuccess: (data, vars) => {
+      setUnknownBarcode(null);
+      setScanErrorMsg(null);
+      setBindSearch("");
+      setScanFlash("success");
+      if (soundEnabled) playAudioFeedback("success");
+      setLastScannedItem({
+        item: data.item,
+        increment: vars.increment,
+        timestamp: Date.now(),
+      });
+      queryClient.invalidateQueries({ queryKey: ["stocktake-session", activeSessionId] });
+      queryClient.invalidateQueries({ queryKey: ["stocktake-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants"] });
     },
   });
 
@@ -323,9 +410,11 @@ export default function StocktakePage() {
 
   // Apply Inventory Mutation
   const applyMutation = useMutation({
-    mutationFn: (pin?: string) =>
+    mutationFn: (opts?: { pin?: string; onlyScanned?: boolean; keepOpen?: boolean }) =>
       api.post(`/inventory/stocktakes/${activeSessionId}/apply/`, {
-        ...(pin ? { manager_pin: pin } : {}),
+        only_scanned: opts?.onlyScanned ?? applyOnlyScanned,
+        keep_open: opts?.keepOpen ?? applyKeepOpen,
+        ...(opts?.pin ? { manager_pin: opts.pin } : {}),
       }).then((r) => r.data),
     onSuccess: () => {
       setConfirmApply(false);
@@ -350,7 +439,11 @@ export default function StocktakePage() {
     e.preventDefault();
     const code = barcodeInput.trim();
     if (!code || !activeSessionId) return;
-    scanMutation.mutate({ barcode: code, increment: multiplier });
+    if (scanMode === "prompt_qty") {
+      scanMutation.mutate({ barcode: code, increment: 0 });
+    } else {
+      scanMutation.mutate({ barcode: code, increment: multiplier });
+    }
   }
 
   // Filtered & Sorted items in active session
@@ -372,28 +465,46 @@ export default function StocktakePage() {
 
       // Triage filter
       const diff = item.counted_qty - item.expected_qty;
+      const isScanned = Boolean(item.last_scanned_at) || item.counted_qty > 0;
+      if (triageFilter === "scanned") return isScanned;
       if (triageFilter === "variance") return diff !== 0;
       if (triageFilter === "shortage") return diff < 0;
       if (triageFilter === "surplus") return diff > 0;
-      if (triageFilter === "uncounted") return item.counted_qty === 0;
-      if (triageFilter === "exact") return diff === 0 && item.expected_qty > 0;
+      if (triageFilter === "uncounted") return !isScanned;
+      if (triageFilter === "exact") return diff === 0 && isScanned;
       return true;
     });
   }, [activeSession?.items, searchFilter, triageFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, currentPage, pageSize]);
+
   // Breakdown statistics for current session
   const stats = useMemo(() => {
     if (!activeSession?.items) {
-      return { totalRefs: 0, scannedRefs: 0, shortagesCount: 0, surplusesCount: 0, exactCount: 0, progressPct: 0 };
+      return {
+        totalRefs: 0,
+        scannedRefs: 0,
+        shortagesCount: 0,
+        surplusesCount: 0,
+        exactCount: 0,
+        scannedWithVarianceCount: 0,
+        progressPct: 0,
+      };
     }
     const items = activeSession.items;
     const totalRefs = items.length;
-    const scannedRefs = items.filter((i) => i.counted_qty > 0).length;
+    const scannedItems = items.filter((i) => Boolean(i.last_scanned_at) || i.counted_qty > 0);
+    const scannedRefs = scannedItems.length;
     const shortagesCount = items.filter((i) => i.counted_qty < i.expected_qty).length;
     const surplusesCount = items.filter((i) => i.counted_qty > i.expected_qty).length;
-    const exactCount = items.filter((i) => i.counted_qty === i.expected_qty).length;
+    const exactCount = scannedItems.filter((i) => i.counted_qty === i.expected_qty).length;
+    const scannedWithVarianceCount = scannedItems.filter((i) => i.counted_qty !== i.expected_qty).length;
     const progressPct = totalRefs > 0 ? Math.round((scannedRefs / totalRefs) * 100) : 0;
-    return { totalRefs, scannedRefs, shortagesCount, surplusesCount, exactCount, progressPct };
+    return { totalRefs, scannedRefs, shortagesCount, surplusesCount, exactCount, scannedWithVarianceCount, progressPct };
   }, [activeSession?.items]);
 
   // ── Render: Active Fast Scan View ───────────────────────────────────────────
@@ -444,13 +555,32 @@ export default function StocktakePage() {
               Imprimer PV
             </button>
 
+            {!isCompleted && stats.scannedRefs > 0 && (
+              <button
+                onClick={() => {
+                  setApplyOnlyScanned(true);
+                  setApplyKeepOpen(true);
+                  setConfirmApply(true);
+                }}
+                className="btn-secondary btn-sm flex items-center gap-1.5 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                title="Appliquer les écarts des articles déjà scannés tout en gardant cette session ouverte pour continuer demain ou par rayon"
+              >
+                <Layers size={15} />
+                Valider le lot scanné ({stats.scannedRefs})
+              </button>
+            )}
+
             {!isCompleted && (
               <button
-                onClick={() => setConfirmApply(true)}
+                onClick={() => {
+                  setApplyOnlyScanned(stats.scannedRefs < stats.totalRefs);
+                  setApplyKeepOpen(false);
+                  setConfirmApply(true);
+                }}
                 className="btn-primary btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
               >
                 <CheckCircle2 size={15} />
-                Valider & Ajuster le Stock
+                Clôturer & Ajuster le Stock
               </button>
             )}
           </div>
@@ -564,7 +694,7 @@ export default function StocktakePage() {
                 : "bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-slate-800"
             )}
           >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-white/10 text-emerald-400 backdrop-blur-xs">
                   <ScanBarcode size={24} />
@@ -577,37 +707,76 @@ export default function StocktakePage() {
                     </span>
                   </h2>
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Scannez les codes-barres sur les boîtes ou cartons en continu sans toucher à la souris.
+                    Scannez par paire (+1), par carton (+6/+12/+18/+24) ou en mode Pile/Lot (saisie de quantité après scan).
                   </p>
                 </div>
               </div>
 
-              {/* Multiplier Pills */}
-              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-2xl border border-white/10 backdrop-blur-xs">
-                <span className="text-2xs font-bold text-slate-400 px-2 uppercase tracking-wider">Multiplicateur :</span>
-                {[
-                  { label: "+1 paire", val: 1 },
-                  { label: "+6 (1/2 carton)", val: 6 },
-                  { label: "+12 (Carton)", val: 12 },
-                  { label: "+24 (Double)", val: 24 },
-                ].map((m) => (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Scan Mode Toggle */}
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10">
                   <button
-                    key={m.val}
                     type="button"
                     onClick={() => {
-                      setMultiplier(m.val);
+                      setScanMode("auto");
+                      setPromptQtyModal(null);
                       scanInputRef.current?.focus();
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                      multiplier === m.val
-                        ? "bg-primary-500 text-white shadow-xs"
+                      scanMode === "auto"
+                        ? "bg-emerald-500 text-white shadow-xs"
                         : "text-slate-300 hover:text-white hover:bg-white/10"
                     )}
                   >
-                    {m.label}
+                    +Auto au scan
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScanMode("prompt_qty");
+                      scanInputRef.current?.focus();
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                      scanMode === "prompt_qty"
+                        ? "bg-amber-500 text-slate-950 shadow-xs"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    )}
+                    title="Idéal pour compter une pile de boîtes identiques : scannez 1 boîte puis tapez la quantité totale de la pile"
+                  >
+                    Saisie Qté après scan (Pile/Lot)
+                  </button>
+                </div>
+
+                {/* Multiplier Pills */}
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10 backdrop-blur-xs">
+                  <span className="text-2xs font-bold text-slate-400 px-2 uppercase tracking-wider">Lot :</span>
+                  {[
+                    { label: "+1", val: 1 },
+                    { label: "+6", val: 6 },
+                    { label: "+12", val: 12 },
+                    { label: "+18", val: 18 },
+                    { label: "+24", val: 24 },
+                  ].map((m) => (
+                    <button
+                      key={m.val}
+                      type="button"
+                      onClick={() => {
+                        setMultiplier(m.val);
+                        scanInputRef.current?.focus();
+                      }}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                        multiplier === m.val
+                          ? "bg-primary-500 text-white shadow-xs"
+                          : "text-slate-300 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -618,7 +787,11 @@ export default function StocktakePage() {
                 autoFocus
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
-                placeholder="Scannez ici ou tapez le code-barres / référence / nom puis Entrée..."
+                placeholder={
+                  scanMode === "prompt_qty"
+                    ? "Mode Pile/Lot actif : scannez un article pour saisir directement sa quantité..."
+                    : `Scannez ici ou tapez le code-barres / référence / nom puis Entrée (+${multiplier})...`
+                }
                 className="w-full h-14 pl-12 pr-32 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 font-mono text-base sm:text-lg font-bold border-2 border-transparent focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/30 transition-all shadow-inner"
               />
               <ScanBarcode className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -628,15 +801,168 @@ export default function StocktakePage() {
                 disabled={!barcodeInput.trim() || scanMutation.isPending}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 px-5 h-9 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
-                {scanMutation.isPending ? "Comptage..." : "Valider"}
+                {scanMutation.isPending ? "Comptage..." : scanMode === "prompt_qty" ? "Identifier" : `Compter +${multiplier}`}
               </button>
             </form>
 
-            {/* Error Message banner */}
+            {/* Prompt Quantity Inline Bar (Pile / Lot Mode) */}
+            {promptQtyModal && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const qty = Math.max(0, parseInt(promptQtyModal.inputQty) || 0);
+                  if (promptQtyModal.mode === "set") {
+                    scanMutation.mutate({ barcode: promptQtyModal.barcode, increment: 0, setQty: qty });
+                  } else {
+                    scanMutation.mutate({ barcode: promptQtyModal.barcode, increment: qty });
+                  }
+                  setPromptQtyModal(null);
+                }}
+                className="mt-4 p-4 rounded-2xl bg-amber-500/20 border-2 border-amber-400/60 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-2xs font-black uppercase">
+                      Saisie Quantité Pile / Lot
+                    </span>
+                    <span className="text-sm font-black text-white">{promptQtyModal.item.product_name}</span>
+                    {promptQtyModal.item.product_reference && (
+                      <span className="text-xs font-mono text-amber-200">({promptQtyModal.item.product_reference})</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-200 mt-1">
+                    Déjà compté : <strong className="font-mono text-emerald-300">{promptQtyModal.item.counted_qty}</strong> paires · Stock théorique :{" "}
+                    <strong className="font-mono">{promptQtyModal.item.expected_qty}</strong> paires
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-xl bg-black/40 p-0.5 border border-white/15">
+                    <button
+                      type="button"
+                      onClick={() => setPromptQtyModal({ ...promptQtyModal, mode: "add" })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-2xs font-bold cursor-pointer",
+                        promptQtyModal.mode === "add" ? "bg-amber-400 text-slate-950" : "text-slate-300"
+                      )}
+                    >
+                      + Ajouter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPromptQtyModal({
+                          ...promptQtyModal,
+                          mode: "set",
+                          inputQty: String(promptQtyModal.item.counted_qty || 1),
+                        })
+                      }
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-2xs font-bold cursor-pointer",
+                        promptQtyModal.mode === "set" ? "bg-amber-400 text-slate-950" : "text-slate-300"
+                      )}
+                    >
+                      = Fixer total
+                    </button>
+                  </div>
+
+                  <input
+                    ref={promptQtyInputRef}
+                    type="number"
+                    min={0}
+                    value={promptQtyModal.inputQty}
+                    onChange={(e) => setPromptQtyModal({ ...promptQtyModal, inputQty: e.target.value })}
+                    className="w-24 h-10 rounded-xl bg-white text-slate-900 font-mono font-black text-base text-center border-2 border-amber-400 focus:outline-none"
+                  />
+
+                  <button
+                    type="submit"
+                    className="h-10 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs cursor-pointer"
+                  >
+                    Valider (Entrée)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPromptQtyModal(null)}
+                    className="p-2 text-slate-300 hover:text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Error Message + Unknown Barcode Quick-Association Panel */}
             {scanErrorMsg && (
-              <div className="mt-3 p-3 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 text-xs font-medium flex items-center gap-2 animate-in fade-in">
-                <AlertCircle size={16} className="text-rose-400 shrink-0" />
-                <span>{scanErrorMsg}</span>
+              <div className="mt-3 p-3.5 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-100 text-xs space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <AlertCircle size={16} className="text-rose-400 shrink-0" />
+                    <span>{scanErrorMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScanErrorMsg(null);
+                      setUnknownBarcode(null);
+                    }}
+                    className="text-rose-300 hover:text-white"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {unknownBarcode && (
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-white/15 space-y-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-2xs font-bold text-amber-300 uppercase tracking-wider">
+                        Associer le code « {unknownBarcode} » à un article existant & compter (+{multiplier}) :
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+                      <input
+                        type="text"
+                        value={bindSearch}
+                        onChange={(e) => setBindSearch(e.target.value)}
+                        placeholder="Rechercher l'article par référence ou nom (ex: 1457, BL-HS10)..."
+                        className="w-full h-9 pl-8 pr-3 rounded-lg bg-white text-slate-900 text-xs font-medium focus:outline-none"
+                      />
+                    </div>
+                    {bindCandidates && bindCandidates.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pt-1">
+                        {bindCandidates.map((v: any) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() =>
+                              bindBarcodeMutation.mutate({
+                                variantId: v.id,
+                                barcode: unknownBarcode,
+                                increment: multiplier,
+                              })
+                            }
+                            className="flex items-center justify-between p-2 rounded-lg bg-white/10 hover:bg-emerald-500/30 border border-white/10 text-left transition-all cursor-pointer"
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-white">
+                                {v.product_name || v.str || `Article #${v.id}`}
+                              </div>
+                              <div className="text-2xs text-slate-300 font-mono">
+                                {v.product_reference ? `Réf: ${v.product_reference} · ` : ""}
+                                {v.size_eu ? `P.${v.size_eu} ` : ""}
+                                {v.colour && v.colour !== "Standard" ? v.colour : ""}
+                              </div>
+                            </div>
+                            <span className="px-2 py-1 rounded bg-emerald-500 text-white text-2xs font-bold shrink-0">
+                              Associer & +{multiplier}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -667,10 +993,14 @@ export default function StocktakePage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-2xs text-slate-300 mt-1">
-                      <span className="font-bold text-white bg-primary-500/30 px-2 py-0.5 rounded border border-primary-400/30">
-                        Pointure {lastScannedItem.item.size_eu}
-                      </span>
-                      <span>Couleur : {lastScannedItem.item.colour}</span>
+                      {lastScannedItem.item.size_eu > 0 && (
+                        <span className="font-bold text-white bg-primary-500/30 px-2 py-0.5 rounded border border-primary-400/30">
+                          Pointure {lastScannedItem.item.size_eu}
+                        </span>
+                      )}
+                      {lastScannedItem.item.colour && lastScannedItem.item.colour !== "Standard" && (
+                        <span>Couleur : {lastScannedItem.item.colour}</span>
+                      )}
                       <span className="font-mono text-slate-400">({lastScannedItem.item.barcode})</span>
                     </div>
                   </div>
@@ -713,6 +1043,7 @@ export default function StocktakePage() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               {[
                 { key: "all", label: `Tous (${stats.totalRefs})` },
+                { key: "scanned", label: `Scannés (${stats.scannedRefs})`, color: "text-indigo-600" },
                 { key: "variance", label: `Écarts (${stats.shortagesCount + stats.surplusesCount})`, alert: stats.shortagesCount + stats.surplusesCount > 0 },
                 { key: "shortage", label: `Manquants (${stats.shortagesCount})`, color: "text-rose-600" },
                 { key: "surplus", label: `Excédents (${stats.surplusesCount})`, color: "text-emerald-600" },
@@ -729,7 +1060,7 @@ export default function StocktakePage() {
                       : "bg-surface text-text-muted hover:text-text-primary border border-border"
                   )}
                 >
-                  <span className={pill.color}>{pill.label}</span>
+                  <span className={triageFilter === pill.key ? "text-white" : pill.color}>{pill.label}</span>
                 </button>
               ))}
             </div>
@@ -741,7 +1072,7 @@ export default function StocktakePage() {
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Filtrer par nom, réf, taille..."
+                placeholder="Filtrer par nom, réf, code-barres..."
                 className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-surface border border-border text-xs text-text-primary focus:border-primary-500 focus:outline-none"
               />
               {searchFilter && (
@@ -772,7 +1103,7 @@ export default function StocktakePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredItems.map((item) => {
+                {paginatedItems.map((item) => {
                   const variance = item.counted_qty - item.expected_qty;
                   const itemCostVariance = Number(item.unit_cost) * variance;
 
@@ -911,13 +1242,69 @@ export default function StocktakePage() {
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-text-muted">
                       <ClipboardList size={32} className="mx-auto text-slate-300 mb-2" />
-                      <p className="font-medium text-xs">Aucun article ne correspond aux filtres sélectionnés.</p>
+                      <p className="font-medium text-xs">
+                        {stats.totalRefs === 0
+                          ? "Mode Scan Libre actif : scannez votre premier code-barres ci-dessus pour ajouter et compter les articles au fur et à mesure."
+                          : "Aucun article ne correspond aux filtres sélectionnés."}
+                      </p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          {filteredItems.length > 0 && (
+            <div className="px-4 py-3 border-t border-border bg-surface/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-text-muted">
+              <div className="flex items-center gap-2">
+                <span>
+                  Affichage de{" "}
+                  <strong className="text-text-primary">{(currentPage - 1) * pageSize + 1}</strong> à{" "}
+                  <strong className="text-text-primary">
+                    {Math.min(currentPage * pageSize, filteredItems.length)}
+                  </strong>{" "}
+                  sur <strong className="text-text-primary">{filteredItems.length}</strong> articles
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 px-2 rounded-lg border border-border bg-white text-2xs font-bold text-text-primary"
+                >
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                  <option value={250}>250 / page</option>
+                </select>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="btn-secondary btn-xs disabled:opacity-40"
+                  >
+                    Précédent
+                  </button>
+                  <span className="px-2.5 py-1 rounded-lg bg-white border border-border font-mono font-bold text-text-primary">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="btn-secondary btn-xs disabled:opacity-40"
+                  >
+                    Suivant
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Confirmation Modal to Apply Inventory */}
@@ -930,8 +1317,14 @@ export default function StocktakePage() {
                     <CheckCircle2 size={22} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-base text-text-primary">Clôturer & Ajuster le Stock</h3>
-                    <p className="text-xs text-text-muted">Synchronisation définitive des stocks physiques</p>
+                    <h3 className="font-bold text-base text-text-primary">
+                      {applyKeepOpen ? "Valider le lot scanné & Continuer" : "Clôturer & Ajuster le Stock"}
+                    </h3>
+                    <p className="text-xs text-text-muted">
+                      {applyKeepOpen
+                        ? "Applique immédiatement les écarts des articles scannés et garde la session ouverte"
+                        : "Synchronisation des stocks physiques"}
+                    </p>
                   </div>
                 </div>
                 <button onClick={() => setConfirmApply(false)} className="text-text-muted hover:text-text-primary p-1">
@@ -940,42 +1333,104 @@ export default function StocktakePage() {
               </div>
 
               <div className="p-6 space-y-4">
+                {/* Reconciliation Scope Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-text-primary block">
+                    Mode d'ajustement du stock :
+                  </label>
+                  <label
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all",
+                      applyOnlyScanned
+                        ? "border-emerald-500 bg-emerald-50/40"
+                        : "border-border bg-surface/50 hover:bg-surface"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="applyScope"
+                      checked={applyOnlyScanned}
+                      onChange={() => setApplyOnlyScanned(true)}
+                      className="mt-0.5 accent-emerald-600"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-text-primary">
+                        Ajuster uniquement les articles scannés / comptés ({stats.scannedRefs} réf.) — Recommandé
+                      </div>
+                      <p className="text-2xs text-text-muted mt-0.5">
+                        Idéal pour un inventaire partiel ou sur plusieurs jours : seuls les articles que vous avez scannés ou modifiés seront ajustés ({stats.scannedWithVarianceCount} avec écart). Les articles non scannés restent intacts.
+                      </p>
+                    </div>
+                  </label>
+
+                  {!applyKeepOpen && stats.totalRefs > stats.scannedRefs && (
+                    <label
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all",
+                        !applyOnlyScanned
+                          ? "border-rose-500 bg-rose-50/40"
+                          : "border-border bg-surface/50 hover:bg-surface"
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="applyScope"
+                        checked={!applyOnlyScanned}
+                        onChange={() => setApplyOnlyScanned(false)}
+                        className="mt-0.5 accent-rose-600"
+                      />
+                      <div className="text-xs">
+                        <div className="font-bold text-text-primary">
+                          Inventaire complet strict — Mettre à 0 les {stats.totalRefs - stats.scannedRefs} articles non scannés
+                        </div>
+                        <p className="text-2xs text-rose-700 mt-0.5">
+                          Attention : tous les articles pré-chargés non scannés dans cette session verront leur stock passer à 0.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* Keep Session Open Checkbox */}
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-50/60 border border-indigo-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={applyKeepOpen}
+                    onChange={(e) => {
+                      setApplyKeepOpen(e.target.checked);
+                      if (e.target.checked) setApplyOnlyScanned(true);
+                    }}
+                    className="mt-0.5 accent-indigo-600 rounded"
+                  />
+                  <div className="text-2xs">
+                    <span className="font-bold text-indigo-950 block">
+                      Garder la session ouverte après validation de ce lot (Inventaire sur plusieurs jours / rayons)
+                    </span>
+                    <span className="text-indigo-700">
+                      Les articles déjà scannés sont mis à jour en stock dès maintenant et vous pourrez continuer à scanner le reste du magasin plus tard.
+                    </span>
+                  </div>
+                </label>
+
                 <div className="p-4 rounded-2xl bg-surface border border-border space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-text-muted">Session :</span>
                     <span className="font-bold text-text-primary">{activeSession.title}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-muted">Total compté :</span>
-                    <span className="font-mono font-bold text-indigo-700">{activeSession.total_counted} paires</span>
+                    <span className="text-text-muted">Articles audités (scannés) :</span>
+                    <span className="font-mono font-bold text-indigo-700">
+                      {stats.scannedRefs} réf. ({activeSession.total_counted} paires)
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-muted">Écart total en volume :</span>
-                    <span
-                      className={cn(
-                        "font-mono font-extrabold",
-                        activeSession.total_variance < 0 ? "text-rose-600" : "text-emerald-600"
-                      )}
-                    >
-                      {activeSession.total_variance > 0 ? `+${activeSession.total_variance}` : activeSession.total_variance} paires
+                    <span className="text-text-muted">Références qui seront ajustées :</span>
+                    <span className="font-mono font-extrabold text-emerald-700">
+                      {applyOnlyScanned
+                        ? `${stats.scannedWithVarianceCount} réf.`
+                        : `${stats.shortagesCount + stats.surplusesCount} réf.`}
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-border pt-2">
-                    <span className="text-text-muted font-bold">Impact financier brut :</span>
-                    <span className="font-mono font-extrabold text-sm text-text-primary">
-                      {formatDZD(activeSession.total_variance_cost)} DZD
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-2xs text-amber-800 leading-relaxed space-y-1">
-                  <p className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle size={14} className="text-amber-600" />
-                    Action irréversible :
-                  </p>
-                  <p>
-                    Cette validation créera automatiquement des mouvements de stock d'ajustement (motif <strong>Ajustement inventaire</strong>) pour chaque article présentant un écart. La session sera verrouillée.
-                  </p>
                 </div>
               </div>
 
@@ -990,11 +1445,20 @@ export default function StocktakePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => applyMutation.mutate()}
+                  onClick={() =>
+                    applyMutation.mutate({
+                      onlyScanned: applyOnlyScanned,
+                      keepOpen: applyKeepOpen,
+                    })
+                  }
                   className="btn-primary btn-sm bg-emerald-600 hover:bg-emerald-700"
                   disabled={applyMutation.isPending}
                 >
-                  {applyMutation.isPending ? "Ajustement en cours..." : "Confirmer & Appliquer"}
+                  {applyMutation.isPending
+                    ? "Ajustement en cours..."
+                    : applyKeepOpen
+                    ? "Valider ce lot & Continuer"
+                    : "Confirmer & Clôturer"}
                 </button>
               </div>
             </div>
@@ -1011,7 +1475,11 @@ export default function StocktakePage() {
             onCancel={() => setShowPinModal(false)}
             onSuccess={(pin) => {
               setShowPinModal(false);
-              applyMutation.mutate(pin);
+              applyMutation.mutate({
+                pin,
+                onlyScanned: applyOnlyScanned,
+                keepOpen: applyKeepOpen,
+              });
             }}
           />
         )}
@@ -1030,7 +1498,7 @@ export default function StocktakePage() {
             Inventaire Physique & Scan Rapide
           </h1>
           <p className="text-xs text-text-muted mt-1">
-            Gérez vos récolements périodiques, comptez vos cartons et paires par code-barres et ajustez le stock sans écart.
+            Inventaire tournant par scan libre, par rayon/étagère ou général — conçu pour les catalogues de plusieurs milliers d'articles.
           </p>
         </div>
 
@@ -1047,7 +1515,6 @@ export default function StocktakePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sessions?.map((sess) => {
           const isDone = sess.status === "completed";
-          const isCancelled = sess.status === "cancelled";
 
           return (
             <div
@@ -1076,7 +1543,7 @@ export default function StocktakePage() {
                 </p>
 
                 {/* Scope if any */}
-                {(sess.scope_brand || sess.scope_category) && (
+                {(sess.scope_brand || sess.scope_category || sess.notes) && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {sess.scope_brand && (
                       <span className="text-3xs font-semibold px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
@@ -1086,6 +1553,11 @@ export default function StocktakePage() {
                     {sess.scope_category && (
                       <span className="text-3xs font-semibold px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
                         Catégorie: {sess.scope_category}
+                      </span>
+                    )}
+                    {sess.notes && (
+                      <span className="text-3xs font-medium px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 line-clamp-1">
+                        {sess.notes}
                       </span>
                     )}
                   </div>
@@ -1163,7 +1635,7 @@ export default function StocktakePage() {
             <ClipboardList size={40} className="mx-auto text-slate-300 mb-3" />
             <h3 className="font-bold text-base text-text-primary">Aucune session d'inventaire</h3>
             <p className="text-xs text-text-muted max-w-md mx-auto mt-1 mb-5">
-              Créez votre première session d'inventaire physique pour scanner les paires et cartons de chaussures avec votre douchette.
+              Créez votre première session d'inventaire physique (partiel par scan libre, par rayon/marque, ou général).
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -1202,12 +1674,14 @@ function CreateStocktakeModal({
   onClose: () => void;
   onCreated: (session: StocktakeSession) => void;
 }) {
-  const { user } = useAuth();
+  const [inventoryMode, setInventoryMode] = useState<"scan_only" | "scoped" | "full">("scan_only");
   const [title, setTitle] = useState(`Inventaire du ${new Date().toLocaleDateString("fr-DZ")}`);
   const [branchId, setBranchId] = useState<string>("");
+  const [scopeLocation, setScopeLocation] = useState("");
   const [scopeBrand, setScopeBrand] = useState("");
   const [scopeCategory, setScopeCategory] = useState("");
-  const [autoPopulate, setAutoPopulate] = useState(true);
+  const [scopeReference, setScopeReference] = useState("");
+  const [onlyInStock, setOnlyInStock] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -1217,15 +1691,32 @@ function CreateStocktakeModal({
     queryFn: () => api.get("/core/branches/").then((r) => r.data.results || r.data),
   });
 
+  // Load distinct brands & shelf locations for quick selection
+  const { data: brandsList } = useQuery<string[]>({
+    queryKey: ["product-brands"],
+    queryFn: () => api.get("/inventory/products/brands/").then((r) => r.data),
+  });
+
+  const { data: locationsList } = useQuery<string[]>({
+    queryKey: ["product-locations", branchId],
+    queryFn: () =>
+      api
+        .get("/inventory/products/locations/", { params: branchId ? { branch: branchId } : {} })
+        .then((r) => r.data),
+  });
+
   const mutation = useMutation({
     mutationFn: () =>
       api
         .post("/inventory/stocktakes/", {
           title,
           branch: branchId ? Number(branchId) : null,
-          scope_brand: scopeBrand.trim(),
-          scope_category: scopeCategory,
-          auto_populate: autoPopulate,
+          scope_brand: inventoryMode === "scoped" ? scopeBrand.trim() : "",
+          scope_category: inventoryMode === "scoped" ? scopeCategory : "",
+          scope_location: inventoryMode === "scoped" ? scopeLocation.trim() : "",
+          scope_reference: inventoryMode === "scoped" ? scopeReference.trim() : "",
+          only_in_stock: inventoryMode !== "scan_only" ? onlyInStock : false,
+          auto_populate: inventoryMode !== "scan_only",
           notes,
         })
         .then((r) => r.data),
@@ -1236,8 +1727,8 @@ function CreateStocktakeModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
         <div className="p-5 border-b border-border flex items-center justify-between bg-primary-50/50">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
@@ -1245,7 +1736,7 @@ function CreateStocktakeModal({
             </div>
             <div>
               <h3 className="font-bold text-base text-text-primary">Nouvel Inventaire Physique</h3>
-              <p className="text-2xs text-text-muted">Configuration du périmètre de comptage</p>
+              <p className="text-2xs text-text-muted">Choisissez la méthode adaptée à la taille de votre stock</p>
             </div>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1">
@@ -1258,7 +1749,7 @@ function CreateStocktakeModal({
             e.preventDefault();
             mutation.mutate();
           }}
-          className="p-5 space-y-4"
+          className="p-5 space-y-4 max-h-[82vh] overflow-y-auto"
         >
           {error && (
             <div className="p-3 bg-danger-light text-danger text-xs rounded-xl font-medium">
@@ -1266,81 +1757,208 @@ function CreateStocktakeModal({
             </div>
           )}
 
-          <div>
-            <label className="form-label text-xs">Intitulé de la session *</label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="form-input text-xs font-bold"
-              placeholder="Ex: Inventaire Général Octobre 2026"
-            />
+          {/* Inventory Mode Selector */}
+          <div className="space-y-2">
+            <label className="form-label text-xs">Type d'inventaire *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryMode("scan_only");
+                  if (title.startsWith("Inventaire")) {
+                    setTitle(`Inventaire Tournant du ${new Date().toLocaleDateString("fr-DZ")}`);
+                  }
+                }}
+                className={cn(
+                  "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                  inventoryMode === "scan_only"
+                    ? "border-primary-600 bg-primary-50/60 ring-2 ring-primary-500/20"
+                    : "border-border bg-surface/40 hover:bg-surface"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-text-primary">1. Scan Libre / Partiel</span>
+                    <span className="text-3xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      Recommandé
+                    </span>
+                  </div>
+                  <p className="text-2xs text-text-muted mt-1 leading-snug">
+                    Démarre à vide. Ajoute uniquement les boîtes que vous scannez (idéal pour +1 000 articles ou par étagère).
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryMode("scoped");
+                  if (title.startsWith("Inventaire")) {
+                    setTitle(`Inventaire Ciblé du ${new Date().toLocaleDateString("fr-DZ")}`);
+                  }
+                }}
+                className={cn(
+                  "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                  inventoryMode === "scoped"
+                    ? "border-primary-600 bg-primary-50/60 ring-2 ring-primary-500/20"
+                    : "border-border bg-surface/40 hover:bg-surface"
+                )}
+              >
+                <div>
+                  <span className="text-xs font-black text-text-primary block">2. Par Rayon / Marque</span>
+                  <p className="text-2xs text-text-muted mt-1 leading-snug">
+                    Pré-charge uniquement un emplacement, une catégorie, une marque ou une famille de références.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryMode("full");
+                  if (title.startsWith("Inventaire")) {
+                    setTitle(`Inventaire Général du ${new Date().toLocaleDateString("fr-DZ")}`);
+                  }
+                }}
+                className={cn(
+                  "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                  inventoryMode === "full"
+                    ? "border-primary-600 bg-primary-50/60 ring-2 ring-primary-500/20"
+                    : "border-border bg-surface/40 hover:bg-surface"
+                )}
+              >
+                <div>
+                  <span className="text-xs font-black text-text-primary block">3. Général Complet</span>
+                  <p className="text-2xs text-text-muted mt-1 leading-snug">
+                    Pré-charge tout le catalogue du magasin (clôture annuelle complète).
+                  </p>
+                </div>
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label className="form-label text-xs">Succursale / Emplacement</label>
-            <select
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              className="form-input text-xs"
-            >
-              <option value="">Toutes les succursales (Global)</option>
-              {branches?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="form-label text-xs">Marque (optionnel)</label>
+              <label className="form-label text-xs">Intitulé de la session *</label>
               <input
                 type="text"
-                value={scopeBrand}
-                onChange={(e) => setScopeBrand(e.target.value)}
-                className="form-input text-xs"
-                placeholder="Ex: Nike, Adidas..."
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="form-input text-xs font-bold"
+                placeholder="Ex: Inventaire Rayon Homme"
               />
             </div>
 
             <div>
-              <label className="form-label text-xs">Catégorie (optionnel)</label>
+              <label className="form-label text-xs">Succursale</label>
               <select
-                value={scopeCategory}
-                onChange={(e) => setScopeCategory(e.target.value)}
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
                 className="form-input text-xs"
               >
-                <option value="">Toutes catégories</option>
-                <option value="sneakers">Baskets / Sneakers</option>
-                <option value="boots">Bottes / Bottines</option>
-                <option value="sandals">Sandales</option>
-                <option value="formal">Classique / Ville</option>
-                <option value="sport">Sport</option>
-                <option value="slippers">Pantoufles / Claquettes</option>
+                <option value="">Toutes les succursales (Global)</option>
+                {branches?.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-surface border border-border flex items-start gap-3">
-            <input
-              type="checkbox"
-              id="autoPopulate"
-              checked={autoPopulate}
-              onChange={(e) => setAutoPopulate(e.target.checked)}
-              className="w-4 h-4 mt-0.5 accent-primary-600 rounded border-border"
-            />
-            <div>
-              <label htmlFor="autoPopulate" className="text-xs font-bold text-text-primary cursor-pointer">
-                Pré-charger le stock théorique de tous les articles
-              </label>
-              <p className="text-2xs text-text-muted mt-0.5 leading-relaxed">
-                Recommandé : initialise la liste avec toutes vos références existantes (compté = 0). Les paires non scannées apparaîtront directement comme manquantes.
-              </p>
+          {/* Scoped Filters */}
+          {inventoryMode === "scoped" && (
+            <div className="p-3.5 rounded-2xl bg-surface border border-border space-y-3">
+              <div className="text-2xs font-bold uppercase tracking-wider text-primary-700">
+                Filtres du périmètre à pré-charger
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="form-label text-2xs">Rayon / Emplacement (Étagère)</label>
+                  <input
+                    type="text"
+                    list="stocktake-locations-list"
+                    value={scopeLocation}
+                    onChange={(e) => setScopeLocation(e.target.value)}
+                    className="form-input text-xs"
+                    placeholder="Ex: Rayon A, Étagère 3, Réserve..."
+                  />
+                  <datalist id="stocktake-locations-list">
+                    {locationsList?.map((loc) => (
+                      <option key={loc} value={loc} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="form-label text-2xs">Catégorie</label>
+                  <select
+                    value={scopeCategory}
+                    onChange={(e) => setScopeCategory(e.target.value)}
+                    className="form-input text-xs"
+                  >
+                    <option value="">Toutes catégories</option>
+                    <option value="sneakers">Baskets / Sneakers</option>
+                    <option value="boots">Bottes / Bottines</option>
+                    <option value="sandals">Sandales</option>
+                    <option value="formal">Classique / Ville</option>
+                    <option value="sport">Sport</option>
+                    <option value="kids">Chaussures Enfants</option>
+                    <option value="slippers">Pantoufles / Claquettes</option>
+                    <option value="other">Autre</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label text-2xs">Marque</label>
+                  <input
+                    type="text"
+                    list="stocktake-brands-list"
+                    value={scopeBrand}
+                    onChange={(e) => setScopeBrand(e.target.value)}
+                    className="form-input text-xs"
+                    placeholder="Ex: Nike, Adidas, Zara..."
+                  />
+                  <datalist id="stocktake-brands-list">
+                    {brandsList?.map((b) => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="form-label text-2xs">Préfixe Référence / Modèle</label>
+                  <input
+                    type="text"
+                    value={scopeReference}
+                    onChange={(e) => setScopeReference(e.target.value)}
+                    className="form-input text-xs font-mono"
+                    placeholder="Ex: 1457, BL-, F13..."
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {inventoryMode !== "scan_only" && (
+            <label className="p-3 rounded-2xl bg-surface border border-border flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onlyInStock}
+                onChange={(e) => setOnlyInStock(e.target.checked)}
+                className="w-4 h-4 mt-0.5 accent-primary-600 rounded border-border"
+              />
+              <div>
+                <span className="text-xs font-bold text-text-primary block">
+                  Exclure les articles déjà en rupture (Pré-charger uniquement si stock théorique &gt; 0)
+                </span>
+                <span className="text-2xs text-text-muted">
+                  Évite d'encombrer la liste avec d'anciennes références épuisées (vous pourrez toujours les scanner si vous en retrouvez une boîte).
+                </span>
+              </div>
+            </label>
+          )}
 
           <div>
             <label className="form-label text-xs">Observations / Notes</label>
@@ -1349,7 +1967,7 @@ function CreateStocktakeModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="form-input text-xs resize-none"
-              placeholder="Ex: Comptage annuel avant réassort"
+              placeholder="Ex: Comptage par équipe du matin — Rayon vitrine"
             />
           </div>
 

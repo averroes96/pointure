@@ -153,6 +153,17 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         )
         return Response(list(brands_list))
 
+    @action(detail=False, methods=["get"], url_path="locations")
+    def locations(self, request):
+        """Return distinct non-empty shelf/rayon locations for this tenant."""
+        from apps.inventory.models import ProductLocation
+        qs = ProductLocation.objects.filter(tenant=request.tenant).exclude(location="")
+        branch_id = request.query_params.get("branch")
+        if branch_id and branch_id != "null":
+            qs = qs.filter(branch_id=branch_id)
+        locs = qs.values_list("location", flat=True).distinct().order_by("location")
+        return Response(list(locs))
+
     def perform_create(self, serializer):
         from apps.core.plan_permissions import check_quota
         check_quota(self.request, "products", Product.objects.filter(tenant=self.request.tenant).count())
@@ -1690,6 +1701,8 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """
     CRUD + Fast continuous barcode scanning and applying physical inventory audits.
+    Supports full store audits, scoped zone/rayon audits, and rolling scan-only audits
+    for stores with thousands of SKUs.
     """
     queryset = StocktakeSession.objects.select_related("branch", "created_by", "completed_by")
     filterset_fields = ["status", "branch"]
@@ -1697,37 +1710,102 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering_fields = ["created_at", "total_variance", "total_counted"]
     ordering = ["-created_at"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action in ["retrieve", "apply_inventory"]:
+            qs = qs.prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=StocktakeItem.objects.select_related("variant__product").order_by(
+                        "-last_scanned_at", "variant__product__name", "variant__size_eu"
+                    ),
+                )
+            )
+        return qs
+
     def get_serializer_class(self):
         if self.action == "create":
             return CreateStocktakeSessionSerializer
-        elif self.action in ["retrieve", "scan", "update_item", "apply_inventory"]:
+        elif self.action in ["retrieve", "scan", "update_item", "apply_inventory", "bind_barcode"]:
             return StocktakeSessionDetailSerializer
         return StocktakeSessionListSerializer
 
     def perform_create(self, serializer):
         auto_populate = serializer.validated_data.pop("auto_populate", True)
+        scope_location = (serializer.validated_data.pop("scope_location", "") or "").strip()
+        scope_reference = (serializer.validated_data.pop("scope_reference", "") or "").strip()
+        only_in_stock = serializer.validated_data.pop("only_in_stock", False)
         branch = serializer.validated_data.get("branch") or getattr(self.request.user, "branch", None)
+
+        extra_notes = []
+        if not auto_populate:
+            extra_notes.append("[Mode: Scan libre / Inventaire partiel]")
+        if scope_location:
+            extra_notes.append(f"[Rayon: {scope_location}]")
+        if scope_reference:
+            extra_notes.append(f"[Réf: {scope_reference}]")
+        if only_in_stock:
+            extra_notes.append("[En stock uniquement]")
+
+        base_notes = (serializer.validated_data.get("notes") or "").strip()
+        combined_notes = (" ".join(extra_notes) + (" — " + base_notes if base_notes else "")).strip()
+
         session = serializer.save(
             tenant=self.request.tenant,
             branch=branch,
             created_by=self.request.user,
             status=StocktakeStatusChoices.IN_PROGRESS,
+            notes=combined_notes if extra_notes else base_notes,
         )
 
         if auto_populate:
             var_qs = Variant.objects.filter(
                 tenant=self.request.tenant,
                 is_active=True,
+                product__is_active=True,
             ).select_related("product")
 
             if session.scope_brand:
                 var_qs = var_qs.filter(product__brand__iexact=session.scope_brand)
             if session.scope_category:
                 var_qs = var_qs.filter(product__category=session.scope_category)
+            if scope_location:
+                loc_q = Q(product__branch_locations__location__icontains=scope_location)
+                if session.branch:
+                    loc_q &= Q(product__branch_locations__branch=session.branch)
+                var_qs = var_qs.filter(loc_q).distinct()
+            if scope_reference:
+                var_qs = var_qs.filter(
+                    Q(product__reference__icontains=scope_reference)
+                    | Q(product__name__icontains=scope_reference)
+                )
+
+            if session.branch:
+                branch_stock_subq = (
+                    StockMovement.objects.filter(
+                        variant_id=OuterRef("pk"),
+                        branch_id=session.branch_id,
+                    )
+                    .order_by()
+                    .values("variant_id")
+                    .annotate(total=Sum("quantity_delta"))
+                    .values("total")
+                )
+                var_qs = var_qs.annotate(
+                    computed_expected_qty=Coalesce(
+                        Subquery(branch_stock_subq, output_field=IntegerField()),
+                        Value(0),
+                    )
+                )
+            else:
+                var_qs = var_qs.annotate(computed_expected_qty=F("stock_qty"))
+
+            if only_in_stock:
+                var_qs = var_qs.filter(computed_expected_qty__gt=0)
 
             items_to_create = []
             for var in var_qs:
-                expected = var.refresh_stock(branch=session.branch) if session.branch else var.stock_qty
+                expected = getattr(var, "computed_expected_qty", var.stock_qty) or 0
                 cost = var.product.purchase_price or Decimal("0.00")
                 price = var.product.sale_price or Decimal("0.00")
                 items_to_create.append(
@@ -1742,15 +1820,15 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     )
                 )
             if items_to_create:
-                StocktakeItem.objects.bulk_create(items_to_create)
+                StocktakeItem.objects.bulk_create(items_to_create, batch_size=500)
                 session.recalculate_totals()
 
     @action(detail=True, methods=["post"], url_path="scan")
     def scan(self, request, pk=None):
         """
         Fast barcode scanning endpoint.
-        Body: { "barcode": "<scanned_code>", "increment": 1 }
-        Increments counted_qty for matching variant and recalculates session totals.
+        Body: { "barcode": "<scanned_code>", "increment": 1, "set_qty": null }
+        Increments (or sets) counted_qty for matching variant and recalculates session totals.
         """
         session = self.get_object()
         if session.status == StocktakeStatusChoices.COMPLETED:
@@ -1770,6 +1848,14 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             increment = int(request.data.get("increment", 1))
         except (ValueError, TypeError):
             increment = 1
+
+        set_qty_raw = request.data.get("set_qty", None)
+        set_qty = None
+        if set_qty_raw is not None and set_qty_raw != "":
+            try:
+                set_qty = max(0, int(set_qty_raw))
+            except (ValueError, TypeError):
+                set_qty = None
 
         base_qs = Variant.objects.filter(
             tenant=request.tenant, is_active=True
@@ -1811,7 +1897,11 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             },
         )
 
-        item.counted_qty = max(0, item.counted_qty + increment)
+        previous_qty = item.counted_qty
+        if set_qty is not None:
+            item.counted_qty = set_qty
+        else:
+            item.counted_qty = max(0, item.counted_qty + increment)
         from django.utils import timezone
         item.last_scanned_at = timezone.now()
         item.save(update_fields=["counted_qty", "last_scanned_at"])
@@ -1823,6 +1913,74 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             "success": True,
             "scanned": barcode,
             "increment": increment,
+            "created": created,
+            "previous_qty": previous_qty,
+            "item": StocktakeItemSerializer(item).data,
+            "session_total_counted": session.total_counted,
+            "session_total_expected": session.total_expected,
+            "session_total_variance": session.total_variance,
+            "session_total_variance_cost": str(session.total_variance_cost),
+        })
+
+    @action(detail=True, methods=["post"], url_path="bind-barcode")
+    def bind_barcode(self, request, pk=None):
+        """
+        Associate an unknown scanned barcode with an existing Variant and count it immediately.
+        Body: { "variant_id": <id>, "barcode": "<scanned_code>", "increment": 1 }
+        """
+        session = self.get_object()
+        if session.status == StocktakeStatusChoices.COMPLETED:
+            return Response(
+                {"error": {"code": "session_completed", "message": "Cette session d'inventaire est déjà clôturée."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        variant_id = request.data.get("variant_id")
+        barcode = (request.data.get("barcode") or "").strip()
+        try:
+            increment = int(request.data.get("increment", 1))
+        except (ValueError, TypeError):
+            increment = 1
+
+        if not variant_id or not barcode:
+            return Response(
+                {"error": {"code": "invalid_payload", "message": "Article et code-barres requis."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        variant = Variant.objects.filter(tenant=request.tenant, pk=variant_id).select_related("product").first()
+        if not variant:
+            return Response(
+                {"error": {"code": "not_found", "message": "Variante introuvable."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        variant.barcode = barcode
+        variant.save(update_fields=["barcode"])
+
+        item, created = StocktakeItem.objects.get_or_create(
+            tenant=request.tenant,
+            session=session,
+            variant=variant,
+            defaults={
+                "expected_qty": variant.refresh_stock(branch=session.branch) if session.branch else variant.stock_qty,
+                "counted_qty": 0,
+                "unit_cost": variant.product.purchase_price or Decimal("0.00"),
+                "unit_price": variant.product.sale_price or Decimal("0.00"),
+            },
+        )
+        from django.utils import timezone
+        item.counted_qty = max(0, item.counted_qty + increment)
+        item.last_scanned_at = timezone.now()
+        item.save(update_fields=["counted_qty", "last_scanned_at"])
+
+        session.recalculate_totals()
+        session.refresh_from_db()
+
+        return Response({
+            "success": True,
+            "scanned": barcode,
+            "created": created,
             "item": StocktakeItemSerializer(item).data,
             "session_total_counted": session.total_counted,
             "session_total_expected": session.total_expected,
@@ -1845,22 +2003,24 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         item_id = request.data.get("item_id")
         try:
-            item = session.items.get(pk=item_id)
+            item = session.items.select_related("variant__product").get(pk=item_id)
         except StocktakeItem.DoesNotExist:
             return Response(
                 {"error": {"code": "not_found", "message": "Article introuvable dans cette session."}},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        from django.utils import timezone
         if "counted_qty" in request.data:
             try:
                 item.counted_qty = max(0, int(request.data["counted_qty"]))
+                item.last_scanned_at = timezone.now()
             except (ValueError, TypeError):
                 pass
         if "notes" in request.data:
             item.notes = str(request.data["notes"]).strip()
 
-        item.save(update_fields=["counted_qty", "notes"])
+        item.save(update_fields=["counted_qty", "notes", "last_scanned_at"])
         session.recalculate_totals()
         session.refresh_from_db()
 
@@ -1877,6 +2037,11 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def apply_inventory(self, request, pk=None):
         """
         Finalize and apply inventory: adjusts stock via StockMovement records.
+        Supports:
+        - only_scanned (bool): when True, only reconciles items that were scanned or manually edited
+          (last_scanned_at != None or counted_qty > 0), leaving untouched pre-populated items intact.
+        - keep_open (bool): when True, applies adjustments for scanned items right now and updates their
+          expected_qty = counted_qty so the session remains IN_PROGRESS for multi-day / zone-by-zone scanning.
         """
         session = self.get_object()
         if session.status == StocktakeStatusChoices.COMPLETED:
@@ -1896,10 +2061,19 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        only_scanned = bool(request.data.get("only_scanned", False))
+        keep_open = bool(request.data.get("keep_open", False))
+        if keep_open:
+            only_scanned = True
+
         adjusted_count = 0
         from django.utils import timezone
         with transaction.atomic():
-            for item in session.items.select_related("variant").all():
+            items_qs = session.items.select_related("variant__product").all()
+            if only_scanned:
+                items_qs = items_qs.filter(Q(last_scanned_at__isnull=False) | Q(counted_qty__gt=0))
+
+            for item in items_qs:
                 variance = item.counted_qty - item.expected_qty
                 if variance != 0:
                     StockMovement.objects.create(
@@ -1916,15 +2090,30 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     item.variant.refresh_stock(branch=session.branch)
                     adjusted_count += 1
 
-            session.status = StocktakeStatusChoices.COMPLETED
-            session.completed_by = request.user
-            session.completed_at = timezone.now()
-            session.save(update_fields=["status", "completed_by", "completed_at", "updated_at"])
-            session.recalculate_totals()
+                if keep_open and variance != 0:
+                    item.expected_qty = item.counted_qty
+                    if "[Lot validé]" not in (item.notes or ""):
+                        item.notes = f"{item.notes} [Lot validé]".strip()
+                    item.save(update_fields=["expected_qty", "notes"])
 
+            if keep_open:
+                session.recalculate_totals()
+            else:
+                if only_scanned:
+                    # Remove untouched pre-populated items so closed session totals reflect only the audited scope
+                    session.items.filter(last_scanned_at__isnull=True, counted_qty=0).delete()
+                session.status = StocktakeStatusChoices.COMPLETED
+                session.completed_by = request.user
+                session.completed_at = timezone.now()
+                session.save(update_fields=["status", "completed_by", "completed_at", "updated_at"])
+                session.recalculate_totals()
+
+        session = self.get_queryset().get(pk=session.pk)
         return Response({
             "success": True,
             "adjusted_variants_count": adjusted_count,
+            "kept_open": keep_open,
+            "only_scanned": only_scanned,
             "session": StocktakeSessionDetailSerializer(session).data,
         })
 
