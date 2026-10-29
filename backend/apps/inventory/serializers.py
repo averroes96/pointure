@@ -105,36 +105,45 @@ class ProductListSerializer(serializers.ModelSerializer):
     """
     List serializer — includes variants so the POS search can show size/colour
     grid immediately without a second fetch. The queryset already prefetches
-    variants so this adds zero extra DB queries.
+    variants and branch_locations so all properties are computed in-memory
+    with zero extra DB queries.
     """
     total_stock = serializers.SerializerMethodField()
-    has_low_stock = serializers.BooleanField(read_only=True)
-    is_total_low_stock = serializers.BooleanField(read_only=True)
+    has_low_stock = serializers.SerializerMethodField()
+    is_total_low_stock = serializers.SerializerMethodField()
     variants = VariantSerializer(many=True, read_only=True)
     location = serializers.SerializerMethodField()
     barcode = serializers.SerializerMethodField()
     default_variant_id = serializers.SerializerMethodField()
 
     def get_barcode(self, obj):
-        v = obj.variants.first()
-        return v.barcode if v else ""
+        variants = obj.variants.all()
+        return variants[0].barcode if variants else ""
 
     def get_default_variant_id(self, obj):
-        v = obj.variants.first()
-        return v.id if v else None
+        variants = obj.variants.all()
+        return variants[0].id if variants else None
 
     def get_location(self, obj):
         request = self.context.get("request")
-        if not request or not getattr(request, "branch", None):
+        if not request:
             return ""
-        
-        # Check prefetched locations if available
-        if hasattr(obj, "prefetched_locations"):
-            locs = [l for l in obj.prefetched_locations if l.branch_id == request.branch.id]
-            return locs[0].location if locs else ""
-        
-        loc = obj.branch_locations.filter(branch=request.branch).first()
-        return loc.location if loc else ""
+
+        target_branch_id = request.query_params.get("branch_id")
+        if not target_branch_id and getattr(request, "branch", None):
+            target_branch_id = str(request.branch.id)
+
+        if not target_branch_id:
+            return ""
+
+        # Check prefetched locations in-memory with ZERO database queries
+        locs = getattr(obj, "prefetched_locations", None)
+        if locs is None:
+            locs = obj.branch_locations.all()
+        for loc in locs:
+            if str(loc.branch_id) == str(target_branch_id):
+                return loc.location
+        return ""
 
     def get_total_stock(self, obj):
         # Sum from the prefetch cache. When branch_id was passed the variants
@@ -144,6 +153,23 @@ class ProductListSerializer(serializers.ModelSerializer):
             else v.stock_qty
             for v in obj.variants.all()
         )
+
+    def get_has_low_stock(self, obj):
+        # Computed in-memory from prefetched variants cache with zero extra queries
+        for v in obj.variants.all():
+            stock = getattr(v, "branch_stock_qty", None)
+            if stock is None:
+                stock = v.stock_qty
+            if v.alert_threshold > 0 and stock <= v.alert_threshold:
+                return True
+        return False
+
+    def get_is_total_low_stock(self, obj):
+        # Computed in-memory from prefetched variants cache with zero extra queries
+        if not obj.alert_threshold or obj.alert_threshold <= 0:
+            return False
+        total = self.get_total_stock(obj)
+        return total <= obj.alert_threshold
 
     class Meta:
         model = Product

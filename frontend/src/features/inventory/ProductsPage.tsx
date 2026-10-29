@@ -65,6 +65,15 @@ export default function ProductsPage() {
 
   // Filter & Sort states
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const [category, setCategory] = useState("");
   const [stockStatus, setStockStatus] = useState<"" | "in_stock" | "low_stock" | "out_of_stock">("");
   const [brand, setBrand] = useState("");
@@ -99,7 +108,7 @@ export default function ProductsPage() {
     queryKey: [
       "products",
       {
-        search,
+        search: debouncedSearch,
         category,
         stockStatus,
         brand,
@@ -111,9 +120,10 @@ export default function ProductsPage() {
         page,
       },
     ],
+    placeholderData: (previousData) => previousData,
     queryFn: () => {
       const params = new URLSearchParams();
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       if (category) params.set("category", category);
       if (stockStatus) params.set("stock_status", stockStatus);
       if (brand) params.set("brand", brand);

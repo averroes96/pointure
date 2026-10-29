@@ -108,6 +108,13 @@ class Product(TenantScopedModel):
         verbose_name = _("Product")
         verbose_name_plural = _("Products")
         ordering = ["name"]
+        indexes = [
+            models.Index(fields=["tenant", "name"], name="inv_prod_tenant_name_idx"),
+            models.Index(fields=["tenant", "category"], name="inv_prod_tenant_cat_idx"),
+            models.Index(fields=["tenant", "brand"], name="inv_prod_tenant_brand_idx"),
+            models.Index(fields=["tenant", "reference"], name="inv_prod_tenant_ref_idx"),
+            models.Index(fields=["tenant", "created_at"], name="inv_prod_tenant_created_idx"),
+        ]
 
     def __str__(self):
         return f"{self.brand} {self.name}".strip()
@@ -298,6 +305,11 @@ class StockMovement(TenantScopedModel):
         ordering = ["-timestamp"]
         # Prevent any UPDATE on this table after insert
         default_permissions = ("add", "view")
+        indexes = [
+            models.Index(fields=["branch", "variant"], name="inv_sm_branch_variant_idx"),
+            models.Index(fields=["variant", "branch"], name="inv_sm_variant_branch_idx"),
+            models.Index(fields=["tenant", "-timestamp"], name="inv_sm_tenant_time_idx"),
+        ]
 
     def __str__(self):
         sign = "+" if self.quantity_delta > 0 else ""
