@@ -122,6 +122,127 @@ class LoyaltyAccountViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelView
 
         return Response(LoyaltyAccountSummarySerializer(account).data)
 
+    @action(detail=False, methods=["get"], url_path="stats")
+    def stats(self, request):
+        """
+        GET /loyalty/accounts/stats/
+        Returns aggregate KPIs for the loyalty program dashboard.
+        """
+        from django.db.models import Count, Q, Sum
+        from decimal import Decimal
+
+        qs = LoyaltyAccount.objects.filter(tenant=request.tenant)
+        aggs = qs.aggregate(
+            total_members=Count("id"),
+            total_balance=Sum("points_balance"),
+            total_earned=Sum("total_earned"),
+            bronze_count=Count("id", filter=Q(tier="bronze")),
+            silver_count=Count("id", filter=Q(tier="silver")),
+            gold_count=Count("id", filter=Q(tier="gold")),
+        )
+        redeemed_agg = LoyaltyTransaction.objects.filter(
+            account__tenant=request.tenant,
+            transaction_type=TransactionTypeChoices.REDEEM,
+        ).aggregate(total_redeemed=Sum("points"))
+
+        program = LoyaltyProgram.objects.filter(tenant=request.tenant).first()
+        total_balance = aggs["total_balance"] or 0
+        total_redeemed = abs(redeemed_agg["total_redeemed"] or 0)
+        balance_dzd = (
+            program.dzd_for_points(total_balance)
+            if program
+            else Decimal(total_balance)
+        )
+        redeemed_dzd = (
+            program.dzd_for_points(total_redeemed)
+            if program
+            else Decimal(total_redeemed)
+        )
+
+        return Response({
+            "total_members": aggs["total_members"] or 0,
+            "total_points_balance": total_balance,
+            "total_points_dzd_value": str(balance_dzd.quantize(Decimal("0.01"))),
+            "total_points_earned": aggs["total_earned"] or 0,
+            "total_points_redeemed": total_redeemed,
+            "total_redeemed_dzd_value": str(redeemed_dzd.quantize(Decimal("0.01"))),
+            "tier_counts": {
+                "bronze": aggs["bronze_count"] or 0,
+                "silver": aggs["silver_count"] or 0,
+                "gold": aggs["gold_count"] or 0,
+            },
+        })
+
+    @action(detail=False, methods=["post"], url_path="enroll")
+    def enroll(self, request):
+        """
+        POST /loyalty/accounts/enroll/
+        Body: { "client_id": <id>, "welcome_points": 0 } OR { "enroll_all": true }
+        Enrolls one client (or all existing un-enrolled clients) into the loyalty program.
+        """
+        from apps.clients.models import Client
+
+        # Ensure a LoyaltyProgram exists for this tenant (auto-create default if none)
+        program, _ = LoyaltyProgram.objects.get_or_create(
+            tenant=request.tenant,
+            defaults={"is_active": True},
+        )
+
+        if request.data.get("enroll_all"):
+            existing_client_ids = LoyaltyAccount.objects.filter(
+                tenant=request.tenant
+            ).values_list("client_id", flat=True)
+            clients_to_enroll = Client.objects.filter(
+                tenant=request.tenant, is_active=True
+            ).exclude(id__in=existing_client_ids)
+            created_accounts = [
+                LoyaltyAccount(tenant=request.tenant, client=c, tier="bronze")
+                for c in clients_to_enroll
+            ]
+            if created_accounts:
+                LoyaltyAccount.objects.bulk_create(created_accounts, ignore_conflicts=True)
+            return Response({"enrolled_count": len(created_accounts)})
+
+        client_id = request.data.get("client_id")
+        if not client_id:
+            return Response({"detail": "client_id est requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            client = Client.objects.get(pk=client_id, tenant=request.tenant)
+        except Client.DoesNotExist:
+            return Response({"detail": "Client introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        welcome_points = 0
+        try:
+            welcome_points = max(0, int(request.data.get("welcome_points", 0) or 0))
+        except (TypeError, ValueError):
+            welcome_points = 0
+
+        account, created = LoyaltyAccount.objects.get_or_create(
+            tenant=request.tenant,
+            client=client,
+            defaults={
+                "tier": "bronze",
+                "points_balance": welcome_points,
+                "total_earned": welcome_points,
+            },
+        )
+        if created and welcome_points > 0:
+            account.recompute_tier(program)
+            account.save()
+            LoyaltyTransaction.objects.create(
+                account=account,
+                points=welcome_points,
+                transaction_type=TransactionTypeChoices.ADJUST,
+                description="Bonus de bienvenue fidélité",
+                balance_after=account.points_balance,
+            )
+
+        return Response(
+            LoyaltyAccountSerializer(account).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=["post"], url_path="adjust")
     def adjust(self, request, pk=None):
         """
