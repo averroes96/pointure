@@ -131,7 +131,7 @@ export default function SupplierPayablesPage() {
       {/* Top Bucket KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="card p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">Total Dû Fournisseurs</span>
+          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">{t("supplier.total_payables")}</span>
           <p className="text-base font-bold font-mono text-slate-900 mt-1 tabular-nums">
             {formatDZD(totals.total)} <span className="text-2xs font-normal text-slate-400">DZD</span>
           </p>
@@ -155,7 +155,7 @@ export default function SupplierPayablesPage() {
           </p>
         </div>
         <div className="card p-3.5 rounded-xl border border-rose-200/60 bg-rose-50/40 shadow-2xs col-span-2 md:col-span-1">
-          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">+60j / Retard</span>
+          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">{t("supplier.days_60_plus_label")}</span>
           <p className="text-base font-bold font-mono text-rose-800 mt-1 tabular-nums">
             {formatDZD(totals.days_90 + totals.days_90_plus)} <span className="text-2xs font-normal text-rose-500">DZD</span>
           </p>
@@ -198,7 +198,7 @@ export default function SupplierPayablesPage() {
             <table className="data-table">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fournisseur</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.name")}</th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
                     <span className="text-blue-700">{t("supplier.current")}</span>
                     <span className="block text-2xs font-normal text-slate-400">{t("supplier.not_due")}</span>
@@ -265,7 +265,7 @@ export default function SupplierPayablesPage() {
                 <tfoot>
                   <tr className="bg-slate-50/90 border-t-2 border-slate-200 font-bold">
                     <td className="py-3.5 px-4 text-slate-800 text-xs font-sans uppercase tracking-wider">
-                      Total ({rows.length} fournisseur{rows.length > 1 ? "s" : ""})
+                      {t("supplier.total_suppliers_count", { count: rows.length })}
                     </td>
                     <td className="py-3.5 px-4 text-end font-mono text-sm text-blue-700 tabular-nums">{formatDZD(totals.current)}</td>
                     <td className="py-3.5 px-4 text-end font-mono text-sm text-amber-800 tabular-nums">{formatDZD(totals.days_30)}</td>

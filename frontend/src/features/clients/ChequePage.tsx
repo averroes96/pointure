@@ -40,7 +40,7 @@ export const ALGERIAN_BANKS = [
   "Fransabank El Djazaïr",
 ];
 
-function printChequeDepositSlip(cheques: Cheque[], storeName: string) {
+function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: (k: string, fallback?: string) => string) {
   const pendingReceivables = cheques.filter(
     (c) => c.status === "pending" && c.direction === "receivable",
   );
@@ -65,12 +65,13 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string) {
     )
     .join("");
 
+  const slipTitle = t ? t("cheque.schedule_slip", "Bordereau d'Échéancier Chèques") : "Bordereau d'Échéancier Chèques";
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="color-scheme" content="light" />
-  <title>Bordereau d'Échéancier Chèques — ${storeName}</title>
+  <title>${slipTitle} — ${storeName}</title>
   <style>
     :root { color-scheme: light !important; }
     html, body {
@@ -218,11 +219,11 @@ export default function ChequePage() {
           {cheques.length > 0 && (
             <button
               type="button"
-              onClick={() => printChequeDepositSlip(cheques, storeName)}
+              onClick={() => printChequeDepositSlip(cheques, storeName, t)}
               className="btn-secondary btn-sm flex items-center gap-1.5"
             >
               <Printer size={15} />
-              Imprimer Bordereau
+              {t("cheque.print_schedule_slip")}
             </button>
           )}
           <button
@@ -231,7 +232,7 @@ export default function ChequePage() {
             className="btn-primary btn-sm flex items-center gap-1.5 cursor-pointer"
           >
             <Plus size={16} />
-            Nouveau Chèque
+            {t("cheque.new_cheque")}
           </button>
         </div>
       </div>
@@ -244,10 +245,10 @@ export default function ChequePage() {
           </div>
           <div className="flex-1">
             <h4 className="text-xs font-bold text-amber-900 font-sans uppercase tracking-wider">
-              Échéances imminentes ou dépassées
+              {t("cheque.near_or_overdue")}
             </h4>
             <p className="text-xs text-amber-800 mt-0.5 font-medium">
-              <span className="font-bold">{urgentCount} chèque(s)</span> arrivent à échéance dans 3 jours ou moins (ou sont déjà échus). Pensez à les déposer en banque ou à vérifier l'encaissement.
+              <span className="font-bold">{urgentCount} {t("cheque.cheque_count", { count: urgentCount })}</span> {t("client.due_in_3_days", { count: urgentCount })}
             </p>
           </div>
         </div>
@@ -258,14 +259,14 @@ export default function ChequePage() {
         <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
-              À Encaisser (Clients)
+              {t("cheque.to_collect_clients")}
             </span>
             <p className="text-lg font-black font-mono text-blue-700 mt-1 tabular-nums">
               {formatDZD(pendingReceivableTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
             <span className="text-2xs text-slate-500 font-medium">
-              {pendingReceivables.length} chèque(s) en attente
+              {t("cheque.cheque_count", { count: pendingReceivables.length })}
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -276,14 +277,14 @@ export default function ChequePage() {
         <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
-              À Payer (Fournisseurs)
+              {t("cheque.to_pay_suppliers")}
             </span>
             <p className="text-lg font-black font-mono text-indigo-700 mt-1 tabular-nums">
               {formatDZD(pendingPayableTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
             <span className="text-2xs text-slate-500 font-medium">
-              {pendingPayables.length} chèque(s) émis
+              {t("cheque.cheque_count", { count: pendingPayables.length })}
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -294,12 +295,12 @@ export default function ChequePage() {
         <div className="card p-4 rounded-xl border border-amber-200/70 bg-amber-50/40 shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-2xs font-bold text-amber-700 uppercase tracking-wider block">
-              Échéance Proche / Dépassée
+              {t("cheque.near_or_overdue")}
             </span>
             <p className="text-lg font-black font-mono text-amber-900 mt-1 tabular-nums">
-              {urgentCount} <span className="text-2xs font-normal text-amber-600">chèque(s)</span>
+              {urgentCount} <span className="text-2xs font-normal text-amber-600">{t("cheque.cheque_count", { count: urgentCount })}</span>
             </p>
-            <span className="text-2xs text-amber-700 font-medium">J ≤ 3 jours</span>
+            <span className="text-2xs text-amber-700 font-medium">J ≤ 3 {t("cheque.days_until_due")}</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
             <AlertTriangle size={20} />
@@ -309,14 +310,14 @@ export default function ChequePage() {
         <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
-              Chèques Déposés / Encaissés
+              {t("cheque.deposited_collected")}
             </span>
             <p className="text-lg font-black font-mono text-emerald-700 mt-1 tabular-nums">
               {formatDZD(depositedTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
             <span className="text-2xs text-slate-500 font-medium">
-              {cheques.filter((c) => c.status === "deposited").length} chèque(s) réglés
+              {t("cheque.cheque_count", { count: cheques.filter((c) => c.status === "deposited").length })}
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -334,7 +335,7 @@ export default function ChequePage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par N° de chèque, client, fournisseur, banque ou note…"
+              placeholder={t("cheque.search_placeholder")}
               className="form-input pl-9 text-xs h-10"
             />
           </div>
@@ -344,9 +345,9 @@ export default function ChequePage() {
             onChange={(e) => setDirectionFilter(e.target.value)}
             className="form-input text-xs h-10 md:w-48"
           >
-            <option value="">Tous les sens (Entrant/Sortant)</option>
-            <option value="receivable">Entrants — Clients (À encaisser)</option>
-            <option value="payable">Sortants — Fournisseurs (À payer)</option>
+            <option value="">{t("cheque.all_directions")}</option>
+            <option value="receivable">{t("cheque.incoming_clients")}</option>
+            <option value="payable">{t("cheque.outgoing_suppliers")}</option>
           </select>
 
           <select
@@ -354,7 +355,7 @@ export default function ChequePage() {
             onChange={(e) => setBankFilter(e.target.value)}
             className="form-input text-xs h-10 md:w-52"
           >
-            <option value="">Toutes les banques</option>
+            <option value="">{t("cheque.bank")}</option>
             {ALGERIAN_BANKS.map((b) => (
               <option key={b} value={b}>
                 {b}
@@ -367,10 +368,10 @@ export default function ChequePage() {
           {/* Status Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { value: "", label: "Tous les statuts" },
-              { value: "pending", label: "En attente" },
-              { value: "deposited", label: "Encaissés / Déposés" },
-              { value: "bounced", label: "Impayés / Rejetés" },
+              { value: "", label: t("invoice.status_all") },
+              { value: "pending", label: t("status.pending") },
+              { value: "deposited", label: t("cheque.status_deposited") },
+              { value: "bounced", label: t("cheque.status_bounced") },
             ].map((st) => (
               <button
                 key={st.value}
@@ -390,14 +391,14 @@ export default function ChequePage() {
 
           {/* Date Range */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500 font-medium">Échéance du</span>
+            <span className="text-slate-500 font-medium">{t("cheque.due_date_from")}</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="form-input h-8 text-xs px-2.5 w-36"
             />
-            <span className="text-slate-500 font-medium">au</span>
+            <span className="text-slate-500 font-medium">{t("common.to")}</span>
             <input
               type="date"
               value={toDate}
@@ -417,7 +418,7 @@ export default function ChequePage() {
                 }}
                 className="text-xs text-rose-600 hover:underline font-semibold ml-1"
               >
-                Réinitialiser
+                {t("client.reset_filter")}
               </button>
             )}
           </div>
@@ -431,28 +432,28 @@ export default function ChequePage() {
             <thead>
               <tr className="border-b border-slate-200/80 bg-slate-50/70">
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {t("cheque.number", "N° Chèque")}
+                  {t("cheque.number")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Sens & Tiers
+                  {t("cheque.direction_and_party")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {t("cheque.bank", "Banque")}
+                  {t("cheque.bank")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {t("cheque.due_date", "Échéance")}
+                  {t("cheque.due_date")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Compte à Rebours
+                  {t("client.delay")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                  {t("cheque.amount", "Montant")}
+                  {t("cheque.amount")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Statut
+                  {t("common.status")}
                 </th>
                 <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                  {t("common.actions", "Actions")}
+                  {t("common.actions")}
                 </th>
               </tr>
             </thead>
@@ -468,9 +469,9 @@ export default function ChequePage() {
                 <tr>
                   <td colSpan={8} className="text-center py-14 text-slate-500 text-sm">
                     <Landmark size={36} className="mx-auto mb-2 text-slate-300" />
-                    <p className="font-bold text-slate-700">Aucun chèque enregistré</p>
+                    <p className="font-bold text-slate-700">{t("cheque.no_cheques_recorded")}</p>
                     <p className="text-xs text-slate-400 mt-1 mb-4">
-                      Enregistrez vos chèques clients ou fournisseurs, ou encaissez par chèque directement depuis la caisse POS.
+                      {t("cheque.no_cheques_desc")}
                     </p>
                     <button
                       type="button"
@@ -478,7 +479,7 @@ export default function ChequePage() {
                       className="btn-primary btn-sm inline-flex items-center gap-1.5"
                     >
                       <Plus size={15} />
-                      Enregistrer un chèque
+                      {t("cheque.new_cheque")}
                     </button>
                   </td>
                 </tr>
@@ -503,16 +504,16 @@ export default function ChequePage() {
                       >
                         {cheque.direction === "payable" ? (
                           <>
-                            <ArrowUpRight size={10} /> Fournisseur
+                            <ArrowUpRight size={10} /> {t("supplier.supplier")}
                           </>
                         ) : (
                           <>
-                            <ArrowDownLeft size={10} /> Client
+                            <ArrowDownLeft size={10} /> {t("invoice.client")}
                           </>
                         )}
                       </span>
                       <span className="font-sans font-bold text-slate-800 text-sm">
-                        {cheque.client_name || cheque.supplier_name || "Tiers non spécifié"}
+                        {cheque.client_name || cheque.supplier_name || t("cheque.unspecified_party")}
                       </span>
                     </div>
                   </td>
@@ -542,9 +543,9 @@ export default function ChequePage() {
                       >
                         <Clock size={11} />
                         {cheque.days_until_due < 0
-                          ? `En retard (${Math.abs(cheque.days_until_due)}j)`
+                          ? `${t("invoice.status_overdue")} (${Math.abs(cheque.days_until_due)}j)`
                           : cheque.days_until_due === 0
-                          ? "Aujourd'hui"
+                          ? t("common.today")
                           : `J-${cheque.days_until_due}`}
                       </span>
                     )}
@@ -575,10 +576,10 @@ export default function ChequePage() {
                         )}
                       />
                       {cheque.status === "deposited"
-                        ? "Encaissé"
+                        ? t("cheque.mark_deposited")
                         : cheque.status === "bounced"
-                        ? "Rejeté / Impayé"
-                        : "En attente"}
+                        ? t("cheque.mark_bounced")
+                        : t("status.pending")}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-end">
@@ -609,20 +610,20 @@ export default function ChequePage() {
                           onClick={() => pendingMutation.mutate(cheque.id)}
                           disabled={pendingMutation.isPending}
                           className="inline-flex items-center gap-1 px-2 py-1 text-2xs font-semibold rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
-                          title="Remettre en attente"
+                          title={t("supplier.revert_draft", "Remettre en attente")}
                         >
                           <RotateCcw size={12} />
-                          En attente
+                          {t("status.pending")}
                         </button>
                       )}
                       <button
                         onClick={() => {
-                          if (window.confirm(`Supprimer le chèque N° ${cheque.number} ?`)) {
+                          if (window.confirm(t("cheque.delete_confirm", { number: cheque.number }))) {
                             deleteMutation.mutate(cheque.id);
                           }
                         }}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Supprimer"
+                        title={t("common.delete")}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -657,6 +658,7 @@ function CreateChequeModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation();
   const [direction, setDirection] = useState<"receivable" | "payable">("receivable");
   const [clientId, setClientId] = useState<string>("");
   const [supplierId, setSupplierId] = useState<string>("");
@@ -706,9 +708,9 @@ function CreateChequeModal({
               <Landmark size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">Enregistrer un Nouveau Chèque</h3>
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">{t("cheque.record_new_cheque_title")}</h3>
               <p className="text-2xs text-slate-500 dark:text-slate-400">
-                Suivi d'échéance bancaire client ou fournisseur
+                {t("client.cheque_tracker")}
               </p>
             </div>
           </div>
@@ -744,9 +746,9 @@ function CreateChequeModal({
             >
               <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900">
                 <ArrowDownLeft size={15} className="text-blue-600" />
-                Chèque Client (Entrant)
+                {t("cheque.client_incoming")}
               </div>
-              <p className="text-2xs text-slate-500 mt-0.5">Chèque reçu d'un client à encaisser</p>
+              <p className="text-2xs text-slate-500 mt-0.5">{t("cheque.cheque_client_desc")}</p>
             </button>
 
             <button
@@ -761,22 +763,22 @@ function CreateChequeModal({
             >
               <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
                 <ArrowUpRight size={15} className="text-indigo-600" />
-                Chèque Fournisseur (Sortant)
+                {t("cheque.supplier_outgoing")}
               </div>
-              <p className="text-2xs text-slate-500 mt-0.5">Chèque émis pour régler un fournisseur</p>
+              <p className="text-2xs text-slate-500 mt-0.5">{t("cheque.cheque_supplier_desc")}</p>
             </button>
           </div>
 
           {/* Client or Supplier */}
           {direction === "receivable" ? (
             <div>
-              <label className="form-label text-xs">Client émetteur</label>
+              <label className="form-label text-xs">{t("cheque.client_issuer")}</label>
               <select
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
                 className="form-input text-xs"
               >
-                <option value="">— Sélectionner un client (optionnel) —</option>
+                <option value="">— {t("invoice.select_client")} —</option>
                 {(clientsData?.results ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.phone})
@@ -786,13 +788,13 @@ function CreateChequeModal({
             </div>
           ) : (
             <div>
-              <label className="form-label text-xs">Fournisseur bénéficiaire</label>
+              <label className="form-label text-xs">{t("cheque.supplier_beneficiary")}</label>
               <select
                 value={supplierId}
                 onChange={(e) => setSupplierId(e.target.value)}
                 className="form-input text-xs"
               >
-                <option value="">— Sélectionner un fournisseur (optionnel) —</option>
+                <option value="">— {t("supplier.select_supplier", "Sélectionner un fournisseur (optionnel)")} —</option>
                 {(suppliersData?.results ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.phone})
@@ -804,7 +806,7 @@ function CreateChequeModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="form-label text-xs">Numéro du chèque *</label>
+              <label className="form-label text-xs">{t("cheque.cheque_number_label")}</label>
               <input
                 type="text"
                 required
@@ -816,7 +818,7 @@ function CreateChequeModal({
             </div>
 
             <div>
-              <label className="form-label text-xs">Banque / Établissement *</label>
+              <label className="form-label text-xs">{t("cheque.bank_institution")}</label>
               <input
                 type="text"
                 list="algerian-banks-list"
@@ -835,7 +837,7 @@ function CreateChequeModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="form-label text-xs">Montant (DZD) *</label>
+              <label className="form-label text-xs">{t("payment.amount")}</label>
               <input
                 type="number"
                 required
@@ -849,7 +851,7 @@ function CreateChequeModal({
             </div>
 
             <div>
-              <label className="form-label text-xs">Date d'échéance / Encaissement *</label>
+              <label className="form-label text-xs">{t("cheque.due_date")} *</label>
               <input
                 type="date"
                 required
@@ -861,7 +863,7 @@ function CreateChequeModal({
           </div>
 
           <div>
-            <label className="form-label text-xs">Notes / Référence facture</label>
+            <label className="form-label text-xs">{t("cheque.notes_optional")}</label>
             <input
               type="text"
               value={notes}
@@ -878,14 +880,14 @@ function CreateChequeModal({
               className="btn-secondary btn-sm"
               disabled={createMutation.isPending}
             >
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || !number.trim() || !amount || !dueDate}
               className="btn-primary btn-sm"
             >
-              {createMutation.isPending ? "Enregistrement…" : "Enregistrer le chèque"}
+              {createMutation.isPending ? t("common.saving") : t("common.save")}
             </button>
           </div>
         </form>

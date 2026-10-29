@@ -189,38 +189,38 @@ export default function DebtAgeingPage() {
         </div>
         <button onClick={handleExportExcel} className="btn-secondary rounded-xl">
           <Download size={15} />
-          Exporter CSV
+          {t("common.export_csv")}
         </button>
       </div>
 
       {/* Top Bucket KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="card p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">Total Créances</span>
+          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">{t("client.total_receivables")}</span>
           <p className="text-base font-bold font-mono text-slate-900 mt-1 tabular-nums">
             {formatDZD(totals.total)} <span className="text-2xs font-normal text-slate-400">DZD</span>
           </p>
         </div>
         <div className="card p-3.5 rounded-xl border border-blue-200/60 bg-blue-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-blue-700 uppercase tracking-wider block">Courant (0–30j)</span>
+          <span className="text-2xs font-semibold text-blue-700 uppercase tracking-wider block">{t("client.current_interval")}</span>
           <p className="text-base font-bold font-mono text-blue-800 mt-1 tabular-nums">
             {formatDZD(totals.current)} <span className="text-2xs font-normal text-blue-500">DZD</span>
           </p>
         </div>
         <div className="card p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-amber-700 uppercase tracking-wider block">31–60 jours</span>
+          <span className="text-2xs font-semibold text-amber-700 uppercase tracking-wider block">31–60j</span>
           <p className="text-base font-bold font-mono text-amber-800 mt-1 tabular-nums">
             {formatDZD(totals.days_30)} <span className="text-2xs font-normal text-amber-500">DZD</span>
           </p>
         </div>
         <div className="card p-3.5 rounded-xl border border-orange-200/60 bg-orange-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-orange-700 uppercase tracking-wider block">61–90 jours</span>
+          <span className="text-2xs font-semibold text-orange-700 uppercase tracking-wider block">61–90j</span>
           <p className="text-base font-bold font-mono text-orange-800 mt-1 tabular-nums">
             {formatDZD(totals.days_60)} <span className="text-2xs font-normal text-orange-500">DZD</span>
           </p>
         </div>
         <div className="card p-3.5 rounded-xl border border-rose-200/60 bg-rose-50/40 shadow-2xs col-span-2 md:col-span-1">
-          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">+90 jours (Critique)</span>
+          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">{t("client.days_90_plus")}</span>
           <p className="text-base font-bold font-mono text-rose-800 mt-1 tabular-nums">
             {formatDZD(totals.days_90_plus)} <span className="text-2xs font-normal text-rose-500">DZD</span>
           </p>
@@ -236,7 +236,7 @@ export default function DebtAgeingPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher client ou tél..."
+              placeholder={t("client.search_debt_placeholder")}
               className="form-input ps-9 pe-3 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 w-56"
             />
           </div>
@@ -247,7 +247,7 @@ export default function DebtAgeingPage() {
               onChange={(e) => setWilayaFilter(e.target.value)}
               className="form-input ps-9 pe-8 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 max-w-[220px]"
             >
-              <option value="">Toutes les wilayas</option>
+              <option value="">{t("client.wilaya")}</option>
               {wilayas.map((w) => (
                 <option key={w} value={w}>{wilayaName(w) || w}</option>
               ))}
@@ -262,7 +262,7 @@ export default function DebtAgeingPage() {
               }}
               className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Effacer les filtres
+              {t("client.reset_filter")}
             </button>
           )}
         </div>
@@ -271,19 +271,19 @@ export default function DebtAgeingPage() {
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
-            <span>0-30j</span>
+            <span>{t("client.days_30")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-            <span>31-60j</span>
+            <span>{t("client.days_60")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
-            <span>61-90j</span>
+            <span>{t("client.days_90")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-600 inline-block" />
-            <span>+90j</span>
+            <span>{t("client.days_90_plus")}</span>
           </div>
         </div>
       </div>
@@ -307,21 +307,21 @@ export default function DebtAgeingPage() {
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/70">
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.client")}</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Wilaya</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.wilaya")}</th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-blue-700">Courant (0–30j)</span>
+                    <span className="text-blue-700">{t("client.current_interval")}</span>
                   </th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-amber-700">31–60j</span>
+                    <span className="text-amber-700">{t("client.days_60")}</span>
                   </th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-orange-700">61–90j</span>
+                    <span className="text-orange-700">{t("client.days_90")}</span>
                   </th>
                   <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-rose-700">+90j</span>
+                    <span className="text-rose-700">{t("client.days_90_plus")}</span>
                   </th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Total Dû</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Actions</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.total_due")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
                 </tr>
               </thead>
 
@@ -421,7 +421,7 @@ export default function DebtAgeingPage() {
                 <tfoot>
                   <tr className="bg-slate-50/90 border-t-2 border-slate-200 font-bold">
                     <td colSpan={2} className="py-3.5 px-4 text-slate-800 text-xs font-sans uppercase tracking-wider">
-                      Total ({filtered.length} client{filtered.length > 1 ? "s" : ""})
+                      {t("client.total_clients_count", { count: filtered.length })}
                     </td>
                     <td className="py-3.5 px-4 text-end font-mono text-sm text-blue-700 tabular-nums">
                       {formatDZD(totals.current)}

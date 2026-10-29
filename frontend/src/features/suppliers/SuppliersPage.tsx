@@ -132,7 +132,7 @@ function SupplierFormModal({
               value={form.origin_country}
               onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
-              placeholder="Algérie, Chine, Turquie, Italie..."
+              placeholder={t("supplier.origin_placeholder")}
             />
           </div>
 
@@ -203,7 +203,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-medium"
-            placeholder="Nom"
+            placeholder={t("supplier.name")}
           />
         </td>
         <td className="px-4 py-2.5">
@@ -212,7 +212,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             value={form.contact_name}
             onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
             className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
-            placeholder="Contact"
+            placeholder={t("supplier.contact")}
           />
         </td>
         <td className="px-4 py-2.5">
@@ -221,7 +221,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-mono"
-            placeholder="Téléphone"
+            placeholder={t("supplier.phone")}
           />
         </td>
         <td className="px-4 py-2.5">
@@ -230,7 +230,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
-            placeholder="Email"
+            placeholder={t("supplier.email")}
           />
         </td>
         <td className="px-4 py-2.5">
@@ -239,7 +239,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             value={form.origin_country}
             onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
             className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
-            placeholder="Pays"
+            placeholder={t("supplier.origin_country")}
           />
         </td>
         <td className="px-4 py-2.5 text-end font-mono font-medium text-slate-500 tabular-nums">
@@ -348,7 +348,7 @@ export default function SuppliersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
-          placeholder="Nom, contact, pays..."
+          placeholder={t("supplier.search_supplier")}
         />
         <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
           F2
@@ -443,12 +443,12 @@ export default function SuppliersPage() {
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 bg-primary-50/70 hover:bg-primary-100/70 transition-colors"
                         >
                           <Eye size={13} />
-                          Fiche
+                          {t("common.view")}
                         </Link>
                         <button
                           onClick={() => setEditingId(supplier.id)}
                           className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                          title="Modifier"
+                          title={t("common.edit")}
                         >
                           <Pencil size={14} />
                         </button>

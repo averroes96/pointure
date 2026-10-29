@@ -59,14 +59,6 @@ interface PaymentFormState {
 
 // PAYMENT_METHODS populated dynamically
 
-// Tabs definition
-const TABS = [
-  { key: "info", label: "Informations" },
-  { key: "ledger", label: "Grand Livre" },
-  { key: "cheques", label: "Chèques" },
-  { key: "invoices", label: "Factures" },
-  { key: "loyalty", label: "Fidélité" },
-];
 // ── Info Field helper ──────────────────────────────────────────────────────
 
 function InfoField({
@@ -217,7 +209,7 @@ function PaymentModal({
                 <option value="">{t("payment.all_open_invoices", "Toutes les factures en cours (par ancienneté)")}</option>
                 {openInvoices.map((inv) => (
                   <option key={inv.id} value={inv.id}>
-                    Facture #{inv.number || inv.id} — {formatDZD(inv.balance_due)} DZD restant
+                    {t("invoice.invoice")} #{inv.number || inv.id} — {formatDZD(inv.balance_due)} DZD
                   </option>
                 ))}
               </select>
@@ -276,7 +268,7 @@ function PaymentModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notes & Référence</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("client.notes_and_reference")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -297,14 +289,14 @@ function PaymentModal({
           {/* Actions */}
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button type="button" onClick={onClose} className="btn-secondary rounded-xl">
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? "Enregistrement..." : "Confirmer le paiement"}
+              {mutation.isPending ? t("common.saving") : t("sales.confirm_payment")}
             </button>
           </div>
         </form>
@@ -371,11 +363,11 @@ function ClientInfoTab({
           isOverLimit ? "border-rose-400 ring-2 ring-rose-500/10" : "border-slate-200/80"
         )}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Solde actuel</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.current_balance")}</span>
             {isOverLimit && (
               <div className="inline-flex items-center gap-1 text-2xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">
                 <AlertCircle size={12} />
-                Limite dépassée
+                {t("client.limit_exceeded")}
               </div>
             )}
           </div>
@@ -418,14 +410,14 @@ function ClientInfoTab({
 
           <button onClick={onPayment} className="btn-primary w-full rounded-xl shadow-xs shadow-primary-500/20 py-2.5">
             <CreditCard size={15} />
-            Enregistrer paiement
+            {t("client.record_payment")}
           </button>
         </div>
 
         {/* Status card */}
         <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6 space-y-3.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Statut du compte</span>
+            <span className="text-xs font-semibold text-slate-600">{t("client.account_status")}</span>
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
@@ -435,11 +427,11 @@ function ClientInfoTab({
               )}
             >
               <span className={cn("w-1.5 h-1.5 rounded-full", client.is_active ? "bg-emerald-500" : "bg-slate-400")} />
-              {client.is_active ? "Actif" : "Inactif"}
+              {client.is_active ? t("common.active") : t("common.inactive")}
             </span>
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-            <span className="text-xs font-semibold text-slate-600">Type de client</span>
+            <span className="text-xs font-semibold text-slate-600">{t("client.client_type")}</span>
             <span className={cn(
               "text-2xs font-semibold px-2.5 py-0.5 rounded-full border",
               client.client_type === "wholesale"
@@ -509,7 +501,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
           </div>
         </div>
         <div>
-          <label className="text-sm font-medium text-text-muted mb-1 block">Type</label>
+          <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.type")}</label>
           <select
             className="form-input w-full md:w-auto"
             value={type}
@@ -522,13 +514,13 @@ function LedgerTab({ clientId }: { clientId: number }) {
               setPage(1);
             }}
           >
-            <option value="">Tous</option>
-            <option value="debit">Débits (Factures)</option>
-            <option value="credit">Crédits (Paiements)</option>
+            <option value="">{t("common.all")}</option>
+            <option value="debit">{t("client.debits_invoices")}</option>
+            <option value="credit">{t("client.credits_payments")}</option>
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-text-muted mb-1 block">Du</label>
+          <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.from")}</label>
           <input
             type="date"
             className="form-input w-full md:w-auto"
@@ -544,7 +536,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-text-muted mb-1 block">Au</label>
+          <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.to")}</label>
           <input
             type="date"
             className="form-input w-full md:w-auto"
@@ -567,11 +559,11 @@ function LedgerTab({ clientId }: { clientId: number }) {
           <thead>
             <tr>
               <th>{t("common.date")}</th>
-              <th>Description</th>
+              <th>{t("common.description")}</th>
               <th>{t("client.reference")}</th>
-              <th className="text-end">Débit</th>
-              <th className="text-end">Crédit</th>
-              <th className="text-end">Solde</th>
+              <th className="text-end">{t("client.debit")}</th>
+              <th className="text-end">{t("client.credit")}</th>
+              <th className="text-end">{t("client.balance")}</th>
             </tr>
           </thead>
           <tbody>
@@ -581,7 +573,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
             {!isLoading && entries.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center py-10 text-text-muted">
-                  Aucune écriture trouvée.
+                  {t("client.no_entry_found")}
                 </td>
               </tr>
             )}
@@ -710,13 +702,13 @@ function ChequesTab({ clientId }: { clientId: number }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Numéro</th>
-              <th>Banque</th>
-              <th>Échéance</th>
-              <th>Délai</th>
-              <th className="text-end">Montant</th>
+              <th>{t("cheque.number")}</th>
+              <th>{t("cheque.bank")}</th>
+              <th>{t("cheque.due_date")}</th>
+              <th>{t("client.delay")}</th>
+              <th className="text-end">{t("cheque.amount")}</th>
               <th>{t("common.status")}</th>
-              <th>Actions</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -726,7 +718,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
             {!isLoading && cheques.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-10 text-text-muted">
-                  Aucun chèque trouvé pour ce client.
+                  {t("client.no_cheque_found")}
                 </td>
               </tr>
             )}
@@ -813,13 +805,13 @@ function InvoicesTab({ clientId }: { clientId: number }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Numéro</th>
+              <th>{t("invoice.number")}</th>
               <th>{t("common.date")}</th>
-              <th>Échéance</th>
+              <th>{t("invoice.due_date")}</th>
               <th>{t("common.status")}</th>
-              <th className="text-end">Total TTC</th>
-              <th className="text-end">Reste dû</th>
-              <th>Actions</th>
+              <th className="text-end">{t("invoice.total_ttc")}</th>
+              <th className="text-end">{t("invoice.balance_due")}</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -829,7 +821,7 @@ function InvoicesTab({ clientId }: { clientId: number }) {
             {!isLoading && invoices.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-10 text-text-muted">
-                  Aucune facture trouvée pour ce client.
+                  {t("client.no_invoice_found")}
                 </td>
               </tr>
             )}
@@ -1096,7 +1088,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
           <h3 className="text-sm font-semibold text-text-primary">Historique des points</h3>
         </div>
         {account.transactions.length === 0 ? (
-          <div className="py-8 text-center text-sm text-text-muted">Aucune transaction.</div>
+          <div className="py-8 text-center text-sm text-text-muted">{t("common.no_data")}</div>
         ) : (
           <div className="divide-y divide-border">
             {account.transactions.map((tx: LoyaltyTransaction) => {
@@ -1114,7 +1106,7 @@ function LoyaltyTab({ clientId }: { clientId: number }) {
                     <p className="text-xs text-text-muted">{formatDate(tx.created_at)}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-text-muted">Solde</p>
+                    <p className="text-xs text-text-muted">{t("client.balance")}</p>
                     <p className="text-sm font-mono font-medium">{tx.balance_after.toLocaleString()}</p>
                   </div>
                 </div>
@@ -1136,6 +1128,14 @@ export default function ClientDetailPage() {
   const clientId = id;
   const { canAccess } = usePlan();
   const hasLoyalty = canAccess("pro_retail");
+
+  const tabs = [
+    { key: "info", label: t("client.info_tab") },
+    { key: "ledger", label: t("client.ledger_tab") },
+    { key: "cheques", label: t("client.cheques") },
+    { key: "invoices", label: t("client.invoices_tab") },
+    { key: "loyalty", label: t("client.loyalty_tab") },
+  ];
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("info");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -1160,7 +1160,7 @@ export default function ClientDetailPage() {
         </div>
         {/* Tab skeleton */}
         <div className="flex gap-2">
-          {[{ key: "info", label: t("client.info_tab") }, { key: "ledger", label: t("client.ledger_tab") }, { key: "cheques", label: t("client.cheques") }, { key: "invoices", label: t("client.invoices_tab") }, { key: "loyalty", label: t("client.loyalty_tab") }].map((t) => (
+          {tabs.map((t) => (
             <div key={t.key} className="h-9 w-32 bg-border rounded-lg animate-pulse" />
           ))}
         </div>
@@ -1180,12 +1180,12 @@ export default function ClientDetailPage() {
     return (
       <div className="card px-6 py-10 text-center space-y-3">
         <AlertCircle size={32} className="text-danger mx-auto" />
-        <p className="text-text-primary font-semibold">Client introuvable</p>
+        <p className="text-text-primary font-semibold">{t("client.client_not_found")}</p>
         <p className="text-sm text-text-muted">
-          Le client demandé n&apos;existe pas ou une erreur est survenue.
+          {t("client.client_not_found_desc")}
         </p>
         <button onClick={() => navigate("/clients")} className="btn-secondary">
-          Retour à la liste
+          {t("client.back_to_list")}
         </button>
       </div>
     );
@@ -1218,7 +1218,7 @@ export default function ClientDetailPage() {
                   )}
                 >
                   <span className={cn("w-1.5 h-1.5 rounded-full", client.is_active ? "bg-emerald-500" : "bg-slate-400")} />
-                  {client.is_active ? "Actif" : "Inactif"}
+                  {client.is_active ? t("common.active") : t("common.inactive")}
                 </span>
                 <span className={cn(
                   "text-2xs font-semibold px-2 py-0.5 rounded-full border",
@@ -1226,7 +1226,7 @@ export default function ClientDetailPage() {
                     ? "bg-purple-50 text-purple-700 border-purple-200"
                     : "bg-blue-50 text-blue-700 border-blue-200"
                 )}>
-                  {client.client_type === "wholesale" ? "Gros" : "Détail"}
+                  {client.client_type === "wholesale" ? t("client.wholesale") : t("client.retail")}
                 </span>
                 {client.wilaya && (
                   <span className="text-xs text-slate-500 font-medium">{wilayaLabel(client.wilaya)}</span>
@@ -1249,18 +1249,18 @@ export default function ClientDetailPage() {
             )}
             <Link to={`/clients/${clientId}/edit`} className="btn-secondary rounded-xl">
               <Pencil size={15} />
-              Modifier
+              {t("common.edit")}
             </Link>
             <button onClick={() => setShowPaymentModal(true)} className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
               <CreditCard size={15} />
-              Enregistrer paiement
+              {t("client.record_payment")}
             </button>
           </div>
         </div>
 
         {/* Segmented Tabs */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80">
-          {TABS.filter((t) => t.key !== "loyalty" || hasLoyalty).map((tab) => (
+          {tabs.filter((t) => t.key !== "loyalty" || hasLoyalty).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}

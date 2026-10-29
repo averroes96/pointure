@@ -39,7 +39,7 @@ export default function ClientsPage() {
     <div className="space-y-5">
       {showImport && (
         <ImportModal
-          title="Importer des clients"
+          title={t("client.import_clients")}
           endpoint="/clients/import/"
           templateCsv={CLIENT_TEMPLATE}
           templateFilename="modele_clients.csv"
@@ -51,13 +51,13 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.client_list")}</h1>
           <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> clients enregistrés
+            {t("client.registered_count", { count: data?.count ?? 0 })}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           <button onClick={() => setShowImport(true)} className="btn-secondary">
             <Upload size={15} />
-            Importer CSV
+            {t("common.import_csv")}
           </button>
           <Link to="/clients/new" className="btn-primary">
             <Plus size={16} />
@@ -87,7 +87,7 @@ export default function ClientsPage() {
           onChange={(e) => { setClientType(e.target.value); setPage(1); }}
           className="form-input max-w-[170px] bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
         >
-          <option value="">Tous les types</option>
+          <option value="">{t("client.all_types")}</option>
           <option value="retail">{t("client.retail")}</option>
           <option value="wholesale">{t("client.wholesale")}</option>
         </select>

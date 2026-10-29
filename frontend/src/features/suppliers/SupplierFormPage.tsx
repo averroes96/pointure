@@ -161,7 +161,7 @@ export default function SupplierFormPage() {
               value={form.name}
               onChange={set("name")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
-              placeholder="Ex: SARL Chaussures Import"
+              placeholder={t("supplier.name_placeholder")}
               autoFocus
               required
             />
@@ -175,7 +175,7 @@ export default function SupplierFormPage() {
               value={form.contact_name}
               onChange={set("contact_name")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
-              placeholder="Nom du responsable"
+              placeholder={t("supplier.contact_placeholder")}
             />
           </div>
 
@@ -211,7 +211,7 @@ export default function SupplierFormPage() {
               value={form.origin_country}
               onChange={set("origin_country")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
-              placeholder="Chine, Turquie, Italie..."
+              placeholder={t("supplier.origin_placeholder")}
             />
           </div>
 
@@ -223,7 +223,7 @@ export default function SupplierFormPage() {
               value={form.payment_terms}
               onChange={set("payment_terms")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
-              placeholder="30 jours net"
+              placeholder={t("supplier.terms_placeholder")}
             />
           </div>
 
@@ -235,7 +235,7 @@ export default function SupplierFormPage() {
               onChange={set("address")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
-              placeholder="Adresse complète du fournisseur"
+              placeholder={t("supplier.address_placeholder")}
             />
           </div>
 
@@ -247,7 +247,7 @@ export default function SupplierFormPage() {
               onChange={set("notes")}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
-              placeholder="Remarques, conditions spéciales..."
+              placeholder={t("supplier.notes_placeholder")}
             />
           </div>
 
@@ -273,7 +273,7 @@ export default function SupplierFormPage() {
             onClick={() => navigate(isEditing ? `/suppliers/${id}` : "/suppliers")}
             className="btn-secondary rounded-xl"
           >
-            Annuler
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
@@ -281,9 +281,9 @@ export default function SupplierFormPage() {
             className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
+              <><Loader2 size={14} className="animate-spin" /> {t("common.saving")}</>
             ) : (
-              <><Save size={14} /> {isEditing ? "Enregistrer les modifications" : "Créer le fournisseur"}</>
+              <><Save size={14} /> {isEditing ? t("common.save") : t("supplier.new_supplier")}</>
             )}
           </button>
         </div>

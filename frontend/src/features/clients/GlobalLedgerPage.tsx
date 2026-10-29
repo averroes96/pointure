@@ -59,12 +59,12 @@ export default function GlobalLedgerPage() {
       {/* Filters Card */}
       <div className="card p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs flex flex-col md:flex-row items-end gap-3.5">
         <div className="flex-1 w-full">
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Recherche</label>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">{t("common.search")}</label>
           <div className="relative">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Client, description, référence..."
+              placeholder={t("client.global_ledger_search_placeholder")}
               className="form-input ps-9 rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs w-full"
               value={search}
               onChange={(e) => {
@@ -79,7 +79,7 @@ export default function GlobalLedgerPage() {
           </div>
         </div>
         <div className="w-full md:w-44">
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Type d'écriture</label>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">{t("client.entry_type")}</label>
           <select
             className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs w-full"
             value={type}
@@ -92,13 +92,13 @@ export default function GlobalLedgerPage() {
               setPage(1);
             }}
           >
-            <option value="">Tous les types</option>
-            <option value="debit">Débits (Factures)</option>
-            <option value="credit">Crédits (Paiements)</option>
+            <option value="">{t("client.all_types")}</option>
+            <option value="debit">{t("client.debits_invoices")}</option>
+            <option value="credit">{t("client.credits_payments")}</option>
           </select>
         </div>
         <div className="w-full md:w-36">
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Du</label>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">{t("common.from")}</label>
           <input
             type="date"
             className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs w-full"
@@ -114,7 +114,7 @@ export default function GlobalLedgerPage() {
           />
         </div>
         <div className="w-full md:w-36">
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Au</label>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">{t("common.to")}</label>
           <input
             type="date"
             className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs w-full"

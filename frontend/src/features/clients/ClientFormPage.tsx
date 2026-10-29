@@ -185,12 +185,12 @@ export default function ClientFormPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
-            {isEditing ? "Modifier le client" : "Nouveau client"}
+            {isEditing ? t("client.edit_client") : t("client.new")}
           </h1>
           <p className="text-xs font-medium text-slate-500 mt-0.5">
             {isEditing
-              ? "Modifiez les informations du client."
-              : "Remplissez les informations pour créer un nouveau client."}
+              ? t("client.identity_desc")
+              : t("client.identity_desc_new")}
           </p>
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function ClientFormPage() {
                   value={form.name}
                   onChange={set("name")}
                   className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs font-medium"
-                  placeholder="Ex: SARL El Baraka ou Ahmed Benali"
+                  placeholder={t("client.name_placeholder")}
                   autoFocus
                 />
               </Field>
@@ -263,7 +263,7 @@ export default function ClientFormPage() {
             {/* Contact */}
             <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
-                Contact & Localisation
+                {t("client.contact")}
               </h2>
 
               <div className="grid grid-cols-2 gap-3.5">
@@ -293,7 +293,7 @@ export default function ClientFormPage() {
                   value={form.address}
                   onChange={set("address")}
                   className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
-                  placeholder="Rue, quartier, commune..."
+                  placeholder={t("client.address_placeholder")}
                 />
               </Field>
 
@@ -316,14 +316,14 @@ export default function ClientFormPage() {
             {/* Notes */}
             <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
-                Notes internes
+                {t("client.internal_notes")}
               </h2>
               <textarea
                 value={form.notes}
                 onChange={set("notes")}
                 className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
                 rows={3}
-                placeholder="Remarques, conditions spéciales..."
+                placeholder={t("client.notes_placeholder")}
               />
             </div>
           </div>
@@ -334,41 +334,41 @@ export default function ClientFormPage() {
             {/* Credit */}
             <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2.5">
-                Conditions commerciales
+                {t("client.financials")}
               </h2>
 
               {/* Client type toggle */}
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
                   <Building2 size={12} className="text-slate-400 shrink-0" />
-                  Type de client
+                  {t("client.client_type")}
                 </label>
                 <div className="flex rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 text-xs">
-                  {(["retail", "wholesale"] as ClientType[]).map((t) => (
+                  {(["retail", "wholesale"] as ClientType[]).map((tVal) => (
                     <button
-                      key={t}
+                      key={tVal}
                       type="button"
-                      onClick={() => setForm((f) => ({ ...f, client_type: t }))}
+                      onClick={() => setForm((f) => ({ ...f, client_type: tVal }))}
                       className={cn(
                         "flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all text-xs",
-                        form.client_type === t
+                        form.client_type === tVal
                           ? "bg-white text-slate-900 shadow-2xs"
                           : "text-slate-500 hover:text-slate-800"
                       )}
                     >
-                      {t === "retail" ? "Détail (Particulier)" : "Gros (Professionnel)"}
+                      {tVal === "retail" ? t("client.retail_full") : t("client.wholesale_full")}
                     </button>
                   ))}
                 </div>
                 <p className="text-2xs text-slate-500 mt-1.5 font-medium">
                   {form.client_type === "retail"
-                    ? "Client particulier — éligible au programme fidélité."
-                    : "Partenaire grossiste — exclu du programme fidélité."}
+                    ? t("client.retail_loyalty_hint")
+                    : t("client.wholesale_loyalty_hint")}
                 </p>
               </div>
 
               <Field
-                label="Limite de crédit (DZD)"
+                label={`${t("client.credit_limit")} (DZD)`}
                 icon={CreditCard}
               >
                 <input
@@ -390,7 +390,7 @@ export default function ClientFormPage() {
             <div className="card p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">Client actif</p>
+                  <p className="text-xs font-semibold text-slate-900">{t("common.active")}</p>
                   <p className="text-2xs text-slate-500 mt-0.5 font-medium">
                     Les clients inactifs sont masqués des sélecteurs de vente.
                   </p>
@@ -419,7 +419,7 @@ export default function ClientFormPage() {
             {isEditing && existingClient && (
               <div className="card p-5 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-2">
                 <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Solde actuel
+                  {t("client.current_balance")}
                 </p>
                 <p
                   className={cn(
@@ -453,7 +453,7 @@ export default function ClientFormPage() {
             to={isEditing ? `/clients/${id}` : "/clients"}
             className="btn-secondary rounded-xl"
           >
-            Annuler
+            {t("common.cancel")}
           </Link>
           <button
             type="submit"
@@ -461,9 +461,9 @@ export default function ClientFormPage() {
             className="btn-primary rounded-xl shadow-xs shadow-primary-500/20"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
+              <><Loader2 size={14} className="animate-spin" /> {t("common.saving")}</>
             ) : (
-              <><Save size={14} /> {isEditing ? "Enregistrer les modifications" : "Créer le client"}</>
+              <><Save size={14} /> {isEditing ? t("common.save") : t("client.create_client")}</>
             )}
           </button>
         </div>

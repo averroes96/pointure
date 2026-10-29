@@ -101,7 +101,7 @@ function PaymentModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.amount || parseFloat(form.amount) <= 0) {
-      setErrMsg("Le montant doit être supérieur à 0.");
+      setErrMsg(t("client.amount_greater_than_0"));
       return;
     }
     setErrMsg(null);
@@ -113,8 +113,8 @@ function PaymentModal({
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
           <div>
-            <h2 className="text-base font-bold text-slate-900 font-sans">Enregistrer un paiement fournisseur</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Règlement de facture ou acompte</p>
+            <h2 className="text-base font-bold text-slate-900 font-sans">{t("supplier.record_supplier_payment_title")}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{t("supplier.payment_terms")}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
             <X size={18} />
@@ -128,7 +128,7 @@ function PaymentModal({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Montant (DZD) *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("payment.amount")}</label>
             <input
               type="number"
               step="0.01"
@@ -143,7 +143,7 @@ function PaymentModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Mode de paiement *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("payment.method")}</label>
             <div className="grid grid-cols-3 gap-2">
               {(["cash", "cheque", "virement"] as const).map((m) => (
                 <button
@@ -157,7 +157,7 @@ function PaymentModal({
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                   )}
                 >
-                  {m === "cash" ? "Espèces" : m === "cheque" ? "Chèque" : "Virement"}
+                  {m === "cash" ? t("payment.cash") : m === "cheque" ? t("payment.cheque") : t("payment.transfer")}
                 </button>
               ))}
             </div>
@@ -166,7 +166,7 @@ function PaymentModal({
           {form.method === "cheque" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">N° Chèque</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("cheque.number")}</label>
                 <input
                   type="text"
                   value={form.cheque_number}
@@ -176,7 +176,7 @@ function PaymentModal({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Banque</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("cheque.bank")}</label>
                 <input
                   type="text"
                   value={form.bank}
@@ -189,7 +189,7 @@ function PaymentModal({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Date *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("common.date")} *</label>
             <input
               type="date"
               value={form.date}
@@ -206,14 +206,14 @@ function PaymentModal({
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs resize-none"
               rows={2}
-              placeholder="Référence, commentaire..."
+              placeholder={t("client.reference_comment")}
             />
           </div>
 
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="btn-secondary rounded-xl">Annuler</button>
+            <button type="button" onClick={onClose} className="btn-secondary rounded-xl">{t("common.cancel")}</button>
             <button type="submit" className="btn-primary rounded-xl shadow-xs shadow-primary-500/20" disabled={mutation.isPending}>
-              {mutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</> : <><Save size={14} /> Confirmer</>}
+              {mutation.isPending ? <><Loader2 size={14} className="animate-spin" /> {t("common.saving")}</> : <><Save size={14} /> {t("common.save")}</>}
             </button>
           </div>
         </form>
@@ -232,20 +232,20 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
     <div className="grid lg:grid-cols-2 gap-5">
       <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">Informations Générales</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">{t("client.general_info")}</h3>
         </div>
         <div className="px-5 divide-y divide-slate-100">
           <InfoRow icon={Phone} label={t("supplier.phone")} value={supplier.phone} />
           <InfoRow icon={Mail} label={t("supplier.email")} value={supplier.email} />
-          <InfoRow icon={MapPin} label="Adresse" value={supplier.address} />
+          <InfoRow icon={MapPin} label={t("supplier.address")} value={supplier.address} />
           <InfoRow icon={Globe} label={t("supplier.origin_country")} value={supplier.origin_country} />
-          <InfoRow icon={FileText} label="Conditions de paiement" value={supplier.payment_terms} />
+          <InfoRow icon={FileText} label={t("supplier.payment_terms")} value={supplier.payment_terms} />
         </div>
       </div>
 
       <div className="space-y-4">
         <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Solde dû fournisseur</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t("supplier.supplier_balance_due")}</p>
           <p className={cn("text-3xl font-bold font-mono tabular-nums tracking-tight", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
             {formatDZD(supplier.outstanding_balance)}{" "}
             <span className="text-sm font-normal text-slate-400">DZD</span>
@@ -262,7 +262,7 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
         <div className="card rounded-2xl border border-slate-200/80 bg-white shadow-xs p-6 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-500 font-medium">
-              Fournisseur depuis le{" "}
+              {t("supplier.supplier_since")}{" "}
               {new Date(supplier.created_at).toLocaleDateString("fr-DZ", {
                 day: "2-digit", month: "long", year: "numeric",
               })}
@@ -277,7 +277,7 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
             )}
           >
             <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
-            {supplier.is_active ? "Actif" : "Inactif"}
+            {supplier.is_active ? t("common.active") : t("common.inactive")}
           </span>
         </div>
       </div>
@@ -311,10 +311,10 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
             <thead>
               <tr>
                 <th>{t("supplier.reference")}</th>
-                <th>Date attendue</th>
+                <th>{t("supplier.expected_date")}</th>
                 <th>{t("supplier.status")}</th>
                 <th className="text-end">{t("common.total")}</th>
-                <th className="text-end">Actions</th>
+                <th className="text-end">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -322,7 +322,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
                 <tr><td colSpan={5} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
               )}
               {!isLoading && orders.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-8 text-text-muted">Aucune commande.</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-text-muted">{t("common.no_data")}</td></tr>
               )}
               {orders.map((po) => (
                 <tr key={po.id}>
@@ -342,7 +342,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
                   <td className="text-end font-mono text-sm">{formatDZD(po.total_amount)} DZD</td>
                   <td className="text-end">
                     <Link to={`/purchase-orders/${po.id}`} className="btn-ghost btn-sm text-primary-500">
-                      Voir
+                      {t("common.view")}
                     </Link>
                   </td>
                 </tr>
@@ -352,8 +352,8 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
         </div>
         {data && data.total_pages > 1 && (
           <div className="px-4 py-3 border-t border-border flex gap-2 justify-end">
-            <button onClick={() => setPage(page - 1)} disabled={!data.previous} className="btn-secondary btn-sm">Préc.</button>
-            <button onClick={() => setPage(page + 1)} disabled={!data.next} className="btn-secondary btn-sm">Suiv.</button>
+            <button onClick={() => setPage(page - 1)} disabled={!data.previous} className="btn-secondary btn-sm">{t("common.previous")}</button>
+            <button onClick={() => setPage(page + 1)} disabled={!data.next} className="btn-secondary btn-sm">{t("common.next")}</button>
           </div>
         )}
       </div>
@@ -378,11 +378,11 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>N° Facture</th>
+              <th>{t("invoice.number")}</th>
               <th>{t("common.date")}</th>
-              <th>Échéance</th>
-              <th>Commande liée</th>
-              <th className="text-end">Montant</th>
+              <th>{t("invoice.due_date")}</th>
+              <th>{t("invoice.linked_invoice", "Commande liée")}</th>
+              <th className="text-end">{t("payment.amount")}</th>
               <th />
             </tr>
           </thead>
@@ -391,7 +391,7 @@ function InvoicesTab({ supplierId }: { supplierId: number }) {
               <tr><td colSpan={6} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
             )}
             {!isLoading && invoices.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Aucune facture fournisseur.</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-text-muted">{t("common.no_data")}</td></tr>
             )}
             {invoices.map((inv) => (
               <tr key={inv.id}>
@@ -444,9 +444,9 @@ function PaymentsTab({
   const payments = data?.results ?? [];
 
   const METHOD_LABELS: Record<string, string> = {
-    cash: "Espèces",
-    cheque: "Chèque",
-    virement: "Virement",
+    cash: t("payment.cash"),
+    cheque: t("payment.cheque"),
+    virement: t("payment.transfer"),
   };
 
   return (
@@ -454,7 +454,7 @@ function PaymentsTab({
       <div className="flex justify-end">
         <button onClick={onNewPayment} className="btn-primary btn-sm">
           <Plus size={14} />
-          Enregistrer paiement
+          {t("supplier.record_payment")}
         </button>
       </div>
       <div className="card overflow-hidden">
@@ -463,9 +463,9 @@ function PaymentsTab({
             <thead>
               <tr>
                 <th>{t("common.date")}</th>
-                <th>Mode</th>
+                <th>{t("payment.method")}</th>
                 <th>{t("supplier.reference")}</th>
-                <th className="text-end">Montant</th>
+                <th className="text-end">{t("payment.amount")}</th>
               </tr>
             </thead>
             <tbody>
@@ -473,7 +473,7 @@ function PaymentsTab({
                 <tr><td colSpan={4} className="text-center py-8 text-text-muted">{t("common.loading")}</td></tr>
               )}
               {!isLoading && payments.length === 0 && (
-                <tr><td colSpan={4} className="text-center py-8 text-text-muted">Aucun paiement enregistré.</td></tr>
+                <tr><td colSpan={4} className="text-center py-8 text-text-muted">{t("common.no_data")}</td></tr>
               )}
               {payments.map((p) => (
                 <tr key={p.id}>
@@ -501,15 +501,14 @@ function PaymentsTab({
 
 type Tab = "info" | "orders" | "invoices" | "payments";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "info", label: "Fiche fournisseur" },
-  { key: "orders", label: "Commandes" },
-  { key: "invoices", label: "Factures" },
-  { key: "payments", label: "Paiements" },
-];
-
 export default function SupplierDetailPage() {
   const { t } = useTranslation();
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "info", label: t("supplier.info_tab") },
+    { key: "orders", label: t("supplier.orders_tab") },
+    { key: "invoices", label: t("supplier.invoices_tab") },
+    { key: "payments", label: t("supplier.payments_tab") },
+  ];
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const supplierId = id;
@@ -535,9 +534,9 @@ export default function SupplierDetailPage() {
     return (
       <div className="card px-6 py-10 text-center space-y-3">
         <AlertCircle size={32} className="text-danger mx-auto" />
-        <p className="font-semibold text-text-primary">Fournisseur introuvable</p>
+        <p className="font-semibold text-text-primary">{t("supplier.supplier_not_found")}</p>
         <button onClick={() => navigate("/suppliers")} className="btn-secondary">
-          Retour à la liste
+          {t("supplier.back_to_list")}
         </button>
       </div>
     );
@@ -567,7 +566,7 @@ export default function SupplierDetailPage() {
                   )}
                 >
                   <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
-                  {supplier.is_active ? "Actif" : "Inactif"}
+                  {supplier.is_active ? t("common.active") : t("common.inactive")}
                 </span>
                 {supplier.origin_country && (
                   <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
@@ -598,14 +597,14 @@ export default function SupplierDetailPage() {
             </Link>
             <button onClick={() => setShowPayment(true)} className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
               <CreditCard size={15} />
-              Enregistrer paiement
+              {t("supplier.record_payment")}
             </button>
           </div>
         </div>
 
         {/* Segmented Tabs */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
