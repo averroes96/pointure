@@ -42,7 +42,7 @@ from apps.inventory.serializers import (
 class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Product.objects.all()
     filterset_fields = ["category", "gender", "season", "is_active", "brand"]
-    search_fields = ["name", "brand", "reference"]
+    search_fields = []
     ordering_fields = ["name", "sale_price", "purchase_price", "created_at", "total_stock_qty"]
     ordering = ["name"]
 
@@ -66,14 +66,20 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         search = params.get("search", "").strip()
         if search:
             tenant = self._get_tenant()
-            matching_variant_product_ids = (
-                Variant.objects
-                .filter(barcode__icontains=search, tenant=tenant)
+            variant_qs = Variant.objects.all()
+            loc_qs = ProductLocation.objects.all()
+            if tenant:
+                variant_qs = variant_qs.filter(tenant=tenant)
+                loc_qs = loc_qs.filter(tenant=tenant)
+
+            matching_variant_product_ids = list(
+                variant_qs
+                .filter(barcode__icontains=search)
                 .values_list("product_id", flat=True)[:500]
             )
-            matching_loc_product_ids = (
-                ProductLocation.objects
-                .filter(location__icontains=search, tenant=tenant)
+            matching_loc_product_ids = list(
+                loc_qs
+                .filter(location__icontains=search)
                 .values_list("product_id", flat=True)[:500]
             )
             qs = qs.filter(
@@ -159,9 +165,12 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 .annotate(total=Sum("quantity_delta"))
                 .values("total")
             )
+            variant_qs = Variant.objects.all()
+            tenant = self._get_tenant()
+            if tenant:
+                variant_qs = variant_qs.filter(tenant=tenant)
             branch_variant_qs = (
-                Variant.objects
-                .filter(tenant=self._get_tenant())
+                variant_qs
                 .annotate(branch_stock_qty=Coalesce(
                     Subquery(branch_stock_subq, output_field=IntegerField()),
                     Value(0),
