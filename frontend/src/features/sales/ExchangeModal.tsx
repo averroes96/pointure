@@ -271,7 +271,7 @@ export default function ExchangeModal({
             {/* Left — articles to return */}
             <div>
               <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-                Articles à rendre
+                {t("exchange.items_to_return")}
               </p>
               <div className="space-y-2">
                 {returnedItems.map((s, i) => (
@@ -392,7 +392,7 @@ export default function ExchangeModal({
             {/* Right — new items */}
             <div>
               <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-                Nouveaux articles
+                {t("exchange.new_items")}
               </p>
 
               {/* Variant search */}
@@ -627,8 +627,8 @@ export default function ExchangeModal({
 
       <ManagerPinModal
         isOpen={showPinModal}
-        reason="Autorisation Responsable requise pour l'échange"
-        actionDescription="Un code PIN manager est nécessaire pour valider cet échange avec retour d'articles."
+        reason={t("exchange.manager_pin_reason")}
+        actionDescription={t("exchange.manager_pin_desc")}
         onSuccess={(pin) => {
           setManagerPin(pin);
           setShowPinModal(false);

@@ -42,8 +42,9 @@ type Method = (typeof METHODS)[number];
 // ── Gap Pill ──────────────────────────────────────────────────────────────────
 
 function GapPill({ gap }: { gap: number }) {
+  const { t } = useTranslation();
   if (Math.abs(gap) < 0.01) {
-    return <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs font-bold font-mono">✓ 0 DZD</span>;
+    return <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs font-bold font-mono">✓ {t("reconciliation.discrepancy_exact", "0 DZD")}</span>;
   }
   if (gap < 0) {
     return (
@@ -314,10 +315,10 @@ export default function ReconciliationPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <Coins className="text-amber-500 stroke-[2.2]" size={26} />
-            <span>Gestion de Caisse & Rapports Z</span>
+            <span>{t("reconciliation.page_title")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Suivi des shifts, encaissements par moyen de paiement (Espèces, TPE CIB, BaridiMob), mouvements et clôtures Z
+            {t("reconciliation.page_subtitle")}
           </p>
         </div>
 
@@ -334,7 +335,7 @@ export default function ReconciliationPage() {
             )}
           >
             <Receipt size={14} className="text-amber-600 dark:text-amber-400" />
-            <span>Sessions & Rapports Z</span>
+            <span>{t("reconciliation.tab_sessions")}</span>
           </button>
           <button
             type="button"
@@ -347,7 +348,7 @@ export default function ReconciliationPage() {
             )}
           >
             <FileText size={13} />
-            <span>Ancien Journalier</span>
+            <span>{t("reconciliation.tab_legacy")}</span>
           </button>
         </div>
       </div>
@@ -369,7 +370,7 @@ export default function ReconciliationPage() {
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 text-white text-xs font-extrabold tracking-wide shadow-2xs">
                         <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                        SESSION ACTIVE {currentSession.session_code}
+                        {t("reconciliation.active_session_badge")} {currentSession.session_code}
                       </span>
                       {currentSession.branch_name && (
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg border border-transparent dark:border-slate-700">
@@ -378,7 +379,9 @@ export default function ReconciliationPage() {
                       )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Ouverte par <strong>{currentSession.cashier_name}</strong> le {formatDate(currentSession.opened_at)}
+                      {t("reconciliation.opened_by")}{" "}
+                      <strong>{currentSession.cashier_name}</strong>{" "}
+                      {formatDate(currentSession.opened_at)}
                     </p>
                   </div>
                 </div>
@@ -389,10 +392,10 @@ export default function ReconciliationPage() {
                     type="button"
                     onClick={fetchXReport}
                     className="btn-secondary text-xs py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold shadow-2xs"
-                    title="Imprimer un ticket flash mi-journée sans fermer la caisse"
+                    title={t("reconciliation.read_x_tooltip")}
                   >
                     <Printer size={14} className="text-slate-600" />
-                    <span>Lecture X (Flash)</span>
+                    <span>{t("reconciliation.read_x_flash")}</span>
                   </button>
 
                   <button
@@ -403,10 +406,10 @@ export default function ReconciliationPage() {
                       setShowMovementModal(true);
                     }}
                     className="btn-secondary text-xs py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold shadow-2xs"
-                    title="Ajouter ou retirer des espèces de la caisse"
+                    title={t("reconciliation.cash_movement_tooltip")}
                   >
                     <ArrowDownUp size={14} className="text-amber-600" />
-                    <span>Mouvement (+ / -)</span>
+                    <span>{t("reconciliation.cash_movement")}</span>
                   </button>
 
                   <button
@@ -420,7 +423,7 @@ export default function ReconciliationPage() {
                     className="btn-primary text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
                   >
                     <ShieldCheck size={14} className="text-emerald-400" />
-                    <span>Clôturer Caisse (Rapport Z)</span>
+                    <span>{t("reconciliation.close_session_btn")}</span>
                   </button>
                 </div>
               </div>
@@ -429,33 +432,33 @@ export default function ReconciliationPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 pt-6">
                 {/* 1. Fond initial */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700">
-                  <p className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fond Initial</p>
+                  <p className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("reconciliation.kpi_initial_float")}</p>
                   <p className="text-base font-black font-mono text-slate-900 dark:text-white mt-1">
                     {formatDZD(currentSession.opening_float)} <span className="text-2xs text-slate-400 font-sans">DZD</span>
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Espèces au départ</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("reconciliation.kpi_initial_float_desc")}</p>
                 </div>
 
                 {/* 2. Ventes Espèces */}
                 <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800">
-                  <p className="text-2xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Ventes Espèces</p>
+                  <p className="text-2xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">{t("reconciliation.kpi_cash_sales")}</p>
                   <p className="text-base font-black font-mono text-emerald-950 dark:text-emerald-200 mt-1">
                     +{formatDZD(currentSession.stats?.cash_sales ?? 0)} <span className="text-2xs text-emerald-600 dark:text-emerald-400 font-sans">DZD</span>
                   </p>
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    {currentSession.stats?.sales_count ?? 0} vente(s) au total
+                    {t("reconciliation.kpi_cash_sales_count", { count: currentSession.stats?.sales_count ?? 0 })}
                   </p>
                 </div>
 
                 {/* 3. TPE (CIB / Dahabia) */}
                 <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800">
                   <p className="text-2xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1">
-                    <CreditCard size={11} /> TPE (CIB/Dahabia)
+                    <CreditCard size={11} /> {t("payment.tpe", "TPE (CIB/Edahabia)")}
                   </p>
                   <p className="text-base font-black font-mono text-blue-950 dark:text-blue-200 mt-1">
                     {formatDZD(currentSession.stats?.tpe_sales ?? 0)} <span className="text-2xs text-blue-600 dark:text-blue-400 font-sans">DZD</span>
                   </p>
-                  <p className="text-[11px] text-blue-700 dark:text-blue-400 mt-0.5">Terminal électronique</p>
+                  <p className="text-[11px] text-blue-700 dark:text-blue-400 mt-0.5">{t("reconciliation.kpi_card_sales")}</p>
                 </div>
 
                 {/* 4. BaridiMob */}
@@ -466,29 +469,29 @@ export default function ReconciliationPage() {
                   <p className="text-base font-black font-mono text-amber-950 dark:text-amber-200 mt-1">
                     {formatDZD(currentSession.stats?.baridimob_sales ?? 0)} <span className="text-2xs text-amber-600 dark:text-amber-400 font-sans">DZD</span>
                   </p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">Virements RIP / CCP</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">{t("reconciliation.kpi_bank_sales")}</p>
                 </div>
 
                 {/* 5. Mouvements d'espèces */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700">
-                  <p className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mouvements Net</p>
+                  <p className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("reconciliation.kpi_net_movements")}</p>
                   <div className="flex items-baseline gap-1 mt-1 font-mono text-sm font-bold">
                     <span className="text-emerald-600 dark:text-emerald-400">+{formatDZD(currentSession.stats?.total_cash_in ?? 0)}</span>
                     <span className="text-slate-300 dark:text-slate-600">/</span>
                     <span className="text-red-600 dark:text-red-400">-{formatDZD(currentSession.stats?.total_cash_out ?? 0)}</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Apports & Dépenses</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("reconciliation.kpi_movements_desc")}</p>
                 </div>
 
                 {/* 6. Caisse Théorique (Tiroir attendu) */}
                 <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xs">
                   <p className="text-2xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                    <Coins size={12} /> Caisse Théorique
+                    <Coins size={12} /> {t("reconciliation.kpi_expected_cash")}
                   </p>
                   <p className="text-lg font-black font-mono text-white mt-1">
                     {formatDZD(activeExpectedCash)} <span className="text-2xs text-slate-400 font-sans">DZD</span>
                   </p>
-                  <p className="text-[10px] text-slate-300 mt-0.5 truncate">Espèces attendues dans tiroir</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5 truncate">{t("reconciliation.kpi_expected_cash_desc")}</p>
                 </div>
               </div>
 
@@ -498,19 +501,19 @@ export default function ReconciliationPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                       <ArrowDownUp size={13} className="text-amber-500" />
-                      <span>Mouvements d'espèces durant ce shift ({currentSession.movements.length})</span>
+                      <span>{t("reconciliation.movements_during_shift", { count: currentSession.movements.length })}</span>
                     </h3>
                   </div>
                   <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
                     <table className="w-full text-xs">
                       <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700">
                         <tr>
-                          <th className="py-2 px-3 text-start font-bold">Heure</th>
-                          <th className="py-2 px-3 text-start font-bold">Type</th>
-                          <th className="py-2 px-3 text-start font-bold">Motif / Catégorie</th>
-                          <th className="py-2 px-3 text-end font-bold">Montant</th>
-                          <th className="py-2 px-3 text-start font-bold">Par</th>
-                          <th className="py-2 px-3 text-start font-bold">Observations</th>
+                          <th className="py-2 px-3 text-start font-bold">{t("reconciliation.col_time")}</th>
+                          <th className="py-2 px-3 text-start font-bold">{t("reconciliation.col_type")}</th>
+                          <th className="py-2 px-3 text-start font-bold">{t("reconciliation.col_category")}</th>
+                          <th className="py-2 px-3 text-end font-bold">{t("reconciliation.col_amount")}</th>
+                          <th className="py-2 px-3 text-start font-bold">{t("reconciliation.col_user")}</th>
+                          <th className="py-2 px-3 text-start font-bold">{t("reconciliation.col_notes")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
@@ -522,11 +525,11 @@ export default function ReconciliationPage() {
                             <td className="py-2 px-3">
                               {m.type === "in" ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-2xs border border-emerald-200/60 dark:border-emerald-800">
-                                  <Plus size={10} /> Apport
+                                  <Plus size={10} /> {t("reconciliation.movement_in_badge")}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 font-bold text-2xs border border-red-200/60 dark:border-red-800">
-                                  <Minus size={10} /> Dépense
+                                  <Minus size={10} /> {t("reconciliation.movement_out_badge")}
                                 </span>
                               )}
                             </td>
@@ -552,9 +555,9 @@ export default function ReconciliationPage() {
               <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3 shadow-2xs">
                 <Coins size={32} />
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Aucune session de caisse ouverte</h3>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{t("reconciliation.no_active_session")}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-5">
-                Ouvrez une session de caisse pour démarrer votre vacation. Les ventes seront rattachées au shift en cours et un Rapport Z numéroté sera généré à la clôture.
+                {t("reconciliation.no_active_session_desc")}
               </p>
               <button
                 type="button"
@@ -562,7 +565,7 @@ export default function ReconciliationPage() {
                 className="btn-primary text-xs py-2.5 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold shadow-sm inline-flex items-center gap-2 cursor-pointer"
               >
                 <Plus size={16} />
-                <span>Ouvrir une Session de Caisse</span>
+                <span>{t("reconciliation.open_session_prompt")}</span>
               </button>
             </div>
           )}
@@ -573,10 +576,10 @@ export default function ReconciliationPage() {
               <div>
                 <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                   <Receipt size={17} className="text-amber-500" />
-                  <span>Historique des Sessions & Rapports Z</span>
+                  <span>{t("reconciliation.sessions_history_title")}</span>
                 </h2>
                 <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Consultez les vacations fermées, réimprimez les tickets Z et validez les écarts
+                  {t("sales.reconciliation_history", "Consultez les vacations fermées, réimprimez les tickets Z et validez les écarts")}
                 </p>
               </div>
 
@@ -594,17 +597,17 @@ export default function ReconciliationPage() {
                     onClick={() => setDateFilter("")}
                     className="btn-ghost text-xs py-1 px-2 text-slate-500 hover:text-slate-800"
                   >
-                    Effacer
+                    {t("common.clear", "Effacer")}
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => refetchHistory()}
                   className="btn-secondary text-xs py-1.5 px-2.5 rounded-xl flex items-center gap-1.5"
-                  title="Actualiser"
+                  title={t("reconciliation.refresh")}
                 >
                   <RefreshCw size={13} />
-                  <span>Actualiser</span>
+                  <span>{t("reconciliation.refresh")}</span>
                 </button>
               </div>
             </div>
@@ -614,15 +617,15 @@ export default function ReconciliationPage() {
               <table className="w-full text-xs">
                 <thead className="bg-slate-50/90 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-b border-slate-200/80 dark:border-slate-700 uppercase font-bold text-[11px] tracking-wider">
                   <tr>
-                    <th className="py-3 px-4 text-start">N° Rapport Z</th>
-                    <th className="py-3 px-4 text-start">Période / Date</th>
-                    <th className="py-3 px-4 text-start">Caissier</th>
-                    <th className="py-3 px-4 text-end">Ventes Totales</th>
-                    <th className="py-3 px-4 text-end">Caisse Attendue</th>
-                    <th className="py-3 px-4 text-end">Caisse Comptée</th>
-                    <th className="py-3 px-4 text-end">Écart</th>
-                    <th className="py-3 px-4 text-center">Statut</th>
-                    <th className="py-3 px-4 text-end">Actions</th>
+                    <th className="py-3 px-4 text-start">{t("reconciliation.col_z_report")}</th>
+                    <th className="py-3 px-4 text-start">{t("reconciliation.col_period")}</th>
+                    <th className="py-3 px-4 text-start">{t("reconciliation.col_cashier")}</th>
+                    <th className="py-3 px-4 text-end">{t("reconciliation.col_total_sales")}</th>
+                    <th className="py-3 px-4 text-end">{t("reconciliation.col_expected_cash")}</th>
+                    <th className="py-3 px-4 text-end">{t("reconciliation.col_counted_cash")}</th>
+                    <th className="py-3 px-4 text-end">{t("reconciliation.col_discrepancy")}</th>
+                    <th className="py-3 px-4 text-center">{t("reconciliation.col_status")}</th>
+                    <th className="py-3 px-4 text-end">{t("reconciliation.col_actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
@@ -644,7 +647,8 @@ export default function ReconciliationPage() {
                             <div>{formatDate(s.opened_at)}</div>
                             {s.closed_at && (
                               <div className="text-2xs text-slate-400 dark:text-slate-500">
-                                Clôturé : {new Date(s.closed_at).toLocaleTimeString("fr-DZ", { hour: "2-digit", minute: "2-digit" })}
+                                {t("reconciliation.closed_at")}{" "}
+                                {new Date(s.closed_at).toLocaleTimeString("fr-DZ", { hour: "2-digit", minute: "2-digit" })}
                               </div>
                             )}
                           </td>
@@ -661,7 +665,7 @@ export default function ReconciliationPage() {
                           <td className="py-3 px-4 text-end font-mono font-bold text-slate-900 dark:text-white">
                             {formatDZD(s.system_total_sales)} DZD
                             <span className="block text-2xs text-slate-400 dark:text-slate-500 font-normal">
-                              {s.system_sales_count} vente(s)
+                              {t("reconciliation.sales_count_label", { count: s.system_sales_count })}
                             </span>
                           </td>
 
@@ -685,15 +689,15 @@ export default function ReconciliationPage() {
                             {s.status === "open" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-2xs border border-emerald-200 dark:border-emerald-800">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                En cours
+                                {t("reconciliation.shift_in_progress")}
                               </span>
                             ) : s.approved_by ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-2xs border border-emerald-200 dark:border-emerald-800">
-                                <Check size={11} /> Approuvé
+                                <Check size={11} /> {t("reconciliation.shift_approved")}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-2xs border border-slate-200 dark:border-slate-700">
-                                Clôturé
+                                {t("reconciliation.shift_closed")}
                               </span>
                             )}
                           </td>
@@ -706,10 +710,10 @@ export default function ReconciliationPage() {
                                   type="button"
                                   onClick={() => fetchZReport(s.id)}
                                   className="btn-secondary btn-sm text-xs py-1 px-2 rounded-lg flex items-center gap-1"
-                                  title="Réimprimer le ticket Rapport Z sur imprimante thermique"
+                                  title={t("reconciliation.reprint_z_tooltip")}
                                 >
                                   <Printer size={13} />
-                                  <span>Ticket Z</span>
+                                  <span>{t("reconciliation.reprint_z_btn")}</span>
                                 </button>
                               )}
 
@@ -718,10 +722,10 @@ export default function ReconciliationPage() {
                                   type="button"
                                   onClick={() => approveSessionMutation.mutate(s.id)}
                                   className="btn-secondary btn-sm text-xs py-1 px-2 rounded-lg text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
-                                  title="Approuver la fermeture"
+                                  title={t("reconciliation.approve_close_tooltip")}
                                 >
                                   <Check size={13} />
-                                  <span>Approuver</span>
+                                  <span>{t("reconciliation.approve_btn")}</span>
                                 </button>
                               )}
 
@@ -740,7 +744,7 @@ export default function ReconciliationPage() {
                   ) : (
                     <tr>
                       <td colSpan={9} className="py-8 text-center text-slate-400">
-                        {historyLoading ? "Chargement des sessions..." : "Aucune session de caisse enregistrée."}
+                        {historyLoading ? t("reconciliation.loading_sessions") : t("reconciliation.no_sessions_recorded")}
                       </td>
                     </tr>
                   )}
@@ -754,23 +758,23 @@ export default function ReconciliationPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
             <h2 className="text-base font-extrabold text-slate-900 mb-1">
-              Historique des Clôtures Journalières (Ancien format)
+              {t("reconciliation.legacy_history_title")}
             </h2>
             <p className="text-xs text-slate-500 mb-4">
-              Consultez les anciennes fiches de fermeture par date
+              {t("reconciliation.legacy_history_desc")}
             </p>
 
             <div className="overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-3 text-start">Date</th>
-                    <th className="py-2.5 px-3 text-start">Agence</th>
-                    <th className="py-2.5 px-3 text-end">Ventes Système</th>
-                    <th className="py-2.5 px-3 text-end">Compté Réel</th>
-                    <th className="py-2.5 px-3 text-end">Écart</th>
-                    <th className="py-2.5 px-3 text-start">Soumis par</th>
-                    <th className="py-2.5 px-3 text-end">Actions</th>
+                    <th className="py-2.5 px-3 text-start">{t("sales.date")}</th>
+                    <th className="py-2.5 px-3 text-start">{t("reconciliation.legacy_col_branch")}</th>
+                    <th className="py-2.5 px-3 text-end">{t("reconciliation.legacy_col_system_sales")}</th>
+                    <th className="py-2.5 px-3 text-end">{t("reconciliation.legacy_col_counted")}</th>
+                    <th className="py-2.5 px-3 text-end">{t("reconciliation.col_discrepancy")}</th>
+                    <th className="py-2.5 px-3 text-start">{t("sales.submitted_by")}</th>
+                    <th className="py-2.5 px-3 text-end">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -789,7 +793,7 @@ export default function ReconciliationPage() {
                           <button
                             onClick={() => openPrintPopup(buildLegacyPrintHtml(rec), "210mm", 10)}
                             className="btn-ghost btn-sm text-slate-500 hover:text-slate-900"
-                            title="Imprimer"
+                            title={t("common.print")}
                           >
                             <Printer size={14} />
                           </button>
@@ -799,7 +803,7 @@ export default function ReconciliationPage() {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-6 text-center text-slate-400">
-                        Aucun ancien enregistrement trouvé.
+                        {t("reconciliation.legacy_no_records")}
                       </td>
                     </tr>
                   )}
@@ -820,8 +824,8 @@ export default function ReconciliationPage() {
                   <Coins size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Ouvrir la session de caisse</h3>
-                  <p className="text-2xs text-slate-500 dark:text-slate-400">Démarrer un nouveau shift de vente</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{t("pos.open_session_title")}</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">{t("pos.open_session_subtitle")}</p>
                 </div>
               </div>
               <button
@@ -836,7 +840,7 @@ export default function ReconciliationPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Fond de caisse initial (Espèces de départ dans le tiroir)
+                  {t("pos.opening_float_label")}
                 </label>
                 <div className="relative">
                   <input
@@ -885,7 +889,7 @@ export default function ReconciliationPage() {
                   onClick={() => setShowOpenModal(false)}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -893,7 +897,7 @@ export default function ReconciliationPage() {
                   disabled={openSessionMutation.isPending}
                   className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-xs cursor-pointer"
                 >
-                  {openSessionMutation.isPending ? "Ouverture..." : "Confirmer l'ouverture"}
+                  {openSessionMutation.isPending ? t("pos.opening_in_progress") : t("pos.confirm_open_session")}
                 </button>
               </div>
             </div>
@@ -914,8 +918,8 @@ export default function ReconciliationPage() {
                   <ArrowDownUp size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Mouvement d'espèces</h3>
-                  <p className="text-2xs text-slate-500 dark:text-slate-400">Session {currentSession.session_code}</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{t("pos.movement_title")}</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">{t("pos.movement_session", { code: currentSession.session_code })}</p>
                 </div>
               </div>
               <button
@@ -942,7 +946,7 @@ export default function ReconciliationPage() {
                   )}
                 >
                   <Minus size={13} />
-                  <span>Dépense / Retrait (-)</span>
+                  <span>{t("pos.movement_out")}</span>
                 </button>
                 <button
                   type="button"
@@ -956,14 +960,14 @@ export default function ReconciliationPage() {
                   )}
                 >
                   <Plus size={13} />
-                  <span>Apport d'espèces (+)</span>
+                  <span>{t("pos.movement_in")}</span>
                 </button>
               </div>
 
               {/* Amount */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Montant (DZD) *
+                  {t("pos.movement_amount")}
                 </label>
                 <div className="relative">
                   <input
@@ -1013,7 +1017,7 @@ export default function ReconciliationPage() {
                       onClick={() => setMovementAmount("")}
                       className="px-2 py-1 text-2xs font-bold rounded-lg bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors cursor-pointer ms-auto"
                     >
-                      Effacer
+                      {t("common.clear", "Effacer")}
                     </button>
                   )}
                 </div>
@@ -1022,7 +1026,7 @@ export default function ReconciliationPage() {
               {/* Category */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Motif / Catégorie *
+                  {t("pos.movement_category")}
                 </label>
                 <select
                   value={movementCategory}
@@ -1031,17 +1035,17 @@ export default function ReconciliationPage() {
                 >
                   {movementType === "out" ? (
                     <>
-                      <option value="Dépense magasin">Dépense magasin (café, transport, fournitures...)</option>
-                      <option value="Paiement fournisseur">Paiement fournisseur direct</option>
-                      <option value="Retrait patron / coffre">Retrait gérant / versement coffre</option>
-                      <option value="Autre retrait">Autre dépense / retrait</option>
+                      <option value="Dépense magasin">{t("pos.movement_cat_store_expense")}</option>
+                      <option value="Paiement fournisseur">{t("pos.movement_cat_supplier_payment")}</option>
+                      <option value="Retrait patron / coffre">{t("pos.movement_cat_manager_withdrawal")}</option>
+                      <option value="Autre retrait">{t("pos.movement_cat_other_out")}</option>
                     </>
                   ) : (
                     <>
-                      <option value="Apport monnaie">Apport de monnaie (pièces / billets)</option>
-                      <option value="Apport fond de caisse">Apport fond de caisse supplémentaire</option>
-                      <option value="Remboursement prêt">Remboursement avance ou prêt</option>
-                      <option value="Autre apport">Autre apport</option>
+                      <option value="Apport monnaie">{t("pos.movement_cat_change_float")}</option>
+                      <option value="Apport fond de caisse">{t("pos.movement_cat_extra_float")}</option>
+                      <option value="Remboursement prêt">{t("pos.movement_cat_loan_repayment")}</option>
+                      <option value="Autre apport">{t("pos.movement_cat_other_in")}</option>
                     </>
                   )}
                 </select>
@@ -1050,13 +1054,13 @@ export default function ReconciliationPage() {
               {/* Notes */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Observations / Détails (optionnel)
+                  {t("pos.movement_notes")}
                 </label>
                 <input
                   type="text"
                   value={movementNotes}
                   onChange={(e) => setMovementNotes(e.target.value)}
-                  placeholder="Ex : Facture papier ticket"
+                  placeholder={t("pos.movement_notes_placeholder")}
                   className="form-input text-xs py-2 rounded-xl w-full"
                 />
               </div>
@@ -1074,13 +1078,13 @@ export default function ReconciliationPage() {
                   onClick={() => { setShowMovementModal(false); setMovementError(null); }}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     if (!movementAmount || parseFloat(movementAmount) <= 0) {
-                      setMovementError("Veuillez saisir un montant valide.");
+                      setMovementError(t("pos.movement_invalid_amount"));
                       return;
                     }
                     movementMutation.mutate();
@@ -1091,7 +1095,7 @@ export default function ReconciliationPage() {
                     movementType === "out" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
                   )}
                 >
-                  {movementMutation.isPending ? "Enregistrement..." : "Enregistrer le mouvement"}
+                  {movementMutation.isPending ? t("pos.movement_saving") : t("pos.movement_save")}
                 </button>
               </div>
             </div>
@@ -1130,7 +1134,7 @@ export default function ReconciliationPage() {
               {/* Expected vs Counted Comparison Box */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Espèces Attendues (Théorique) :</span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t("reconciliation.expected_in_drawer")}</span>
                   <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
                     {formatDZD(activeExpectedCash)} DZD
                   </span>
@@ -1138,7 +1142,7 @@ export default function ReconciliationPage() {
 
                 <div>
                   <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 mb-1">
-                    Espèces Physiques Comptées dans le tiroir *
+                    {t("reconciliation.counted_in_drawer_label")}
                   </label>
                   <div className="relative">
                     <input
@@ -1156,10 +1160,25 @@ export default function ReconciliationPage() {
                   </div>
                 </div>
 
-                {/* Live Gap Indicator */}
+                {/* Live Gap Indicator with EXCÉDENT / DÉFICIT / CONFORME */}
                 <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Écart de Caisse :</span>
-                  <GapPill gap={liveGap} />
+                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{t("reconciliation.drawer_discrepancy_label")}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-xs font-black uppercase px-2.5 py-1 rounded-lg border font-mono",
+                      Math.abs(liveGap) < 0.01
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                        : liveGap > 0
+                        ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                        : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800"
+                    )}>
+                      {Math.abs(liveGap) < 0.01
+                        ? t("reconciliation.discrepancy_exact")
+                        : liveGap > 0
+                        ? t("reconciliation.discrepancy_surplus", { amount: formatDZD(liveGap) })
+                        : t("reconciliation.discrepancy_deficit", { amount: formatDZD(liveGap) })}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1167,7 +1186,7 @@ export default function ReconciliationPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-2xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Total TPE Réel (Tickets CIB)
+                    {t("reconciliation.total_actual_tpe")}
                   </label>
                   <input
                     type="text"
@@ -1180,7 +1199,7 @@ export default function ReconciliationPage() {
                 </div>
                 <div>
                   <label className="block text-2xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Total BaridiMob Réel
+                    {t("reconciliation.total_actual_baridimob")}
                   </label>
                   <input
                     type="text"
@@ -1196,12 +1215,12 @@ export default function ReconciliationPage() {
               {/* Notes */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Observations de clôture (justification de l'écart si présent)
+                  {t("reconciliation.closing_notes_label")}
                 </label>
                 <textarea
                   value={closingNotesInput}
                   onChange={(e) => setClosingNotesInput(e.target.value)}
-                  placeholder="Ex : Erreur monnaie client de 100 DZD..."
+                  placeholder={t("reconciliation.closing_notes_placeholder")}
                   rows={2}
                   className="form-input text-xs py-2 rounded-xl w-full"
                 />
@@ -1220,7 +1239,7 @@ export default function ReconciliationPage() {
                   onClick={() => setShowCloseModal(false)}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -1229,7 +1248,7 @@ export default function ReconciliationPage() {
                   className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Printer size={14} className="text-emerald-400" />
-                  <span>{closeSessionMutation.isPending ? "Clôture..." : "Valider & Imprimer Rapport Z"}</span>
+                  <span>{closeSessionMutation.isPending ? t("reconciliation.close_session_submitting") : t("reconciliation.close_session_submit")}</span>
                 </button>
               </div>
             </div>
@@ -1244,7 +1263,7 @@ export default function ReconciliationPage() {
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
                 <Printer size={16} className="text-amber-500" />
-                <span>Ticket Lecture X (Flash)</span>
+                <span>{t("reconciliation.ticket_x_title")}</span>
               </h3>
               <button
                 type="button"
@@ -1258,7 +1277,7 @@ export default function ReconciliationPage() {
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 dark:bg-slate-950/60 flex justify-center">
               <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
                 <iframe
-                  title="Ticket Lecture X"
+                  title={t("reconciliation.ticket_x_title")}
                   srcDoc={xReportData.x_report_html}
                   className="w-full h-full border-0 select-none bg-white"
                 />
@@ -1271,7 +1290,7 @@ export default function ReconciliationPage() {
                 onClick={() => setXReportData(null)}
                 className="btn-secondary flex-1 py-2 text-xs font-bold rounded-xl"
               >
-                Fermer
+                {t("common.close")}
               </button>
               <button
                 type="button"
@@ -1282,7 +1301,7 @@ export default function ReconciliationPage() {
                 className="btn-primary flex-1 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Printer size={14} />
-                <span>Imprimer Ticket X</span>
+                <span>{t("reconciliation.print_x_btn")}</span>
               </button>
             </div>
           </div>
@@ -1296,7 +1315,7 @@ export default function ReconciliationPage() {
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
                 <Receipt size={16} className="text-emerald-500" />
-                <span>Ticket Rapport Z ({zReportData.session.session_code})</span>
+                <span>{t("reconciliation.ticket_z_title")} ({zReportData.session.session_code})</span>
               </h3>
               <button
                 type="button"
@@ -1310,7 +1329,7 @@ export default function ReconciliationPage() {
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 dark:bg-slate-950/60 flex justify-center">
               <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
                 <iframe
-                  title="Ticket Rapport Z"
+                  title={t("reconciliation.ticket_z_title")}
                   srcDoc={zReportData.z_report_html}
                   className="w-full h-full border-0 select-none bg-white"
                 />
@@ -1323,7 +1342,7 @@ export default function ReconciliationPage() {
                 onClick={() => setZReportData(null)}
                 className="btn-secondary flex-1 py-2 text-xs font-bold rounded-xl"
               >
-                Fermer
+                {t("common.close")}
               </button>
               <button
                 type="button"
@@ -1334,7 +1353,7 @@ export default function ReconciliationPage() {
                 className="btn-primary flex-1 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Printer size={14} />
-                <span>Imprimer Ticket Z</span>
+                <span>{t("reconciliation.print_z_btn")}</span>
               </button>
             </div>
           </div>

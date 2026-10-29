@@ -351,7 +351,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleConfirmReturn}
@@ -366,8 +366,8 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 
       <ManagerPinModal
         isOpen={showPinModal}
-        reason="Autorisation Responsable requise pour le retour"
-        actionDescription="Un code PIN manager est nécessaire pour valider ce retour ou remboursement."
+        reason={t("sales_history.manager_pin_return_title")}
+        actionDescription={t("sales_history.manager_pin_return_desc")}
         onSuccess={(pin) => {
           setManagerPin(pin);
           setShowPinModal(false);
@@ -479,7 +479,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
 
         <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
           <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
-            Annuler
+            {t("common.cancel")}
           </button>
           <button
             onClick={() => mutation.mutate()}
@@ -537,7 +537,7 @@ function CollectLayawayModal({
           <div className="flex items-center gap-2">
             <PackageCheck size={18} className="text-indigo-600" />
             <h3 className="font-bold text-text-primary">
-              Retirer la réservation — {sale.receipt_number}
+              {t("sales_history.collect_layaway_title", { receipt: sale.receipt_number })}
             </h3>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1">
@@ -548,19 +548,19 @@ function CollectLayawayModal({
         <div className="p-5 space-y-4">
           <div className="rounded-xl bg-surface p-3.5 space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-text-muted">Client / Référence :</span>
-              <span className="font-medium">{sale.client_name || sale.notes || "Client de passage"}</span>
+              <span className="text-text-muted">{t("sales_history.client_ref_label")}</span>
+              <span className="font-medium">{sale.client_name || sale.notes || t("common.walk_in_customer", "Client de passage")}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted">Total commande :</span>
+              <span className="text-text-muted">{t("sales_history.order_total_label")}</span>
               <span className="font-mono font-semibold">{formatDZD(sale.total_amount)} DZD</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted">Acompte déjà réglé :</span>
+              <span className="text-text-muted">{t("sales_history.deposit_paid_label")}</span>
               <span className="font-mono text-emerald-600 font-semibold">{formatDZD(sale.amount_paid)} DZD</span>
             </div>
             <div className="flex justify-between border-t border-border pt-1.5">
-              <span className="text-text-muted font-bold">Solde restant à percevoir :</span>
+              <span className="text-text-muted font-bold">{t("sales_history.balance_to_collect_label")}</span>
               <span className="font-mono font-extrabold text-indigo-700 text-sm">{formatDZD(sale.balance_due)} DZD</span>
             </div>
           </div>
@@ -568,7 +568,7 @@ function CollectLayawayModal({
           {/* Reserved items mini-list */}
           <div className="border border-border rounded-xl p-3 bg-white">
             <p className="text-2xs font-bold text-text-muted uppercase tracking-wider mb-2">
-              Articles consignés à remettre au client ({sale.items?.length ?? 0})
+              {t("sales_history.reserved_items_to_handover", { count: sale.items?.length ?? 0 })}
             </p>
             <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
               {sale.items?.map((item) => (
@@ -589,7 +589,7 @@ function CollectLayawayModal({
           {balanceDue > 0 && (
             <div className="space-y-3 pt-1 border-t border-border">
               <div>
-                <label className="form-label text-xs">Montant du règlement final (DZD)</label>
+                <label className="form-label text-xs">{t("sales_history.final_payment_amount_label")}</label>
                 <input
                   type="number"
                   min={balanceDue}
@@ -601,7 +601,7 @@ function CollectLayawayModal({
               </div>
 
               <div>
-                <label className="form-label text-xs">Mode de paiement du solde</label>
+                <label className="form-label text-xs">{t("sales_history.final_payment_method_label")}</label>
                 <select
                   value={method}
                   onChange={(e) => setMethod(e.target.value as PaymentMethod)}
@@ -616,34 +616,34 @@ function CollectLayawayModal({
               </div>
 
               <div>
-                <label className="form-label text-xs">Notes (optionnel)</label>
+                <label className="form-label text-xs">{t("sales_history.handover_notes_label")}</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="form-input text-xs"
-                  placeholder="Ex : Remis en mains propres"
+                  placeholder={t("sales_history.handover_notes_placeholder")}
                 />
               </div>
             </div>
           )}
 
           <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-2xs text-amber-800 space-y-1">
-            <p className="font-bold">⚠️ Consignes de remise :</p>
-            <p>Vérifiez le bon de réservation physique et remettez les paires au client. La vente sera marquée complétée.</p>
+            <p className="font-bold">⚠️ {t("sales_history.handover_instructions_title")}</p>
+            <p>{t("sales_history.handover_instructions_desc")}</p>
           </div>
         </div>
 
         <div className="px-5 py-3.5 border-t border-border flex gap-2 justify-end bg-surface/50">
           <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
-            Annuler
+            {t("common.cancel")}
           </button>
           <button
             onClick={() => mutation.mutate()}
             className="btn-primary btn-sm bg-indigo-600 hover:bg-indigo-700"
             disabled={mutation.isPending || (balanceDue > 0 && parseFloat(amount) < balanceDue)}
           >
-            {mutation.isPending ? t("common.processing") : "Confirmer le retrait & Encaisser"}
+            {mutation.isPending ? t("common.processing") : t("sales_history.confirm_collect_and_pay")}
           </button>
         </div>
       </div>
@@ -703,8 +703,8 @@ function CancelLayawayModal({
     <>
       {showPinModal && (
         <ManagerPinModal
-          title="Code PIN Manager Requis"
-          message="L'annulation d'une réservation et la libération du stock exigent une autorisation manager."
+          title={t("sales_history.manager_pin_cancel_layaway_title")}
+          message={t("sales_history.manager_pin_cancel_layaway_desc")}
           onSuccess={(pin) => {
             setManagerPin(pin);
             setShowPinModal(false);
@@ -720,7 +720,7 @@ function CancelLayawayModal({
             <div className="flex items-center gap-2">
               <Ban size={18} className="text-red-600" />
               <h3 className="font-bold text-text-primary">
-                Annuler la réservation — {sale.receipt_number}
+                {t("sales_history.cancel_layaway_title", { receipt: sale.receipt_number })}
               </h3>
             </div>
             <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1">
@@ -731,10 +731,11 @@ function CancelLayawayModal({
           <div className="p-5 space-y-4 text-xs">
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1">
               <p className="font-semibold text-slate-800">
-                Action : Le stock réservé sera automatiquement réintégré en rayon (Libération stock).
+                {t("sales_history.cancel_layaway_action_desc")}
               </p>
               <p className="text-text-muted">
-                Acompte enregistré sur cette réservation : <strong className="font-mono text-slate-900">{formatDZD(sale.amount_paid)} DZD</strong>
+                {t("sales_history.deposit_recorded_desc")}{" "}
+                <strong className="font-mono text-slate-900">{formatDZD(sale.amount_paid)} DZD</strong>
               </p>
             </div>
 
@@ -746,7 +747,7 @@ function CancelLayawayModal({
 
             {amountPaid > 0 && (
               <div className="space-y-2">
-                <label className="form-label font-bold text-slate-800">Gestion de l&apos;acompte perçu :</label>
+                <label className="form-label font-bold text-slate-800">{t("sales_history.deposit_management_label")}</label>
 
                 <label
                   onClick={() => { setRefundDeposit(true); setDepositForfeited(false); }}
@@ -763,8 +764,8 @@ function CancelLayawayModal({
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="font-bold text-emerald-900">Rembourser l&apos;acompte au client ({formatDZD(amountPaid)} DZD)</p>
-                    <p className="text-2xs text-emerald-700">Enregistre une sortie d&apos;espèces dans la caisse actuelle.</p>
+                    <p className="font-bold text-emerald-900">{t("sales_history.refund_deposit_option", { amount: formatDZD(amountPaid) })}</p>
+                    <p className="text-2xs text-emerald-700">{t("sales_history.refund_deposit_hint")}</p>
                   </div>
                 </label>
 
@@ -783,20 +784,20 @@ function CancelLayawayModal({
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="font-bold text-amber-900">Conserver l&apos;acompte (Abandon / Délai expiré)</p>
-                    <p className="text-2xs text-amber-700">Aucun remboursement. La boutique conserve l&apos;acompte à titre d&apos;indemnité.</p>
+                    <p className="font-bold text-amber-900">{t("sales_history.forfeit_deposit_option")}</p>
+                    <p className="text-2xs text-amber-700">{t("sales_history.forfeit_deposit_hint")}</p>
                   </div>
                 </label>
               </div>
             )}
 
             <div>
-              <label className="form-label">Motif de l&apos;annulation</label>
+              <label className="form-label">{t("sales_history.cancel_reason_label")}</label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex : Client désisté, délai de 7 jours dépassé sans nouvelles..."
+                placeholder={t("sales_history.cancel_reason_placeholder")}
                 className="form-input text-xs"
               />
             </div>
@@ -804,7 +805,7 @@ function CancelLayawayModal({
 
           <div className="px-5 py-3.5 border-t border-border flex gap-2 justify-end bg-surface/50">
             <button onClick={onClose} className="btn-secondary btn-sm" disabled={mutation.isPending}>
-              Fermer
+              {t("common.close")}
             </button>
             <button
               onClick={() => {
@@ -817,7 +818,7 @@ function CancelLayawayModal({
               className="btn-danger btn-sm"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? t("common.processing") : "Confirmer l'annulation & Libérer stock"}
+              {mutation.isPending ? t("common.processing") : t("sales_history.confirm_cancel_layaway")}
             </button>
           </div>
         </div>
@@ -1050,7 +1051,7 @@ export default function SalesHistoryPage() {
                 value={reportDate}
                 onChange={(e) => setReportDate(e.target.value)}
                 className="text-xs font-semibold text-slate-700 bg-transparent border-none focus:outline-none cursor-pointer"
-                title="Date du rapport détaillé"
+                title={t("sales_history.detailed_report_date")}
               />
             </div>
             <button
@@ -1058,16 +1059,16 @@ export default function SalesHistoryPage() {
               onClick={() => handleOpenDetailedReport(reportDate)}
               disabled={isLoadingReport}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
-              title="Imprimer le rapport détaillé des ventes et mouvements du jour (Format Ticket Z 80mm)"
+              title={t("sales_history.print_daily_report_tooltip")}
             >
               <Printer size={14} />
-              <span>{isLoadingReport ? "Chargement…" : "Imprimer Détail du Jour"}</span>
+              <span>{isLoadingReport ? t("common.loading") : t("sales_history.print_daily_report_btn", "Imprimer Détail du Jour")}</span>
             </button>
           </div>
 
           <Link to="/sales/new" className="btn-primary shadow-xs">
             <Plus size={16} className="stroke-[2.5]" />
-            <span>Nouvelle vente</span>
+            <span>{t("sales.new_sale")}</span>
           </Link>
         </div>
       </div>
@@ -1080,7 +1081,7 @@ export default function SalesHistoryPage() {
           </div>
           <div className="min-w-0">
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              CA DU JOUR (AUJOURD'HUI)
+              {t("dashboard.today_revenue")}
             </div>
             <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight truncate">
               {formatDZD(todayRevenue)} <span className="text-xs text-slate-400 font-bold">DZD</span>
@@ -1094,7 +1095,7 @@ export default function SalesHistoryPage() {
           </div>
           <div className="min-w-0">
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              VENTES DU JOUR (AUJOURD'HUI)
+              {t("sales.recent_sales", "VENTES DU JOUR")}
             </div>
             <div className="flex items-baseline gap-2">
               <span className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
@@ -1102,7 +1103,7 @@ export default function SalesHistoryPage() {
               </span>
               {todayItemsSold > 0 && (
                 <span className="text-xs font-semibold text-slate-400">
-                  ({todayItemsSold} article{todayItemsSold > 1 ? "s" : ""})
+                  ({todayItemsSold} {todayItemsSold > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")})
                 </span>
               )}
             </div>
@@ -1132,11 +1133,11 @@ export default function SalesHistoryPage() {
           <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
             {(
               [
-                { id: "all", label: "Toutes les dates" },
-                { id: "today", label: "Aujourd'hui" },
-                { id: "yesterday", label: "Hier" },
-                { id: "week", label: "7 derniers jours" },
-                { id: "month", label: "Ce mois" },
+                { id: "all", label: t("status.all") },
+                { id: "today", label: t("common.today", "Aujourd'hui") },
+                { id: "yesterday", label: t("common.yesterday", "Hier") },
+                { id: "week", label: t("common.last_7_days", "7 derniers jours") },
+                { id: "month", label: t("common.this_month", "Ce mois") },
               ] as const
             ).map((preset) => (
               <button
@@ -1166,7 +1167,7 @@ export default function SalesHistoryPage() {
                 setPage(1);
               }}
               className="form-input ps-9 py-1.5 rounded-xl text-xs w-full"
-              placeholder="N° reçu, client, caissier, produit, réf ou code-barres…"
+              placeholder={t("sales_history.search_placeholder")}
             />
           </div>
         </div>
@@ -1175,7 +1176,7 @@ export default function SalesHistoryPage() {
         <div className="flex flex-wrap gap-2.5 items-center pt-1 border-t border-slate-100">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
             <Filter size={13} />
-            <span>Filtres :</span>
+            <span>{t("sales_history.filters")}</span>
           </div>
 
           {/* Status */}
@@ -1186,7 +1187,7 @@ export default function SalesHistoryPage() {
               setPage(1);
             }}
             className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium"
-            title="Statut de la vente"
+            title={t("sales_history.filter_status")}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -1203,9 +1204,9 @@ export default function SalesHistoryPage() {
               setPage(1);
             }}
             className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
-            title="Mode de paiement"
+            title={t("sales_history.filter_payment")}
           >
-            <option value="">Tous les règlements</option>
+            <option value="">{t("sales_history.all_payments")}</option>
             {PAYMENT_METHOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey, opt.fallback)}
@@ -1221,12 +1222,12 @@ export default function SalesHistoryPage() {
               setPage(1);
             }}
             className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
-            title="Type de client / Solde"
+            title={t("sales_history.filter_client")}
           >
-            <option value="">Tous les clients</option>
-            <option value="walk_in">Client comptoir</option>
-            <option value="registered">Client enregistré</option>
-            <option value="has_balance">Avec reste à payer (&gt; 0)</option>
+            <option value="">{t("sales_history.all_clients")}</option>
+            <option value="walk_in">{t("sales_history.walk_in_client")}</option>
+            <option value="registered">{t("sales_history.registered_client")}</option>
+            <option value="has_balance">{t("sales_history.has_balance_due")}</option>
           </select>
 
           {/* Cashier Filter */}
@@ -1238,9 +1239,9 @@ export default function SalesHistoryPage() {
                 setPage(1);
               }}
               className="form-input w-auto min-w-[145px] py-1.5 rounded-xl text-xs font-medium"
-              title="Caissier"
+              title={t("sales_history.filter_cashier")}
             >
-              <option value="">Tous les caissiers</option>
+              <option value="">{t("sales_history.all_cashiers")}</option>
               {cashiersList.map((u) => {
                 const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
                 return (
@@ -1260,12 +1261,12 @@ export default function SalesHistoryPage() {
               setPage(1);
             }}
             className="form-input w-auto min-w-[150px] py-1.5 rounded-xl text-xs font-medium"
-            title="Tri"
+            title={t("sales_history.sort")}
           >
-            <option value="-created_at">Plus récentes d'abord</option>
-            <option value="created_at">Plus anciennes d'abord</option>
-            <option value="-total_amount">Montant décroissant</option>
-            <option value="total_amount">Montant croissant</option>
+            <option value="-created_at">{t("sales_history.sort_newest")}</option>
+            <option value="created_at">{t("sales_history.sort_oldest")}</option>
+            <option value="-total_amount">{t("sales_history.sort_amount_desc")}</option>
+            <option value="total_amount">{t("sales_history.sort_amount_asc")}</option>
           </select>
 
           {/* Date Range */}
@@ -1301,7 +1302,7 @@ export default function SalesHistoryPage() {
               onClick={resetAllFilters}
               className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
             >
-              Réinitialiser
+              {t("common.reset", "Réinitialiser")}
             </button>
           )}
         </div>
@@ -1314,7 +1315,7 @@ export default function SalesHistoryPage() {
             <thead>
               <tr>
                 <th>{t("sales.receipt_no")}</th>
-                <th>DATE &amp; HEURE</th>
+                <th>{t("sales_history.datetime_col")}</th>
                 <th>{t("sales.cashier")}</th>
                 <th>{t("sales.client")}</th>
                 <th>{t("sales.payment_methods")}</th>
@@ -1478,21 +1479,21 @@ export default function SalesHistoryPage() {
                           <>
                             <button
                               className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                              title="Retirer les articles & solder la réservation"
+                              title={t("sales_history.collect_layaway_tooltip")}
                               onClick={() => setCollectLayawaySale(sale)}
                             >
                               <PackageCheck size={16} />
                             </button>
                             <button
                               className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
-                              title="Ajouter un acompte intermédiaire"
+                              title={t("sales_history.add_deposit_tooltip")}
                               onClick={() => setAddPaymentSale(sale)}
                             >
                               <Plus size={15} />
                             </button>
                             <button
                               className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                              title="Annuler la réservation & libérer le stock"
+                              title={t("sales_history.cancel_layaway_tooltip")}
                               onClick={() => setCancelLayawaySale(sale)}
                             >
                               <Ban size={15} />
@@ -1503,7 +1504,7 @@ export default function SalesHistoryPage() {
                           <>
                             <button
                               className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
-                              title="Traiter un retour"
+                              title={t("sales_history.process_return_tooltip")}
                               onClick={() => setReturnSale(sale)}
                             >
                               <RotateCcw size={15} />
@@ -1526,14 +1527,14 @@ export default function SalesHistoryPage() {
                           <>
                             <button
                               className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
-                              title="Ajouter un paiement"
+                              title={t("sales_history.add_payment_tooltip")}
                               onClick={() => setAddPaymentSale(sale)}
                             >
                               <Plus size={15} />
                             </button>
                             <button
                               className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                              title="Annuler le versement"
+                              title={t("sales_history.cancel_versement_tooltip")}
                               onClick={() => {
                                 if (confirm(t("sales.cancel_versement_confirm", { receipt: sale.receipt_number }))) {
                                   cancelVersementMutation.mutate(sale.id);
@@ -1699,14 +1700,14 @@ export default function SalesHistoryPage() {
                 onClick={() => setReportPreview(null)}
                 className="btn-secondary btn-sm"
               >
-                Fermer
+                {t("common.close")}
               </button>
               <button
                 type="button"
                 onClick={() => printTicket(reportPreview.html)}
                 className="btn-primary btn-sm flex items-center gap-1.5"
               >
-                <Printer size={14} /> Imprimer Ticket Détaillé
+                <Printer size={14} /> {t("sales_history.print_detailed_ticket_btn", "Imprimer Ticket Détaillé")}
               </button>
             </div>
           </div>
