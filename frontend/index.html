@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ShoeDZ — Gestion de Chaussures</title>
     <meta name="description" content="ShoeDZ — Plateforme de gestion pour commerces de chaussures en Algérie" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- Modern Retail Fonts: Plus Jakarta Sans (Latin/FR/EN), Readex Pro (Arabic RTL), JetBrains Mono (Numbers/Barcodes) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,6 +14,21 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Readex+Pro:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("shoedz-theme") || "system";
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (theme === "dark" || (theme === "system" && prefersDark)) {
+            document.documentElement.classList.add("dark");
+            document.documentElement.style.colorScheme = "dark";
+          } else {
+            document.documentElement.classList.remove("dark");
+            document.documentElement.style.colorScheme = "light";
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

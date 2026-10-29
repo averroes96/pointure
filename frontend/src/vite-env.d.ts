@@ -68,6 +68,7 @@ export interface ElectronAPI {
   printHtml?: (options: PrintHtmlOptions) => Promise<{ success: boolean; failureReason?: string }>;
   viewPdf?: (options: { base64: string; title?: string; filename?: string }) => Promise<{ success: boolean; error?: string }>;
   openPdfExternal?: (options: { base64: string; filename?: string }) => Promise<{ success: boolean; error?: string }>;
+  setTheme?: (theme: "system" | "light" | "dark") => Promise<void>;
   isDesktop?: boolean;
 }
 

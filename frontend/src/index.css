@@ -13,12 +13,27 @@
     --color-warning: #D97706;
     --color-surface: #F8FAFC;
     --color-card: #FFFFFF;
+    --color-card-elevated: #FFFFFF;
     --color-border: #E2E8F0;
+    --color-border-subtle: #F1F5F9;
     --color-text: #0F172A;
     --color-text-secondary: #475569;
     --color-text-muted: #64748B;
     --sidebar-width: 250px;
     --topbar-height: 56px;
+    color-scheme: light dark;
+  }
+
+  html.dark {
+    --color-surface: #0B0F19;
+    --color-card: #131B2E;
+    --color-card-elevated: #1A233A;
+    --color-border: #232E47;
+    --color-border-subtle: #192236;
+    --color-text: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    color-scheme: dark;
   }
 
   html {
@@ -38,6 +53,7 @@
     color: var(--color-text);
     font-size: 0.9375rem; /* 15px - optimal balance for dense retail screens */
     line-height: 1.5;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 
   /* Sleek modern scrollbars */
@@ -55,12 +71,19 @@
   ::-webkit-scrollbar-thumb:hover {
     background-color: #94A3B8;
   }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    background-color: #334155;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #475569;
+  }
 }
 
 @layer components {
   /* ── Layout ── */
   .layout-topbar {
-    @apply fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200/90 z-40 flex items-center px-4 gap-3 shadow-xs;
+    @apply fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 z-40 flex items-center px-4 gap-3 shadow-xs;
   }
 
   .layout-sidebar {
@@ -81,7 +104,7 @@
   }
 
   .layout-main {
-    @apply pt-14 ps-64 min-h-screen bg-slate-50/70;
+    @apply pt-14 ps-64 min-h-screen bg-slate-50/70 dark:bg-[#0B0F19];
     transition: padding 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -99,11 +122,11 @@
 
   /* ── Cards ── */
   .card {
-    @apply bg-card rounded-xl border border-slate-200/80 shadow-xs transition-shadow duration-150;
+    @apply bg-card rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-shadow duration-150;
   }
 
   .card-header {
-    @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between font-semibold text-slate-800;
+    @apply px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100;
   }
 
   .card-body {
@@ -112,16 +135,16 @@
 
   /* ── KPI Cards ── */
   .kpi-card {
-    @apply card p-5 flex flex-col gap-2 relative overflow-hidden bg-white;
+    @apply card p-5 flex flex-col gap-2 relative overflow-hidden bg-white dark:bg-slate-900;
   }
 
   .kpi-card__value {
-    @apply text-2xl font-bold font-mono tracking-tight text-slate-900;
+    @apply text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-slate-50;
     font-variant-numeric: tabular-nums;
   }
 
   .kpi-card__label {
-    @apply text-xs font-semibold uppercase tracking-wider text-slate-500;
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400;
   }
 
   .kpi-card__trend {
@@ -134,7 +157,7 @@
   }
 
   .data-table th {
-    @apply px-3.5 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/90 select-none;
+    @apply px-3.5 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 select-none;
   }
 
   html[dir="rtl"] .data-table th {
@@ -142,11 +165,11 @@
   }
 
   .data-table td {
-    @apply px-3.5 py-3 border-b border-slate-100 align-middle text-slate-700;
+    @apply px-3.5 py-3 border-b border-slate-100 dark:border-slate-800/60 align-middle text-slate-700 dark:text-slate-200;
   }
 
   .data-table tbody tr {
-    @apply transition-colors hover:bg-blue-50/30;
+    @apply transition-colors hover:bg-blue-50/30 dark:hover:bg-slate-800/50;
   }
 
   /* ── Badges ── */
@@ -154,23 +177,23 @@
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border;
   }
 
-  .badge-success { @apply bg-emerald-50 text-emerald-700 border-emerald-200; }
-  .badge-danger  { @apply bg-red-50 text-red-700 border-red-200; }
-  .badge-warning { @apply bg-amber-50 text-amber-700 border-amber-200; }
-  .badge-info    { @apply bg-blue-50 text-blue-700 border-blue-200; }
-  .badge-neutral { @apply bg-slate-100 text-slate-700 border-slate-200; }
+  .badge-success { @apply bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60; }
+  .badge-danger  { @apply bg-red-50 dark:bg-rose-950/40 text-red-700 dark:text-rose-400 border-red-200 dark:border-rose-800/60; }
+  .badge-warning { @apply bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60; }
+  .badge-info    { @apply bg-blue-50 dark:bg-sky-950/40 text-blue-700 dark:text-sky-400 border-blue-200 dark:border-sky-800/60; }
+  .badge-neutral { @apply bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700; }
 
   /* ── Forms ── */
   .form-label {
-    @apply block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5;
+    @apply block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5;
   }
 
   .form-input {
-    @apply w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl bg-white text-slate-900
-           placeholder:text-slate-400
+    @apply w-full px-3.5 py-2 text-sm border border-slate-200 dark:border-slate-700/80 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
            transition-all duration-150
            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
-           disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed;
+           disabled:bg-slate-50 dark:disabled:bg-slate-800/50 disabled:text-slate-400 dark:disabled:text-slate-600 disabled:cursor-not-allowed;
   }
 
   .form-error {
@@ -189,7 +212,7 @@
   }
 
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-200 shadow-xs hover:bg-slate-50 hover:border-slate-300 focus:ring-primary-400;
+    @apply btn bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:ring-primary-400;
   }
 
   .btn-danger {
@@ -197,7 +220,7 @@
   }
 
   .btn-ghost {
-    @apply btn bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+    @apply btn bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white;
   }
 
   .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
@@ -249,4 +272,31 @@
   50%  { top: 85%; }
   100% { top: 10%; }
 }
+
+/* ── Print Isolation: Pure White Canvas & Crisp Dark Text for Receipts & Invoices ── */
+@media print {
+  html,
+  body,
+  :root {
+    color-scheme: light !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  html.dark,
+  .dark {
+    color-scheme: light !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .card,
+  .kpi-card,
+  .layout-main,
+  .layout-topbar,
+  .data-table {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #000000 !important;
+  }
+}
+
 

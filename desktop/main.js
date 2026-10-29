@@ -7,7 +7,7 @@
  *  - Show splash/progress, surface startup errors to the user
  *  - Write diagnostic logs to %ProgramData%\ShoeDZ\logs
  */
-const { app, BrowserWindow, ipcMain, dialog, Menu, Tray, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, Tray, shell, session, nativeTheme } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const http = require('http');
@@ -644,6 +644,13 @@ ipcMain.handle('toggle-fullscreen', () => {
   return false;
 });
 ipcMain.handle('is-fullscreen', () => (mainWindow ? mainWindow.isFullScreen() : false));
+ipcMain.handle('set-theme-source', (_event, mode) => {
+  if (['system', 'light', 'dark'].includes(mode)) {
+    nativeTheme.themeSource = mode;
+    return true;
+  }
+  return false;
+});
 
 // ── Native Printing IPC ──────────────────────────────────────────────────
 ipcMain.handle('get-printers', async () => {
