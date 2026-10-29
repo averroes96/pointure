@@ -47,7 +47,9 @@
     "deliveries": "التوصيل والطلبات الخارجية",
     "draft_orders": "مسودات الطلبات",
     "delivery_settings": "إعدادات التوصيل",
-    "global_ledger": "دفتر الأستاذ للعملاء"
+    "global_ledger": "دفتر الأستاذ للعملاء",
+    "main_menu": "القائمة الرئيسية",
+    "menu": "القائمة"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -59,12 +61,29 @@
     "sign_in": "دخول",
     "signing_in": "جاري الدخول...",
     "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-    "welcome": "مرحباً بك في ShoeDZ"
+    "welcome": "مرحباً بك في ShoeDZ",
+    "back_to_login": "العودة لتسجيل الدخول",
+    "choose_new_password": "اختر كلمة مرور جديدة لحسابك.",
+    "confirm_password": "تأكيد كلمة المرور",
+    "email_placeholder": "votre@email.com",
+    "email_sent": "تم إرسال البريد الإلكتروني!",
+    "email_sent_desc": "تحقق من صندوق بريدك — إذا كان الحساب موجوداً فستتلقى رابطاً لإعادة التعيين.",
+    "forgot_password_desc": "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.",
+    "forgot_password_title": "إعادة تعيين كلمة المرور",
+    "new_password": "كلمة المرور الجديدة",
+    "password_mismatch": "كلمتا المرور غير متطابقتين.",
+    "password_reset_success": "تمت إعادة تعيين كلمة المرور بنجاح!",
+    "password_reset_success_desc": "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
+    "password_too_short": "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل.",
+    "reset_password": "إعادة تعيين كلمة المرور",
+    "resetting": "جاري إعادة التعيين…",
+    "send_link": "إرسال الرابط",
+    "sending": "جاري الإرسال…"
   },
   "dashboard": {
     "today_revenue": "رقم الأعمال اليومي",
     "outstanding_debt": "إجمالي الديون",
-    "low_stock": "مقالات ناقصة",
+    "low_stock": "منتجات قاربت على النفاد",
     "cheques_due": "شيكات للتحصيل",
     "recent_sales": "آخر المبيعات",
     "revenue_chart": "تطور رقم الأعمال",
@@ -90,7 +109,19 @@
     "action_sale_history": "سجل المبيعات",
     "action_sale_history_desc": "وصولات اليوم وفواتير الزبائن",
     "action_reconciliation": "إغلاق الصندوق",
-    "action_reconciliation_desc": "عد النقدية وتسوية الصندوق"
+    "action_reconciliation_desc": "عد النقدية وتسوية الصندوق",
+    "connected": "متصل",
+    "connecting": "جاري الاتصال…",
+    "disconnected": "غير متصل",
+    "last_sale": "آخر عملية بيع",
+    "live": "مباشر",
+    "out_of_stock": "نفاد المخزون",
+    "real_time": "في الوقت الفعلي",
+    "sales_this_session": "+{{count}} مبيعات في هذه الجلسة",
+    "seconds_ago": "منذ {{count}} ثا",
+    "stock_alerts": "تنبيهات المخزون",
+    "stock_remaining": "{{count}} متبقي",
+    "waiting_next_sale": "في انتظار عملية البيع القادمة…"
   },
   "invoice": {
     "new": "فاتورة جديدة",
@@ -274,9 +305,9 @@
     "sale_price": "سعر البيع",
     "wholesale_price": "سعر الجملة",
     "bulk_price_update": "تعديل الأسعار",
-    "bulk_price_update_title": "تعديل الأسعار الجماعي",
-    "bulk_price_update_desc": "تعديل الأسعار بالنسبة المئوية أو بمبلغ ثابت وإعادة طباعة ملصقات الرفوف.",
-    "print_shelf_labels": "طباعة ملصقات الرف",
+    "bulk_price_update_title": "تحديث الأسعار دفعة واحدة",
+    "bulk_price_update_desc": "تعديل الأسعار بالنسبة المئوية أو بمبلغ ثابت، ثم إعادة طباعة ملصقات الرفوف.",
+    "print_shelf_labels": "طباعة ملصقات الرفوف",
     "purchase_price": "سعر الشراء",
     "last_purchase_price": "آخر سعر شراء",
     "pamp": "متوسط التكلفة (PAMP)",
@@ -368,7 +399,6 @@
     "pricing": "التسعير",
     "gender": "الجنس",
     "season": "الموسم",
-    "wholesale_price": "سعر الجملة",
     "create_product": "إنشاء منتج",
     "edit_product_title": "تعديل المنتج",
     "product_name": "اسم المنتج",
@@ -539,7 +569,12 @@
     "opening_float": "Fond de caisse (الرصيد الأولي)",
     "expenses": "مصروفات النثرية (خروج)",
     "cash_drops": "المسحوبات / إيداع الخزنة",
-    "expected_cash": "النقد المتوقع في الصندوق"
+    "expected_cash": "النقد المتوقع في الصندوق",
+    "article_count": "قطعة",
+    "articles_count": "قطع",
+    "clear_cart": "تفريغ",
+    "shortcut_clear": "تفريغ السلة / مسح",
+    "total_to_pay": "المجموع للدفع"
   },
   "cheque": {
     "number": "رقم الشيك",
@@ -568,7 +603,8 @@
     "sport": "رياضة",
     "kids": "أطفال",
     "slippers": "شباشب",
-    "other": "أخرى"
+    "other": "أخرى",
+    "accessories": "إكسسوارات"
   },
   "notification": {
     "title": "الإشعارات",
@@ -734,7 +770,12 @@
     "type_2_chars": "اكتب حرفين على الأقل",
     "dispatch": "إرسال",
     "more_results": "المزيد من النتائج",
-    "entries": "قيود"
+    "entries": "قيود",
+    "description": "الوصف",
+    "page": "صفحة",
+    "add": "إضافة",
+    "select": "تحديد",
+    "escape": "هروب"
   },
   "status": {
     "completed": "مكتمل",
@@ -744,7 +785,8 @@
     "all": "الكل",
     "in_transit": "في الطريق",
     "pending": "قيد الانتظار",
-    "received": "مستلم"
+    "received": "مستلم",
+    "layaway": "محجوزة (موضوعة جانباً)"
   },
   "topbar": {
     "just_now": "الآن",
@@ -782,7 +824,11 @@
     "cash": "نقداً",
     "ccp": "بريدي",
     "transfer": "تحويل بنكي",
-    "cheque": "شيك"
+    "cheque": "شيك",
+    "account": "على الحساب (دين)",
+    "virement": "تحويل بنكي",
+    "all_open_invoices": "جميع الفواتير غير المسددة (حسب الأقدمية)",
+    "target_invoice": "الفاتورة المعنية (اختياري)"
   },
   "report": {
     "amount": "المبلغ",
@@ -866,7 +912,9 @@
     "backup_status": "الحالة",
     "backup_no_backups": "لا توجد نسخ احتياطية متاحة",
     "backup_no_backups_desc": "انقر فوق الزر أعلاه لإنشاء أول نسخة احتياطية يدوية.",
-    "backup_safety_tip": "نصيحة أمان: انسخ نسخة احتياطية حديثة بانتظام على مفتاح USB أو قرص خارجي لحماية متجرك من أعطال الجهاز."
+    "backup_safety_tip": "نصيحة أمان: انسخ نسخة احتياطية حديثة بانتظام على مفتاح USB أو قرص خارجي لحماية متجرك من أعطال الجهاز.",
+    "theme_title": "المظهر وسمة الواجهة",
+    "theme_desc": "تخصيص العرض لراحتك أثناء العمل (فاتح، داكن أو تلقائي حسب النظام)."
   },
   "user": {
     "first_name": "الاسم الأول",
@@ -901,7 +949,23 @@
     "api_id": "معرف API / الرمز",
     "api_secret": "سر API / المفتاح",
     "new_manual_order": "طلب يدوي جديد",
-    "draft_created": "تم إنشاء مسودة الطلب اليدوي بنجاح!"
+    "draft_created": "تم إنشاء مسودة الطلب اليدوي بنجاح!",
+    "access_token": "رمز الوصول (Page Access Token)",
+    "add_social_integration": "إضافة ربط",
+    "ai_parsing": "التحليل بالذكاء الاصطناعي",
+    "ai_parsing_desc": "سيتم تحليل الرسائل الواردة تلقائياً بواسطة الذكاء الاصطناعي لاستخراج تفاصيل الطلبية.",
+    "no_social_integrations": "لا توجد أي ارتباطات اجتماعية مجهزة.",
+    "page_id": "معرّف الصفحة (Page ID)",
+    "page_name": "اسم الصفحة",
+    "platform": "المنصة",
+    "social_automations": "أتمتة وسائل التواصل",
+    "social_automations_desc": "اربط صفحات فيسبوك وحسابات إنستغرام لاستقبال الطلبيات تلقائياً في لوحة التحكم.",
+    "social_saved": "تم حفظ الربط الاجتماعي بنجاح!",
+    "webhook_url": "رابط الويب هوك (Webhook URL)",
+    "webhook_url_desc": "انسخ هذا الرابط في لوحة تحكم مطوري Meta كرابط استدعاء (Callback URL).",
+    "confirm_delete": "هل أنت متأكد من حذف هذه الطلبية المسودة؟",
+    "draft_deleted": "تم حذف الطلبية المسودة بنجاح!",
+    "missing_total_price": "يرجى إدخال مبلغ إجمالي صحيح للطلبية."
   },
   "defects": {
     "title": "إدارة السلع المعيبة وإرجاع الموردين",
@@ -1035,7 +1099,10 @@
     "new_product": "إنشاء منتج جديد",
     "escape": "إلغاء، مسح البحث أو إغلاق النافذة",
     "help": "فتح دليل الاختصارات",
-    "store_note": "مفاتيح الوظائف هذه تعمل بشكل دائم في Windows، حتى أثناء الكتابة داخل حقول البحث أو الكمية أو الباركود."
+    "store_note": "مفاتيح الوظائف هذه تعمل بشكل دائم في Windows، حتى أثناء الكتابة داخل حقول البحث أو الكمية أو الباركود.",
+    "clear_cart": "تفريغ السلة / مسح",
+    "settings": "الإعدادات",
+    "sidebar": "إظهار / إخفاء القائمة"
   },
   "v14": {
     "print_language": "لغة طباعة الوصولات والتذاكر",
@@ -1049,5 +1116,78 @@
     "backup_btn": "تحميل نسخة احتياطية (.sqlite3)",
     "whatsapp_reminder": "تذكير عبر واتساب",
     "print_po_labels": "طباعة ملصقات الاستلام"
+  },
+  "product": {
+    "pairs_per_carton": "أزواج / كرتون",
+    "pairs_per_carton_hint": "عدد الأزواج في كل كرتون كامل (إن وُجد)."
+  },
+  "loyalty": {
+    "title": "برنامج الولاء والبطاقات المميزة VIP"
+  },
+  "pos": {
+    "versement": "تسبيق",
+    "movements": "حركات الصندوق",
+    "movement": "حركة صندوق",
+    "cash_and_z": "الصندوق وتقرير Z",
+    "open_cash_session": "فتح الصندوق",
+    "no_product_found": "لم يتم العثور على أي منتج لـ « {{search}} »",
+    "search_hint": "تأكد من صحة الاسم أو امسح الباركود مباشرة بالماسح.",
+    "ready_title": "جاهز للبيع",
+    "ready_subtitle": "امسح الباركود مباشرة في أي مكان، أو اكتب حرفين على الأقل للبحث عن الموديل.",
+    "ready_f2": "F2 = بحث",
+    "ready_enter": "Entrée = إضافة للسلة",
+    "ready_f10": "F10 / . = تأكيد البيع",
+    "ready_f11": "F11 = ملء الشاشة",
+    "clear_cart_title": "تفريغ السلة الحالية؟",
+    "clear_cart_confirm": "سيتم إزالة جميع السلع ({{count}}) الموجودة في السلة. لا يمكن التراجع عن هذا الإجراء.",
+    "clear_cart_btn": "تفريغ (Entrée)",
+    "cancel_btn": "إلغاء (Échap)",
+    "loyalty_applied": "تم تطبيق تخفيض الولاء :",
+    "loyalty_cancel": "إلغاء",
+    "loyalty_use_max": "استعمال الكل",
+    "loyalty_pts": "نقاط ولاء",
+    "discount": "تخفيض",
+    "discount_desc": "خصم مباشر على المجموع",
+    "clear_discount": "حذف التخفيض",
+    "payment_mode": "طريقة الدفع",
+    "layaway_title": "حجز سلع (موضوعة جانباً)",
+    "layaway_deposit_hint": "العربون الأدنى : {{pct}}% ({{dzd}}) · السلعة محجوزة",
+    "layaway_duration": "مدة الحجز :",
+    "layaway_hint": "حفظ السلعة في المخزن دون بيعها",
+    "cash_tendered": "المبلغ المقبوض :",
+    "change_due": "المبلغ المتبقي للإرجاع :",
+    "cheque_number_placeholder": "رقم الشيك *",
+    "cheque_bank_placeholder": "البنك (مثال: BNA, CPA...)",
+    "cheque_due_date": "تاريخ الاستحقاق",
+    "open_session_title": "فتح جلسة الصندوق",
+    "open_session_subtitle": "بدء فترة / وردية عمل جديدة",
+    "opening_float_label": "صندوق البداية (السيولة الأولية)",
+    "confirm_open_session": "تأكيد الفتح",
+    "opening_in_progress": "جاري الفتح...",
+    "movement_title": "حركة سيولة نقدية",
+    "movement_session": "الجلسة {{code}}",
+    "movement_out": "مصروف / سحب (-)",
+    "movement_in": "إيداع سيولة (+)",
+    "movement_amount": "المبلغ (د.ج) *",
+    "movement_category": "السبب / الفئة *",
+    "movement_notes": "ملاحظة / تفاصيل (اختياري)",
+    "movement_notes_placeholder": "مثال: شراء ورق الوصلات + قهوة للباعة",
+    "movement_save": "تسجيل الحركة",
+    "movement_saving": "جاري التسجيل...",
+    "movement_invalid_amount": "يرجى إدخال مبلغ صحيح.",
+    "movement_cat_store_expense": "مصاريف المحل (قهوة، نقل، لوازم...)",
+    "movement_cat_supplier_payment": "دفع مباشر لمورد",
+    "movement_cat_manager_withdrawal": "سحب المسير / إيداع في الخزنة",
+    "movement_cat_other_out": "مصروف / سحب آخر",
+    "movement_cat_change_float": "توفير صَرف (فكة)",
+    "movement_cat_extra_float": "إضافة سيولة إضافية للصندوق",
+    "movement_cat_loan_repayment": "تسديد سلفة أو دين",
+    "movement_cat_other_in": "إيداع آخر",
+    "negative_stock_title": "تنبيه: المخزون غير كافٍ",
+    "negative_stock_desc": "هل تسمح بتأكيد هذا البيع؟ سيصبح رصيد المنتجات التالية سالباً في المخزن:",
+    "negative_stock_requested": "الكمية المطلوبة :",
+    "negative_stock_current": "المخزون الحالي :",
+    "negative_stock_new": "الجديد :",
+    "confirm_sale": "تأكيد البيع"
   }
 }

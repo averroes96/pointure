@@ -47,7 +47,9 @@
     "deliveries": "Deliveries & External Orders",
     "draft_orders": "Draft Orders",
     "delivery_settings": "Delivery Settings",
-    "global_ledger": "Global Client Ledger"
+    "global_ledger": "Global Client Ledger",
+    "main_menu": "Navigation Menu",
+    "menu": "Menu"
   },
   "auth": {
     "login": "Login",
@@ -59,7 +61,24 @@
     "sign_in": "Sign In",
     "signing_in": "Signing in...",
     "invalid_credentials": "Invalid email or password",
-    "welcome": "Welcome to ShoeDZ"
+    "welcome": "Welcome to ShoeDZ",
+    "back_to_login": "Back to login",
+    "choose_new_password": "Choose a new password for your account.",
+    "confirm_password": "Confirm password",
+    "email_placeholder": "your@email.com",
+    "email_sent": "Email sent!",
+    "email_sent_desc": "Check your inbox — if an account exists for this email, you will receive a reset link.",
+    "forgot_password_desc": "Enter your email address and we will send you a link to reset your password.",
+    "forgot_password_title": "Password Reset",
+    "new_password": "New password",
+    "password_mismatch": "Passwords do not match.",
+    "password_reset_success": "Password reset successfully!",
+    "password_reset_success_desc": "You can now log in with your new password.",
+    "password_too_short": "Password must be at least 8 characters long.",
+    "reset_password": "Reset password",
+    "resetting": "Resetting…",
+    "send_link": "Send link",
+    "sending": "Sending…"
   },
   "dashboard": {
     "today_revenue": "Today's Revenue",
@@ -90,7 +109,19 @@
     "action_sale_history": "Sales History",
     "action_sale_history_desc": "Today's tickets & customer receipts",
     "action_reconciliation": "Cash Closing",
-    "action_reconciliation_desc": "Cash count & register reconciliation"
+    "action_reconciliation_desc": "Cash count & register reconciliation",
+    "connected": "Connected",
+    "connecting": "Connecting…",
+    "disconnected": "Disconnected",
+    "last_sale": "Last sale",
+    "live": "LIVE",
+    "out_of_stock": "Out of Stock",
+    "real_time": "Real-time",
+    "sales_this_session": "+{{count}} sale(s) this session",
+    "seconds_ago": "{{count}}s ago",
+    "stock_alerts": "Stock Alerts",
+    "stock_remaining": "{{count}} left",
+    "waiting_next_sale": "Waiting for next sale…"
   },
   "invoice": {
     "new": "New Invoice",
@@ -382,7 +413,11 @@
     "pointures": "Sizes",
     "colours": "Colours",
     "no_product_found": "No product found",
-    "no_variant_found": "No variant found"
+    "no_variant_found": "No variant found",
+    "bulk_price_update": "Bulk Price Update",
+    "bulk_price_update_desc": "Adjust prices by percentage or fixed amount, then reprint shelf labels.",
+    "bulk_price_update_title": "Bulk Price Update",
+    "print_shelf_labels": "Print Shelf Labels"
   },
   "sales": {
     "search_product": "Search product or scan barcode...",
@@ -534,7 +569,12 @@
     "opening_float": "Opening Cash Float",
     "expenses": "Petty Expenses (Outflow)",
     "cash_drops": "Cash Drops / Safe Deposit",
-    "expected_cash": "Expected Closing Cash"
+    "expected_cash": "Expected Closing Cash",
+    "article_count": "item",
+    "articles_count": "items",
+    "clear_cart": "Clear",
+    "shortcut_clear": "Clear cart / Reset",
+    "total_to_pay": "Total to pay"
   },
   "cheque": {
     "number": "Cheque #",
@@ -563,7 +603,8 @@
     "sport": "Sport",
     "kids": "Kids",
     "slippers": "Slippers",
-    "other": "Other"
+    "other": "Other",
+    "accessories": "Accessories"
   },
   "notification": {
     "title": "Notifications",
@@ -729,7 +770,12 @@
     "type_2_chars": "Type at least 2 characters",
     "dispatch": "Dispatch",
     "more_results": "More results",
-    "entries": "entries"
+    "entries": "entries",
+    "description": "Description",
+    "page": "Page",
+    "add": "Add",
+    "select": "Select",
+    "escape": "Esc"
   },
   "status": {
     "completed": "Completed",
@@ -739,7 +785,8 @@
     "all": "All",
     "in_transit": "In transit",
     "pending": "Pending",
-    "received": "Received"
+    "received": "Received",
+    "layaway": "Layaway (Reserved)"
   },
   "topbar": {
     "just_now": "just now",
@@ -777,7 +824,11 @@
     "cash": "Cash",
     "ccp": "Postal Transfer",
     "transfer": "Bank Transfer",
-    "cheque": "Cheque"
+    "cheque": "Cheque",
+    "account": "Client Account (Credit)",
+    "virement": "Bank Transfer",
+    "all_open_invoices": "All open invoices (by antiquity)",
+    "target_invoice": "Target invoice (optional)"
   },
   "report": {
     "amount": "Amount",
@@ -861,7 +912,9 @@
     "backup_status": "Status",
     "backup_no_backups": "No backups available",
     "backup_no_backups_desc": "Click the button above to generate your first manual backup.",
-    "backup_safety_tip": "Safety Tip: Regularly copy a recent backup to a USB drive or external drive to protect your store against hardware failures."
+    "backup_safety_tip": "Safety Tip: Regularly copy a recent backup to a USB drive or external drive to protect your store against hardware failures.",
+    "theme_title": "Interface Appearance & Theme",
+    "theme_desc": "Customize the display for your visual comfort (Light, Dark, or System mode)."
   },
   "user": {
     "first_name": "First Name",
@@ -896,7 +949,23 @@
     "api_id": "API ID / Token",
     "api_secret": "API Secret / Key",
     "new_manual_order": "New Manual Order",
-    "draft_created": "Manual draft order created successfully!"
+    "draft_created": "Manual draft order created successfully!",
+    "access_token": "Page Access Token",
+    "add_social_integration": "Add Integration",
+    "ai_parsing": "AI Parsing",
+    "ai_parsing_desc": "Incoming messages will be automatically parsed by AI to extract order details.",
+    "no_social_integrations": "No social integrations configured.",
+    "page_id": "Page ID",
+    "page_name": "Page Name",
+    "platform": "Platform",
+    "social_automations": "Social Automations",
+    "social_automations_desc": "Connect your Facebook and Instagram accounts to receive orders directly in your dashboard.",
+    "social_saved": "Social integration saved successfully!",
+    "webhook_url": "Webhook URL",
+    "webhook_url_desc": "Paste this URL in your Meta Developer Console as Callback URL.",
+    "confirm_delete": "Are you sure you want to delete this draft order?",
+    "draft_deleted": "Draft order deleted successfully!",
+    "missing_total_price": "Please enter a valid total order amount."
   },
   "product": {
     "pairs_per_carton": "Pairs / Carton",
@@ -1034,7 +1103,10 @@
     "new_product": "Create new product",
     "escape": "Cancel, clear search or close dialog",
     "help": "Open shortcuts guide",
-    "store_note": "These function keys work seamlessly on Windows, even while typing inside search, quantity, or barcode input fields."
+    "store_note": "These function keys work seamlessly on Windows, even while typing inside search, quantity, or barcode input fields.",
+    "clear_cart": "Clear cart / Reset",
+    "settings": "Settings",
+    "sidebar": "Show / Hide menu"
   },
   "v14": {
     "print_language": "Printed Receipts & Slips Language",
@@ -1048,5 +1120,74 @@
     "backup_btn": "Download Database Backup (.sqlite3)",
     "whatsapp_reminder": "Send WhatsApp Reminder",
     "print_po_labels": "Print Reception Labels"
+  },
+  "loyalty": {
+    "title": "Loyalty Program & VIP Cards"
+  },
+  "pos": {
+    "versement": "Layaway Deposit",
+    "movements": "Cash Movements",
+    "movement": "Cash Movement",
+    "cash_and_z": "Register & Z-Report",
+    "open_cash_session": "Open Register",
+    "no_product_found": "No product found for \"{{search}}\"",
+    "search_hint": "Check spelling or scan barcode directly.",
+    "ready_title": "Ready for Sale",
+    "ready_subtitle": "Scan a barcode anywhere, or type at least 2 characters to search a shoe model.",
+    "ready_f2": "F2 = Search",
+    "ready_enter": "Enter = Add to cart",
+    "ready_f10": "F10 / . = Confirm sale",
+    "ready_f11": "F11 = Fullscreen",
+    "clear_cart_title": "Clear active cart?",
+    "clear_cart_confirm": "All items ({{count}}) in the cart will be removed. This action cannot be undone.",
+    "clear_cart_btn": "Clear (Enter)",
+    "cancel_btn": "Cancel (Esc)",
+    "loyalty_applied": "Loyalty discount applied:",
+    "loyalty_cancel": "Cancel",
+    "loyalty_use_max": "Use Max",
+    "loyalty_pts": "loyalty pts",
+    "discount": "Discount",
+    "discount_desc": "Direct discount on total",
+    "clear_discount": "Clear discount",
+    "payment_mode": "Payment Method",
+    "layaway_title": "Layaway / Reserved",
+    "layaway_deposit_hint": "Min deposit: {{pct}}% ({{dzd}}) · Reserved stock",
+    "layaway_duration": "Reservation duration:",
+    "layaway_hint": "Hold item in stock without selling it",
+    "cash_tendered": "Cash Tendered:",
+    "change_due": "Change Due:",
+    "cheque_number_placeholder": "Cheque No. *",
+    "cheque_bank_placeholder": "Bank (e.g. BNA, CPA...)",
+    "cheque_due_date": "Due date",
+    "open_session_title": "Open Register Session",
+    "open_session_subtitle": "Start a new cashier shift",
+    "opening_float_label": "Opening Cash Float",
+    "confirm_open_session": "Confirm Opening",
+    "opening_in_progress": "Opening...",
+    "movement_title": "Petty Cash Movement",
+    "movement_session": "Session {{code}}",
+    "movement_out": "Expense / Cash Out (-)",
+    "movement_in": "Cash In (+)",
+    "movement_amount": "Amount (DZD) *",
+    "movement_category": "Reason / Category *",
+    "movement_notes": "Notes / Details (optional)",
+    "movement_notes_placeholder": "E.g. Thermal receipt paper + staff coffee",
+    "movement_save": "Save Movement",
+    "movement_saving": "Saving...",
+    "movement_invalid_amount": "Please enter a valid amount.",
+    "movement_cat_store_expense": "Store expenses (coffee, transport, supplies...)",
+    "movement_cat_supplier_payment": "Direct supplier payment",
+    "movement_cat_manager_withdrawal": "Manager withdrawal / safe deposit",
+    "movement_cat_other_out": "Other expense / cash out",
+    "movement_cat_change_float": "Coin / bill change float",
+    "movement_cat_extra_float": "Additional register cash float",
+    "movement_cat_loan_repayment": "Loan or advance repayment",
+    "movement_cat_other_in": "Other cash in",
+    "negative_stock_title": "Warning: Insufficient Stock",
+    "negative_stock_desc": "Do you want to authorize this sale? The following items will drop into negative stock:",
+    "negative_stock_requested": "Qty requested:",
+    "negative_stock_current": "Current stock:",
+    "negative_stock_new": "New stock:",
+    "confirm_sale": "Confirm Sale"
   }
 }

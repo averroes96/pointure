@@ -11,6 +11,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { updateServerTimeOffset } from "./time";
+import i18n from "./i18n";
 
 const BASE_URL = import.meta.env.VITE_API_URL !== undefined
   ? import.meta.env.VITE_API_URL
@@ -189,24 +190,28 @@ export function getApiError(error: unknown): string {
   return "An unexpected error occurred.";
 }
 
-/** Format DZD amount with space separator */
-export function formatDZD(amount: number | string | null | undefined): string {
+/** Format DZD amount with locale-aware grouping */
+export function formatDZD(amount: number | string | null | undefined, lang?: string): string {
   if (amount == null) return "—";
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (isNaN(num)) return "—";
-  return new Intl.NumberFormat("fr-DZ", {
+  const active = (lang || i18n?.language || localStorage.getItem("i18nextLng") || "fr").toLowerCase();
+  const locale = active.startsWith("ar") ? "ar-DZ" : active.startsWith("en") ? "en-US" : "fr-DZ";
+  return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
     useGrouping: true,
   }).format(num);
 }
 
-/** Format date as DD/MM/YYYY */
-export function formatDate(dateStr: string | null | undefined): string {
+/** Format date as DD/MM/YYYY with locale-aware calendar formatting */
+export function formatDate(dateStr: string | null | undefined, lang?: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("fr-DZ", {
+  const active = (lang || i18n?.language || localStorage.getItem("i18nextLng") || "fr").toLowerCase();
+  const locale = active.startsWith("ar") ? "ar-DZ" : active.startsWith("en") ? "en-US" : "fr-DZ";
+  return d.toLocaleDateString(locale, {
     day: "2-digit", month: "2-digit", year: "numeric",
   });
 }

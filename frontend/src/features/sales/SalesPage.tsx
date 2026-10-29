@@ -1365,7 +1365,7 @@ export default function SalesPage() {
                 <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Échap</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">{t("common.escape", "Échap")}</kbd>
                 <span>{t("sales.shortcut_clear", "Vider panier / Effacer")}</span>
               </span>
               <button
@@ -1385,7 +1385,7 @@ export default function SalesPage() {
                     ? "bg-amber-200/70 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100"
                     : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
                 )}>Alt+V</kbd>
-                <span>Versement</span>
+                <span>{t("pos.versement", "Versement")}</span>
               </button>
               <button
                 type="button"
@@ -1394,7 +1394,7 @@ export default function SalesPage() {
                 title="Raccourci Alt+M (ou Ctrl+M) : Ouvrir le popup rapide des mouvements d'espèces"
               >
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Alt+M</kbd>
-                <span>Mouvements</span>
+                <span>{t("pos.movements", "Mouvements")}</span>
               </button>
             </div>
           </div>
@@ -1416,7 +1416,7 @@ export default function SalesPage() {
                   title="Ajouter ou retirer des espèces (Raccourci : Alt+M)"
                 >
                   <ArrowDownUp size={12} />
-                  <span>Mouvement</span>
+                  <span>{t("pos.movement", "Mouvement")}</span>
                   <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">Alt+M</kbd>
                 </button>
                 <button
@@ -1426,7 +1426,7 @@ export default function SalesPage() {
                   title="Voir la caisse, lecture X et clôture Z"
                 >
                   <Receipt size={12} />
-                  <span>Caisse & Z</span>
+                  <span>{t("pos.cash_and_z", "Caisse & Z")}</span>
                 </button>
               </div>
             ) : (
@@ -1437,7 +1437,7 @@ export default function SalesPage() {
                   className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
                 >
                   <Coins size={13} />
-                  <span>Ouvrir Caisse</span>
+                  <span>{t("pos.open_cash_session", "Ouvrir Caisse")}</span>
                 </button>
                 <button
                   type="button"
@@ -1492,8 +1492,8 @@ export default function SalesPage() {
           <div className="card overflow-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
             {productResults.results.length === 0 ? (
               <div className="p-10 text-center text-slate-500 dark:text-slate-400">
-                <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{t("pos.no_product_found", "Aucun produit trouvé pour « {{search}} »", { search })}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t("pos.search_hint", "Vérifiez l'orthographe ou scannez directement le code-barres.")}</p>
               </div>
             ) : (
               productResults.results.map((product) => {
@@ -1620,15 +1620,15 @@ export default function SalesPage() {
             <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center mb-3.5 shadow-xs border border-primary-100 dark:border-primary-800">
               <Search size={24} />
             </div>
-            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Prêt pour la vente</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{t("pos.ready_title", "Prêt pour la vente")}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm leading-relaxed">
-              Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.
+              {t("pos.ready_subtitle", "Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.")}
             </p>
             <div className="flex gap-2 mt-5 text-[11px] text-slate-600 dark:text-slate-300 flex-wrap justify-center font-medium">
-              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F2 = Rechercher</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">Entrée = Ajouter au panier</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F10 / . = Confirmer</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F11 = Plein écran</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">{t("pos.ready_f2", "F2 = Rechercher")}</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">{t("pos.ready_enter", "Entrée = Ajouter au panier")}</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">{t("pos.ready_f10", "F10 / . = Confirmer")}</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">{t("pos.ready_f11", "F11 = Plein écran")}</span>
             </div>
           </div>
         )}
@@ -1656,12 +1656,12 @@ export default function SalesPage() {
               <button
                 onClick={handleClearCart}
                 className="text-xs text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 px-2.5 py-1 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors font-bold cursor-pointer"
-                title="Vider tout le panier (Touche Échap)"
+                title={`${t("sales.clear_cart", "Vider")} (${t("common.escape", "Échap")})`}
               >
                 <X size={13} />
                 <span>{t("sales.clear_cart", "Vider")}</span>
                 <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">
-                  Échap
+                  {t("common.escape", "Échap")}
                 </kbd>
               </button>
             )}
@@ -1684,7 +1684,7 @@ export default function SalesPage() {
                     <span className="text-primary-800 dark:text-primary-300 font-bold font-mono">
                       {loyaltyAccount.points_balance.toLocaleString("fr-DZ")}
                     </span>
-                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">pts fidélité</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">{t("pos.loyalty_pts", "pts fidélité")}</span>
                     <span className="text-2xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                       ≈ {formatDZD(Math.floor((loyaltyAccount.points_balance / (loyaltyProgram.redemption_value || 100)) * 100))} DZD
                     </span>
@@ -1702,7 +1702,7 @@ export default function SalesPage() {
                         }
                         className="px-2 py-0.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-2xs font-bold transition-colors cursor-pointer"
                       >
-                        {redeemPoints === loyaltyAccount.points_balance ? "Annuler" : "Utiliser Max"}
+                        {redeemPoints === loyaltyAccount.points_balance ? t("pos.loyalty_cancel", "Annuler") : t("pos.loyalty_use_max", "Utiliser Max")}
                       </button>
                       <input
                         type="number"
@@ -1725,7 +1725,7 @@ export default function SalesPage() {
                 </div>
                 {redeemPoints > 0 && (
                   <div className="flex items-center justify-between text-2xs text-primary-800 dark:text-primary-300 font-bold border-t border-primary-100 dark:border-primary-800 pt-1">
-                    <span>Remise fidélité appliquée :</span>
+                    <span>{t("pos.loyalty_applied", "Remise fidélité appliquée :")}</span>
                     <span className="font-mono text-emerald-700 dark:text-emerald-400">−{formatDZD(redemptionDzd)} DZD</span>
                   </div>
                 )}
@@ -1742,7 +1742,7 @@ export default function SalesPage() {
                 </div>
                 <p className="font-extrabold text-slate-800 dark:text-slate-200 text-sm">{t("sales.empty_cart")}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs leading-relaxed">
-                  Scannez un code-barres ou recherchez un modèle (F2) pour commencer la vente.
+                  {t("sales.empty_cart_hint", "Scannez un code-barres ou recherchez un modèle (F2) pour commencer la vente.")}
                 </p>
               </div>
             ) : (
@@ -1886,7 +1886,7 @@ export default function SalesPage() {
                   )}
                   title="Raccourci Alt+V : Nouveau client + activer Versement"
                 >
-                  <span>Versement</span>
+                  <span>{t("pos.versement", "Versement")}</span>
                   <kbd className={cn(
                     "px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border",
                     isVersement
@@ -1921,7 +1921,7 @@ export default function SalesPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <span>Remise</span>
+                    <span>{t("pos.discount", "Remise")}</span>
                     {cartDiscount > 0 && itemsTotal > 0 && (
                       <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-black">
                         −{Math.min(100, Math.round((cartDiscount / itemsTotal) * 100))}%
@@ -1929,7 +1929,7 @@ export default function SalesPage() {
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
-                    Réduction directe sur le total
+                    {t("pos.discount_desc", "Réduction directe sur le total")}
                   </p>
                 </div>
               </div>
@@ -1956,7 +1956,7 @@ export default function SalesPage() {
                     type="button"
                     onClick={() => setCartDiscount(0)}
                     className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-950/60 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
-                    title="Effacer la remise"
+                    title={t("pos.clear_discount", "Effacer la remise")}
                   >
                     <X size={14} />
                   </button>
@@ -2024,10 +2024,13 @@ export default function SalesPage() {
                       <div>
                         <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <Bookmark size={13} className="text-indigo-600 dark:text-indigo-400" />
-                          <span>Mise de côté (Réservation)</span>
+                          <span>{t("pos.layaway_title", "Mise de côté (Réservation)")}</span>
                         </p>
                         <p className="text-2xs text-slate-500 dark:text-slate-400">
-                          Acompte min: {storeSettings?.min_layaway_deposit_pct ?? 20}% ({formatDZD(Math.ceil(total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100))} DZD) · Stock consigné
+                          {t("pos.layaway_deposit_hint", "Acompte min : {{pct}}% ({{dzd}}) · Stock consigné", {
+                            pct: storeSettings?.min_layaway_deposit_pct ?? 20,
+                            dzd: `${formatDZD(Math.ceil(total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100))} DZD`,
+                          })}
                         </p>
                       </div>
                       <button
@@ -2059,7 +2062,7 @@ export default function SalesPage() {
 
                     {isLayaway && (
                       <div className="flex items-center gap-2 pl-4 text-2xs text-slate-600 dark:text-slate-400">
-                        <span>Durée de réservation :</span>
+                        <span>{t("pos.layaway_duration", "Durée de réservation :")}</span>
                         {[3, 7, 14, 30].map((d) => (
                           <button
                             key={d}
@@ -2084,7 +2087,7 @@ export default function SalesPage() {
                 <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Mode de règlement
+                      {t("pos.payment_mode", "Mode de règlement")}
                     </div>
                     {/* Quick payment pills */}
                     <div className="flex items-center gap-1">
@@ -2098,7 +2101,7 @@ export default function SalesPage() {
                             : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
                       >
-                        Espèces
+                        {t("payment_method.cash", "Espèces")}
                       </button>
                       <button
                         type="button"
@@ -2177,7 +2180,7 @@ export default function SalesPage() {
                                 )
                               )
                             }
-                            placeholder="N° Chèque *"
+                            placeholder={t("pos.cheque_number_placeholder", "N° Chèque *")}
                             className="form-input h-8 text-2xs font-mono font-bold bg-white dark:bg-slate-800"
                           />
                           <input
@@ -2190,7 +2193,7 @@ export default function SalesPage() {
                                 )
                               )
                             }
-                            placeholder="Banque (ex: BNA, CPA...)"
+                            placeholder={t("pos.cheque_bank_placeholder", "Banque (ex: BNA, CPA...)")}
                             className="form-input h-8 text-2xs bg-white dark:bg-slate-800"
                           />
                           <input
@@ -2203,7 +2206,7 @@ export default function SalesPage() {
                                 )
                               )
                             }
-                            title="Date d'échéance"
+                            title={t("pos.cheque_due_date", "Date d'échéance")}
                             className="form-input h-8 text-2xs font-mono bg-white dark:bg-slate-800"
                           />
                         </div>
@@ -2213,7 +2216,7 @@ export default function SalesPage() {
                       {payment.method === "cash" && total > 0 && (
                         <div className="p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-2xs font-bold text-slate-600 dark:text-slate-300">Espèces reçues :</span>
+                            <span className="text-2xs font-bold text-slate-600 dark:text-slate-300">{t("pos.cash_tendered", "Espèces reçues :")}</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {[500, 1000, 2000, 5000].map((bill) => (
                                 <button
@@ -2249,7 +2252,7 @@ export default function SalesPage() {
                           </div>
                           {parseFloat(cashTendered) > total && (
                             <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 dark:text-emerald-300 border-t border-emerald-200/70 dark:border-emerald-800/60 pt-1.5">
-                              <span>Monnaie à rendre :</span>
+                              <span>{t("pos.change_due", "Monnaie à rendre :")}</span>
                               <span className="font-mono text-sm">
                                 {formatDZD(parseFloat(cashTendered) - total)} DZD
                               </span>
@@ -2298,7 +2301,7 @@ export default function SalesPage() {
                     <span>Solde au retrait: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
                   </div>
                   <div className="flex items-center justify-between text-2xs opacity-80">
-                    <span>Conserve le stock en réserve sans le vendre</span>
+                    <span>{t("pos.layaway_hint", "Conserve le stock en réserve sans le vendre")}</span>
                     <span>Expiration : J+{duration}</span>
                   </div>
                 </div>
@@ -2424,7 +2427,7 @@ export default function SalesPage() {
 
             <div className="p-5 space-y-4">
               <p className="text-xs text-text-secondary leading-relaxed">
-                Voulez-vous autoriser la validation de cette vente ? Les stocks suivants passeront en négatif dans l'inventaire :
+                {t("pos.negative_stock_desc", "Voulez-vous autoriser la validation de cette vente ? Les stocks suivants passeront en négatif dans l'inventaire :")}
               </p>
 
               <div className="max-h-60 overflow-y-auto space-y-2 border border-border/80 dark:border-slate-800 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-950/50">
@@ -2447,15 +2450,15 @@ export default function SalesPage() {
                             </span>
                           )}
                           {colorLabel && <span>{colorLabel}</span>}
-                          <span>• Qté demandée: <strong className="text-text-primary dark:text-white font-mono">{item.quantity}</strong></span>
+                          <span>• {t("pos.negative_stock_requested", "Qté demandée :")} <strong className="text-text-primary dark:text-white font-mono">{item.quantity}</strong></span>
                         </div>
                       </div>
                       <div className="text-end shrink-0">
                         <div className="text-2xs text-text-muted dark:text-slate-400">
-                          Stock actuel : <span className="font-mono font-medium">{item.variant.stock_qty ?? 0}</span>
+                          {t("pos.negative_stock_current", "Stock actuel :")} <span className="font-mono font-medium">{item.variant.stock_qty ?? 0}</span>
                         </div>
                         <div className="text-xs font-black font-mono text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 mt-0.5">
-                          Nouveau: {newStock}
+                          {t("pos.negative_stock_new", "Nouveau :")} {newStock}
                         </div>
                       </div>
                     </div>
@@ -2469,7 +2472,7 @@ export default function SalesPage() {
                   onClick={() => setNegativeStockAlert(null)}
                   className="btn-secondary px-4 py-2.5 text-xs font-semibold rounded-xl"
                 >
-                  Annuler <span className="opacity-60 text-2xs">(Échap)</span>
+                  {t("pos.cancel_btn", "Annuler (Échap)")}
                 </button>
                 <button
                   type="button"
@@ -2482,7 +2485,7 @@ export default function SalesPage() {
                   className="btn-primary bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5"
                 >
                   <Check size={15} className="stroke-[2.5]" />
-                  <span>Confirmer la vente</span>
+                  <span>{t("pos.confirm_sale", "Confirmer la vente")}</span>
                   <span className="opacity-80 text-2xs font-mono">(Entrée / .)</span>
                 </button>
               </div>
@@ -2500,17 +2503,17 @@ export default function SalesPage() {
 
       {/* In-App Clear Cart Confirmation Modal (Prevents Win32 modal popup focus lock) */}
       {showClearCartModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-800">
             <div className="p-5 text-center">
-              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-rose-950/60 text-red-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3 shadow-xs">
                 <Trash2 size={24} />
               </div>
-              <h3 className="font-extrabold text-slate-900 text-base mb-1">
-                Vider le panier en cours ?
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base mb-1">
+                {t("pos.clear_cart_title", "Vider le panier en cours ?")}
               </h3>
-              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-                Tous les articles ({totalItems}) ajoutés au panier seront retirés. Cette action est irréversible.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+                {t("pos.clear_cart_confirm", "Tous les articles ({{count}}) ajoutés au panier seront retirés. Cette action est irréversible.", { count: totalItems })}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -2518,7 +2521,7 @@ export default function SalesPage() {
                   onClick={cancelClearCart}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler <span className="opacity-60 text-2xs">(Échap)</span>
+                  {t("pos.cancel_btn", "Annuler (Échap)")}
                 </button>
                 <button
                   type="button"
@@ -2526,7 +2529,7 @@ export default function SalesPage() {
                   onClick={confirmClearCart}
                   className="btn-primary bg-red-600 hover:bg-red-700 text-white flex-1 py-2.5 text-xs font-bold rounded-xl shadow-xs"
                 >
-                  Vider <span className="opacity-80 text-2xs font-mono">(Entrée)</span>
+                  {t("pos.clear_cart_btn", "Vider (Entrée)")}
                 </button>
               </div>
             </div>
@@ -2543,8 +2546,8 @@ export default function SalesPage() {
                   <Coins size={18} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">Ouvrir la session de caisse</h3>
-                  <p className="text-2xs text-slate-500 dark:text-slate-400">Démarrer une nouvelle vacation / shift</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">{t("pos.open_session_title", "Ouvrir la session de caisse")}</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">{t("pos.open_session_subtitle", "Démarrer une nouvelle vacation / shift")}</p>
                 </div>
               </div>
               <button
@@ -2558,8 +2561,8 @@ export default function SalesPage() {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Fond de caisse initial (Espèces de départ)
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("pos.opening_float_label", "Fond de caisse initial (Espèces de départ)")}
                 </label>
                 <div className="relative">
                   <input
@@ -2586,7 +2589,7 @@ export default function SalesPage() {
                         "px-2.5 py-1 text-2xs font-bold rounded-lg border transition-colors",
                         sessionOpeningFloat === String(amt)
                           ? "bg-amber-500 text-white border-amber-500"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                          : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                       )}
                     >
                       {amt === 0 ? "0 DZD" : `${amt.toLocaleString("fr-DZ")} DZD`}
@@ -2596,7 +2599,7 @@ export default function SalesPage() {
               </div>
 
               {openSessionMutation.isError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-rose-950/60 border border-red-200 dark:border-rose-800 text-red-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertTriangle size={15} className="shrink-0" />
                   <span>{getApiError(openSessionMutation.error)}</span>
                 </div>
@@ -2608,7 +2611,7 @@ export default function SalesPage() {
                   onClick={() => setShowOpenSessionModal(false)}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler
+                  {t("common.cancel", "Annuler")}
                 </button>
                 <button
                   type="button"
@@ -2616,7 +2619,7 @@ export default function SalesPage() {
                   disabled={openSessionMutation.isPending}
                   className="btn-primary flex-1 py-2.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
                 >
-                  {openSessionMutation.isPending ? "Ouverture..." : "Confirmer l'ouverture"}
+                  {openSessionMutation.isPending ? t("pos.opening_in_progress", "Ouverture...") : t("pos.confirm_open_session", "Confirmer l'ouverture")}
                 </button>
               </div>
             </div>
@@ -2647,8 +2650,8 @@ export default function SalesPage() {
                   <ArrowDownUp size={18} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">Mouvement d'espèces</h3>
-                  <p className="text-2xs text-slate-500 dark:text-slate-400">Session {currentSession.session_code}</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">{t("pos.movement_title", "Mouvement d'espèces")}</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">{t("pos.movement_session", "Session {{code}}", { code: currentSession.session_code })}</p>
                 </div>
               </div>
               <button
@@ -2666,7 +2669,7 @@ export default function SalesPage() {
                 e.preventDefault();
                 const parsedAmount = parseFloat(normalizeNumericInput(movementAmount));
                 if (!parsedAmount || parsedAmount <= 0) {
-                  setMovementError("Veuillez saisir un montant valide.");
+                  setMovementError(t("pos.movement_invalid_amount", "Veuillez saisir un montant valide."));
                   return;
                 }
                 movementMutation.mutate();
@@ -2674,7 +2677,7 @@ export default function SalesPage() {
               className="p-6 space-y-4"
             >
               {/* Type Switcher */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -2684,11 +2687,11 @@ export default function SalesPage() {
                   }}
                   className={cn(
                     "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer",
-                    movementType === "out" ? "bg-red-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                    movementType === "out" ? "bg-red-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   )}
                 >
                   <Minus size={13} />
-                  <span>Dépense / Retrait (-)</span>
+                  <span>{t("pos.movement_out", "Dépense / Retrait (-)")}</span>
                 </button>
                 <button
                   type="button"
@@ -2699,18 +2702,18 @@ export default function SalesPage() {
                   }}
                   className={cn(
                     "py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer",
-                    movementType === "in" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                    movementType === "in" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   )}
                 >
                   <Plus size={13} />
-                  <span>Apport d'espèces (+)</span>
+                  <span>{t("pos.movement_in", "Apport d'espèces (+)")}</span>
                 </button>
               </div>
 
               {/* Amount */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Montant (DZD) *
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("pos.movement_amount", "Montant (DZD) *")}
                 </label>
                 <div className="relative">
                   <input
@@ -2751,7 +2754,7 @@ export default function SalesPage() {
                         if (movementError) setMovementError(null);
                         movementAmountRef.current?.focus();
                       }}
-                      className="px-2 py-1 text-2xs font-mono font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                      className="px-2 py-1 text-2xs font-mono font-bold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                     >
                       +{preset.toLocaleString("fr-DZ")}
                     </button>
@@ -2763,9 +2766,9 @@ export default function SalesPage() {
                         setMovementAmount("");
                         movementAmountRef.current?.focus();
                       }}
-                      className="px-2 py-1 text-2xs font-bold rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer ms-auto"
+                      className="px-2 py-1 text-2xs font-bold rounded-lg bg-red-50 dark:bg-rose-950/50 hover:bg-red-100 dark:hover:bg-rose-900/50 text-red-600 dark:text-rose-400 border border-red-200 dark:border-rose-800 transition-colors cursor-pointer ms-auto"
                     >
-                      Effacer
+                      {t("common.clear", "Effacer")}
                     </button>
                   )}
                 </div>
@@ -2773,8 +2776,8 @@ export default function SalesPage() {
 
               {/* Category */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Motif / Catégorie *
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("pos.movement_category", "Motif / Catégorie *")}
                 </label>
                 <select
                   value={movementCategory}
@@ -2783,17 +2786,17 @@ export default function SalesPage() {
                 >
                   {movementType === "out" ? (
                     <>
-                      <option value="Dépense magasin">Dépense magasin (café, transport, fournitures...)</option>
-                      <option value="Paiement fournisseur">Paiement fournisseur direct</option>
-                      <option value="Retrait patron / coffre">Retrait gérant / versement coffre</option>
-                      <option value="Autre retrait">Autre dépense / retrait</option>
+                      <option value="Dépense magasin">{t("pos.movement_cat_store_expense", "Dépense magasin (café, transport, fournitures...)")}</option>
+                      <option value="Paiement fournisseur">{t("pos.movement_cat_supplier_payment", "Paiement fournisseur direct")}</option>
+                      <option value="Retrait patron / coffre">{t("pos.movement_cat_manager_withdrawal", "Retrait gérant / versement coffre")}</option>
+                      <option value="Autre retrait">{t("pos.movement_cat_other_out", "Autre dépense / retrait")}</option>
                     </>
                   ) : (
                     <>
-                      <option value="Apport monnaie">Apport de monnaie (pièces / billets)</option>
-                      <option value="Apport fond de caisse">Apport fond de caisse supplémentaire</option>
-                      <option value="Remboursement prêt">Remboursement prêt ou avance</option>
-                      <option value="Autre apport">Autre apport</option>
+                      <option value="Apport monnaie">{t("pos.movement_cat_change_float", "Apport de monnaie (pièces / billets)")}</option>
+                      <option value="Apport fond de caisse">{t("pos.movement_cat_extra_float", "Apport fond de caisse supplémentaire")}</option>
+                      <option value="Remboursement prêt">{t("pos.movement_cat_loan_repayment", "Remboursement prêt ou avance")}</option>
+                      <option value="Autre apport">{t("pos.movement_cat_other_in", "Autre apport")}</option>
                     </>
                   )}
                 </select>
@@ -2801,20 +2804,20 @@ export default function SalesPage() {
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Observation / Détails (optionnel)
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("pos.movement_notes", "Observation / Détails (optionnel)")}
                 </label>
                 <input
                   type="text"
                   value={movementNotes}
                   onChange={(e) => setMovementNotes(e.target.value)}
-                  placeholder="Ex : Achat papier ticket + café caissiers"
+                  placeholder={t("pos.movement_notes_placeholder", "Ex : Achat papier ticket + café caissiers")}
                   className="form-input text-xs py-2 rounded-xl w-full"
                 />
               </div>
 
               {movementError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-rose-950/60 border border-red-200 dark:border-rose-800 text-red-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertTriangle size={15} className="shrink-0" />
                   <span>{movementError}</span>
                 </div>
@@ -2826,7 +2829,7 @@ export default function SalesPage() {
                   onClick={() => { setShowMovementModal(false); setMovementError(null); }}
                   className="btn-secondary flex-1 py-2.5 text-xs font-bold rounded-xl"
                 >
-                  Annuler
+                  {t("common.cancel", "Annuler")}
                 </button>
                 <button
                   type="submit"
@@ -2836,7 +2839,7 @@ export default function SalesPage() {
                     movementType === "out" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
                   )}
                 >
-                  {movementMutation.isPending ? "Enregistrement..." : "Enregistrer le mouvement"}
+                  {movementMutation.isPending ? t("pos.movement_saving", "Enregistrement...") : t("pos.movement_save", "Enregistrer le mouvement")}
                 </button>
               </div>
             </form>

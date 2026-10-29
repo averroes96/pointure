@@ -47,7 +47,9 @@
     "deliveries": "Livraisons et Commandes Externes",
     "draft_orders": "Brouillons de Commandes",
     "delivery_settings": "Paramètres de Livraison",
-    "global_ledger": "Grand Livre Clients"
+    "global_ledger": "Grand Livre Clients",
+    "main_menu": "Menu de navigation",
+    "menu": "Menu"
   },
   "auth": {
     "login": "Connexion",
@@ -397,7 +399,6 @@
     "pricing": "Tarification",
     "gender": "Genre",
     "season": "Saison",
-    "wholesale_price": "Prix de gros",
     "create_product": "Créer un produit",
     "edit_product_title": "Modifier le produit",
     "product_name": "Nom du produit",
@@ -568,7 +569,12 @@
     "opening_float": "Fond de caisse initial",
     "expenses": "Dépenses de caisse (Sortie)",
     "cash_drops": "Prélèvements / Retraits coffre",
-    "expected_cash": "Caisse théorique"
+    "expected_cash": "Caisse théorique",
+    "article_count": "article",
+    "articles_count": "articles",
+    "clear_cart": "Vider",
+    "shortcut_clear": "Vider panier / Effacer",
+    "total_to_pay": "Total à payer"
   },
   "cheque": {
     "number": "N° chèque",
@@ -764,7 +770,12 @@
     "type_2_chars": "Tapez 2 caractères minimum",
     "dispatch": "Expédier",
     "more_results": "Plus de résultats",
-    "entries": "écritures"
+    "entries": "écritures",
+    "description": "Description",
+    "page": "Page",
+    "add": "Ajouter",
+    "select": "Sélectionner",
+    "escape": "Échap"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -782,7 +793,9 @@
     "record": "Enregistrer un paiement",
     "amount": "Montant (DZD) *",
     "method": "Mode de paiement *",
-    "transfer": "Virement"
+    "transfer": "Virement",
+    "all_open_invoices": "Toutes les factures en cours (par ancienneté)",
+    "target_invoice": "Facture concernée (optionnel)"
   },
   "status": {
     "completed": "Complete",
@@ -899,7 +912,9 @@
     "backup_status": "État",
     "backup_no_backups": "Aucune sauvegarde disponible",
     "backup_no_backups_desc": "Cliquez sur le bouton ci-dessus pour générer votre première sauvegarde manuelle.",
-    "backup_safety_tip": "Bonnes pratiques : Copiez régulièrement une sauvegarde récente sur une clé USB ou un disque externe pour protéger votre commerce contre les pannes matérielles."
+    "backup_safety_tip": "Bonnes pratiques : Copiez régulièrement une sauvegarde récente sur une clé USB ou un disque externe pour protéger votre commerce contre les pannes matérielles.",
+    "theme_title": "Apparence & Thème de l'interface",
+    "theme_desc": "Personnalisez l'affichage pour votre confort de travail (Clair, Sombre ou Automatique selon votre système)."
   },
   "user": {
     "first_name": "Prénom",
@@ -947,7 +962,10 @@
     "no_social_integrations": "Aucune intégration sociale configurée.",
     "social_saved": "Intégration sociale enregistrée avec succès !",
     "webhook_url": "URL du Webhook",
-    "webhook_url_desc": "Collez cette URL dans votre console Meta Developer comme URL de Callback."
+    "webhook_url_desc": "Collez cette URL dans votre console Meta Developer comme URL de Callback.",
+    "confirm_delete": "Êtes-vous sûr de vouloir supprimer cette commande brouillon ?",
+    "draft_deleted": "Commande brouillon supprimée avec succès !",
+    "missing_total_price": "Veuillez saisir un montant total valide pour la commande."
   },
   "product": {
     "pairs_per_carton": "Paires / Carton",
@@ -1085,7 +1103,10 @@
     "new_product": "Créer un nouveau produit",
     "escape": "Annuler, effacer recherche ou fermer modale",
     "help": "Ouvrir ce guide des raccourcis",
-    "store_note": "Ces touches de fonction sont actives en permanence sous Windows, même lorsque votre curseur est positionné à l'intérieur d'un champ de saisie (recherche, quantité ou code-barres)."
+    "store_note": "Ces touches de fonction sont actives en permanence sous Windows, même lorsque votre curseur est positionné à l'intérieur d'un champ de saisie (recherche, quantité ou code-barres).",
+    "clear_cart": "Vider panier / Effacer",
+    "settings": "Paramètres",
+    "sidebar": "Afficher / Masquer menu"
   },
   "v14": {
     "print_language": "Langue des tickets & reçus imprimés",
@@ -1099,5 +1120,74 @@
     "backup_btn": "Télécharger une sauvegarde (.sqlite3)",
     "whatsapp_reminder": "Relancer sur WhatsApp",
     "print_po_labels": "Imprimer étiquettes réception"
+  },
+  "loyalty": {
+    "title": "Programme de Fidélité & Cartes VIP"
+  },
+  "pos": {
+    "versement": "Versement",
+    "movements": "Mouvements",
+    "movement": "Mouvement",
+    "cash_and_z": "Caisse & Z",
+    "open_cash_session": "Ouvrir Caisse",
+    "no_product_found": "Aucun produit trouvé pour « {{search}} »",
+    "search_hint": "Vérifiez l'orthographe ou scannez directement le code-barres.",
+    "ready_title": "Prêt pour la vente",
+    "ready_subtitle": "Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.",
+    "ready_f2": "F2 = Rechercher",
+    "ready_enter": "Entrée = Ajouter au panier",
+    "ready_f10": "F10 / . = Confirmer",
+    "ready_f11": "F11 = Plein écran",
+    "clear_cart_title": "Vider le panier en cours ?",
+    "clear_cart_confirm": "Tous les articles ({{count}}) ajoutés au panier seront retirés. Cette action est irréversible.",
+    "clear_cart_btn": "Vider (Entrée)",
+    "cancel_btn": "Annuler (Échap)",
+    "loyalty_applied": "Remise fidélité appliquée :",
+    "loyalty_cancel": "Annuler",
+    "loyalty_use_max": "Utiliser Max",
+    "loyalty_pts": "pts fidélité",
+    "discount": "Remise",
+    "discount_desc": "Réduction directe sur le total",
+    "clear_discount": "Effacer la remise",
+    "payment_mode": "Mode de règlement",
+    "layaway_title": "Mise de côté (Réservation)",
+    "layaway_deposit_hint": "Acompte min : {{pct}}% ({{dzd}}) · Stock consigné",
+    "layaway_duration": "Durée de réservation :",
+    "layaway_hint": "Conserve le stock en réserve sans le vendre",
+    "cash_tendered": "Espèces reçues :",
+    "change_due": "Monnaie à rendre :",
+    "cheque_number_placeholder": "N° Chèque *",
+    "cheque_bank_placeholder": "Banque (ex: BNA, CPA...)",
+    "cheque_due_date": "Date d'échéance",
+    "open_session_title": "Ouvrir la session de caisse",
+    "open_session_subtitle": "Démarrer une nouvelle vacation / shift",
+    "opening_float_label": "Fond de caisse initial (Espèces de départ)",
+    "confirm_open_session": "Confirmer l'ouverture",
+    "opening_in_progress": "Ouverture...",
+    "movement_title": "Mouvement d'espèces",
+    "movement_session": "Session {{code}}",
+    "movement_out": "Dépense / Retrait (-)",
+    "movement_in": "Apport d'espèces (+)",
+    "movement_amount": "Montant (DZD) *",
+    "movement_category": "Motif / Catégorie *",
+    "movement_notes": "Observation / Détails (optionnel)",
+    "movement_notes_placeholder": "Ex : Achat papier ticket + café caissiers",
+    "movement_save": "Enregistrer le mouvement",
+    "movement_saving": "Enregistrement...",
+    "movement_invalid_amount": "Veuillez saisir un montant valide.",
+    "movement_cat_store_expense": "Dépense magasin (café, transport, fournitures...)",
+    "movement_cat_supplier_payment": "Paiement fournisseur direct",
+    "movement_cat_manager_withdrawal": "Retrait gérant / versement coffre",
+    "movement_cat_other_out": "Autre dépense / retrait",
+    "movement_cat_change_float": "Apport de monnaie (pièces / billets)",
+    "movement_cat_extra_float": "Apport fond de caisse supplémentaire",
+    "movement_cat_loan_repayment": "Remboursement prêt ou avance",
+    "movement_cat_other_in": "Autre apport",
+    "negative_stock_title": "Attention : Stock insuffisant",
+    "negative_stock_desc": "Voulez-vous autoriser la validation de cette vente ? Les stocks suivants passeront en négatif dans l'inventaire :",
+    "negative_stock_requested": "Qté demandée :",
+    "negative_stock_current": "Stock actuel :",
+    "negative_stock_new": "Nouveau :",
+    "confirm_sale": "Confirmer la vente"
   }
 }
