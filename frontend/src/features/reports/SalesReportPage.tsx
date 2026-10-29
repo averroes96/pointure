@@ -158,14 +158,14 @@ export default function SalesReportPage() {
   const PRESET_LABELS: Record<PeriodPreset, string> = {
     "7": t("report.last_7_days"),
     "30": t("report.last_30_days"),
-    "90": "90 derniers jours",
-    custom: "Période personnalisée",
+    "90": t("report.last_90_days"),
+    custom: t("report.custom_period"),
   };
 
   const handleExportCSV = () => {
     const headers = showMargin && isManagerOrOwner
-      ? ["Date", t("report.revenue"), t("report.sale_count"), "Panier moyen", "Coût ventes", "Marge brute", "Marge %"]
-      : ["Date", t("report.revenue"), t("report.sale_count"), "Panier moyen"];
+      ? ["Date", t("report.revenue"), t("report.sale_count"), t("report.avg_basket"), t("report.cogs"), t("report.gross_margin"), t("report.gross_margin_pct")]
+      : ["Date", t("report.revenue"), t("report.sale_count"), t("report.avg_basket")];
 
     const csvRows = rows.map((row) => {
       const pl = plMap.get(row.period);
@@ -198,8 +198,8 @@ export default function SalesReportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Analytique des ventes</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">Évolution du chiffre d'affaires et performance commerciale</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("report.sales_analytics")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("report.sales_evolution_subtitle")}</p>
         </div>
         <div className="flex items-center gap-2.5">
           {isManagerOrOwner && (
@@ -216,7 +216,7 @@ export default function SalesReportPage() {
                     : "bg-white text-slate-700 border-slate-200/80 hover:bg-slate-50 shadow-2xs"
                 )}
               >
-                {showMargin ? "Masquer marges" : "Afficher marges"}
+                {showMargin ? t("report.hide_margins") : t("report.show_margins")}
               </button>
             </PlanGate>
           )}

@@ -528,7 +528,7 @@ export default function DashboardPage() {
                       fontFamily: "Plus Jakarta Sans, sans-serif",
                       color: isDark ? "#F8FAFC" : "#0F172A",
                     }}
-                    formatter={(value: number) => [formatDZD(value) + " DZD", "Chiffre d'affaires"]}
+                    formatter={(value: number) => [formatDZD(value) + " DZD", t("dashboard.revenue")]}
                     labelFormatter={(v) => formatDate(v)}
                   />
                   <Bar dataKey="revenue" fill="#2563EB" radius={[4, 4, 0, 0]} />
