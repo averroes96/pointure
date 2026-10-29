@@ -259,9 +259,14 @@ function createMainWindow(port) {
       return;
     }
 
-    // Handle Alt+P (Paramètres), Alt+S (Settings), or Ctrl+, (Settings standard)
+    // Handle Alt+P (Paramètres), Alt+S (Settings), Alt+V (Versement), Alt+M (Mouvements), or Ctrl+, (Settings standard)
     if (
-      (input.alt && !input.control && (key === 'p' || key === 'P' || key === 's' || key === 'S')) ||
+      (input.alt && !input.control && (
+        key === 'p' || key === 'P' ||
+        key === 's' || key === 'S' ||
+        key === 'v' || key === 'V' ||
+        key === 'm' || key === 'M'
+      )) ||
       (input.control && !input.alt && (key === ',' || input.code === 'Comma'))
     ) {
       event.preventDefault();
