@@ -83,13 +83,33 @@ export function useGlobalShortcuts() {
           break;
         }
 
-        // F5 or Alt+5 or Alt+M: Ouvrir / Basculer le menu latéral
+        // F5 or Alt+5: Ouvrir / Basculer le menu latéral
         case "F5":
-        case "Alt+5":
+        case "Alt+5": {
+          e?.preventDefault?.();
+          window.dispatchEvent(new CustomEvent("app-toggle-sidebar"));
+          break;
+        }
+
+        // Alt+M: Mouvements de caisse sur le POS (/sales/new), sinon basculer le menu latéral
         case "Alt+m":
         case "Alt+M": {
           e?.preventDefault?.();
-          window.dispatchEvent(new CustomEvent("app-toggle-sidebar"));
+          if (isSalesNew) {
+            window.dispatchEvent(new CustomEvent("app-shortcut-movement"));
+          } else {
+            window.dispatchEvent(new CustomEvent("app-toggle-sidebar"));
+          }
+          break;
+        }
+
+        // Alt+V: Versement rapide sur le POS (/sales/new)
+        case "Alt+v":
+        case "Alt+V": {
+          e?.preventDefault?.();
+          if (isSalesNew) {
+            window.dispatchEvent(new CustomEvent("app-shortcut-versement"));
+          }
           break;
         }
 
@@ -209,13 +229,14 @@ export function useGlobalShortcuts() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isFKey = /^F([1-9]|1[0-2])$/.test(e.key);
       const isAltNumber = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
-      const isAltM = e.altKey && !e.ctrlKey && (e.key === "m" || e.key === "M");
-      const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P");
-      const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S");
+      const isAltM = e.altKey && !e.ctrlKey && (e.key === "m" || e.key === "M" || e.code === "KeyM");
+      const isAltV = e.altKey && !e.ctrlKey && (e.key === "v" || e.key === "V" || e.code === "KeyV");
+      const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P" || e.code === "KeyP");
+      const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S" || e.code === "KeyS");
       const isCtrlComma = (e.ctrlKey || e.metaKey) && (e.key === "," || e.code === "Comma");
 
       // Never ignore Function keys or Alt shortcuts or Ctrl+, or Escape, even when typing inside an input or textarea!
-      if (!isFKey && !isAltNumber && !isAltM && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
+      if (!isFKey && !isAltNumber && !isAltM && !isAltV && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
         const target = e.target as HTMLElement;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
@@ -228,6 +249,8 @@ export function useGlobalShortcuts() {
         executeShortcut(`Alt+${e.key}`, e);
       } else if (isAltM) {
         executeShortcut("Alt+M", e);
+      } else if (isAltV) {
+        executeShortcut("Alt+V", e);
       } else if (isAltP) {
         executeShortcut("Alt+P", e);
       } else if (isAltS) {

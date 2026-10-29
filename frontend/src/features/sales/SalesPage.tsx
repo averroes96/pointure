@@ -971,17 +971,28 @@ export default function SalesPage() {
           target.tagName === "SELECT");
       const isSearch = target === searchRef.current;
 
-      // V = Versement (creates/selects client & toggles versement), M = Mouvements (opens quick movement popup)
+      // Alt+V (or Ctrl+Shift+V, or Ctrl/Cmd+V outside inputs) = Versement
+      // Alt+M (or Ctrl+M) = Mouvements
+      // Requiring a modifier key prevents bare 'v' and 'm' from interfering with search typing.
       const keyLower = e.key.toLowerCase();
-      if (!e.ctrlKey && !e.metaKey && (keyLower === "v" || keyLower === "m")) {
-        if (e.altKey || !isOtherInput || (isSearch && search.trim() === "")) {
+      const isKeyV = e.code === "KeyV" || keyLower === "v";
+      const isKeyM = e.code === "KeyM" || keyLower === "m";
+      const hasModifier = e.altKey || e.ctrlKey || e.metaKey;
+
+      if (hasModifier && (isKeyV || isKeyM)) {
+        if (isKeyM && (e.altKey || e.ctrlKey)) {
           e.preventDefault();
-          if (keyLower === "v") {
-            handleVersementShortcut();
-          } else {
-            handleMovementShortcut();
-          }
+          handleMovementShortcut();
           return;
+        }
+        if (isKeyV) {
+          // Allow Alt+V or Ctrl/Cmd+Shift+V anywhere; allow Ctrl/Cmd+V when not focused in a text input (so paste still works in inputs)
+          const isPasteInInput = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && isOtherInput;
+          if (!isPasteInInput) {
+            e.preventDefault();
+            handleVersementShortcut();
+            return;
+          }
         }
       }
 
@@ -1028,11 +1039,16 @@ export default function SalesPage() {
       }
     };
 
-    // Note: F1, F2, F10 are handled globally by useGlobalShortcuts and dispatched as custom events below.
+    const onVersementEvent = () => handleVersementShortcut();
+    const onMovementEvent = () => handleMovementShortcut();
+
+    // Note: F1, F2, F10, Alt+V, Alt+M are handled globally by useGlobalShortcuts and dispatched as custom events below.
     window.addEventListener("app-shortcut-search", onSearch);
     window.addEventListener("app-shortcut-confirm", onConfirm);
     window.addEventListener("app-shortcut-new-sale", onNewSale);
     window.addEventListener("app-shortcut-escape", onEscape);
+    window.addEventListener("app-shortcut-versement", onVersementEvent);
+    window.addEventListener("app-shortcut-movement", onMovementEvent);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
@@ -1040,6 +1056,8 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-confirm", onConfirm);
       window.removeEventListener("app-shortcut-new-sale", onNewSale);
       window.removeEventListener("app-shortcut-escape", onEscape);
+      window.removeEventListener("app-shortcut-versement", onVersementEvent);
+      window.removeEventListener("app-shortcut-movement", onMovementEvent);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [
@@ -1343,23 +1361,23 @@ export default function SalesPage() {
                     ? "bg-amber-50 border-amber-300 text-amber-800"
                     : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50"
                 )}
-                title="Raccourci V : Créer / sélectionner un client et activer le mode Versement"
+                title="Raccourci Alt+V : Créer / sélectionner un client et activer le mode Versement"
               >
                 <kbd className={cn(
                   "px-1.5 py-0.5 text-[10px] font-mono font-bold border rounded",
                   isVersement
                     ? "bg-amber-200/70 border-amber-300 text-amber-900"
                     : "bg-slate-100 border-slate-200 text-slate-600"
-                )}>V</kbd>
+                )}>Alt+V</kbd>
                 <span>Versement</span>
               </button>
               <button
                 type="button"
                 onClick={handleMovementShortcut}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                title="Raccourci M : Ouvrir le popup rapide des mouvements d'espèces"
+                title="Raccourci Alt+M (ou Ctrl+M) : Ouvrir le popup rapide des mouvements d'espèces"
               >
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">M</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">Alt+M</kbd>
                 <span>Mouvements</span>
               </button>
             </div>
@@ -1379,11 +1397,11 @@ export default function SalesPage() {
                   type="button"
                   onClick={() => setShowMovementModal(true)}
                   className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Ajouter ou retirer des espèces (Raccourci : M)"
+                  title="Ajouter ou retirer des espèces (Raccourci : Alt+M)"
                 >
                   <ArrowDownUp size={12} />
                   <span>Mouvement</span>
-                  <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">M</kbd>
+                  <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">Alt+M</kbd>
                 </button>
                 <button
                   type="button"
