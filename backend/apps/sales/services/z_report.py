@@ -189,14 +189,17 @@ def render_thermal_z_report(session, is_x_report=False, stats=None, store_name="
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="light">
     <title>{report_type} — {z_number}</title>
     <style>
+        :root {{ color-scheme: light !important; }}
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         html, body {{
             margin: 0;
             padding: 0;
-            background: #fff;
-            color: #000;
+            background: #ffffff !important;
+            color: #000000 !important;
+            color-scheme: light !important;
         }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
@@ -598,14 +601,17 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None):
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="light">
     <title>Rapport Détaillé du Jour — {date_str}</title>
     <style>
+        :root {{ color-scheme: light !important; }}
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         html, body {{
             margin: 0;
             padding: 0;
-            background: #fff;
-            color: #000;
+            background: #ffffff !important;
+            color: #000000 !important;
+            color-scheme: light !important;
         }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;

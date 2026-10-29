@@ -129,9 +129,9 @@ export default function ManagerPinModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className={`bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden flex flex-col transition-transform ${
+        className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden flex flex-col transition-transform ${
           isShaking ? "animate-bounce" : ""
         }`}
       >
@@ -149,7 +149,7 @@ export default function ManagerPinModal({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="p-1.5 hover:bg-white/20 text-white/80 hover:text-white rounded-lg transition-colors"
+            className="p-1.5 hover:bg-white/20 text-white/80 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -157,12 +157,12 @@ export default function ManagerPinModal({
 
         {/* Reason Alert Banner */}
         <div className="px-5 pt-4 pb-2">
-          <div className="flex items-start gap-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-amber-900">
-            <ShieldAlert size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200">
+            <ShieldAlert size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs leading-relaxed">
               <span className="font-semibold">{reason}</span>
               {actionDescription && (
-                <p className="text-2xs text-amber-700 mt-0.5">{actionDescription}</p>
+                <p className="text-2xs text-amber-700 dark:text-amber-300 mt-0.5">{actionDescription}</p>
               )}
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function ManagerPinModal({
 
         {/* PIN Display Dots */}
         <div className="px-5 py-3 text-center">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
             Entrez le code PIN du Responsable (4 à 6 chiffres)
           </label>
 
@@ -201,20 +201,20 @@ export default function ManagerPinModal({
                   className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
                     filled
                       ? "bg-amber-600 border-amber-600 scale-110 shadow-sm"
-                      : "bg-slate-100 border-slate-300"
+                      : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700"
                   }`}
                 />
               );
             })}
             {pin.length > 4 && (
-              <span className="text-xs font-mono font-bold text-amber-700 ml-1">
+              <span className="text-xs font-mono font-bold text-amber-700 dark:text-amber-400 ml-1">
                 +{pin.length - 4}
               </span>
             )}
           </div>
 
           {error && (
-            <p className="text-xs font-medium text-rose-600 mt-2 animate-in fade-in">
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 mt-2 animate-in fade-in">
               {error}
             </p>
           )}
@@ -229,7 +229,7 @@ export default function ManagerPinModal({
                 type="button"
                 onClick={() => handleDigitClick(String(num))}
                 disabled={isLoading}
-                className="h-12 text-lg font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 active:bg-amber-100 active:text-amber-700 border border-slate-200 rounded-xl transition-all shadow-2xs hover:shadow active:scale-95 disabled:opacity-50"
+                className="h-12 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-amber-100 dark:active:bg-amber-950 active:text-amber-700 dark:active:text-amber-300 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-2xs hover:shadow active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {num}
               </button>
@@ -240,7 +240,7 @@ export default function ManagerPinModal({
               type="button"
               onClick={handleClear}
               disabled={isLoading || pin.length === 0}
-              className="h-12 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-200 rounded-xl transition-all active:scale-95 disabled:opacity-40"
+              className="h-12 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
             >
               Effacer
             </button>
@@ -250,7 +250,7 @@ export default function ManagerPinModal({
               type="button"
               onClick={() => handleDigitClick("0")}
               disabled={isLoading}
-              className="h-12 text-lg font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 active:bg-amber-100 active:text-amber-700 border border-slate-200 rounded-xl transition-all shadow-2xs hover:shadow active:scale-95 disabled:opacity-50"
+              className="h-12 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-amber-100 dark:active:bg-amber-950 active:text-amber-700 dark:active:text-amber-300 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-2xs hover:shadow active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               0
             </button>
@@ -260,19 +260,19 @@ export default function ManagerPinModal({
               type="button"
               onClick={handleBackspace}
               disabled={isLoading || pin.length === 0}
-              className="h-12 flex items-center justify-center text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-200 rounded-xl transition-all active:scale-95 disabled:opacity-40"
+              className="h-12 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
             >
               <Delete size={20} />
             </button>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="flex-1 py-2.5 px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+              className="flex-1 py-2.5 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
               Annuler (Échap)
             </button>
@@ -280,7 +280,7 @@ export default function ManagerPinModal({
               type="button"
               onClick={() => submitPin(pin)}
               disabled={isLoading || pin.length < 4}
-              className="flex-1 py-2.5 px-3 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 px-3 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

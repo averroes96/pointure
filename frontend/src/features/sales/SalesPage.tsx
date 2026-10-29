@@ -103,19 +103,19 @@ function CreateClientModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-slate-50/70">
-          <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center shrink-0">
-            <UserPlus size={17} className="text-primary-600" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
+          <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-800 flex items-center justify-center shrink-0">
+            <UserPlus size={17} className="text-primary-600 dark:text-primary-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-slate-900 text-sm">{t("sales.new_client")}</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{t("sales.new_client")}</h3>
             {subtitle && (
-              <p className="text-2xs text-amber-700 font-semibold truncate">{subtitle}</p>
+              <p className="text-2xs text-amber-700 dark:text-amber-400 font-semibold truncate">{subtitle}</p>
             )}
           </div>
-          <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary cursor-pointer">
+          <button onClick={onClose} className="ml-auto text-text-muted hover:text-text-primary dark:hover:text-white cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -147,20 +147,20 @@ function CreateClientModal({
           </div>
 
           {existingClients && existingClients.results.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 space-y-1">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2 space-y-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
                 Clients existants (cliquer pour sélectionner)
               </div>
-              <div className="max-h-28 overflow-y-auto divide-y divide-slate-200/60">
+              <div className="max-h-28 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800">
                 {existingClients.results.map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => onCreated(c)}
-                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-primary-50 rounded-lg flex items-center justify-between transition-colors cursor-pointer"
+                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-primary-50 dark:hover:bg-primary-950/40 rounded-lg flex items-center justify-between transition-colors cursor-pointer"
                   >
-                    <span className="font-bold text-slate-800 truncate">{c.name}</span>
-                    {c.phone && <span className="text-2xs font-mono text-slate-500 ms-2">{c.phone}</span>}
+                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{c.name}</span>
+                    {c.phone && <span className="text-2xs font-mono text-slate-500 dark:text-slate-400 ms-2">{c.phone}</span>}
                   </button>
                 ))}
               </div>
@@ -215,13 +215,13 @@ function ClientSelector({
 
   if (selected) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 border border-primary-100">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-800">
         <UserCircle size={15} className="text-primary-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-primary-700 flex-1 truncate">{selected.name}</span>
+        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 flex-1 truncate">{selected.name}</span>
         {selected.phone && (
           <span className="text-xs text-primary-400">{selected.phone}</span>
         )}
-        <button onClick={onClear} className="text-primary-400 hover:text-primary-600">
+        <button onClick={onClear} className="text-primary-400 hover:text-primary-600 dark:hover:text-primary-200">
           <X size={13} />
         </button>
       </div>
@@ -242,7 +242,7 @@ function ClientSelector({
       )}
 
       <div ref={ref} className="relative">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-white">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border dark:border-slate-800 bg-white dark:bg-slate-900">
           <User size={14} className="text-text-muted flex-shrink-0" />
           <input
             type="text"
@@ -250,12 +250,12 @@ function ClientSelector({
             onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
             placeholder={t("sales.client_search_placeholder")}
-            className="flex-1 text-sm outline-none bg-transparent text-text-primary placeholder:text-text-muted"
+            className="flex-1 text-sm outline-none bg-transparent text-text-primary dark:text-white placeholder:text-text-muted dark:placeholder:text-slate-500"
           />
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="flex-shrink-0 text-xs flex items-center gap-1 text-primary-500 hover:text-primary-700 font-medium"
+            className="flex-shrink-0 text-xs flex items-center gap-1 text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 font-medium cursor-pointer"
             title={t("sales.client_create_title")}
           >
             <UserPlus size={14} />
@@ -263,7 +263,7 @@ function ClientSelector({
         </div>
 
         {showDropdown && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-lg overflow-hidden">
             {hasResults ? (
               <>
                 {data.results.map((c) => (
@@ -271,17 +271,17 @@ function ClientSelector({
                     key={c.id}
                     type="button"
                     onClick={() => { onSelect(c); setSearch(""); setOpen(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-surface transition-colors border-b border-border last:border-0"
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-surface dark:hover:bg-slate-800 transition-colors border-b border-border dark:border-slate-800 last:border-0 cursor-pointer"
                   >
                     <UserCircle size={14} className="text-text-muted flex-shrink-0" />
-                    <span className="text-sm font-medium text-text-primary">{c.name}</span>
-                    {c.phone && <span className="text-xs text-text-muted ml-auto">{c.phone}</span>}
+                    <span className="text-sm font-medium text-text-primary dark:text-slate-100">{c.name}</span>
+                    {c.phone && <span className="text-xs text-text-muted dark:text-slate-400 ml-auto">{c.phone}</span>}
                   </button>
                 ))}
                 <button
                   type="button"
                   onClick={() => { setShowCreate(true); setOpen(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors text-sm font-medium cursor-pointer"
                 >
                   <UserPlus size={14} />
                   {t("sales.client_create_search", { search })}
@@ -291,7 +291,7 @@ function ClientSelector({
               <button
                 type="button"
                 onClick={() => { setShowCreate(true); setOpen(false); }}
-                className="flex items-center gap-2 w-full px-3 py-3 text-left text-primary-600 hover:bg-primary-50 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 w-full px-3 py-3 text-left text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors text-sm font-medium cursor-pointer"
               >
                 <UserPlus size={14} />
                 {t("sales.client_create_search_full", { search })}
@@ -1348,24 +1348,24 @@ export default function SalesPage() {
         {/* POS Header & Shortcuts */}
         <div className="flex items-center justify-between flex-wrap gap-2.5">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t("nav.new_sale")}</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t("nav.new_sale")}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F2</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">F2</kbd>
                 <span>{t("sales.shortcut_search", "Rechercher")}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F10</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">F10</kbd>
                 <span className="text-[10px] text-slate-400">/</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">.</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">.</kbd>
                 <span>{t("sales.shortcut_confirm", "Confirmer")}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">F11</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">F11</kbd>
                 <span>{t("sales.shortcut_fullscreen", "Plein écran")}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">Échap</kbd>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Échap</kbd>
                 <span>{t("sales.shortcut_clear", "Vider panier / Effacer")}</span>
               </span>
               <button
@@ -1374,26 +1374,26 @@ export default function SalesPage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border shadow-2xs text-xs font-semibold transition-colors cursor-pointer",
                   isVersement
-                    ? "bg-amber-50 border-amber-300 text-amber-800"
-                    : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50"
+                    ? "bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
+                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
                 title="Raccourci Alt+V : Créer / sélectionner un client et activer le mode Versement"
               >
                 <kbd className={cn(
                   "px-1.5 py-0.5 text-[10px] font-mono font-bold border rounded",
                   isVersement
-                    ? "bg-amber-200/70 border-amber-300 text-amber-900"
-                    : "bg-slate-100 border-slate-200 text-slate-600"
+                    ? "bg-amber-200/70 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100"
+                    : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
                 )}>Alt+V</kbd>
                 <span>Versement</span>
               </button>
               <button
                 type="button"
                 onClick={handleMovementShortcut}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-2xs text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Raccourci Alt+M (ou Ctrl+M) : Ouvrir le popup rapide des mouvements d'espèces"
               >
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-600">Alt+M</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Alt+M</kbd>
                 <span>Mouvements</span>
               </button>
             </div>
@@ -1402,27 +1402,27 @@ export default function SalesPage() {
           {/* Cash Register Shift Status & Quick Action */}
           <div className="flex items-center gap-2">
             {currentSession ? (
-              <div className="flex items-center gap-1.5 bg-white border border-emerald-200/90 shadow-2xs rounded-2xl p-1.5 pr-2.5">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-800/80 shadow-2xs rounded-2xl p-1.5 pr-2.5">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>{currentSession.session_code}</span>
-                  <span className="text-emerald-300">|</span>
+                  <span className="text-emerald-300 dark:text-emerald-700">|</span>
                   <span className="font-mono">{formatDZD(currentSession.stats?.expected_cash ?? currentSession.expected_cash)} DZD</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowMovementModal(true)}
-                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Ajouter ou retirer des espèces (Raccourci : Alt+M)"
                 >
                   <ArrowDownUp size={12} />
                   <span>Mouvement</span>
-                  <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">Alt+M</kbd>
+                  <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">Alt+M</kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/sales/reconciliation")}
-                  className="px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1 transition-colors"
+                  className="px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1 transition-colors"
                   title="Voir la caisse, lecture X et clôture Z"
                 >
                   <Receipt size={12} />
@@ -1430,7 +1430,7 @@ export default function SalesPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 bg-white border border-amber-200 shadow-2xs rounded-2xl p-1.5">
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 shadow-2xs rounded-2xl p-1.5">
                 <button
                   type="button"
                   onClick={() => setShowOpenSessionModal(true)}
@@ -1442,7 +1442,7 @@ export default function SalesPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/sales/reconciliation")}
-                  className="px-2 py-1.5 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors"
+                  className="px-2 py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs font-medium transition-colors"
                   title="Historique des caisses"
                 >
                   <Receipt size={14} />
@@ -1462,20 +1462,20 @@ export default function SalesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="form-input ps-11 pe-14 py-3.5 text-base shadow-xs rounded-2xl border-slate-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 bg-white text-slate-900 transition-all font-medium placeholder:text-slate-400"
+            className="form-input ps-11 pe-14 py-3.5 text-base shadow-xs rounded-2xl border-slate-200 dark:border-slate-700 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
             placeholder={t("sales.search_product")}
             autoFocus
           />
           {scanStatus === "idle" ? (
-            <kbd className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-1 rounded-md shadow-2xs pointer-events-none">
+            <kbd className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md shadow-2xs pointer-events-none">
               F2
             </kbd>
           ) : (
             <div
               className={cn(
                 "absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-xs",
-                scanStatus === "found" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
-                scanStatus === "not_found" && "bg-red-50 text-red-700 border border-red-200",
+                scanStatus === "found" && "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
+                scanStatus === "not_found" && "bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800",
               )}
             >
               {scanStatus === "found" ? (
@@ -1489,11 +1489,11 @@ export default function SalesPage() {
 
         {/* Search results or Empty State */}
         {search.length >= 2 && productResults ? (
-          <div className="card overflow-auto flex-1 divide-y divide-slate-100 rounded-2xl shadow-xs border border-slate-200/80 bg-white">
+          <div className="card overflow-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
             {productResults.results.length === 0 ? (
-              <div className="p-10 text-center text-slate-500">
-                <p className="font-bold text-sm text-slate-700">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
-                <p className="text-xs text-slate-400 mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
+              <div className="p-10 text-center text-slate-500 dark:text-slate-400">
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Aucun produit trouvé pour &laquo;&nbsp;{search}&nbsp;&raquo;</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Vérifiez l'orthographe ou scannez directement le code-barres.</p>
               </div>
             ) : (
               productResults.results.map((product) => {
@@ -1501,7 +1501,7 @@ export default function SalesPage() {
                 const isExpanded = selectedProduct?.id === product.id;
 
                 return (
-                  <div key={product.id} className="transition-colors hover:bg-slate-50/60">
+                  <div key={product.id} className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
                     <div
                       className="px-4 py-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
                       onClick={() => {
@@ -1514,26 +1514,26 @@ export default function SalesPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-extrabold text-slate-900 text-base truncate">
+                          <div className="font-extrabold text-slate-900 dark:text-white text-base truncate">
                             {product.brand && (
-                              <span className="text-slate-500 font-semibold me-1.5">{product.brand}</span>
+                              <span className="text-slate-500 dark:text-slate-400 font-semibold me-1.5">{product.brand}</span>
                             )}
                             {product.name}
                           </div>
                           {product.barcode && (
-                            <span className="font-mono text-2xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            <span className="font-mono text-2xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                               {product.barcode}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-                          <span className="font-bold font-mono text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary-100">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="font-bold font-mono text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 px-2.5 py-0.5 rounded-lg border border-primary-100 dark:border-primary-800">
                             {formatDZD(product.sale_price)} DZD
                           </span>
-                          <span className="text-slate-300">·</span>
+                          <span className="text-slate-300 dark:text-slate-700">·</span>
                           <span className={cn(
                             "font-mono font-semibold",
-                            product.total_stock <= 0 ? "text-red-600" : product.has_low_stock ? "text-amber-600" : "text-slate-600"
+                            product.total_stock <= 0 ? "text-red-600 dark:text-red-400" : product.has_low_stock ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"
                           )}>
                             {product.total_stock} {t("sales.in_stock")}
                           </span>
@@ -1548,7 +1548,7 @@ export default function SalesPage() {
                             e.stopPropagation();
                             setSelectedProduct(isExpanded ? null : product);
                           }}
-                          className="text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 px-3.5 py-2 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          className="text-xs font-bold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900/50 border border-primary-200 dark:border-primary-800 px-3.5 py-2 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <span>{isExpanded ? "Masquer pointures ↑" : t("sales.view_sizes")}</span>
                         </button>
@@ -1568,8 +1568,8 @@ export default function SalesPage() {
                     </div>
 
                     {isMultiVariant && isExpanded && (
-                      <div className="px-4 pb-4 pt-2 bg-slate-50/80 border-t border-slate-100">
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2.5">
+                      <div className="px-4 pb-4 pt-2 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
                           {t("sales.choose_size_color")}
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -1582,26 +1582,26 @@ export default function SalesPage() {
                                 "p-2.5 text-xs rounded-xl border font-medium transition-all text-center flex flex-col items-center justify-center gap-1 cursor-pointer",
                                 variant.stock_qty <= 0
                                   ? allowNegativeStock
-                                    ? "border-amber-300 bg-amber-50/70 text-amber-900 hover:bg-amber-100 hover:border-amber-400 active:scale-95 shadow-2xs"
-                                    : "border-slate-200 bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed"
+                                    ? "border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:border-amber-400 active:scale-95 shadow-2xs"
+                                    : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 opacity-50 cursor-not-allowed"
                                   : variant.is_low_stock
-                                  ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 active:scale-95 shadow-2xs"
-                                  : "border-slate-200 bg-white text-slate-800 hover:border-primary-500 hover:bg-primary-50 hover:text-primary-700 active:scale-95 shadow-2xs"
+                                  ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 active:scale-95 shadow-2xs"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 text-slate-800 dark:text-slate-100 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/50 hover:text-primary-700 dark:hover:text-primary-300 active:scale-95 shadow-2xs"
                               )}
                             >
                               <span className="font-black text-sm font-mono tracking-tight">T.{variant.size_eu}</span>
-                              <span className="text-[11px] text-slate-500 truncate max-w-full font-medium">
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-full font-medium">
                                 {variant.colour === "N/A" ? t("common.na") : variant.colour}
                               </span>
                               <span className={cn(
                                 "text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md",
                                 variant.stock_qty <= 0
                                   ? allowNegativeStock
-                                    ? "text-rose-700 bg-rose-100 font-bold"
-                                    : "text-slate-400"
+                                    ? "text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 font-bold"
+                                    : "text-slate-400 dark:text-slate-500"
                                   : variant.stock_qty <= 2
-                                  ? "text-amber-800 bg-amber-100"
-                                  : "text-slate-600 bg-slate-100"
+                                  ? "text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60"
+                                  : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800"
                               )}>
                                 Qté: {variant.stock_qty}
                               </span>
@@ -1616,19 +1616,19 @@ export default function SalesPage() {
             )}
           </div>
         ) : (
-          <div className="card p-8 flex flex-col items-center justify-center text-center flex-1 border-dashed border-2 border-slate-200 bg-slate-50/40 rounded-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center mb-3.5 shadow-xs border border-primary-100">
+          <div className="card p-8 flex flex-col items-center justify-center text-center flex-1 border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 rounded-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center mb-3.5 shadow-xs border border-primary-100 dark:border-primary-800">
               <Search size={24} />
             </div>
-            <h3 className="font-extrabold text-slate-900 text-base">Prêt pour la vente</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm leading-relaxed">
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Prêt pour la vente</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm leading-relaxed">
               Scannez directement avec votre douchette code-barres n'importe où, ou tapez au moins 2 lettres pour chercher un modèle.
             </p>
-            <div className="flex gap-2 mt-5 text-[11px] text-slate-600 flex-wrap justify-center font-medium">
-              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F2 = Rechercher</span>
-              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">Entrée = Ajouter au panier</span>
-              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F10 / . = Confirmer</span>
-              <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl shadow-2xs">F11 = Plein écran</span>
+            <div className="flex gap-2 mt-5 text-[11px] text-slate-600 dark:text-slate-300 flex-wrap justify-center font-medium">
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F2 = Rechercher</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">Entrée = Ajouter au panier</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F10 / . = Confirmer</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">F11 = Plein écran</span>
             </div>
           </div>
         )}
@@ -1636,18 +1636,18 @@ export default function SalesPage() {
 
       {/* ── Right: Cashier Cart & Prominent Total ── */}
       <div className="w-full lg:w-5/12 flex flex-col gap-3">
-        <div className="card flex flex-col flex-1 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 bg-white">
+        <div className="card flex flex-col flex-1 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           {/* Cart Header */}
-          <div className="card-header bg-slate-50/80 py-3.5 px-4 flex items-center justify-between border-b border-slate-100">
+          <div className="card-header bg-slate-50/80 dark:bg-slate-900/90 py-3.5 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-xs">
                 <ShoppingBag size={16} />
               </div>
-              <h2 className="font-extrabold text-slate-900 text-base">
+              <h2 className="font-extrabold text-slate-900 dark:text-white text-base">
                 {t("sales.cart")}
               </h2>
               {cart.length > 0 && (
-                <span className="px-2.5 py-0.5 text-xs font-black font-mono rounded-full bg-primary-100 text-primary-800 border border-primary-200">
+                <span className="px-2.5 py-0.5 text-xs font-black font-mono rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-800 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
                   {totalItems} {totalItems > 1 ? t("sales.articles_count", "articles") : t("sales.article_count", "article")}
                 </span>
               )}
@@ -1655,12 +1655,12 @@ export default function SalesPage() {
             {cart.length > 0 && (
               <button
                 onClick={handleClearCart}
-                className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1.5 px-2.5 py-1 rounded-xl hover:bg-red-50 transition-colors font-bold cursor-pointer"
+                className="text-xs text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 px-2.5 py-1 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors font-bold cursor-pointer"
                 title="Vider tout le panier (Touche Échap)"
               >
                 <X size={13} />
                 <span>{t("sales.clear_cart", "Vider")}</span>
-                <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-100 border border-slate-200 rounded text-slate-500">
+                <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">
                   Échap
                 </kbd>
               </button>
@@ -1668,7 +1668,7 @@ export default function SalesPage() {
           </div>
 
           {/* Client selector (compact) */}
-          <div className="px-4 py-3 border-b border-slate-100 bg-white">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
             <ClientSelector
               selected={selectedClient}
               onSelect={(c) => { setSelectedClient(c); setRedeemPoints(0); }}
@@ -1677,15 +1677,15 @@ export default function SalesPage() {
 
             {/* Loyalty points banner if client has loyalty */}
             {loyaltyAccount && loyaltyProgram?.is_active && (
-              <div className="mt-2.5 flex flex-col gap-1.5 text-xs bg-primary-50/80 border border-primary-100 rounded-xl px-3 py-2">
+              <div className="mt-2.5 flex flex-col gap-1.5 text-xs bg-primary-50/80 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-800 rounded-xl px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <Gift size={13} className="text-primary-600" />
-                    <span className="text-primary-800 font-bold font-mono">
+                    <Gift size={13} className="text-primary-600 dark:text-primary-400" />
+                    <span className="text-primary-800 dark:text-primary-300 font-bold font-mono">
                       {loyaltyAccount.points_balance.toLocaleString("fr-DZ")}
                     </span>
-                    <span className="text-slate-500 text-[11px] font-medium">pts fidélité</span>
-                    <span className="text-2xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">pts fidélité</span>
+                    <span className="text-2xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                       ≈ {formatDZD(Math.floor((loyaltyAccount.points_balance / (loyaltyProgram.redemption_value || 100)) * 100))} DZD
                     </span>
                   </div>
@@ -1718,15 +1718,15 @@ export default function SalesPage() {
                         max={loyaltyAccount.points_balance}
                         step={loyaltyProgram.min_redemption_points}
                         placeholder="Pts"
-                        className="w-16 px-2 py-0.5 text-xs bg-white border border-slate-200 rounded-lg text-center font-mono font-semibold"
+                        className="w-16 px-2 py-0.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-center font-mono font-semibold text-slate-900 dark:text-white"
                       />
                     </div>
                   )}
                 </div>
                 {redeemPoints > 0 && (
-                  <div className="flex items-center justify-between text-2xs text-primary-800 font-bold border-t border-primary-100 pt-1">
+                  <div className="flex items-center justify-between text-2xs text-primary-800 dark:text-primary-300 font-bold border-t border-primary-100 dark:border-primary-800 pt-1">
                     <span>Remise fidélité appliquée :</span>
-                    <span className="font-mono text-emerald-700">−{formatDZD(redemptionDzd)} DZD</span>
+                    <span className="font-mono text-emerald-700 dark:text-emerald-400">−{formatDZD(redemptionDzd)} DZD</span>
                   </div>
                 )}
               </div>
@@ -1734,14 +1734,14 @@ export default function SalesPage() {
           </div>
 
           {/* Cart items list (prominent cards with large Pointure tag) */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50/50 dark:bg-slate-950/40">
             {cart.length === 0 ? (
-              <div className="py-16 text-center flex flex-col items-center justify-center text-slate-400">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-3 text-slate-300 shadow-xs">
+              <div className="py-16 text-center flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center mb-3 text-slate-300 dark:text-slate-600 shadow-xs">
                   <ShoppingBag size={28} className="opacity-50" />
                 </div>
-                <p className="font-extrabold text-slate-800 text-sm">{t("sales.empty_cart")}</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+                <p className="font-extrabold text-slate-800 dark:text-slate-200 text-sm">{t("sales.empty_cart")}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs leading-relaxed">
                   Scannez un code-barres ou recherchez un modèle (F2) pour commencer la vente.
                 </p>
               </div>
@@ -1753,50 +1753,50 @@ export default function SalesPage() {
                 return (
                   <div
                     key={item.variant.id}
-                    className="p-3.5 bg-white rounded-2xl border border-slate-200/90 hover:border-primary-400 transition-all shadow-xs"
+                    className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-500 transition-all shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {/* High-visibility Pointure / Size Badge only for sized products */}
                           {!isSimpleProduct && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-black font-mono bg-primary-100 text-primary-900 border border-primary-200 shadow-2xs">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-black font-mono bg-primary-100 dark:bg-primary-950/80 text-primary-900 dark:text-primary-300 border border-primary-200 dark:border-primary-800 shadow-2xs">
                               EU {item.variant.size_eu}
                             </span>
                           )}
-                          <span className="font-extrabold text-slate-900 text-sm truncate">
+                          <span className="font-extrabold text-slate-900 dark:text-white text-sm truncate">
                             {item.product.brand && (
-                              <span className="text-slate-500 font-semibold me-1.5">{item.product.brand}</span>
+                              <span className="text-slate-500 dark:text-slate-400 font-semibold me-1.5">{item.product.brand}</span>
                             )}
                             {item.product.name}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 flex-wrap">
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                           {hasCustomColour && (
-                            <span className="px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-2xs font-semibold text-slate-700">
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 text-2xs font-semibold text-slate-700 dark:text-slate-300">
                               {item.variant.colour}
                             </span>
                           )}
                           {item.variant.barcode && (
-                            <span className="font-mono text-2xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            <span className="font-mono text-2xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                               {item.variant.barcode}
                             </span>
                           )}
                           {item.promoName && (
-                            <span className="flex items-center gap-1 text-2xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-2xs text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
                               <Tag size={10} />
                               {item.promoName}
                             </span>
                           )}
-                          <span className="font-mono text-2xs text-slate-400">
+                          <span className="font-mono text-2xs text-slate-400 dark:text-slate-500">
                             {formatDZD(item.unit_price)} DZD / u
                           </span>
                         </div>
 
                         {item.quantity > (item.variant.stock_qty ?? 0) && (
-                          <div className="flex items-center gap-1.5 mt-2 text-2xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg">
-                            <AlertTriangle size={12} className="shrink-0 text-amber-600" />
+                          <div className="flex items-center gap-1.5 mt-2 text-2xs font-bold text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg">
+                            <AlertTriangle size={12} className="shrink-0 text-amber-600 dark:text-amber-400" />
                             <span>
                               Stock insuffisant : {item.variant.stock_qty ?? 0} dispo ({item.quantity - (item.variant.stock_qty ?? 0)} en rupture)
                             </span>
@@ -1806,11 +1806,11 @@ export default function SalesPage() {
 
                       {/* Line Total */}
                       <div className="text-end shrink-0">
-                        <div className="text-base font-black font-mono text-slate-900 tracking-tight">
+                        <div className="text-base font-black font-mono text-slate-900 dark:text-white tracking-tight">
                           {formatDZD(item.unit_price * item.quantity - item.discount)} DZD
                         </div>
                         {item.discount > 0 && (
-                          <div className="text-2xs text-slate-400 line-through font-mono">
+                          <div className="text-2xs text-slate-400 dark:text-slate-500 line-through font-mono">
                             {formatDZD(item.unit_price * item.quantity)} DZD
                           </div>
                         )}
@@ -1818,21 +1818,21 @@ export default function SalesPage() {
                     </div>
 
                     {/* Quantity & Actions row */}
-                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => updateQuantity(item.variant.id, -1)}
-                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
+                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
                           title="Diminuer la quantité"
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="w-8 text-center text-sm font-black font-mono text-slate-900">
+                        <span className="w-8 text-center text-sm font-black font-mono text-slate-900 dark:text-white">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.variant.id, 1)}
-                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
+                          className="w-7.5 h-7.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
                           title="Augmenter la quantité"
                         >
                           <Plus size={12} />
@@ -1841,7 +1841,7 @@ export default function SalesPage() {
 
                       <button
                         onClick={() => removeItem(item.variant.id)}
-                        className="text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 font-semibold cursor-pointer"
+                        className="text-xs text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 font-semibold cursor-pointer"
                         title="Supprimer du panier"
                       >
                         <X size={12} />
@@ -1855,7 +1855,7 @@ export default function SalesPage() {
           </div>
 
           {/* ── Cart Footer (Pinned: Grand Total & Confirm) ── */}
-          <div className="border-t border-slate-100 p-4 bg-white space-y-3">
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4 bg-white dark:bg-slate-900 space-y-3">
             {/* Quick options toolbar */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -1865,8 +1865,8 @@ export default function SalesPage() {
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-bold cursor-pointer",
                     showOptions || cartDiscount > 0 || isFormal || isVersement || isLayaway
-                      ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      ? "bg-primary-50 dark:bg-primary-950/60 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 shadow-2xs"
+                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   )}
                 >
                   <span>⚙️ Options de vente</span>
@@ -1882,7 +1882,7 @@ export default function SalesPage() {
                     "flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-bold cursor-pointer",
                     isVersement
                       ? "bg-amber-500 border-amber-600 text-white shadow-xs"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   )}
                   title="Raccourci Alt+V : Nouveau client + activer Versement"
                 >
@@ -1891,7 +1891,7 @@ export default function SalesPage() {
                     "px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border",
                     isVersement
                       ? "bg-white/20 border-white/30 text-white"
-                      : "bg-white border-slate-200 text-slate-500"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
                   )}>
                     Alt+V
                   </kbd>
@@ -1904,8 +1904,8 @@ export default function SalesPage() {
               className={cn(
                 "flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border-2 transition-all",
                 cartDiscount > 0
-                  ? "bg-emerald-50/70 border-emerald-400 shadow-xs"
-                  : "bg-slate-50/90 border-slate-200 hover:border-slate-300"
+                  ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 shadow-xs"
+                  : "bg-slate-50/90 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
               )}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -1914,21 +1914,21 @@ export default function SalesPage() {
                     "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
                     cartDiscount > 0
                       ? "bg-emerald-500 text-white border-emerald-600 shadow-2xs"
-                      : "bg-white text-slate-600 border-slate-200"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                   )}
                 >
                   <Tag size={17} className="stroke-[2.2]" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <span>Remise</span>
                     {cartDiscount > 0 && itemsTotal > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-black">
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-black">
                         −{Math.min(100, Math.round((cartDiscount / itemsTotal) * 100))}%
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium truncate">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
                     Réduction directe sur le total
                   </p>
                 </div>
@@ -1947,15 +1947,15 @@ export default function SalesPage() {
                   className={cn(
                     "w-36 sm:w-44 pl-3 pr-14 py-2 text-lg font-black font-mono text-end rounded-xl border-2 transition-all focus:outline-none focus:ring-4",
                     cartDiscount > 0
-                      ? "bg-white border-emerald-500 text-emerald-900 focus:ring-emerald-500/20"
-                      : "bg-white border-slate-300 text-slate-900 focus:border-primary-500 focus:ring-primary-500/15"
+                      ? "bg-white dark:bg-slate-900 border-emerald-500 dark:border-emerald-400 text-emerald-900 dark:text-emerald-200 focus:ring-emerald-500/20"
+                      : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500/15"
                   )}
                 />
                 {cartDiscount > 0 ? (
                   <button
                     type="button"
                     onClick={() => setCartDiscount(0)}
-                    className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 transition-colors cursor-pointer"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-950/60 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
                     title="Effacer la remise"
                   >
                     <X size={14} />
@@ -1970,12 +1970,12 @@ export default function SalesPage() {
 
             {/* Expandable Options Drawer */}
             {showOptions && (
-              <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3 animate-in fade-in duration-100">
+              <div className="p-3.5 bg-slate-50/80 dark:bg-slate-950/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3 animate-in fade-in duration-100">
                 {/* Mode Réel switch */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-slate-900">{t("sales.formal_mode")}</p>
-                    <p className="text-2xs text-slate-500">{t("sales.formal_mode_desc")}</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{t("sales.formal_mode")}</p>
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">{t("sales.formal_mode_desc")}</p>
                   </div>
                   <label className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors">
                     <input
@@ -1984,19 +1984,19 @@ export default function SalesPage() {
                       onChange={(e) => setIsFormal(e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={cn("block h-4 w-8 rounded-full transition-colors", isFormal ? "bg-primary-600" : "bg-slate-200")}></div>
+                    <div className={cn("block h-4 w-8 rounded-full transition-colors", isFormal ? "bg-primary-600" : "bg-slate-200 dark:bg-slate-700")}></div>
                     <div className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", isFormal ? "translate-x-4" : "translate-x-0")}></div>
                   </label>
                 </div>
 
                 {/* Versement (Acompte) switch */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60">
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60 dark:border-slate-800">
                   <div>
-                    <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                       <span>{t("sales.versement_acompte")}</span>
-                      <kbd className="px-1.5 py-0.2 text-[9px] font-mono font-bold bg-white border border-slate-200 rounded text-slate-500">V</kbd>
+                      <kbd className="px-1.5 py-0.2 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">V</kbd>
                     </p>
-                    <p className="text-2xs text-slate-500">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">
                       {t("sales.min_versement", { pct: storeSettings?.min_versement_pct ?? 30, dzd: formatDZD(total * (storeSettings?.min_versement_pct ?? 30) / 100) })}
                     </p>
                   </div>
@@ -2005,7 +2005,7 @@ export default function SalesPage() {
                     onClick={handleVersementShortcut}
                     className={cn(
                       "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                      isVersement ? "bg-amber-500" : "bg-slate-200"
+                      isVersement ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700"
                     )}
                     role="switch"
                     aria-checked={isVersement}
@@ -2019,14 +2019,14 @@ export default function SalesPage() {
 
                 {/* Layaway (Réservation / Mise de côté) switch */}
                 {storeSettings?.enable_layaway !== false && (
-                  <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
+                  <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <Bookmark size={13} className="text-indigo-600" />
+                        <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Bookmark size={13} className="text-indigo-600 dark:text-indigo-400" />
                           <span>Mise de côté (Réservation)</span>
                         </p>
-                        <p className="text-2xs text-slate-500">
+                        <p className="text-2xs text-slate-500 dark:text-slate-400">
                           Acompte min: {storeSettings?.min_layaway_deposit_pct ?? 20}% ({formatDZD(Math.ceil(total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100))} DZD) · Stock consigné
                         </p>
                       </div>
@@ -2045,7 +2045,7 @@ export default function SalesPage() {
                         }}
                         className={cn(
                           "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-                          isLayaway ? "bg-indigo-600" : "bg-slate-200"
+                          isLayaway ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                         )}
                         role="switch"
                         aria-checked={isLayaway}
@@ -2058,7 +2058,7 @@ export default function SalesPage() {
                     </div>
 
                     {isLayaway && (
-                      <div className="flex items-center gap-2 pl-4 text-2xs text-slate-600">
+                      <div className="flex items-center gap-2 pl-4 text-2xs text-slate-600 dark:text-slate-400">
                         <span>Durée de réservation :</span>
                         {[3, 7, 14, 30].map((d) => (
                           <button
@@ -2069,7 +2069,7 @@ export default function SalesPage() {
                               "px-2 py-0.5 rounded border font-mono transition-colors",
                               (layawayDurationDays ?? storeSettings?.layaway_duration_days ?? 7) === d
                                 ? "bg-indigo-600 text-white border-indigo-600 font-bold"
-                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                             )}
                           >
                             {d}j
@@ -2081,9 +2081,9 @@ export default function SalesPage() {
                 )}
 
                 {/* Multiple payment methods */}
-                <div className="pt-2.5 border-t border-slate-200/60 space-y-2">
+                <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Mode de règlement
                     </div>
                     {/* Quick payment pills */}
@@ -2095,7 +2095,7 @@ export default function SalesPage() {
                           "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors",
                           payments.length === 1 && payments[0].method === "cash"
                             ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
                       >
                         Espèces
@@ -2107,7 +2107,7 @@ export default function SalesPage() {
                           "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors flex items-center gap-1",
                           payments.length === 1 && payments[0].method === "tpe"
                             ? "bg-blue-600 text-white border-blue-600 font-bold shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
                         title="TPE (CIB / Edahabia)"
                       >
@@ -2121,7 +2121,7 @@ export default function SalesPage() {
                           "px-2 py-0.5 text-xs rounded-lg font-medium border transition-colors flex items-center gap-1",
                           payments.length === 1 && payments[0].method === "baridimob"
                             ? "bg-amber-600 text-white border-amber-600 font-bold shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
                         title="BaridiMob"
                       >
@@ -2158,7 +2158,7 @@ export default function SalesPage() {
                               )
                             )
                           }
-                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded-xl font-mono text-end font-bold"
+                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-mono text-end font-bold"
                           placeholder={formatDZD(total)}
                         />
                         <span className="text-2xs text-slate-400 font-mono">DZD</span>
@@ -2166,7 +2166,7 @@ export default function SalesPage() {
 
                       {/* Inline Cheque Details when method === 'cheque' */}
                       {payment.method === "cheque" && (
-                        <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <input
                             type="text"
                             value={payment.chequeNumber || ""}
@@ -2178,7 +2178,7 @@ export default function SalesPage() {
                               )
                             }
                             placeholder="N° Chèque *"
-                            className="form-input h-8 text-2xs font-mono font-bold bg-white"
+                            className="form-input h-8 text-2xs font-mono font-bold bg-white dark:bg-slate-800"
                           />
                           <input
                             type="text"
@@ -2191,7 +2191,7 @@ export default function SalesPage() {
                               )
                             }
                             placeholder="Banque (ex: BNA, CPA...)"
-                            className="form-input h-8 text-2xs bg-white"
+                            className="form-input h-8 text-2xs bg-white dark:bg-slate-800"
                           />
                           <input
                             type="date"
@@ -2204,16 +2204,16 @@ export default function SalesPage() {
                               )
                             }
                             title="Date d'échéance"
-                            className="form-input h-8 text-2xs font-mono bg-white"
+                            className="form-input h-8 text-2xs font-mono bg-white dark:bg-slate-800"
                           />
                         </div>
                       )}
 
                       {/* Cash Change Calculator (Monnaie à rendre) when method === 'cash' */}
                       {payment.method === "cash" && total > 0 && (
-                        <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-2">
+                        <div className="p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-2xs font-bold text-slate-600">Espèces reçues :</span>
+                            <span className="text-2xs font-bold text-slate-600 dark:text-slate-300">Espèces reçues :</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {[500, 1000, 2000, 5000].map((bill) => (
                                 <button
@@ -2224,7 +2224,7 @@ export default function SalesPage() {
                                       String((parseFloat(cashTendered) || 0) + bill),
                                     )
                                   }
-                                  className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-100 border border-emerald-200 text-2xs font-mono font-bold text-emerald-800 cursor-pointer"
+                                  className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-2xs font-mono font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer"
                                 >
                                   +{bill}
                                 </button>
@@ -2234,13 +2234,13 @@ export default function SalesPage() {
                                 value={cashTendered}
                                 onChange={(e) => setCashTendered(e.target.value)}
                                 placeholder={String(total)}
-                                className="w-20 h-7 px-2 rounded-lg bg-white border border-slate-200 font-mono font-bold text-xs text-end"
+                                className="w-20 h-7 px-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold text-xs text-end"
                               />
                               {cashTendered && (
                                 <button
                                   type="button"
                                   onClick={() => setCashTendered("")}
-                                  className="text-slate-400 hover:text-slate-700"
+                                  className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                                 >
                                   <X size={12} />
                                 </button>
@@ -2248,7 +2248,7 @@ export default function SalesPage() {
                             </div>
                           </div>
                           {parseFloat(cashTendered) > total && (
-                            <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 border-t border-emerald-200/70 pt-1.5">
+                            <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 dark:text-emerald-300 border-t border-emerald-200/70 dark:border-emerald-800/60 pt-1.5">
                               <span>Monnaie à rendre :</span>
                               <span className="font-mono text-sm">
                                 {formatDZD(parseFloat(cashTendered) - total)} DZD
@@ -2271,7 +2271,7 @@ export default function SalesPage() {
               return (
                 <div className={cn(
                   "text-xs px-3 py-2 rounded-xl border font-semibold flex items-center justify-between",
-                  belowMin ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  belowMin ? "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                 )}>
                   <span>Acompte minimum ({minPct}%): {formatDZD(Math.ceil(minAmt))} DZD</span>
                   <span>Solde: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
@@ -2288,11 +2288,11 @@ export default function SalesPage() {
               return (
                 <div className={cn(
                   "text-xs px-3 py-2.5 rounded-xl border font-medium space-y-1",
-                  belowMin ? "bg-red-50 text-red-800 border-red-200" : "bg-indigo-50 text-indigo-900 border-indigo-200"
+                  belowMin ? "bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800" : "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800"
                 )}>
                   <div className="flex items-center justify-between font-bold">
                     <span className="flex items-center gap-1.5">
-                      <Bookmark size={13} className="text-indigo-600" />
+                      <Bookmark size={13} className="text-indigo-600 dark:text-indigo-400" />
                       Mise de côté ({minPct}% min): {formatDZD(Math.ceil(minAmt))} DZD
                     </span>
                     <span>Solde au retrait: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
@@ -2343,7 +2343,7 @@ export default function SalesPage() {
 
             {/* Error banner */}
             {saleMutation.isError && (
-              <div className="text-xs text-red-700 bg-red-50 px-3 py-2.5 rounded-xl border border-red-200 font-semibold">
+              <div className="text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 px-3 py-2.5 rounded-xl border border-red-200 dark:border-red-800 font-semibold">
                 {getApiError(saleMutation.error)}
               </div>
             )}
@@ -2360,7 +2360,7 @@ export default function SalesPage() {
               className={cn(
                 "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",
                 cart.length === 0
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-slate-200 dark:border-slate-700"
                   : "bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white shadow-primary-500/25 hover:shadow-lg"
               )}
             >
@@ -2399,24 +2399,24 @@ export default function SalesPage() {
 
       {/* Negative Stock Warning Modal */}
       {negativeStockAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-amber-200">
-            <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 border-b border-amber-200/80">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-amber-200 dark:border-amber-900/60">
+            <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200/80 dark:border-amber-900/60">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0">
                 <AlertTriangle size={22} className="stroke-[2.5]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-text-primary text-base">
+                <h3 className="font-bold text-text-primary dark:text-slate-100 text-base">
                   Vente en stock négatif
                 </h3>
-                <p className="text-xs text-amber-900">
+                <p className="text-xs text-amber-900 dark:text-amber-300">
                   Certains articles dépassent le stock actuellement disponible en rayon.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setNegativeStockAlert(null)}
-                className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-white/60 transition-colors"
+                className="text-text-muted hover:text-text-primary dark:hover:text-white p-1 rounded-lg hover:bg-white/60 dark:hover:bg-slate-800 transition-colors"
               >
                 <X size={18} />
               </button>
@@ -2427,34 +2427,34 @@ export default function SalesPage() {
                 Voulez-vous autoriser la validation de cette vente ? Les stocks suivants passeront en négatif dans l'inventaire :
               </p>
 
-              <div className="max-h-60 overflow-y-auto space-y-2 border border-border/80 rounded-xl p-2.5 bg-slate-50">
+              <div className="max-h-60 overflow-y-auto space-y-2 border border-border/80 dark:border-slate-800 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-950/50">
                 {negativeStockAlert.items.map(({ item, newStock }) => {
                   const sizeLabel = item.variant.size_eu && item.variant.size_eu > 0 ? `T.${item.variant.size_eu}` : null;
                   const colorLabel = item.variant.colour && item.variant.colour !== "N/A" ? item.variant.colour : null;
                   return (
                     <div
                       key={item.variant.id}
-                      className="flex items-center justify-between gap-3 p-2 rounded-lg bg-white border border-border/60 text-xs shadow-2xs"
+                      className="flex items-center justify-between gap-3 p-2 rounded-lg bg-white dark:bg-slate-900 border border-border/60 dark:border-slate-800 text-xs shadow-2xs"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-text-primary truncate">
+                        <div className="font-semibold text-text-primary dark:text-white truncate">
                           {item.product.name}
                         </div>
-                        <div className="flex items-center gap-1.5 text-2xs text-text-muted mt-0.5">
+                        <div className="flex items-center gap-1.5 text-2xs text-text-muted dark:text-slate-400 mt-0.5">
                           {sizeLabel && (
-                            <span className="font-mono font-bold px-1 rounded bg-slate-100 text-slate-700">
+                            <span className="font-mono font-bold px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               {sizeLabel}
                             </span>
                           )}
                           {colorLabel && <span>{colorLabel}</span>}
-                          <span>• Qté demandée: <strong className="text-text-primary font-mono">{item.quantity}</strong></span>
+                          <span>• Qté demandée: <strong className="text-text-primary dark:text-white font-mono">{item.quantity}</strong></span>
                         </div>
                       </div>
                       <div className="text-end shrink-0">
-                        <div className="text-2xs text-text-muted">
+                        <div className="text-2xs text-text-muted dark:text-slate-400">
                           Stock actuel : <span className="font-mono font-medium">{item.variant.stock_qty ?? 0}</span>
                         </div>
-                        <div className="text-xs font-black font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 mt-0.5">
+                        <div className="text-xs font-black font-mono text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 mt-0.5">
                           Nouveau: {newStock}
                         </div>
                       </div>
@@ -2535,22 +2535,22 @@ export default function SalesPage() {
       )}
       {/* ── Open Cash Session Modal ── */}
       {showOpenSessionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <Coins size={18} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">Ouvrir la session de caisse</h3>
-                  <p className="text-2xs text-slate-500">Démarrer une nouvelle vacation / shift</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">Ouvrir la session de caisse</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">Démarrer une nouvelle vacation / shift</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowOpenSessionModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -2636,25 +2636,25 @@ export default function SalesPage() {
 
       {/* ── Quick Petty Cash Movement Modal (Shortcut M) ── */}
       {showMovementModal && currentSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className={cn(
                   "w-9 h-9 rounded-xl flex items-center justify-center",
-                  movementType === "in" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                  movementType === "in" ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-rose-950/60 text-red-700 dark:text-rose-400"
                 )}>
                   <ArrowDownUp size={18} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">Mouvement d'espèces</h3>
-                  <p className="text-2xs text-slate-500">Session {currentSession.session_code}</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">Mouvement d'espèces</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">Session {currentSession.session_code}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowMovementModal(false); setMovementError(null); }}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
               >
                 <X size={18} />
               </button>

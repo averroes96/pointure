@@ -594,7 +594,9 @@ export default function ProductsPage() {
                   key={product.id}
                   className={cn(
                     "group cursor-pointer transition-colors",
-                    selectedIds.includes(product.id) ? "bg-primary-50/40 hover:bg-primary-50/70" : "hover:bg-slate-50/80"
+                    selectedIds.includes(product.id)
+                      ? "bg-primary-50/40 dark:bg-primary-950/40 hover:bg-primary-50/70 dark:hover:bg-primary-950/60"
+                      : "hover:bg-slate-50/80 dark:hover:bg-slate-800/60"
                   )}
                   onClick={() => navigate(`/inventory/products/${product.id}`)}
                 >
@@ -603,7 +605,7 @@ export default function ProductsPage() {
                       type="checkbox"
                       checked={selectedIds.includes(product.id)}
                       onChange={() => toggleSelectOne(product.id)}
-                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                      className="rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
                     />
                   </td>
                   <td className="py-3.5 px-4">
@@ -612,15 +614,15 @@ export default function ProductsPage() {
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-9 h-9 rounded-lg object-cover border border-slate-200/80 shadow-2xs flex-shrink-0"
+                          className="w-9 h-9 rounded-lg object-cover border border-slate-200/80 dark:border-slate-700 shadow-2xs flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors border border-slate-200/60">
+                        <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors border border-slate-200/60 dark:border-slate-700">
                           <Package size={16} />
                         </div>
                       )}
                       <div>
-                        <div className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                           {product.name}
                         </div>
                         {product.reference && (
@@ -631,27 +633,27 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-600 font-medium text-sm">
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium text-sm">
                     {product.brand || "—"}
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                       {t(`category.${product.category}`, CATEGORY_LABELS[product.category] ?? product.category)}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-end">
-                    <div className="font-mono font-bold text-slate-900 tabular-nums text-sm">
+                    <div className="font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums text-sm">
                       {formatDZD(product.sale_price)} <span className="text-2xs font-sans text-slate-400 font-normal">DZD</span>
                     </div>
                   </td>
                   {user?.can_see_costs && (
                     <td className="py-3.5 px-4 text-end">
-                      <div className="font-mono text-slate-600 tabular-nums text-sm">
+                      <div className="font-mono text-slate-600 dark:text-slate-400 tabular-nums text-sm">
                         {formatDZD(product.purchase_price)} <span className="text-2xs font-sans text-slate-400 font-normal">DZD</span>
                       </div>
                       {product.pamp && parseFloat(product.pamp) > 0 && product.pamp !== product.purchase_price && (
                         <div
-                          className="text-2xs font-mono text-amber-600 mt-0.5 font-medium"
+                          className="text-2xs font-mono text-amber-600 dark:text-amber-400 mt-0.5 font-medium"
                           title={t("inventory.pamp_tooltip")}
                         >
                           PAMP: {formatDZD(product.pamp)}
@@ -661,16 +663,16 @@ export default function ProductsPage() {
                   )}
                   <td className="py-3.5 px-4 text-end">
                     {product.total_stock === 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-red-50 text-red-700 border border-red-200 tabular-nums">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-red-50 dark:bg-rose-950/40 text-red-700 dark:text-rose-400 border border-red-200 dark:border-rose-800/60 tabular-nums">
                         0
                       </span>
                     ) : product.has_low_stock ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-amber-50 text-amber-700 border border-amber-200 tabular-nums">
-                        <AlertTriangle size={11} className="text-amber-600" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 tabular-nums">
+                        <AlertTriangle size={11} className="text-amber-600 dark:text-amber-400" />
                         {product.total_stock}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-slate-100 text-slate-700 border border-slate-200 tabular-nums">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 tabular-nums">
                         {product.total_stock}
                       </span>
                     )}
@@ -686,14 +688,14 @@ export default function ProductsPage() {
                       <button
                         type="button"
                         onClick={() => handleSingleShelfLabel(product.id)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
                         title="Imprimer l'étiquette rayon"
                       >
                         <Tag size={15} />
                       </button>
                       <Link
                         to={`/inventory/products/${product.id}`}
-                        className="btn-ghost btn-sm text-primary-600 hover:bg-primary-50 hover:text-primary-700 font-semibold inline-flex items-center gap-1"
+                        className="btn-ghost btn-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 hover:text-primary-700 dark:hover:text-primary-300 font-semibold inline-flex items-center gap-1"
                       >
                         {t("common.view")}
                       </Link>

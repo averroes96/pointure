@@ -1664,28 +1664,28 @@ export default function SalesHistoryPage() {
       {/* Detailed Daily Report Preview Modal (Ticket Z 80mm format) */}
       {reportPreview && (
         <div
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4"
           onClick={() => setReportPreview(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden flex flex-col max-h-[88vh]"
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-md w-full overflow-hidden flex flex-col max-h-[88vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/60">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-primary-600" />
-                <h3 className="font-extrabold text-slate-900 text-sm">{reportPreview.title}</h3>
+                <FileText size={16} className="text-primary-600 dark:text-primary-400" />
+                <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{reportPreview.title}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setReportPreview(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto flex-1 bg-slate-100/70 flex justify-center">
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-100/70 dark:bg-slate-950/70 flex justify-center">
               <iframe
                 title={reportPreview.title}
                 srcDoc={reportPreview.html}
@@ -1693,7 +1693,7 @@ export default function SalesHistoryPage() {
               />
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 flex justify-end gap-2 bg-white">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 bg-white dark:bg-slate-900">
               <button
                 type="button"
                 onClick={() => setReportPreview(null)}

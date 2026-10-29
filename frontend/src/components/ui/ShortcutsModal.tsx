@@ -58,36 +58,36 @@ export default function ShortcutsModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150"
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-border"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-subtle">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-xs">
               <Keyboard size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-text-primary">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {t("shortcuts.title", "Raccourcis Clavier Windows")}
                 </h2>
-                <span className="px-2 py-0.5 text-2xs font-semibold rounded-full bg-primary-100 text-primary-700">
+                <span className="px-2 py-0.5 text-2xs font-semibold rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300">
                   POS Store
                 </span>
               </div>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t("shortcuts.subtitle", "Actions rapides pour caisses et gestion en boutique")}
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -97,7 +97,7 @@ export default function ShortcutsModal() {
         <div className="p-6 overflow-y-auto space-y-6">
           {/* POS & Sales */}
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3">
               <ShoppingCart size={15} className="text-primary-500" />
               <span>{t("shortcuts.section_pos", "Caisse & Vente directe")}</span>
             </div>
@@ -105,13 +105,13 @@ export default function ShortcutsModal() {
               {posShortcuts.map((item) => (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-white hover:border-primary-200 transition-colors shadow-2xs"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary-200 dark:hover:border-primary-800 transition-colors shadow-2xs"
                 >
                   <div className="min-w-0 pr-2">
-                    <p className="text-sm font-medium text-text-primary truncate">{item.label}</p>
-                    {item.desc && <p className="text-2xs text-text-muted">{item.desc}</p>}
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{item.label}</p>
+                    {item.desc && <p className="text-2xs text-slate-500 dark:text-slate-400">{item.desc}</p>}
                   </div>
-                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-surface border border-border rounded-lg text-primary-700 shadow-xs">
+                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-primary-700 dark:text-primary-300 shadow-xs">
                     {item.key}
                   </kbd>
                 </div>
@@ -121,7 +121,7 @@ export default function ShortcutsModal() {
 
           {/* Management & Documents */}
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3">
               <Package size={15} className="text-primary-500" />
               <span>{t("shortcuts.section_management", "Gestion & Documents")}</span>
             </div>
@@ -129,13 +129,13 @@ export default function ShortcutsModal() {
               {managementShortcuts.map((item) => (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-white hover:border-primary-200 transition-colors shadow-2xs"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary-200 dark:hover:border-primary-800 transition-colors shadow-2xs"
                 >
                   <div className="min-w-0 pr-2">
-                    <p className="text-sm font-medium text-text-primary truncate">{item.label}</p>
-                    {item.desc && <p className="text-2xs text-text-muted">{item.desc}</p>}
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{item.label}</p>
+                    {item.desc && <p className="text-2xs text-slate-500 dark:text-slate-400">{item.desc}</p>}
                   </div>
-                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-surface border border-border rounded-lg text-primary-700 shadow-xs">
+                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-primary-700 dark:text-primary-300 shadow-xs">
                     {item.key}
                   </kbd>
                 </div>
@@ -145,7 +145,7 @@ export default function ShortcutsModal() {
 
           {/* System & General */}
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3">
               <Sparkles size={15} className="text-primary-500" />
               <span>{t("shortcuts.section_general", "Général & Système")}</span>
             </div>
@@ -153,12 +153,12 @@ export default function ShortcutsModal() {
               {generalShortcuts.map((item) => (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-white hover:border-primary-200 transition-colors shadow-2xs"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary-200 dark:hover:border-primary-800 transition-colors shadow-2xs"
                 >
                   <div className="min-w-0 pr-2">
-                    <p className="text-sm font-medium text-text-primary truncate">{item.label}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{item.label}</p>
                   </div>
-                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-surface border border-border rounded-lg text-primary-700 shadow-xs">
+                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-primary-700 dark:text-primary-300 shadow-xs">
                     {item.key}
                   </kbd>
                 </div>
@@ -167,7 +167,7 @@ export default function ShortcutsModal() {
           </div>
 
           {/* Info note */}
-          <div className="p-3.5 rounded-xl bg-primary-50 border border-primary-100 flex items-start gap-2.5 text-xs text-primary-900">
+          <div className="p-3.5 rounded-xl bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-800/60 flex items-start gap-2.5 text-xs text-primary-900 dark:text-primary-200">
             <span className="text-base leading-none">💡</span>
             <p>
               {t(
@@ -179,7 +179,7 @@ export default function ShortcutsModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-border bg-surface flex justify-end">
+        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex justify-end">
           <button onClick={() => setIsOpen(false)} className="btn-secondary px-5">
             {t("common.close", "Fermer")}
           </button>

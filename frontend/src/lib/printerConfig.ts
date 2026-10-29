@@ -309,11 +309,18 @@ export async function testPrintTicket(
 <html lang="fr">
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="light">
   <title>Test Impression ShoeDZ</title>
   <style>
+    :root { color-scheme: light !important; }
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      color-scheme: light !important;
+    }
     @media print {
       @page { margin: 0; }
-      body { margin: 0; padding: 2mm; width: ${bodyWidth}; }
+      body { margin: 0; padding: 2mm; width: ${bodyWidth}; background: #ffffff !important; color: #000000 !important; }
     }
     body {
       font-family: 'Courier New', Courier, monospace;

@@ -247,19 +247,19 @@ export default function ExchangeModal({
     !mutation.isPending;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-slate-800">
           <div>
-            <h2 className="font-semibold text-text-primary">{t("sales.process_exchange_title")}</h2>
-            <p className="text-xs text-text-muted">
+            <h2 className="font-semibold text-text-primary dark:text-slate-100">{t("sales.process_exchange_title")}</h2>
+            <p className="text-xs text-text-muted dark:text-slate-400">
               {t('sales.receipt')} {sale.receipt_number || `#${sale.id}`}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="btn-ghost btn-sm text-text-muted"
+            className="btn-ghost btn-sm text-text-muted dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
             <X size={16} />
           </button>

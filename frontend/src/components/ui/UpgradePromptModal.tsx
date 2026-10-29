@@ -37,25 +37,25 @@ export default function UpgradePromptModal() {
   if (!detail) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 mx-4 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/70 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary-600">
+          <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
             <ArrowUpCircle size={22} />
-            <h2 className="text-lg font-bold">Mise à niveau requise</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Mise à niveau requise</h2>
           </div>
-          <button onClick={() => setDetail(null)} className="text-text-muted hover:text-text-primary">
+          <button onClick={() => setDetail(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-sm text-text-muted">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           Cette fonctionnalité nécessite le plan{" "}
-          <span className="font-semibold text-primary-600">
+          <span className="font-semibold text-primary-600 dark:text-primary-400">
             {PLAN_LABELS[detail.required_plan] ?? detail.required_plan}
           </span>
           . Votre plan actuel est{" "}
-          <span className="font-medium">{PLAN_LABELS[detail.current_plan] ?? detail.current_plan}</span>.
+          <span className="font-medium text-slate-900 dark:text-slate-100">{PLAN_LABELS[detail.current_plan] ?? detail.current_plan}</span>.
         </p>
 
         <div className="flex gap-3 pt-2">

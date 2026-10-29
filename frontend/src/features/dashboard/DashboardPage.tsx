@@ -16,6 +16,7 @@ import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow, Plan } from "@/typ
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useSSE } from "@/hooks/useSSE";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 // ── Quick action card ─────────────────────────────────────────────────────────
@@ -39,9 +40,9 @@ function QuickActionCard({ item }: { item: QuickActionItem }) {
     <Link
       to={item.to}
       className={cn(
-        "group relative flex flex-col justify-between p-4 bg-white rounded-2xl",
-        "border border-slate-200/80 shadow-xs",
-        "hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5",
+        "group relative flex flex-col justify-between p-4 bg-white dark:bg-slate-900/90 rounded-2xl",
+        "border border-slate-200/80 dark:border-slate-800 shadow-xs",
+        "hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md hover:-translate-y-0.5",
         "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
         "transition-all duration-200"
       )}
@@ -57,7 +58,7 @@ function QuickActionCard({ item }: { item: QuickActionItem }) {
         </div>
 
         {item.shortcut && (
-          <kbd className="px-2 py-0.5 text-2xs font-mono font-semibold rounded-md bg-slate-100/90 text-slate-600 border border-slate-200/80 shadow-2xs group-hover:bg-slate-200/90 group-hover:text-slate-800 transition-colors">
+          <kbd className="px-2 py-0.5 text-2xs font-mono font-semibold rounded-md bg-slate-100/90 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 shadow-2xs group-hover:bg-slate-200/90 dark:group-hover:bg-slate-700 group-hover:text-slate-800 dark:group-hover:text-white transition-colors">
             {item.shortcut}
           </kbd>
         )}
@@ -65,7 +66,7 @@ function QuickActionCard({ item }: { item: QuickActionItem }) {
 
       <div className="mt-3.5 min-w-0">
         <div className="flex items-center justify-between gap-1">
-          <span className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 transition-colors truncate">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
             {item.title}
           </span>
           <ArrowUpRight
@@ -73,7 +74,7 @@ function QuickActionCard({ item }: { item: QuickActionItem }) {
             className="text-slate-400 opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all shrink-0"
           />
         </div>
-        <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1 mt-0.5">
           {item.description}
         </p>
       </div>
@@ -95,22 +96,22 @@ function KPICard({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition-all">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span className="truncate">{label}</span>
             {live && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
                 {t("dashboard.live")}
               </span>
             )}
           </div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 mt-1.5 tabular-nums truncate">
+          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-white mt-1.5 tabular-nums truncate">
             {value}
           </div>
-          {subtitle && <div className="text-xs font-medium text-slate-500 mt-1">{subtitle}</div>}
+          {subtitle && <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{subtitle}</div>}
         </div>
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
           <Icon size={20} className="text-white" />
@@ -135,17 +136,17 @@ function LiveFeed({
   const connected = status === "connected";
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.real_time")}</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.real_time")}</h2>
           <span className={cn(
             "flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full border",
             connected
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
               : status === "connecting"
-                ? "bg-amber-50 text-amber-700 border-amber-200"
-                : "bg-rose-50 text-rose-700 border-rose-200",
+                ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                : "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
           )}>
             {connected
               ? <Wifi size={11} />
@@ -154,13 +155,13 @@ function LiveFeed({
           </span>
         </div>
         {saleCountDelta > 0 && (
-          <span className="text-xs font-mono font-medium text-slate-500">
+          <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
             {t("dashboard.sales_this_session", { count: saleCountDelta })}
           </span>
         )}
       </div>
 
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-slate-100 dark:divide-slate-800">
         {/* Last sale */}
         <div className="px-5 py-4">
           <div className="text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -169,14 +170,14 @@ function LiveFeed({
           {lastSale ? (
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-slate-900">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
                   {lastSale.branch_name}
                 </div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">
+                <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
                   #{lastSale.receipt_number} · {formatSecondsAgo(lastSale.ts, t)}
                 </div>
               </div>
-              <div className="font-mono font-bold text-sm text-emerald-600 tabular-nums">
+              <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400 tabular-nums">
                 +{formatDZD(lastSale.total_amount)} <span className="text-2xs font-normal">DZD</span>
               </div>
             </div>
@@ -197,7 +198,7 @@ function LiveFeed({
               </div>
               <button
                 onClick={clearAlerts}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-md"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-md"
               >
                 <X size={13} />
               </button>
@@ -209,8 +210,8 @@ function LiveFeed({
                   className={cn(
                     "flex items-center justify-between text-xs rounded-xl px-3 py-2 border",
                     alert.is_out_of_stock
-                      ? "bg-rose-50 border-rose-200 text-rose-700"
-                      : "bg-amber-50 border-amber-200 text-amber-800",
+                      ? "bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"
+                      : "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300",
                   )}
                 >
                   <span className="font-semibold truncate max-w-[160px]">
@@ -243,6 +244,8 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const isEnterprise = canAccess("enterprise");
   const isCashier = user?.role === "cashier";
 
@@ -407,8 +410,8 @@ export default function DashboardPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.dashboard")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.dashboard")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
             {kpis?.as_of ? `Mise à jour : ${formatDate(kpis.as_of)}` : "Aperçu général de votre activité"}
           </p>
         </div>
@@ -416,11 +419,11 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             to="/inventory/products"
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-2xs hover:shadow-xs transition-all"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:shadow-xs transition-all"
           >
-            <Package size={15} className="text-indigo-600" />
+            <Package size={15} className="text-indigo-600 dark:text-indigo-400" />
             <span>{t("nav.products", "Produits")}</span>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-2xs font-mono font-medium text-slate-500 bg-slate-100 rounded border border-slate-200">
+            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-2xs font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
               F8
             </kbd>
           </Link>
@@ -476,11 +479,11 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary-600 inline-block" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-sans">
               {t("dashboard.quick_actions", "Actions rapides")}
             </h2>
           </div>
-          <span className="text-2xs font-medium text-slate-400">
+          <span className="text-2xs font-medium text-slate-400 dark:text-slate-500">
             {t("dashboard.quick_actions_hint", "Accès direct & raccourcis clavier")}
           </span>
         </div>
@@ -495,18 +498,18 @@ export default function DashboardPage() {
       {/* Charts + live feed row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue chart (2/3 width) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 lg:col-span-2 space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.revenue_chart")}</h2>
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 lg:col-span-2 space-y-4">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.revenue_chart")}</h2>
           </div>
           <div className="h-72">
             {salesData && salesData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} />
                   <XAxis
                     dataKey="period"
-                    tick={{ fontSize: 11, fill: "#64748B" }}
+                    tick={{ fontSize: 11, fill: isDark ? "#94A3B8" : "#64748B" }}
                     tickFormatter={(v) =>
                       new Date(v).toLocaleDateString("fr-DZ", {
                         day: "2-digit",
@@ -514,15 +517,16 @@ export default function DashboardPage() {
                       })
                     }
                   />
-                  <YAxis tick={{ fontSize: 11, fill: "#64748B" }} width={60} />
+                  <YAxis tick={{ fontSize: 11, fill: isDark ? "#94A3B8" : "#64748B" }} width={60} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#FFFFFF",
+                      backgroundColor: isDark ? "#131B2E" : "#FFFFFF",
                       borderRadius: "12px",
-                      border: "1px solid #E2E8F0",
-                      boxShadow: "0 10px 15px -3px rgba(0,0,0,0.08)",
+                      border: isDark ? "1px solid #232E47" : "1px solid #E2E8F0",
+                      boxShadow: isDark ? "0 10px 25px -5px rgba(0,0,0,0.5)" : "0 10px 15px -3px rgba(0,0,0,0.08)",
                       fontSize: "12px",
                       fontFamily: "Plus Jakarta Sans, sans-serif",
+                      color: isDark ? "#F8FAFC" : "#0F172A",
                     }}
                     formatter={(value: number) => [formatDZD(value) + " DZD", "Chiffre d'affaires"]}
                     labelFormatter={(v) => formatDate(v)}
@@ -548,21 +552,21 @@ export default function DashboardPage() {
             clearAlerts={clearAlerts}
           />
         ) : (
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.best_sellers")}</h2>
+          <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.best_sellers")}</h2>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {bestSellers?.slice(0, 5).map((item, i) => (
                 <div key={item.product_id} className="py-3 flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
+                  <div className="w-7 h-7 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 flex items-center justify-center text-xs font-bold shrink-0 border border-primary-100/50 dark:border-primary-800/60">
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">{item.product_name}</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item.product_name}</div>
                     <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                   </div>
-                  <div className="text-sm font-mono font-bold text-primary-600 tabular-nums">
+                  <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
                     {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
                   </div>
                 </div>
@@ -579,21 +583,21 @@ export default function DashboardPage() {
 
       {/* Best sellers — shown below for enterprise (live feed takes the right column) */}
       {isEnterprise && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="font-semibold text-slate-900 text-sm">{t("dashboard.best_sellers")}</h2>
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.best_sellers")}</h2>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {bestSellers?.slice(0, 5).map((item, i) => (
               <div key={item.product_id} className="py-3 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 flex items-center justify-center text-xs font-bold shrink-0 border border-primary-100/50 dark:border-primary-800/60">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 truncate">{item.product_name}</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item.product_name}</div>
                   <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                 </div>
-                <div className="text-sm font-mono font-bold text-primary-600 tabular-nums">
+                <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
                   {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
                 </div>
               </div>

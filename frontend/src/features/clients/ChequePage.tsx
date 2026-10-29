@@ -69,16 +69,25 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string) {
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light" />
   <title>Bordereau d'Échéancier Chèques — ${storeName}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 28px; color: #0f172a; font-size: 12px; }
+    :root { color-scheme: light !important; }
+    html, body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      color-scheme: light !important;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 28px; font-size: 12px; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 18px; }
     h1 { margin: 0; font-size: 18px; text-transform: uppercase; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: left; }
     th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
     .total-box { margin-top: 16px; text-align: right; font-size: 15px; font-weight: bold; font-family: monospace; }
-    @media print { body { margin: 12px; } }
+    @media print {
+      body { margin: 12px; background: #ffffff !important; color: #0f172a !important; }
+    }
   </style>
 </head>
 <body>
@@ -689,21 +698,21 @@ function CreateChequeModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="p-5 border-b border-border flex items-center justify-between bg-slate-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/70 backdrop-blur-xs p-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-5 border-b border-border dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/60">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
+            <div className="p-2 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300">
               <Landmark size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900">Enregistrer un Nouveau Chèque</h3>
-              <p className="text-2xs text-slate-500">
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">Enregistrer un Nouveau Chèque</h3>
+              <p className="text-2xs text-slate-500 dark:text-slate-400">
                 Suivi d'échéance bancaire client ou fournisseur
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer">
             <X size={18} />
           </button>
         </div>

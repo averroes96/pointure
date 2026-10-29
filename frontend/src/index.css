@@ -122,11 +122,11 @@
 
   /* ── Cards ── */
   .card {
-    @apply bg-card rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-shadow duration-150;
+    @apply bg-card dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-shadow duration-150;
   }
 
   .card-header {
-    @apply px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100;
+    @apply px-5 py-4 border-b border-slate-100 dark:border-slate-800 dark:bg-slate-900/90 flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100;
   }
 
   .card-body {
@@ -135,7 +135,7 @@
 
   /* ── KPI Cards ── */
   .kpi-card {
-    @apply card p-5 flex flex-col gap-2 relative overflow-hidden bg-white dark:bg-slate-900;
+    @apply card p-5 flex flex-col gap-2 relative overflow-hidden bg-white dark:bg-slate-900/90 dark:border-slate-800;
   }
 
   .kpi-card__value {
@@ -157,7 +157,7 @@
   }
 
   .data-table th {
-    @apply px-3.5 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 select-none;
+    @apply px-3.5 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900 select-none;
   }
 
   html[dir="rtl"] .data-table th {
@@ -165,7 +165,7 @@
   }
 
   .data-table td {
-    @apply px-3.5 py-3 border-b border-slate-100 dark:border-slate-800/60 align-middle text-slate-700 dark:text-slate-200;
+    @apply px-3.5 py-3 border-b border-slate-100 dark:border-slate-800/80 align-middle text-slate-700 dark:text-slate-300;
   }
 
   .data-table tbody tr {
@@ -189,7 +189,7 @@
   }
 
   .form-input {
-    @apply w-full px-3.5 py-2 text-sm border border-slate-200 dark:border-slate-700/80 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white
+    @apply w-full px-3.5 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white
            placeholder:text-slate-400 dark:placeholder:text-slate-500
            transition-all duration-150
            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
@@ -198,6 +198,27 @@
 
   .form-error {
     @apply text-xs font-medium text-danger mt-1.5;
+  }
+
+  /* ── Modals & Dialogs ── */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-xs animate-in fade-in duration-150;
+  }
+
+  .modal-dialog {
+    @apply bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors;
+  }
+
+  .modal-header {
+    @apply px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/50;
+  }
+
+  .modal-body {
+    @apply p-5 overflow-y-auto text-slate-800 dark:text-slate-200;
+  }
+
+  .modal-footer {
+    @apply px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2 bg-slate-50/60 dark:bg-slate-900/60;
   }
 
   /* ── Buttons ── */

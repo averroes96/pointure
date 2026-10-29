@@ -221,14 +221,20 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
 <html lang="${isRtl ? "ar" : printLang === "en" ? "en" : "fr"}" dir="${isRtl ? "rtl" : "ltr"}">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="color-scheme" content="light"/>
   <title>Reçu ${sale.receipt_number}</title>
   <style>
+    :root { color-scheme: light !important; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      color-scheme: light !important;
+    }
     body {
       font-family: ${isRtl ? "'Segoe UI', Tahoma, Arial, sans-serif" : "'Courier New', monospace"};
       width: 80mm;
       font-size: 12px;
-      color: #000;
       padding: 4mm;
     }
     h1  { font-size: 15px; text-align: center; font-weight: bold; margin-bottom: 2px; }

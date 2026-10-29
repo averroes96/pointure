@@ -44,9 +44,16 @@ export function openPrintPopup(
       // 1 mm ≈ 3.7795 px at 96 DPI
       const heightMm = Math.ceil(heightPx / 3.7795) + marginMm;
 
-      // Inject exact @page dimensions after content is rendered
+      // Inject exact @page dimensions and strictly enforce light color-scheme after content is rendered
       const style = popup.document.createElement("style");
-      style.textContent = `@media print { @page { size: ${pageWidth} ${heightMm}mm; margin: 0; } }`;
+      style.textContent = `
+        :root { color-scheme: light !important; }
+        html, body { background: #ffffff !important; color: #000000 !important; }
+        @media print {
+          @page { size: ${pageWidth} ${heightMm}mm; margin: 0; }
+          html, body { background: #ffffff !important; color: #000000 !important; }
+        }
+      `;
       popup.document.head.appendChild(style);
 
       // Resize the popup window to match content

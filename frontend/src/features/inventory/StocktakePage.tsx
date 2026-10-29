@@ -102,9 +102,16 @@ function printVarianceReport(session: StocktakeSession, storeName: string) {
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="light">
   <title>PV d'Inventaire — ${session.title}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; font-size: 13px; color: #1e293b; }
+    :root { color-scheme: light !important; }
+    html, body {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      color-scheme: light !important;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; font-size: 13px; }
     .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
     .header h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
     .meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; background: #f8fafc; padding: 12px; border-radius: 8px; }
@@ -121,7 +128,7 @@ function printVarianceReport(session: StocktakeSession, storeName: string) {
     .signatures { margin-top: 50px; display: flex; justify-content: space-between; padding: 0 40px; }
     .sig-box { width: 220px; border-top: 1px solid #0f172a; text-align: center; padding-top: 8px; font-weight: bold; }
     @media print {
-      body { margin: 15px; }
+      body { margin: 15px; background: #ffffff !important; color: #1e293b !important; }
       @page { size: A4; margin: 1.5cm; }
     }
   </style>

@@ -98,10 +98,17 @@ function buildDailyReportHtml(data: DailyReport, date: string, t: any): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="color-scheme" content="light"/>
   <title>${t("nav.daily_report")} ${date}</title>
   <style>
+    :root { color-scheme: light !important; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:Arial,sans-serif; font-size:12px; color:#000; padding:12mm; }
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      color-scheme: light !important;
+    }
+    body { font-family:Arial,sans-serif; font-size:12px; padding:12mm; }
     h1  { font-size:18px; font-weight:700; margin-bottom:2px; }
     h2  { font-size:13px; font-weight:600; margin:12px 0 6px; border-bottom:1px solid #ccc; padding-bottom:3px; }
     .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0; }
@@ -113,7 +120,10 @@ function buildDailyReportHtml(data: DailyReport, date: string, t: any): string {
     th { background:#f5f5f5; font-weight:600; font-size:10px; text-transform:uppercase; }
     tfoot td { border-top:2px solid #ccc; font-weight:700; }
     .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px; }
-    @media print { @page { margin:0; } body { padding:8mm; } }
+    @media print {
+      @page { margin:0; }
+      body { padding:8mm; background: #ffffff !important; color: #000000 !important; }
+    }
   </style>
 </head>
 <body>

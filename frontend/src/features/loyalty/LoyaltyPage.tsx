@@ -110,9 +110,16 @@ function printLoyaltyCard(
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light" />
   <title>Carte Fidélité — ${acc.client_name}</title>
   <style>
+    :root { color-scheme: light !important; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      color-scheme: light !important;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       padding: 16px;
@@ -124,8 +131,8 @@ function printLoyaltyCard(
       border: 2px solid #0f172a;
       border-radius: 14px;
       padding: 14px;
-      background: #fff;
-      color: #0f172a;
+      background: #ffffff !important;
+      color: #0f172a !important;
     }
     .header {
       display: flex;

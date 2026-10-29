@@ -1081,12 +1081,17 @@ def _label_base_css(w_mm: float, h_mm: float) -> str:
     size: {w_mm:.2f}mm {h_mm:.2f}mm;
     margin: 0;
   }}
-  :root {{ --ox: 0mm; --oy: 0mm; }}
+  :root {{
+    --ox: 0mm;
+    --oy: 0mm;
+    color-scheme: light !important;
+  }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   html, body {{
     width: {w_mm:.2f}mm;
-    background: white;
-    color: #000;
+    background: #ffffff !important;
+    color: #000000 !important;
+    color-scheme: light !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }}
@@ -1157,6 +1162,7 @@ def _barcode_page(
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="light">
 <title>{title}</title>
 <style>
 {_label_base_css(w_mm, h_mm)}
@@ -1285,6 +1291,7 @@ def _shelf_labels_page(
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="light">
 <title>{title}</title>
 <style>
 {_label_base_css(w_mm, h_mm)}
