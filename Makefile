@@ -1,4 +1,4 @@
-.PHONY: setup dev stop migrate test shell frontend lint seed build logs ps clean
+.PHONY: setup dev stop migrate test shell frontend lint seed build logs ps clean flush db-flush flush-local
 
 # ──────────────────────────────────────────────
 # Bootstrap
@@ -43,6 +43,20 @@ migrations: ## Create new migrations (pass app=<app_name> for specific app)
 
 showmigrations: ## Show migration status
 	docker compose run --rm backend python manage.py showmigrations
+
+flush: ## Flush database completely (removes all data, including users and tenants)
+	@if docker compose ps --services --filter "status=running" 2>/dev/null | grep -q "^backend$$"; then \
+		docker compose exec backend python manage.py flush --no-input; \
+	else \
+		docker compose run --rm backend python manage.py flush --no-input; \
+	fi
+	@echo "\n✅  Database flushed completely. All users, tenants, and business data have been cleared."
+
+db-flush: flush ## Alias for make flush
+
+flush-local: ## Flush local SQLite database completely (desktop/standalone)
+	backend/venv/bin/python backend/manage.py flush --no-input --settings=config.settings.desktop
+	@echo "\n✅  Local desktop SQLite database flushed completely."
 
 # ──────────────────────────────────────────────
 # Testing
