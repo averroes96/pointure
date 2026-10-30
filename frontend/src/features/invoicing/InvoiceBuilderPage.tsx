@@ -119,8 +119,8 @@ function ClientSelector({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full mt-1.5 w-full bg-white border border-slate-200/80 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+        <div className="absolute z-50 top-full mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60">
             <div className="relative">
               <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -128,12 +128,12 @@ function ClientSelector({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="input w-full ps-8 py-1.5 text-xs rounded-lg border-slate-200"
+                className="input w-full ps-8 py-1.5 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 placeholder={t("common.search")}
               />
             </div>
           </div>
-          <div className="max-h-52 overflow-y-auto divide-y divide-slate-100">
+          <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
             {isFetching && (
               <div className="px-3 py-2 text-xs text-slate-400">{t("app.loading")}</div>
             )}
@@ -149,11 +149,11 @@ function ClientSelector({
                   setOpen(false);
                   setQuery("");
                 }}
-                className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
+                className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
               >
-                <div className="font-semibold text-slate-900">{c.name}</div>
+                <div className="font-semibold text-slate-900 dark:text-white">{c.name}</div>
                 {c.phone && (
-                  <div className="text-xs text-slate-500 font-mono mt-0.5">{c.phone}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{c.phone}</div>
                 )}
               </button>
             ))}
@@ -468,13 +468,13 @@ export default function InvoiceBuilderPage() {
           <button
             type="button"
             onClick={() => navigate("/invoices")}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{isEditMode ? "Modifier la facture" : t("invoice.new")}</h1>
-            <p className="text-xs font-medium text-slate-500 mt-0.5">{t("invoice.fill_info")}</p>
+            <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{isEditMode ? "Modifier la facture" : t("invoice.new")}</h1>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t("invoice.fill_info")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -511,20 +511,20 @@ export default function InvoiceBuilderPage() {
 
       {/* ── Error banner ── */}
       {formError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-2xs">
-          <AlertCircle size={16} className="text-rose-600 mt-0.5 shrink-0" />
-          <p className="text-sm font-medium text-rose-700">{formError}</p>
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl flex items-start gap-3 shadow-2xs">
+          <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
+          <p className="text-sm font-medium text-rose-700 dark:text-rose-300">{formError}</p>
         </div>
       )}
 
       {/* ── Credit limit warning banner ── */}
       {creditLimitWarning && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3 shadow-2xs">
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-3 shadow-2xs">
           <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="text-amber-600 mt-0.5 shrink-0" />
+            <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-amber-800">{t("invoice.credit_limit_exceeded")}</p>
-              <p className="text-xs text-amber-700 font-mono">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t("invoice.credit_limit_exceeded")}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-mono">
                 {t("invoice.current_balance")}: <strong>{formatDZD(creditLimitWarning.current_balance)} DZD</strong>
                 {" | "}
                 {t("invoice.invoice_amount")}: <strong>{formatDZD(creditLimitWarning.invoice_total)} DZD</strong>
@@ -559,54 +559,54 @@ export default function InvoiceBuilderPage() {
         {/* ── Left column ── */}
         <div className="space-y-6">
           {/* Client + metadata */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.general_info")}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("invoice.general_info")}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Client */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.client")}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.client")}</label>
                 <ClientSelector value={client} onChange={setClient} />
               </div>
 
               {/* Date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.date")}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.date")}</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="input w-full rounded-xl border-slate-200 text-sm"
+                  className="input w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                 />
               </div>
 
               {/* Due date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.due_date")}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.due_date")}</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="input w-full rounded-xl border-slate-200 text-sm"
+                  className="input w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                 />
               </div>
 
               {/* Series prefix */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.series_prefix")}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.series_prefix")}</label>
                 <input
                   type="text"
                   value={seriesPrefix}
                   onChange={(e) => setSeriesPrefix(e.target.value.toUpperCase())}
-                  className="input w-full font-mono uppercase rounded-xl border-slate-200 text-sm"
+                  className="input w-full font-mono uppercase rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                   maxLength={4}
                   placeholder="FA"
                 />
               </div>
 
               {/* Toggles */}
-              <div className="flex flex-col gap-3 sm:col-span-2 pt-2 border-t border-slate-100 mt-2">
+              <div className="flex flex-col gap-3 sm:col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800 mt-2">
                 <label className="flex items-center gap-3 cursor-pointer select-none">
                   <div className="relative">
                     <input
@@ -615,10 +615,10 @@ export default function InvoiceBuilderPage() {
                       onChange={(e) => setIsFormal(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
+                    <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
                     <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                   </div>
-                  <span className="text-sm font-medium text-slate-800">
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
                     {t("invoice.real_mode")}
                   </span>
                 </label>
@@ -632,10 +632,10 @@ export default function InvoiceBuilderPage() {
                         onChange={(e) => setApplyTva(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
+                      <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-primary-600 transition-colors" />
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
-                    <span className="text-sm font-medium text-slate-800">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
                       {t("invoice.apply_tva", { rate: TVA_RATE })}
                     </span>
                   </label>
@@ -650,10 +650,10 @@ export default function InvoiceBuilderPage() {
                         onChange={(e) => setIsPaidInCash(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-amber-500 transition-colors" />
+                      <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-amber-500 transition-colors" />
                       <div className="absolute top-0.5 start-0.5 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
                     </div>
-                    <span className="text-sm font-medium text-amber-800">
+                    <span className="text-sm font-medium text-amber-800 dark:text-amber-400">
                       {t("invoice.cash_payment_stamp")}
                     </span>
                   </label>
@@ -662,11 +662,11 @@ export default function InvoiceBuilderPage() {
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.notes_optional")}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.notes_optional")}</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="input w-full resize-none rounded-xl border-slate-200 text-sm"
+                  className="input w-full resize-none rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                   rows={2}
                   placeholder={t("invoice.notes_placeholder")}
                 />
@@ -675,10 +675,10 @@ export default function InvoiceBuilderPage() {
           </div>
 
           {/* Line items */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.billed_items")}</h2>
-              <span className="text-xs text-slate-400 font-medium">{t("invoice.select_products_quantities")}</span>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("invoice.billed_items")}</h2>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{t("invoice.select_products_quantities")}</span>
             </div>
 
             <div className="space-y-4">
@@ -694,7 +694,7 @@ export default function InvoiceBuilderPage() {
               <button
                 type="button"
                 onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
-                className="w-full py-2.5 px-3 border border-dashed border-primary-300 hover:border-primary-500 hover:bg-primary-50/50 text-primary-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-2.5 px-3 border border-dashed border-primary-300 dark:border-primary-700/60 hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 text-primary-600 dark:text-primary-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Plus size={15} /> Ajouter un autre produit
               </button>
@@ -702,24 +702,24 @@ export default function InvoiceBuilderPage() {
           </div>
 
           {/* Payment recording */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.initial_payment")}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("invoice.initial_payment")}</h2>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={addPayment}
                   onChange={(e) => setAddPayment(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500/20"
                 />
-                <span className="text-xs font-semibold text-slate-700">{t("invoice.record_payment")}</span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t("invoice.record_payment")}</span>
               </label>
             </div>
 
             {addPayment && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_method")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.payment_method")}</label>
                   <select
                     value={payment.method}
                     onChange={(e) =>
@@ -728,7 +728,7 @@ export default function InvoiceBuilderPage() {
                         method: e.target.value as PaymentEntry["method"],
                       }))
                     }
-                    className="input w-full rounded-xl border-slate-200 text-sm"
+                    className="input w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                   >
                     {PAYMENT_METHODS.map((m) => (
                       <option key={m.value} value={m.value}>
@@ -738,7 +738,7 @@ export default function InvoiceBuilderPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_amount")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.payment_amount")}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -746,7 +746,7 @@ export default function InvoiceBuilderPage() {
                       onChange={(e) =>
                         setPayment((p) => ({ ...p, amount: e.target.value }))
                       }
-                      className="input w-full pe-12 font-mono rounded-xl border-slate-200 text-sm"
+                      className="input w-full pe-12 font-mono rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                       min="0"
                       step="100"
                       placeholder="0.00"
@@ -757,14 +757,14 @@ export default function InvoiceBuilderPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("invoice.payment_date")}</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.payment_date")}</label>
                   <input
                     type="date"
                     value={payment.date}
                     onChange={(e) =>
                       setPayment((p) => ({ ...p, date: e.target.value }))
                     }
-                    className="input w-full rounded-xl border-slate-200 text-sm"
+                    className="input w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                   />
                 </div>
               </div>
@@ -774,24 +774,24 @@ export default function InvoiceBuilderPage() {
 
         {/* ── Right column: Totals sidebar ── */}
         <div>
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4 sticky top-6">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="font-semibold text-slate-900 text-sm">{t("invoice.summary")}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 space-y-4 sticky top-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("invoice.summary")}</h2>
             </div>
             <div className="space-y-3">
               {/* Subtotal HT */}
-              <div className="flex items-center justify-between text-xs text-slate-600">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span className="font-medium">{t("invoice.subtotal_ht")}</span>
-                <span className="font-mono font-semibold text-slate-900 tabular-nums">
+                <span className="font-mono font-semibold text-slate-900 dark:text-white tabular-nums">
                   {formatDZD(subtotalHT)} <span className="text-2xs text-slate-400 font-normal">DZD</span>
                 </span>
               </div>
 
               {/* TVA */}
               {(isFormal && applyTva) && (
-                <div className="flex items-center justify-between text-xs text-slate-600">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                   <span className="font-medium">{t("invoice.tva_rate", { rate: TVA_RATE })}</span>
-                  <span className="font-mono font-semibold text-slate-900 tabular-nums">
+                  <span className="font-mono font-semibold text-slate-900 dark:text-white tabular-nums">
                     {formatDZD(tvaAmount)} <span className="text-2xs text-slate-400 font-normal">DZD</span>
                   </span>
                 </div>
@@ -799,7 +799,7 @@ export default function InvoiceBuilderPage() {
 
               {/* Timbre Fiscal */}
               {(isFormal && isPaidInCash) && (
-                <div className="flex items-center justify-between text-xs text-amber-700">
+                <div className="flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
                   <span className="font-medium">{t("invoice.timbre_fiscal")}</span>
                   <span className="font-mono font-semibold tabular-nums">
                     {formatDZD(timbreFiscal)} <span className="text-2xs opacity-70">DZD</span>
@@ -808,11 +808,11 @@ export default function InvoiceBuilderPage() {
               )}
 
               {/* Total TTC */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                <span className="font-bold text-sm text-slate-900">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                <span className="font-bold text-sm text-slate-900 dark:text-white">
                   {applyTva ? t("invoice.total_ttc") : t("invoice.total_ht")}
                 </span>
-                <span className="font-mono font-bold text-xl text-primary-600 tabular-nums">
+                <span className="font-mono font-bold text-xl text-primary-600 dark:text-primary-400 tabular-nums">
                   {formatDZD(totalTTC)} <span className="text-xs text-primary-400 font-normal">DZD</span>
                 </span>
               </div>
@@ -820,18 +820,18 @@ export default function InvoiceBuilderPage() {
               {/* Paid */}
               {addPayment && paidAmount > 0 && (
                 <>
-                  <div className="flex items-center justify-between text-xs text-emerald-700">
+                  <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400">
                     <span className="font-medium">{t("invoice.amount_paid")}</span>
                     <span className="font-mono font-semibold tabular-nums">
                       − {formatDZD(paidAmount)} <span className="text-2xs opacity-70">DZD</span>
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="font-bold text-xs text-slate-900">{t("invoice.balance_due")}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span className="font-bold text-xs text-slate-900 dark:text-white">{t("invoice.balance_due")}</span>
                     <span
                       className={cn(
                         "font-mono font-bold text-base tabular-nums",
-                        balanceDue > 0 ? "text-rose-600" : "text-emerald-600"
+                        balanceDue > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
                       )}
                     >
                       {formatDZD(balanceDue)} <span className="text-2xs font-normal opacity-70">DZD</span>
@@ -841,9 +841,9 @@ export default function InvoiceBuilderPage() {
               )}
 
               {/* Lines count */}
-              <div className="pt-3 text-2xs text-slate-400 border-t border-slate-100">
+              <div className="pt-3 text-2xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
                 {t("invoice.lines_count", { count: getFlatLines().length })}
-                · {t("invoice.client")}: <span className="font-medium text-slate-600">{client?.name ?? t("invoice.not_defined")}</span>
+                · {t("invoice.client")}: <span className="font-medium text-slate-600 dark:text-slate-300">{client?.name ?? t("invoice.not_defined")}</span>
               </div>
             </div>
 

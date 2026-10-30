@@ -152,22 +152,22 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-center shrink-0">
               {variant ? <PlusCircle size={18} /> : <Boxes size={18} />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                 {variant
                   ? t("inventory.quick_restock_title", "Réapprovisionnement rapide")
                   : t("inventory.bulk_restock_title", "Réapprovisionner le modèle")}
               </h3>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {variant
                   ? `${variant.product_name} · Pointure EU${variant.size_eu}`
                   : `${product?.name} · ${product?.brand || ""}`}
@@ -176,7 +176,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -185,7 +185,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
           {error && (
-            <div className="p-3 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
+            <div className="p-3 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl">
               {error}
             </div>
           )}
@@ -193,30 +193,30 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
           {/* Single Variant View */}
           {variant && (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between">
                 <div>
                   <div className="text-2xs uppercase tracking-wider font-semibold text-slate-400">Stock actuel</div>
-                  <div className={cn("text-xl font-bold font-mono mt-0.5", variant.stock_qty === 0 ? "text-rose-600" : "text-amber-600")}>
-                    {variant.stock_qty} <span className="text-xs font-normal text-slate-500">paires</span>
+                  <div className={cn("text-xl font-bold font-mono mt-0.5", variant.stock_qty === 0 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400")}>
+                    {variant.stock_qty} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">paires</span>
                   </div>
                 </div>
                 <div className="text-end">
                   <div className="text-2xs uppercase tracking-wider font-semibold text-slate-400">Seuil d'alerte</div>
-                  <div className="text-xl font-bold font-mono text-slate-700 mt-0.5">
-                    {variant.alert_threshold} <span className="text-xs font-normal text-slate-500">paires</span>
+                  <div className="text-xl font-bold font-mono text-slate-700 dark:text-slate-200 mt-0.5">
+                    {variant.alert_threshold} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">paires</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   {t("inventory.restock_quantity", "Quantité à ajouter (paires)")}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setSingleQty((q) => Math.max(1, q - 1))}
-                    className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
+                    className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
                   >
                     <Minus size={16} />
                   </button>
@@ -225,12 +225,12 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                     min="1"
                     value={singleQty}
                     onChange={(e) => setSingleQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="flex-1 text-center font-mono font-bold text-2xl py-2 px-3 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 text-center font-mono font-bold text-2xl py-2 px-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
                   <button
                     type="button"
                     onClick={() => setSingleQty((q) => q + 1)}
-                    className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
+                    className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
                   >
                     <Plus size={16} />
                   </button>
@@ -248,7 +248,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                         "px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer",
                         singleQty === num
                           ? "bg-emerald-600 text-white shadow-xs"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                       )}
                     >
                       +{num}
@@ -262,48 +262,48 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
           {/* Product Bulk Variants View */}
           {product && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-100">
-                <span className="text-xs text-slate-500 font-medium">Remplissage rapide :</span>
+              <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Remplissage rapide :</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleApplyPresetAll(6)}
-                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                   >
                     +6 à tous
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyPresetAll(12)}
-                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                   >
                     +12 à tous
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyPresetAll(0)}
-                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-2xs font-semibold rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     Vider
                   </button>
                 </div>
               </div>
 
-              <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto border border-slate-200/80 rounded-xl">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto border border-slate-200/80 dark:border-slate-700 rounded-xl">
                 {product.variants?.map((v) => (
-                  <div key={v.id} className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/60">
+                  <div key={v.id} className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/50">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                           T. {v.size_eu}
                         </span>
                         {v.colour && v.colour !== "N/A" && v.colour !== "Standard" && (
-                          <span className="text-xs text-slate-500 font-medium">{v.colour}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{v.colour}</span>
                         )}
                       </div>
                       <div className="text-2xs text-slate-400 mt-1">
                         Stock actuel:{" "}
-                        <span className={cn("font-bold font-mono", v.stock_qty === 0 ? "text-rose-600" : "text-amber-600")}>
+                        <span className={cn("font-bold font-mono", v.stock_qty === 0 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400")}>
                           {v.stock_qty}
                         </span>{" "}
                         (seuil: {v.alert_threshold})
@@ -319,14 +319,14 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                           const val = Math.max(0, parseInt(e.target.value) || 0);
                           setQuantities((prev) => ({ ...prev, [v.id]: val }));
                         }}
-                        className="w-full text-center font-mono font-bold text-sm py-1 px-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                        className="w-full text-center font-mono font-bold text-sm py-1 px-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between text-xs text-emerald-800 font-semibold">
+              <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
                 <span>{t("inventory.total_pairs_to_add", { count: totalBulkQty })}</span>
                 <span className="font-mono text-sm font-bold">+{totalBulkQty}</span>
               </div>
@@ -334,9 +334,9 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
           )}
 
           {/* Reason & Notes */}
-          <div className="space-y-3 pt-2 border-t border-slate-100">
+          <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 {t("inventory.restock_reason", "Motif de l'entrée")}
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -346,8 +346,8 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                   className={cn(
                     "px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer",
                     reason === "reception"
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs"
-                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 shadow-2xs"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}
                 >
                   {t("inventory.restock_reception", "Réception marchandise")}
@@ -358,8 +358,8 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                   className={cn(
                     "px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer",
                     reason === "adjustment"
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs"
-                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 shadow-2xs"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}
                 >
                   {t("inventory.restock_adjustment", "Ajustement manuel")}
@@ -368,7 +368,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 {t("inventory.restock_notes", "Note / N° BL (optionnel)")}
               </label>
               <input
@@ -376,13 +376,13 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
                 placeholder="Ex: BL-2026-042 ou Réapprovisionnement express"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full text-xs py-2 px-3 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs py-2 px-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
@@ -422,17 +422,17 @@ function VariantTable({ variants, isLoading, canRestock, onOrder, onRestock }: V
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
-          <tr className="border-b border-slate-200/80 bg-slate-50/70">
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.size")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.colour")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.current_stock")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.alert_threshold")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+          <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.product")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.size")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.colour")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.current_stock")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.alert_threshold")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.status")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {isLoading && (
             <tr>
               <td colSpan={7} className="text-center py-12 text-slate-400">
@@ -447,32 +447,32 @@ function VariantTable({ variants, isLoading, canRestock, onOrder, onRestock }: V
             <tr>
               <td colSpan={7} className="text-center py-12 text-slate-400">
                 <div className="flex flex-col items-center gap-2">
-                  <Package size={32} className="text-slate-300 stroke-[1.5]" />
+                  <Package size={32} className="text-slate-300 dark:text-slate-600 stroke-[1.5]" />
                   <span className="text-sm">{t("common.no_data")}</span>
                 </div>
               </td>
             </tr>
           )}
           {variants.map((variant) => (
-            <tr key={variant.id} className="group hover:bg-slate-50/80 transition-colors">
+            <tr key={variant.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
               <td className="py-3.5 px-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors border border-slate-200/60">
+                  <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors border border-slate-200/60 dark:border-slate-700">
                     <Package size={14} />
                   </div>
-                  <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{variant.product_name}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{variant.product_name}</span>
                 </div>
               </td>
               <td className="py-3.5 px-4">
                 {variant.size_eu > 0 ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                     T. {variant.size_eu}
                   </span>
                 ) : (
                   <span className="text-slate-400 font-mono text-xs">—</span>
                 )}
               </td>
-              <td className="py-3.5 px-4 text-sm text-slate-600 font-medium">
+              <td className="py-3.5 px-4 text-sm text-slate-600 dark:text-slate-300 font-medium">
                 {variant.colour === "N/A" || variant.colour === "Standard"
                   ? (variant.size_eu > 0 ? t("common.na") : "—")
                   : variant.colour}
@@ -481,13 +481,13 @@ function VariantTable({ variants, isLoading, canRestock, onOrder, onRestock }: V
                 <span
                   className={cn(
                     "font-mono font-bold tabular-nums text-sm",
-                    variant.stock_qty === 0 ? "text-red-600" : "text-amber-600"
+                    variant.stock_qty === 0 ? "text-red-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"
                   )}
                 >
                   {variant.stock_qty}
                 </span>
               </td>
-              <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">{variant.alert_threshold}</td>
+              <td className="py-3.5 px-4 text-end font-mono text-slate-500 dark:text-slate-400 tabular-nums text-sm">{variant.alert_threshold}</td>
               <td className="py-3.5 px-4">
                 {variant.stock_qty === 0 ? (
                   <span className="badge badge-danger">
@@ -506,7 +506,7 @@ function VariantTable({ variants, isLoading, canRestock, onOrder, onRestock }: V
                   {canRestock && (
                     <button
                       onClick={() => onRestock(variant)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 hover:text-emerald-800 dark:hover:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
                       title={t("inventory.quick_restock_title", "Réapprovisionnement rapide")}
                     >
                       <PlusCircle size={13} />
@@ -515,7 +515,7 @@ function VariantTable({ variants, isLoading, canRestock, onOrder, onRestock }: V
                   )}
                   <button
                     onClick={() => onOrder(variant)}
-                    className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-primary-600 hover:border-primary-300 rounded-lg cursor-pointer"
+                    className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 rounded-lg cursor-pointer"
                     title={t("inventory.order", "Commander")}
                   >
                     <ShoppingCart size={13} />
@@ -545,16 +545,16 @@ function ProductTable({ products, isLoading, canRestock, onOrder, onRestock }: P
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
-          <tr className="border-b border-slate-200/80 bg-slate-50/70">
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.reference")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.total_stock")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.global_threshold")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
-            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+          <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.product")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.reference")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.total_stock")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.global_threshold")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.status")}</th>
+            <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {isLoading && (
             <tr>
               <td colSpan={6} className="text-center py-12 text-slate-400">
@@ -569,34 +569,34 @@ function ProductTable({ products, isLoading, canRestock, onOrder, onRestock }: P
             <tr>
               <td colSpan={6} className="text-center py-12 text-slate-400">
                 <div className="flex flex-col items-center gap-2">
-                  <Package size={32} className="text-slate-300 stroke-[1.5]" />
+                  <Package size={32} className="text-slate-300 dark:text-slate-600 stroke-[1.5]" />
                   <span className="text-sm">{t("common.no_data")}</span>
                 </div>
               </td>
             </tr>
           )}
           {products.map((product) => (
-            <tr key={product.id} className="group hover:bg-slate-50/80 transition-colors">
+            <tr key={product.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
               <td className="py-3.5 px-4">
                 <Link to={`/inventory/products/${product.id}`} className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors border border-slate-200/60">
+                  <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors border border-slate-200/60 dark:border-slate-700">
                     <Package size={14} />
                   </div>
-                  <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{product.name}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{product.name}</span>
                 </Link>
               </td>
-              <td className="py-3.5 px-4 font-mono text-2xs text-slate-500">{product.reference || "—"}</td>
+              <td className="py-3.5 px-4 font-mono text-2xs text-slate-500 dark:text-slate-400">{product.reference || "—"}</td>
               <td className="py-3.5 px-4 text-end">
                 <span
                   className={cn(
                     "font-mono font-bold tabular-nums text-sm",
-                    product.total_stock === 0 ? "text-red-600" : "text-amber-600"
+                    product.total_stock === 0 ? "text-red-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"
                   )}
                 >
                   {product.total_stock}
                 </span>
               </td>
-              <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">{product.alert_threshold}</td>
+              <td className="py-3.5 px-4 text-end font-mono text-slate-500 dark:text-slate-400 tabular-nums text-sm">{product.alert_threshold}</td>
               <td className="py-3.5 px-4">
                 {product.total_stock === 0 ? (
                   <span className="badge badge-danger">
@@ -615,7 +615,7 @@ function ProductTable({ products, isLoading, canRestock, onOrder, onRestock }: P
                   {canRestock && (
                     <button
                       onClick={() => onRestock(product)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 hover:text-emerald-800 dark:hover:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
                       title={t("inventory.bulk_restock_title", "Réapprovisionner le modèle")}
                     >
                       <Boxes size={13} />
@@ -624,7 +624,7 @@ function ProductTable({ products, isLoading, canRestock, onOrder, onRestock }: P
                   )}
                   <button
                     onClick={() => onOrder(product)}
-                    className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-primary-600 hover:border-primary-300 rounded-lg cursor-pointer"
+                    className="btn-secondary btn-sm flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 rounded-lg cursor-pointer"
                     title={t("inventory.order", "Commander")}
                   >
                     <ShoppingCart size={13} />
@@ -720,15 +720,15 @@ export default function LowStockPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("inventory.low_stock_title")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("inventory.low_stock_desc")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("inventory.low_stock_title")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t("inventory.low_stock_desc")}</p>
         </div>
-        <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/80 self-start sm:self-auto">
+        <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab("products")}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer",
-              activeTab === "products" ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-800"
+              activeTab === "products" ? "bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             )}
           >
             {t("inventory.products_tab", "Produits")}
@@ -737,7 +737,7 @@ export default function LowStockPage() {
             onClick={() => setActiveTab("variants")}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer",
-              activeTab === "variants" ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-800"
+              activeTab === "variants" ? "bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             )}
           >
             {t("inventory.variants_tab", "Variantes")}
@@ -747,47 +747,47 @@ export default function LowStockPage() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t("inventory.out_of_stock_title")} ({activeTab === "products" ? t("inventory.products_tab", "Produits") : t("inventory.variants_tab", "Variantes")})
             </div>
-            <div className="text-3xl font-bold font-mono text-red-600 mt-1 tabular-nums">
+            <div className="text-3xl font-bold font-mono text-red-600 dark:text-rose-400 mt-1 tabular-nums">
               {currentLoading ? "..." : currentOutOfStockLength}
             </div>
-            <div className="text-xs text-slate-400 mt-0.5">{t("inventory.stock_zero")}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t("inventory.stock_zero")}</div>
           </div>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 text-red-600 border border-red-100 flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 dark:bg-rose-950/40 text-red-600 dark:text-rose-400 border border-red-100 dark:border-rose-900/50 flex-shrink-0">
             <AlertTriangle size={22} />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               En alerte ({activeTab === "products" ? t("inventory.products_tab", "Produits") : t("inventory.variants_tab", "Variantes")})
             </div>
-            <div className="text-3xl font-bold font-mono text-amber-600 mt-1 tabular-nums">
+            <div className="text-3xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1 tabular-nums">
               {currentLoading ? "..." : currentLowStockLength}
             </div>
-            <div className="text-xs text-slate-400 mt-0.5">Sous le seuil d'alerte</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Sous le seuil d'alerte</div>
           </div>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-100 flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 flex-shrink-0">
             <AlertTriangle size={22} />
           </div>
         </div>
       </div>
 
       {/* Out of stock section */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
-        <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
+        <div className="px-5 py-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/60">
           <div className="flex items-center gap-2.5">
             <span className="badge badge-danger font-mono font-bold">
               {currentOutOfStockLength}
             </span>
-            <h2 className="font-bold text-slate-900 text-sm">En rupture de stock</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">En rupture de stock</h2>
           </div>
-          <span className="text-xs font-medium text-slate-500">{t("inventory.stock_zero")}</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("inventory.stock_zero")}</span>
         </div>
         {activeTab === "products" ? (
           <ProductTable
@@ -809,15 +809,15 @@ export default function LowStockPage() {
       </div>
 
       {/* Low stock section */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
-        <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
+        <div className="px-5 py-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/60">
           <div className="flex items-center gap-2.5">
             <span className="badge badge-warning font-mono font-bold">
               {currentLowStockLength}
             </span>
-            <h2 className="font-bold text-slate-900 text-sm">{t("inventory.low_stock_status")}</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">{t("inventory.low_stock_status")}</h2>
           </div>
-          <span className="text-xs font-medium text-slate-500">Sous le seuil d'alerte</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Sous le seuil d'alerte</span>
         </div>
         {activeTab === "products" ? (
           <ProductTable

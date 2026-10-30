@@ -539,18 +539,18 @@ export default function StocktakePage() {
     return (
       <div className="space-y-5 pb-12 animate-in fade-in duration-200">
         {/* Top Header & Breadcrumb */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-border shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 card bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setActiveSessionId(null)}
-                className="text-xs font-semibold text-text-muted hover:text-text-primary transition-colors flex items-center gap-1"
+                className="text-xs font-semibold text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <ClipboardList size={14} />
                 Toutes les sessions
               </button>
               <ChevronRight size={14} className="text-text-muted" />
-              <span className="text-xs font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
+              <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 px-2 py-0.5 rounded-md">
                 Session active
               </span>
             </div>
@@ -573,7 +573,7 @@ export default function StocktakePage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => printVarianceReport(activeSession, storeName, t)}
-              className="btn-secondary btn-sm flex items-center gap-1.5"
+              className="btn-secondary btn-sm flex items-center gap-1.5 cursor-pointer"
               title={t("inventory.print_pv")}
             >
               <Printer size={15} />
@@ -587,7 +587,7 @@ export default function StocktakePage() {
                   setApplyKeepOpen(true);
                   setConfirmApply(true);
                 }}
-                className="btn-secondary btn-sm flex items-center gap-1.5 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                className="btn-secondary btn-sm flex items-center gap-1.5 border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 cursor-pointer"
                 title={t("inventory.apply_discrepancies_tooltip")}
               >
                 <Layers size={15} />
@@ -602,7 +602,7 @@ export default function StocktakePage() {
                   setApplyKeepOpen(false);
                   setConfirmApply(true);
                 }}
-                className="btn-primary btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                className="btn-primary btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 cursor-pointer"
               >
                 <CheckCircle2 size={15} />
                 {t("inventory.close_and_adjust", "Clôturer & Ajuster le Stock")}
@@ -613,19 +613,19 @@ export default function StocktakePage() {
 
         {/* Global KPIs Bar */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-          <div className="bg-white rounded-2xl p-4 border border-border shadow-xs flex flex-col justify-between">
+          <div className="card bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
             <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">{t("inventory.counted_stock")}</span>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-2xl font-black font-mono text-indigo-700">{activeSession.total_counted}</span>
+              <span className="text-2xl font-black font-mono text-indigo-700 dark:text-indigo-400">{activeSession.total_counted}</span>
               <span className="text-xs text-text-muted">{t("inventory.pairs", "paires")}</span>
             </div>
-            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 pt-2">
+            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 dark:border-slate-800 pt-2">
               <span>{t("inventory.theoretical_colon", "Théorique :")}</span>
               <span className="font-mono font-semibold">{activeSession.total_expected} {t("inventory.pairs", "paires")}</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border border-border shadow-xs flex flex-col justify-between">
+          <div className="card bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
             <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">{t("inventory.net_variance")}</span>
             <div className="flex items-baseline gap-2 mt-2">
               <span
@@ -638,13 +638,13 @@ export default function StocktakePage() {
               </span>
               <span className="text-xs text-text-muted">{t("inventory.pairs", "paires")}</span>
             </div>
-            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 pt-2">
+            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 dark:border-slate-800 pt-2">
               <span>{t("inventory.missing_pairs")}</span>
               <span className="font-mono text-rose-600 font-bold">-{stats.shortagesCount} refs</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border border-border shadow-xs flex flex-col justify-between">
+          <div className="card bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
             <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">{t("inventory.financial_impact_cost")}</span>
             <div className="flex items-baseline gap-1 mt-2">
               <span
@@ -661,19 +661,19 @@ export default function StocktakePage() {
               </span>
               <span className="text-xs text-text-muted font-sans font-bold">DZD</span>
             </div>
-            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 pt-2">
+            <div className="mt-2 text-2xs text-text-muted flex items-center justify-between border-t border-border/60 dark:border-slate-800 pt-2">
               <span>{t("inventory.surplus_pairs")}</span>
               <span className="font-mono text-emerald-600 font-bold">+{stats.surplusesCount} refs</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border border-border shadow-xs flex flex-col justify-between">
+          <div className="card bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
             <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">{t("inventory.coverage")}</span>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-2xl font-black font-mono text-primary-600">{stats.progressPct}%</span>
+              <span className="text-2xl font-black font-mono text-primary-600 dark:text-primary-400">{stats.progressPct}%</span>
               <span className="text-xs text-text-muted">({stats.scannedRefs}/{stats.totalRefs})</span>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
                 className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
                 style={{ width: `${stats.progressPct}%` }}
@@ -681,7 +681,7 @@ export default function StocktakePage() {
             </div>
           </div>
 
-          <div className="col-span-2 lg:col-span-1 bg-white rounded-2xl p-4 border border-border shadow-xs flex flex-col justify-between">
+          <div className="col-span-2 lg:col-span-1 card bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">{t("inventory.audio_mode")}</span>
               <button
@@ -1061,7 +1061,7 @@ export default function StocktakePage() {
         )}
 
         {/* ── LIVE INVENTORY TABLE & TRIAGE ───────────────────────────────── */}
-        <div className="bg-white rounded-3xl border border-border shadow-xs overflow-hidden">
+        <div className="card bg-white dark:bg-slate-900 rounded-3xl border border-border dark:border-slate-800 shadow-xs overflow-hidden">
           {/* Controls Bar */}
           <div className="p-4 sm:p-5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Triage Pills */}
@@ -1335,8 +1335,8 @@ export default function StocktakePage() {
         {/* Confirmation Modal to Apply Inventory */}
         {confirmApply && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-6 border-b border-border flex items-center justify-between bg-emerald-50/50">
+            <div className="card bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between bg-emerald-50/50 dark:bg-emerald-950/30">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-700">
                     <CheckCircle2 size={22} />
@@ -1545,8 +1545,8 @@ export default function StocktakePage() {
             <div
               key={sess.id}
               className={cn(
-                "bg-white rounded-3xl p-5 border border-border shadow-xs hover:shadow-md transition-all flex flex-col justify-between group",
-                isDone ? "border-emerald-200/80 bg-emerald-50/10" : ""
+                "card bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group",
+                isDone ? "border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/10 dark:bg-emerald-950/20" : ""
               )}
             >
               <div>
@@ -1581,7 +1581,7 @@ export default function StocktakePage() {
                       </span>
                     )}
                     {sess.notes && (
-                      <span className="text-3xs font-medium px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 line-clamp-1">
+                      <span className="text-3xs font-medium px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 line-clamp-1">
                         {sess.notes}
                       </span>
                     )}
@@ -1589,10 +1589,10 @@ export default function StocktakePage() {
                 )}
 
                 {/* Metrics */}
-                <div className="grid grid-cols-3 gap-2 bg-surface p-3 rounded-2xl border border-border mt-4 text-center">
+                <div className="grid grid-cols-3 gap-2 bg-surface dark:bg-slate-800/60 p-3 rounded-2xl border border-border dark:border-slate-700/60 mt-4 text-center">
                   <div>
                     <span className="text-3xs uppercase font-bold text-text-muted block">Compté</span>
-                    <span className="text-sm font-black font-mono text-indigo-700">{sess.total_counted}</span>
+                    <span className="text-sm font-black font-mono text-indigo-700 dark:text-indigo-400">{sess.total_counted}</span>
                   </div>
                   <div>
                     <span className="text-3xs uppercase font-bold text-text-muted block">Théorique</span>
@@ -1624,7 +1624,7 @@ export default function StocktakePage() {
                 <button
                   type="button"
                   onClick={() => printVarianceReport(sess, storeName, t)}
-                  className="btn-secondary btn-xs flex items-center gap-1 text-text-muted hover:text-text-primary"
+                  className="btn-secondary btn-xs flex items-center gap-1 text-text-muted hover:text-text-primary cursor-pointer"
                   title={t("inventory.print_pv", "Imprimer PV")}
                 >
                   <Printer size={13} />
@@ -1656,15 +1656,15 @@ export default function StocktakePage() {
         })}
 
         {sessions?.length === 0 && (
-          <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-border p-8">
-            <ClipboardList size={40} className="mx-auto text-slate-300 mb-3" />
+          <div className="col-span-full py-16 text-center card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8">
+            <ClipboardList size={40} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
             <h3 className="font-bold text-base text-text-primary">{t("inventory.no_sessions")}</h3>
             <p className="text-xs text-text-muted max-w-md mx-auto mt-1 mb-5">
               {t("inventory.no_sessions_hint", "Créez votre première session d'inventaire physique (partiel par scan libre, par rayon/marque, ou général).")}
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="btn-primary inline-flex items-center gap-2"
+              className="btn-primary inline-flex items-center gap-2 cursor-pointer"
             >
               <Plus size={16} />
               {t("inventory.start_stocktake", "Démarrer un Inventaire")}
@@ -1754,8 +1754,8 @@ function CreateStocktakeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
-        <div className="p-5 border-b border-border flex items-center justify-between bg-primary-50/50">
+      <div className="card bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
+        <div className="p-5 border-b border-border dark:border-slate-800 flex items-center justify-between bg-primary-50/50 dark:bg-primary-950/30">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
               <ClipboardList size={20} />
