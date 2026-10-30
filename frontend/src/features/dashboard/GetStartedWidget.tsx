@@ -54,6 +54,20 @@ export default function GetStartedWidget({ kpis, onDismiss }: Props) {
       setDemoFeedback(data.detail || t("dashboard.onboarding.demo_seeded_success", "Catalogue de test chargé avec succès !"));
       queryClient.invalidateQueries({ queryKey: ["dashboard", "kpis"] });
       queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (err) => {
+      setDemoFeedback(getApiError(err));
+    },
+  });
+
+  const clearDemoMutation = useMutation({
+    mutationFn: () => api.post("/inventory/products/clear-demo-catalog/").then((r) => r.data),
+    onSuccess: (data) => {
+      setDemoFeedback(data.detail || t("inventory.clear_demo_success", "Données de démonstration purgées avec succès."));
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (err) => {
       setDemoFeedback(getApiError(err));
@@ -245,6 +259,23 @@ export default function GetStartedWidget({ kpis, onDismiss }: Props) {
                 <p className="text-2xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
                   {demoFeedback}
                 </p>
+              )}
+
+              {kpis?.has_demo_catalog && (
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 flex items-center justify-between gap-2 text-2xs">
+                  <div className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                    <Sparkles size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="font-semibold">{t("inventory.demo_banner_title", "Catalogue de démonstration actif")}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => clearDemoMutation.mutate()}
+                    disabled={clearDemoMutation.isPending}
+                    className="font-bold text-amber-900 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
+                  >
+                    {clearDemoMutation.isPending ? t("common.loading", "Suppression...") : t("inventory.clear_demo_short_btn", "Vider le stock démo →")}
+                  </button>
+                </div>
               )}
             </div>
 

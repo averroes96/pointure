@@ -95,6 +95,7 @@ export interface Product {
   image: string | null;
   description: string;
   is_active: boolean;
+  is_demo?: boolean;
   alert_threshold: number;
   total_stock: number;
   has_low_stock: boolean;
@@ -735,6 +736,7 @@ export interface DashboardKPIs {
   product_count?: number;
   cashier_count?: number;
   sale_count?: number;
+  has_demo_catalog?: boolean;
 }
 
 export interface SalesByPeriodRow {

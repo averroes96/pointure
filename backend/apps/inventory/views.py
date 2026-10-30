@@ -390,8 +390,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             ("Basket Running Gel", "Asics", "sport", "U", 5900, 10500),
         ]
 
-        COLOURS = ["Noir", "Blanc", "Marron", "Bleu"]
-        SIZES = [39, 40, 41, 42, 43, 44]
+        COLOURS = ["Noir", "Blanc", "Marron"]
+        SIZES = [39, 40, 41, 42, 43, 44, 45]
 
         # Verify quota
         current_count = Product.objects.filter(tenant=tenant).count()
@@ -400,6 +400,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         created_count = 0
         with transaction.atomic():
             for name, brand, category, gender, purchase, sale in DEMO_MODELS:
+                ref_clean = f"DEMO-{brand[:3].upper()}-{name[:3].upper()}".replace(" ", "")
                 prod, p_created = Product.objects.get_or_create(
                     tenant=tenant,
                     name=name,
@@ -407,16 +408,28 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     defaults={
                         "category": category,
                         "gender": gender,
+                        "reference": ref_clean,
                         "purchase_price": Decimal(str(purchase)),
                         "sale_price": Decimal(str(sale)),
+                        "wholesale_price": Decimal(str(int(sale * 0.8))),
                         "alert_threshold": 3,
+                        "is_demo": True,
                     },
                 )
                 if p_created:
                     created_count += 1
+                elif not prod.is_demo:
+                    prod.is_demo = True
+                    prod.save(update_fields=["is_demo"])
 
                 for size in SIZES:
-                    for colour in COLOURS[:2]:  # 2 colours per model
+                    # Algerian footwear size distribution: 41, 42, 43 have higher stock
+                    if size in (41, 42, 43):
+                        qty_min, qty_max = 8, 14
+                    else:
+                        qty_min, qty_max = 4, 7
+
+                    for colour in COLOURS[:2]:  # 2 primary colours per shoe style
                         v, v_created = Variant.objects.get_or_create(
                             tenant=tenant,
                             product=prod,
@@ -429,7 +442,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                                 tenant=tenant,
                                 variant=v,
                                 branch=branch,
-                                quantity_delta=random.randint(4, 15),
+                                quantity_delta=random.randint(qty_min, qty_max),
                                 reason=MovementReasonChoices.INITIAL,
                                 user=request.user,
                                 notes="Stock initial démo onboarding",
@@ -440,6 +453,62 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             "created_count": created_count,
             "total_models": len(DEMO_MODELS),
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="clear-demo-catalog")
+    def clear_demo_catalog(self, request):
+        """
+        POST /inventory/products/clear-demo-catalog/
+        Purges all demo products, variants, stock movements, and test sales for the tenant.
+        """
+        self.require_manager()
+        from django.db import transaction
+        from apps.inventory.models import Product, Variant, StockMovement
+        from apps.sales.models import Sale
+
+        tenant = self._get_tenant()
+        if not tenant:
+            return Response({"detail": "Tenant introuvable."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            demo_prods = Product.objects.filter(tenant=tenant, is_demo=True)
+            demo_count = demo_prods.count()
+            if demo_count == 0:
+                return Response({
+                    "detail": "Aucun produit de démonstration à supprimer.",
+                    "deleted_count": 0,
+                })
+
+            demo_variants = Variant.objects.filter(product__in=demo_prods)
+
+            # Purge any test sales referencing demo variants
+            Sale.objects.filter(tenant=tenant, items__variant__in=demo_variants).delete()
+
+            # Purge stock movements for demo variants
+            StockMovement.objects.filter(tenant=tenant, variant__in=demo_variants).delete()
+
+            # Delete demo products (cascades to variants and product locations)
+            demo_prods.delete()
+
+        return Response({
+            "detail": f"{demo_count} produits démo et leurs mouvements ont été supprimés.",
+            "deleted_count": demo_count,
+        })
+
+    @action(detail=False, methods=["get"], url_path="demo-status")
+    def demo_status(self, request):
+        """
+        GET /inventory/products/demo-status/
+        Returns whether the tenant currently has active demo products.
+        """
+        tenant = self._get_tenant()
+        if not tenant:
+            return Response({"has_demo_catalog": False, "demo_product_count": 0})
+
+        demo_count = Product.objects.filter(tenant=tenant, is_demo=True, is_active=True).count()
+        return Response({
+            "has_demo_catalog": demo_count > 0,
+            "demo_product_count": demo_count,
+        })
 
     @action(detail=False, methods=["post"], url_path="import")
     def import_products(self, request):

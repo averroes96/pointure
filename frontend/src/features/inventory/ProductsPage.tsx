@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer, CheckCircle2, X, Filter } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, Upload, Tag, Trash2, Loader2, Printer, CheckCircle2, X, Filter, Sparkles } from "lucide-react";
 import api, { formatDZD, type PaginatedResponse } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
@@ -96,6 +96,24 @@ export default function ProductsPage() {
   const [bulkPriceModalOpen, setBulkPriceModalOpen] = useState(false);
   const [priceUpdateSuccessMessage, setPriceUpdateSuccessMessage] = useState<string | null>(null);
   const [lastUpdatedProductIds, setLastUpdatedProductIds] = useState<(number | string)[]>([]);
+
+  // Demo catalog status & clear state
+  const [showClearDemoConfirm, setShowClearDemoConfirm] = useState(false);
+  const { data: demoStatus } = useQuery<{ has_demo_catalog: boolean; demo_product_count: number }>({
+    queryKey: ["products", "demo-status"],
+    queryFn: () => api.get("/inventory/products/demo-status/").then((r) => r.data),
+  });
+
+  const clearDemoMutation = useMutation({
+    mutationFn: () => api.post("/inventory/products/clear-demo-catalog/").then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["products", "demo-status"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "kpis"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
+      setShowClearDemoConfirm(false);
+    },
+  });
 
   // Fetch distinct brands for filter dropdown
   const { data: brandsList = [] } = useQuery<string[]>({
@@ -264,9 +282,9 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.products")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> {t("inventory.product")} enregistrés
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.products")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> {t("inventory.product")} enregistrés
           </p>
         </div>
         {user?.role !== "cashier" && (
@@ -282,6 +300,77 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+
+      {/* Demo Catalog Active Banner */}
+      {demoStatus?.has_demo_catalog && (
+        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <span className="font-bold text-amber-950 dark:text-amber-200">
+                {t("inventory.demo_banner_title", "Catalogue de démonstration actif")}
+              </span>
+              <p className="text-amber-800/80 dark:text-amber-300/80 text-2xs mt-0.5">
+                {t("inventory.demo_banner_desc", "Ce stock d'essai vous permet de tester la caisse, les codes-barres et l'impression.")}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowClearDemoConfirm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-950 dark:text-amber-200 bg-amber-200/60 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-900/80 border border-amber-300 dark:border-amber-800 transition-colors shrink-0 cursor-pointer"
+          >
+            <Trash2 size={13} className="text-amber-800 dark:text-amber-300" />
+            <span>{t("inventory.clear_demo_btn", "Supprimer les données démo pour saisir le stock réel")}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Clear Demo Confirmation Modal */}
+      {showClearDemoConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {t("inventory.clear_demo_confirm_title", "Purger le catalogue démo ?")}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t("inventory.clear_demo_confirm_desc", "Cette action supprimera tous les articles d'essai, leurs mouvements de stock et ventes de test. Vos vrais articles saisis ne seront pas affectés.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowClearDemoConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                {t("common.cancel", "Annuler")}
+              </button>
+              <button
+                type="button"
+                disabled={clearDemoMutation.isPending}
+                onClick={() => clearDemoMutation.mutate()}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {clearDemoMutation.isPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                <span>{t("inventory.clear_demo_confirm_btn", "Confirmer et vider la démo")}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Price Update Success Notification Banner */}
       {priceUpdateSuccessMessage && (

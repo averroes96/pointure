@@ -101,6 +101,7 @@ class Product(TenantScopedModel):
     pairs_per_carton = models.PositiveIntegerField(_("Pairs per Carton"), default=10)
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)
     is_active = models.BooleanField(_("Active"), default=True)
+    is_demo = models.BooleanField(_("Demo Product"), default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

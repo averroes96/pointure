@@ -66,6 +66,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         product_count = Product.objects.filter(tenant=tenant, is_active=True).count()
         cashier_count = User.objects.filter(tenant=tenant, role="cashier", is_active=True).count()
         sale_count = Sale.objects.filter(tenant=tenant, status="completed").count()
+        has_demo_catalog = Product.objects.filter(tenant=tenant, is_demo=True, is_active=True).exists()
 
         return Response({
             "today_revenue": today_sales,
@@ -76,6 +77,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             "product_count": product_count,
             "cashier_count": cashier_count,
             "sale_count": sale_count,
+            "has_demo_catalog": has_demo_catalog,
         })
 
     @action(detail=False, methods=["get"], url_path="sales-by-period")
