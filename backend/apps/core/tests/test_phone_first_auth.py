@@ -262,3 +262,113 @@ class TestPhoneOrEmailLoginApi:
         assert resp.status_code == 400
 
 
+@pytest.mark.django_db
+class TestFirstRunSetupView:
+    """Test first-run onboarding setup wizard with phone-first admin account."""
+
+    def test_setup_with_phone_only_succeeds(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant
+
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "Boutique Chaussure Alger",
+                "wilaya": "16",
+                "address": "Didouche Mourad, Alger",
+                "admin_phone": "0555 12 34 56",
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 201
+            assert resp.data["phone"] == "0555123456"
+            assert resp.data["phone_display"] == "0555 12 34 56"
+            assert resp.data["email"] == ""
+
+            # Verify database state
+            tenant = Tenant.objects.get(name="Boutique Chaussure Alger")
+            assert tenant.wilaya == "16"
+            assert tenant.address == "Didouche Mourad, Alger"
+            assert tenant.phone == "0555123456"
+
+            owner = User.objects.get(tenant=tenant)
+            assert owner.phone == "0555123456"
+            assert owner.email is None
+            assert owner.role == "owner"
+            assert owner.check_password("strongpassword123")
+
+    def test_setup_with_phone_and_email_succeeds(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant
+
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "Oran Footwear",
+                "wilaya": "31",
+                "admin_phone": "+213 661 23 45 67",
+                "admin_email": "owner@oranfootwear.dz",
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 201
+            assert resp.data["phone"] == "0661234567"
+            assert resp.data["email"] == "owner@oranfootwear.dz"
+
+            owner = User.objects.get(phone="0661234567")
+            assert owner.email == "owner@oranfootwear.dz"
+
+    def test_setup_missing_phone_fails(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "Oran Footwear",
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 400
+            assert "admin_phone" in resp.data
+
+    def test_setup_invalid_phone_fails(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "Oran Footwear",
+                "admin_phone": "0123456789",  # Invalid prefix
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 400
+            assert "admin_phone" in resp.data
+
+    def test_setup_when_tenant_already_exists_fails_403(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant
+
+        Tenant.objects.create(name="Existing Store", is_active=True)
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "New Store",
+                "admin_phone": "0555123456",
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 403
+
+
+

@@ -46,7 +46,9 @@ class SetupView(APIView):
         data = request.data
         business_name = (data.get("business_name") or "").strip()
         wilaya = (data.get("wilaya") or "").strip()
-        phone = (data.get("phone") or "").strip()
+        address = (data.get("address") or "").strip()
+        admin_phone = (data.get("admin_phone") or data.get("phone") or "").strip()
+        store_phone = (data.get("store_phone") or data.get("phone") or admin_phone).strip()
         admin_email = (data.get("admin_email") or "").strip().lower()
         admin_password = data.get("admin_password", "")
         confirm_password = data.get("confirm_password", "")
@@ -55,8 +57,34 @@ class SetupView(APIView):
         errors = {}
         if not business_name:
             errors["business_name"] = "Obligatoire."
-        if not admin_email or "@" not in admin_email:
-            errors["admin_email"] = "Email invalide."
+
+        from apps.core.utils.phone import (
+            is_valid_algerian_phone,
+            normalize_algerian_phone,
+            format_algerian_phone_display,
+        )
+
+        if not admin_phone:
+            errors["admin_phone"] = "Numéro de téléphone obligatoire."
+        elif not is_valid_algerian_phone(admin_phone):
+            errors["admin_phone"] = "Numéro de téléphone algérien invalide (ex: 0555 12 34 56 ou +213 555 12 34 56)."
+        else:
+            admin_phone = normalize_algerian_phone(admin_phone)
+            if User.objects.filter(phone=admin_phone).exists():
+                errors["admin_phone"] = "Ce numéro de téléphone est déjà utilisé."
+
+        if admin_email:
+            from django.core.validators import validate_email
+            from django.core.exceptions import ValidationError
+            try:
+                validate_email(admin_email)
+                if User.objects.filter(email__iexact=admin_email).exists():
+                    errors["admin_email"] = "Cette adresse email est déjà utilisée."
+            except ValidationError:
+                errors["admin_email"] = "Adresse email invalide."
+        else:
+            admin_email = None
+
         if len(admin_password) < 8:
             errors["admin_password"] = "Au moins 8 caractères."
         if admin_password != confirm_password:
@@ -68,11 +96,13 @@ class SetupView(APIView):
             tenant = Tenant.objects.create(
                 name=business_name,
                 wilaya=wilaya,
-                phone=phone,
+                phone=normalize_algerian_phone(store_phone) if store_phone else "",
+                address=address,
                 plan="pro_retail",
                 is_active=True,
             )
             user = User(
+                phone=admin_phone,
                 email=admin_email,
                 first_name="Admin",
                 tenant=tenant,
@@ -109,7 +139,9 @@ class SetupView(APIView):
         return Response(
             {
                 "detail": "Installation terminée. Vous pouvez maintenant vous connecter.",
-                "email": admin_email,
+                "phone": admin_phone,
+                "phone_display": format_algerian_phone_display(admin_phone),
+                "email": admin_email or "",
             },
             status=http_status.HTTP_201_CREATED,
         )

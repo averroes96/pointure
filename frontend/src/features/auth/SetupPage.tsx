@@ -1,17 +1,24 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Loader2, Smartphone } from "lucide-react";
 import api from "@/lib/api";
 import { useWilayas } from "@/hooks/useLocationData";
 import { cn } from "@/lib/utils";
+import {
+  isValidAlgerianPhone,
+  normalizeAlgerianPhone,
+  formatAlgerianPhoneDisplay,
+} from "@/lib/phone";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
 interface FormState {
   business_name: string;
   wilaya: string;
+  address: string;
   phone: string;
+  admin_phone: string;
   admin_email: string;
   admin_password: string;
   confirm_password: string;
@@ -57,7 +64,9 @@ export default function SetupPage() {
   const [form, setForm] = useState<FormState>({
     business_name: "",
     wilaya: "",
+    address: "",
     phone: "",
+    admin_phone: "",
     admin_email: "",
     admin_password: "",
     confirm_password: "",
@@ -68,6 +77,7 @@ export default function SetupPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [donePhone, setDonePhone] = useState("");
   const [doneEmail, setDoneEmail] = useState("");
   const [globalError, setGlobalError] = useState("");
 
@@ -104,8 +114,19 @@ export default function SetupPage() {
   // ── Step 2 validation ──────────────────────────────────────────────────────
   const validateStep2 = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!form.admin_email.trim() || !form.admin_email.includes("@"))
-      errs.admin_email = "Adresse email invalide.";
+    const adminPhone = form.admin_phone.trim();
+    if (!adminPhone) {
+      errs.admin_phone = "Le numéro de téléphone est obligatoire.";
+    } else if (!isValidAlgerianPhone(adminPhone)) {
+      errs.admin_phone = "Numéro de téléphone algérien invalide (ex: 0555 12 34 56 ou +213 555 12 34 56).";
+    }
+
+    if (form.admin_email.trim()) {
+      if (!form.admin_email.includes("@") || !form.admin_email.includes(".")) {
+        errs.admin_email = "Format d'adresse email invalide.";
+      }
+    }
+
     if (form.admin_password.length < 8)
       errs.admin_password = "Le mot de passe doit contenir au moins 8 caractères.";
     if (form.admin_password !== form.confirm_password)
@@ -136,7 +157,9 @@ export default function SetupPage() {
       const payload: Record<string, string> = {
         business_name: form.business_name.trim(),
         wilaya: form.wilaya,
-        phone: form.phone.trim(),
+        address: form.address.trim(),
+        phone: form.phone.trim() || form.admin_phone.trim(),
+        admin_phone: normalizeAlgerianPhone(form.admin_phone.trim()),
         admin_email: form.admin_email.trim().toLowerCase(),
         admin_password: form.admin_password,
         confirm_password: form.confirm_password,
@@ -146,7 +169,8 @@ export default function SetupPage() {
       }
 
       const response = await api.post("/setup/", payload);
-      setDoneEmail(response.data.email ?? form.admin_email.trim().toLowerCase());
+      setDonePhone(response.data.phone_display || formatAlgerianPhoneDisplay(response.data.phone || form.admin_phone));
+      setDoneEmail(response.data.email || form.admin_email.trim().toLowerCase());
       setDone(true);
     } catch (err: unknown) {
       if (
@@ -161,10 +185,10 @@ export default function SetupPage() {
           setErrors(data as Record<string, string>);
           // If it's a Step 1/2 field error, go back to the relevant step
           const fieldKeys = Object.keys(data as object);
-          if (fieldKeys.some((k) => ["business_name"].includes(k))) setStep(1);
+          if (fieldKeys.some((k) => ["business_name", "wilaya", "address", "phone"].includes(k))) setStep(1);
           else if (
             fieldKeys.some((k) =>
-              ["admin_email", "admin_password", "confirm_password"].includes(k)
+              ["admin_phone", "admin_email", "admin_password", "confirm_password"].includes(k)
             )
           )
             setStep(2);
@@ -200,17 +224,30 @@ export default function SetupPage() {
             <h2 className="text-xl font-bold text-text-primary mb-2">
               Installation terminée !
             </h2>
-            <p className="text-text-muted text-sm mb-1">
-              Votre compte administrateur a été créé.
+            <p className="text-text-muted text-sm mb-4">
+              Votre boutique et votre compte administrateur sont prêts.
             </p>
-            <p className="text-sm font-medium text-text-primary mb-6">
-              {doneEmail}
-            </p>
+
+            <div className="bg-surface-muted border border-border rounded-xl p-4 mb-6 text-start">
+              <div className="text-xs uppercase tracking-wider text-text-muted font-semibold mb-1">
+                Identifiant de connexion principal
+              </div>
+              <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-mono font-bold text-lg">
+                <Smartphone size={20} />
+                <span>{donePhone}</span>
+              </div>
+              {doneEmail && (
+                <div className="text-xs text-text-muted mt-2 pt-2 border-t border-border">
+                  Email de secours : <span className="font-medium text-text-primary">{doneEmail}</span>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => navigate("/login", { replace: true })}
               className="btn-primary w-full justify-center py-2.5"
             >
-              Connectez-vous maintenant
+              Se connecter maintenant
             </button>
           </div>
         </div>
@@ -285,10 +322,25 @@ export default function SetupPage() {
                   </select>
                 </div>
 
-                {/* Phone */}
+                {/* Store Address */}
+                <div>
+                  <label className="form-label" htmlFor="address">
+                    Adresse de la boutique
+                  </label>
+                  <input
+                    id="address"
+                    type="text"
+                    value={form.address}
+                    onChange={set("address")}
+                    className="form-input"
+                    placeholder="Ex : 12 Rue Didouche Mourad"
+                  />
+                </div>
+
+                {/* Store Phone */}
                 <div>
                   <label className="form-label" htmlFor="phone">
-                    Téléphone
+                    Téléphone du magasin
                   </label>
                   <input
                     id="phone"
@@ -296,7 +348,7 @@ export default function SetupPage() {
                     value={form.phone}
                     onChange={set("phone")}
                     className="form-input"
-                    placeholder="Ex : 0555 12 34 56"
+                    placeholder="Ex : 021 23 45 67 ou 0555 12 34 56"
                   />
                 </div>
               </div>
@@ -325,20 +377,55 @@ export default function SetupPage() {
               </p>
 
               <div className="space-y-4">
-                {/* Email */}
+                {/* Admin Phone */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="form-label mb-0" htmlFor="admin_phone">
+                      Téléphone de l'administrateur <span className="text-danger">*</span>
+                    </label>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
+                      🇩🇿 05 / 06 / 07 / 02
+                    </span>
+                  </div>
+                  <input
+                    id="admin_phone"
+                    type="tel"
+                    value={form.admin_phone}
+                    onChange={set("admin_phone")}
+                    className={cn(
+                      "form-input",
+                      errors.admin_phone && "border-danger focus:border-danger focus:ring-danger/30"
+                    )}
+                    placeholder="Ex : 0555 12 34 56 ou +213 555 12 34 56"
+                    autoFocus
+                  />
+                  <p className="text-xs text-text-muted mt-1">
+                    Votre identifiant principal pour vous connecter à ShoeDZ.
+                  </p>
+                  {errors.admin_phone && (
+                    <p className="form-error">{errors.admin_phone}</p>
+                  )}
+                </div>
+
+                {/* Email (Facultatif) */}
                 <div>
                   <label className="form-label" htmlFor="admin_email">
-                    Email <span className="text-danger">*</span>
+                    Email <span className="text-text-muted font-normal">(Facultatif)</span>
                   </label>
                   <input
                     id="admin_email"
                     type="email"
                     value={form.admin_email}
                     onChange={set("admin_email")}
-                    className={cn("form-input", errors.admin_email && "border-danger focus:border-danger focus:ring-danger/30")}
+                    className={cn(
+                      "form-input",
+                      errors.admin_email && "border-danger focus:border-danger focus:ring-danger/30"
+                    )}
                     placeholder="admin@votreboutique.dz"
-                    autoFocus
                   />
+                  <p className="text-xs text-text-muted mt-1">
+                    Optionnel — pour recevoir les rapports d'activité et sauvegardes par email.
+                  </p>
                   {errors.admin_email && (
                     <p className="form-error">{errors.admin_email}</p>
                   )}
