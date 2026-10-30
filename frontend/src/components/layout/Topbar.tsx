@@ -40,10 +40,10 @@ const NOTIF_ICON: Record<string, LucideIcon> = {
 };
 
 const NOTIF_ACCENT: Record<string, string> = {
-  cheque_due: "text-yellow-500 bg-yellow-50",
-  low_stock: "text-orange-500 bg-orange-50",
-  invoice_overdue: "text-red-500 bg-red-50",
-  general: "text-blue-500 bg-blue-50",
+  cheque_due: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
+  low_stock: "text-orange-500 bg-orange-50 dark:bg-orange-950/40",
+  invoice_overdue: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
+  general: "text-blue-500 bg-blue-50 dark:bg-blue-950/40",
 };
 
 export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
@@ -84,6 +84,15 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   const markReadMutation = useMutation({
     mutationFn: (id: number) =>
       api.post(`/notifications/${id}/mark-read/`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () =>
+      api.post("/notifications/mark-all-read/").then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
