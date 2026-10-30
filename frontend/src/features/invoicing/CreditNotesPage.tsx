@@ -36,9 +36,9 @@ export default function CreditNotesPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.credit_notes")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> avoir(s) émis
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.credit_notes")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> avoir(s) émis
           </p>
         </div>
         <Link
@@ -60,17 +60,17 @@ export default function CreditNotesPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="input w-full ps-9 rounded-xl border-slate-200 focus:border-primary-500 focus:ring-primary-500/20 text-sm"
+          className="input w-full ps-9 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-primary-500 focus:ring-primary-500/20 text-sm"
           placeholder={t("invoice.search_credit_client")}
         />
       </div>
 
       {/* ── Table ── */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <th className="px-4 py-3.5 text-start">{t("invoice.credit_number")}</th>
                 <th className="px-4 py-3.5 text-start">{t("invoice.client")}</th>
                 <th className="px-4 py-3.5 text-start">{t("invoice.original_invoice")}</th>
@@ -80,7 +80,7 @@ export default function CreditNotesPage() {
                 <th className="px-4 py-3.5 text-end">{t("invoice.total_ttc")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-slate-400">
@@ -99,48 +99,48 @@ export default function CreditNotesPage() {
                 </tr>
               )}
               {credits.map((credit) => (
-                <tr key={credit.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={credit.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   {/* N°Avoir */}
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
                       <FileX size={15} className="text-slate-400 shrink-0" />
-                      <span className="font-mono font-semibold text-slate-900">
+                      <span className="font-mono font-semibold text-slate-900 dark:text-white">
                         {credit.number || `AV-${credit.id}`}
                       </span>
                     </div>
                   </td>
 
                   {/* Client */}
-                  <td className="px-4 py-3.5 font-medium text-slate-900">
+                  <td className="px-4 py-3.5 font-medium text-slate-900 dark:text-white">
                     {credit.client_name || "—"}
                   </td>
 
                   {/* Facture d'origine */}
                   <td className="px-4 py-3.5">
-                    <span className="font-mono text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
+                    <span className="font-mono text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 px-2 py-0.5 rounded-md">
                       {credit.original_invoice_number || `#${credit.original_invoice}`}
                     </span>
                   </td>
 
                   {/* Date */}
-                  <td className="px-4 py-3.5 text-slate-500 text-xs font-mono">{formatDate(credit.date)}</td>
+                  <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs font-mono">{formatDate(credit.date)}</td>
 
                   {/* Motif */}
-                  <td className="px-4 py-3.5 text-sm text-slate-500 max-w-[200px]">
+                  <td className="px-4 py-3.5 text-sm text-slate-500 dark:text-slate-400 max-w-[200px]">
                     <span className="truncate block" title={credit.reason || undefined}>
                       {truncateReason(credit.reason)}
                     </span>
                   </td>
 
                   {/* Montant HT */}
-                  <td className="px-4 py-3.5 text-end font-mono font-semibold text-sm text-slate-800 tabular-nums">
+                  <td className="px-4 py-3.5 text-end font-mono font-semibold text-sm text-slate-800 dark:text-slate-200 tabular-nums">
                     {formatDZD(credit.total_ht)}{" "}
                     <span className="text-2xs text-slate-400 font-normal">DZD</span>
                   </td>
 
                   {/* Total TTC (displayed as negative) */}
                   <td className="px-4 py-3.5 text-end">
-                    <span className="font-mono text-sm text-rose-600 font-bold tabular-nums">
+                    <span className="font-mono text-sm text-rose-600 dark:text-rose-400 font-bold tabular-nums">
                       − {formatDZD(credit.total_ttc)}{" "}
                       <span className="text-2xs font-normal opacity-70">DZD</span>
                     </span>
@@ -153,9 +153,9 @@ export default function CreditNotesPage() {
 
         {/* ── Pagination ── */}
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <span className="text-xs font-medium text-slate-500">
-              {t("common.page")} <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count}
+          <div className="px-4 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("common.page")} <span className="font-semibold text-slate-800 dark:text-slate-200">{data.current_page}</span> / {data.total_pages} · {data.count}
             </span>
             <div className="flex gap-2">
               <button

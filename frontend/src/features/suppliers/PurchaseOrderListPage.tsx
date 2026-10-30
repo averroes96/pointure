@@ -23,11 +23,11 @@ const STATUS_TABS: { value: POStatus | ""; label: string }[] = [
 ];
 
 const STATUS_BADGE: Record<POStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
-  sent: "bg-blue-50 text-blue-700 border-blue-200",
-  partial: "bg-amber-50 text-amber-800 border-amber-200",
-  received: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  cancelled: "bg-rose-50 text-rose-700 border-rose-200",
+  draft: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  sent: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60",
+  partial: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+  received: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+  cancelled: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
 };
 
 const STATUS_LABEL: Record<POStatus, string> = {
@@ -61,9 +61,9 @@ export default function PurchaseOrderListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.purchase_orders")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> bon(s) de commande fournisseur
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.purchase_orders")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> bon(s) de commande fournisseur
           </p>
         </div>
         <Link to="/purchase-orders/new" className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
@@ -73,7 +73,7 @@ export default function PurchaseOrderListPage() {
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80">
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl max-w-fit overflow-x-auto border border-slate-200/80 dark:border-slate-700">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -81,8 +81,8 @@ export default function PurchaseOrderListPage() {
             className={cn(
               "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap",
               status === tab.value
-                ? "bg-white text-slate-900 shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             )}
           >
             {tab.label}
@@ -98,29 +98,29 @@ export default function PurchaseOrderListPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
+          className="form-input ps-9 pe-12 bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
           placeholder={t("supplier.search_po")}
         />
-        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
           F2
         </kbd>
       </div>
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.supplier")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.reference")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.expected_date")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Statut</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.total")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">Actions</th>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.supplier")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.reference")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.expected_date")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.total")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-400 text-sm">Chargement...</td>
@@ -132,11 +132,11 @@ export default function PurchaseOrderListPage() {
                 </tr>
               )}
               {orders.map((po) => (
-                <tr key={po.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={po.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-4 py-3.5">
                     <Link
                       to={`/purchase-orders/${po.id}`}
-                      className="font-semibold text-slate-900 hover:text-primary-600 transition-colors font-sans flex items-center gap-2"
+                      className="font-semibold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-sans flex items-center gap-2"
                     >
                       <ShoppingBag size={14} className="text-slate-400 shrink-0" />
                       <span>{po.supplier_name}</span>
@@ -144,22 +144,22 @@ export default function PurchaseOrderListPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     {po.reference ? (
-                      <span className="font-mono font-medium text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                      <span className="font-mono font-medium text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">
                         {po.reference}
                       </span>
                     ) : (
-                      <span className="text-slate-300 text-xs italic">{t("supplier.unspecified_reference")}</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs italic">{t("supplier.unspecified_reference")}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 text-xs font-mono">
-                    {po.expected_date ? formatDate(po.expected_date) : <span className="text-slate-300">—</span>}
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400 text-xs font-mono">
+                    {po.expected_date ? formatDate(po.expected_date) : <span className="text-slate-400 dark:text-slate-600">—</span>}
                   </td>
                   <td className="px-4 py-3.5">
                     <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-semibold border", STATUS_BADGE[po.status])}>
                       {STATUS_LABEL[po.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
+                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
                     {formatDZD(po.total_amount)}{" "}
                     <span className="text-2xs text-slate-400 font-normal">DZD</span>
                   </td>
@@ -168,7 +168,7 @@ export default function PurchaseOrderListPage() {
                       {po.status === "draft" && (
                         <Link
                           to={`/purchase-orders/${po.id}/edit`}
-                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title="Modifier le brouillon"
                         >
                           <Edit2 size={13} />
@@ -176,7 +176,7 @@ export default function PurchaseOrderListPage() {
                       )}
                       <Link
                         to={`/purchase-orders/${po.id}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 bg-primary-50/70 hover:bg-primary-100/70 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 dark:text-primary-300 bg-primary-50/70 dark:bg-primary-950/50 hover:bg-primary-100/70 dark:hover:bg-primary-900/50 transition-colors"
                       >
                         {t("common.view")}
                       </Link>
@@ -189,9 +189,9 @@ export default function PurchaseOrderListPage() {
         </div>
 
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <span className="text-xs font-medium text-slate-500">
-              Page <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count} commandes
+          <div className="px-4 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Page <span className="font-semibold text-slate-800 dark:text-slate-200">{data.current_page}</span> / {data.total_pages} · {data.count} commandes
             </span>
             <div className="flex gap-2">
               <button

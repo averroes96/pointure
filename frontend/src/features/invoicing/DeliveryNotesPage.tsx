@@ -81,16 +81,16 @@ export default function DeliveryNotesPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.delivery_notes")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> bon(s) de livraison
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.delivery_notes")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> bon(s) de livraison
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           {selectedIds.length > 0 && (
             <button
               onClick={handleRegrouper}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors shadow-2xs"
             >
               <Layers size={15} />
               Regrouper ({selectedIds.length})
@@ -108,9 +108,9 @@ export default function DeliveryNotesPage() {
 
       {/* PDF error */}
       {pdfError && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 shadow-2xs">
+        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-sm text-rose-700 dark:text-rose-300 shadow-2xs">
           <span className="flex-1 font-medium">{pdfError}</span>
-          <button onClick={() => setPdfError(null)} className="text-rose-500 hover:text-rose-700 font-bold">✕</button>
+          <button onClick={() => setPdfError(null)} className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 font-bold">✕</button>
         </div>
       )}
 
@@ -122,20 +122,20 @@ export default function DeliveryNotesPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="input w-full ps-9 pe-12 rounded-xl border-slate-200 focus:border-primary-500 focus:ring-primary-500/20 text-sm"
+          className="input w-full ps-9 pe-12 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-primary-500 focus:ring-primary-500/20 text-sm"
           placeholder={t("invoice.search_bl_client")}
         />
-        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-slate-100 border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded shadow-2xs pointer-events-none">
+        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded shadow-2xs pointer-events-none">
           F2
         </kbd>
       </div>
 
       {/* ── Table ── */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <th className="w-10 px-4 py-3.5 text-center"></th>
                 <th className="px-4 py-3.5 text-start">{t("invoice.bl_number")}</th>
                 <th className="px-4 py-3.5 text-start">{t("invoice.client")}</th>
@@ -146,7 +146,7 @@ export default function DeliveryNotesPage() {
                 <th className="px-4 py-3.5 text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400">
@@ -171,13 +171,13 @@ export default function DeliveryNotesPage() {
                     key={note.id}
                     className={cn(
                       "transition-colors",
-                      isSelected ? "bg-primary-50/60" : "hover:bg-slate-50/70"
+                      isSelected ? "bg-primary-50/60 dark:bg-primary-950/40" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/50"
                     )}
                   >
                     <td className="px-4 py-3.5 text-center">
                       <input 
                         type="checkbox" 
-                        className="rounded border-slate-300 text-primary-600 focus:ring-primary-500/20 cursor-pointer"
+                        className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-primary-600 focus:ring-primary-500/20 cursor-pointer"
                         disabled={!!note.invoice}
                         checked={isSelected}
                         onChange={() => toggleSelection(note.id)}
@@ -186,36 +186,36 @@ export default function DeliveryNotesPage() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <Truck size={15} className="text-slate-400 shrink-0" />
-                        <span className="font-mono font-semibold text-slate-900">
+                        <span className="font-mono font-semibold text-slate-900 dark:text-white">
                           {note.number || `BL-${note.id}`}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 font-medium text-slate-900">
+                    <td className="px-4 py-3.5 font-medium text-slate-900 dark:text-white">
                       {note.client_name || "—"}
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500 text-xs font-mono">{formatDate(note.date)}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs font-mono">{formatDate(note.date)}</td>
                     <td className="px-4 py-3.5">
                       {note.invoice_number || note.invoice ? (
-                        <span className="font-mono text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
+                        <span className="font-mono text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 px-2 py-0.5 rounded-md">
                           {note.invoice_number || `#${note.invoice}`}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">{t("invoice.not_invoiced")}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 italic">{t("invoice.not_invoiced")}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
+                    <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
                       {formatDZD(note.invoice_total_ht)}{" "}
                       <span className="text-2xs text-slate-400 font-normal">DZD</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-600 text-xs font-medium">
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-xs font-medium">
                       {note.delivered_by || "—"}
                     </td>
                     <td className="px-4 py-3.5 text-end">
                       <button
                         onClick={() => openPdf(note.id, note.number)}
                         disabled={loadingPdfId === note.id}
-                        className="p-1.5 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 inline-flex items-center"
+                        className="p-1.5 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-950/40 rounded-lg transition-colors disabled:opacity-50 inline-flex items-center"
                         title={t("invoice.download_pdf")}
                       >
                         {loadingPdfId === note.id
@@ -232,9 +232,9 @@ export default function DeliveryNotesPage() {
         </div>
 
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <span className="text-xs font-medium text-slate-500">
-              {t("common.page")} <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count} {t("invoice.bl_number")}
+          <div className="px-4 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("common.page")} <span className="font-semibold text-slate-800 dark:text-slate-200">{data.current_page}</span> / {data.total_pages} · {data.count} {t("invoice.bl_number")}
             </span>
             <div className="flex gap-2">
               <button

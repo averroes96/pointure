@@ -82,9 +82,9 @@ export default function InvoiceListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.invoice_list")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> factures enregistrées
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.invoice_list")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> factures enregistrées
           </p>
         </div>
         <a href="/invoices/new" className="btn-primary rounded-xl shadow-xs shadow-primary-500/20">
@@ -95,9 +95,9 @@ export default function InvoiceListPage() {
 
       {/* PDF error banner */}
       {pdfError && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-medium text-rose-700 animate-in fade-in">
+        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs font-medium text-rose-700 dark:text-rose-300 animate-in fade-in">
           <span className="flex-1">{pdfError}</span>
-          <button onClick={() => setPdfError(null)} className="text-rose-500 hover:text-rose-800">✕</button>
+          <button onClick={() => setPdfError(null)} className="text-rose-500 hover:text-rose-800 dark:hover:text-rose-300">✕</button>
         </div>
       )}
 
@@ -110,17 +110,17 @@ export default function InvoiceListPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
+            className="form-input ps-9 pe-12 bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
             placeholder={t("invoice.search_placeholder")}
           />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
             F2
           </kbd>
         </div>
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="form-input max-w-[170px] bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
+          className="form-input max-w-[170px] bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20 text-xs"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -130,35 +130,35 @@ export default function InvoiceListPage() {
 
       {/* Summary */}
       {totalDue > 0 && (
-        <div className="rounded-2xl border border-amber-200/90 bg-amber-50/70 px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-900">
+        <div className="rounded-2xl border border-amber-200/90 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             {t("invoice.total_balance_due_page")}
           </div>
-          <span className="font-mono font-bold text-base text-amber-900 tabular-nums">
-            {formatDZD(totalDue)} <span className="text-xs font-normal text-amber-700">DZD</span>
+          <span className="font-mono font-bold text-base text-amber-900 dark:text-amber-200 tabular-nums">
+            {formatDZD(totalDue)} <span className="text-xs font-normal text-amber-700 dark:text-amber-400">DZD</span>
           </span>
         </div>
       )}
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.number")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.client")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.creation")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.date")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.due_date")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.status")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("invoice.total_ttc")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("invoice.balance_due")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.number")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.client")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.creation")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.date")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.due_date")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.status")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("invoice.total_ttc")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("invoice.balance_due")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={9} className="text-center py-12 text-slate-400 text-sm">{t("common.loading")}</td>
@@ -170,33 +170,33 @@ export default function InvoiceListPage() {
                 </tr>
               )}
               {invoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={invoice.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
                       <FileText size={14} className="text-slate-400 shrink-0" />
-                      <span className="font-mono font-semibold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                      <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">
                         {invoice.number || `#${invoice.id}`}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 font-semibold text-slate-900 font-sans text-sm">
+                  <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white font-sans text-sm">
                     {invoice.client_name ? (
-                      <Link to={`/clients/${invoice.client}`} className="hover:text-primary-600 transition-colors">
+                      <Link to={`/clients/${invoice.client}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                         {invoice.client_name}
                       </Link>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-slate-300 dark:text-slate-600">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 text-slate-500 text-xs font-mono">
+                  <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs font-mono">
                     {new Date(invoice.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 text-xs font-mono">{formatDate(invoice.date)}</td>
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400 text-xs font-mono">{formatDate(invoice.date)}</td>
                   <td className="px-4 py-3.5">
                     <span
                       className={cn(
                         "text-xs font-mono",
-                        invoice.status === "overdue" ? "text-rose-600 font-semibold" : "text-slate-500"
+                        invoice.status === "overdue" ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-slate-500 dark:text-slate-400"
                       )}
                     >
                       {formatDate(invoice.due_date)}
@@ -207,29 +207,29 @@ export default function InvoiceListPage() {
                       className={cn(
                         "inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-semibold border capitalize",
                         invoice.status === "paid"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
                           : invoice.status === "partial"
-                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60"
                           : invoice.status === "overdue"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60"
                           : invoice.status === "sent"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60"
                           : invoice.status === "cancelled"
-                          ? "bg-slate-100 text-slate-400 border-slate-200 line-through"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
+                          ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 line-through"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                       )}
                     >
                       {t(`invoice.status_${invoice.status}` as any, { defaultValue: invoice.status })}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
+                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
                     {formatDZD(invoice.total_ttc)} <span className="text-2xs text-slate-400 font-normal">DZD</span>
                   </td>
                   <td className="px-4 py-3.5 text-end">
                     <span
                       className={cn(
                         "font-mono font-bold text-sm tabular-nums",
-                        parseFloat(invoice.balance_due) > 0 ? "text-rose-600" : "text-emerald-600"
+                        parseFloat(invoice.balance_due) > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
                       )}
                     >
                       {formatDZD(invoice.balance_due)} <span className="text-2xs font-normal opacity-70">DZD</span>
@@ -240,7 +240,7 @@ export default function InvoiceListPage() {
                       {parseFloat(invoice.total_paid) === 0 && invoice.status !== "cancelled" && (
                         <button
                           onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
-                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title={t("invoice.edit_invoice", "Modifier la facture")}
                         >
                           <Edit2 size={13} />
@@ -249,7 +249,7 @@ export default function InvoiceListPage() {
                       <button
                         onClick={() => openPdf(invoice.id)}
                         disabled={loadingPdfId === invoice.id}
-                        className="p-1.5 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-1.5 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-950/40 rounded-lg transition-colors disabled:opacity-50"
                         title={t("invoice.open_pdf")}
                       >
                         {loadingPdfId === invoice.id
@@ -270,7 +270,7 @@ export default function InvoiceListPage() {
                             balanceLine;
                           window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
                         }}
-                        className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors disabled:opacity-50"
                         title={t("invoice.share_whatsapp")}
                       >
                         <MessageCircle size={13} />
@@ -278,7 +278,7 @@ export default function InvoiceListPage() {
                       {(invoice.status === "draft" || invoice.status === "sent") && parseFloat(invoice.total_ttc) === parseFloat(invoice.balance_due) && (
                         <button
                           onClick={() => cancelInvoice(invoice.id)}
-                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1.5 text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors disabled:opacity-50"
                           title={t("invoice.cancel_invoice")}
                         >
                           <XCircle size={13} />
@@ -294,9 +294,9 @@ export default function InvoiceListPage() {
 
         {/* Pagination */}
         {data && data.total_pages > 1 && (
-          <div className="px-4 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <span className="text-xs font-medium text-slate-500">
-              Page <span className="font-semibold text-slate-800">{data.current_page}</span> / {data.total_pages} · {data.count} factures
+          <div className="px-4 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/60">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Page <span className="font-semibold text-slate-800 dark:text-slate-200">{data.current_page}</span> / {data.total_pages} · {data.count} factures
             </span>
             <div className="flex gap-2">
               <button

@@ -54,16 +54,16 @@ export function ProductSearch({
 
   if (selectedId) {
     return (
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-primary-50/80 border border-primary-200 rounded-lg text-sm">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-primary-50/80 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/60 rounded-lg text-sm">
         <div className="flex items-center gap-2 min-w-0">
-          <Package size={14} className="text-primary-600 flex-shrink-0" />
-          <span className="font-semibold text-primary-800 truncate">{selectedLabel}</span>
+          <Package size={14} className="text-primary-600 dark:text-primary-400 flex-shrink-0" />
+          <span className="font-semibold text-primary-800 dark:text-primary-200 truncate">{selectedLabel}</span>
           {selectedReference && (
-            <span className="font-mono text-2xs bg-white border border-primary-200 px-1.5 py-0.5 rounded text-primary-700 font-bold flex-shrink-0">
+            <span className="font-mono text-2xs bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-700 px-1.5 py-0.5 rounded text-primary-700 dark:text-primary-300 font-bold flex-shrink-0">
               RÉF: {selectedReference}
             </span>
           )}
-          <span className="text-2xs text-primary-600 bg-primary-100/80 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+          <span className="text-2xs text-primary-600 dark:text-primary-400 bg-primary-100/80 dark:bg-primary-950/60 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
             {t("inventory.linked_catalog", "Catalogue lié")}
           </span>
         </div>
@@ -84,7 +84,7 @@ export function ProductSearch({
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
-          className="form-input pl-9 text-xs py-2 w-full bg-white"
+          className="form-input pl-9 text-xs py-2 w-full bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           placeholder={t("inventory.search_product_placeholder")}
           value={query}
           onChange={(e) => {
@@ -96,7 +96,7 @@ export function ProductSearch({
         />
       </div>
       {open && query.length >= 2 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-border/60">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-border/60 dark:divide-slate-800">
           {isFetching && <div className="p-3 text-xs text-text-muted">{t("inventory.searching")}</div>}
           {!isFetching && results.length === 0 && (
             <div className="p-3 text-xs text-text-muted">
@@ -107,7 +107,7 @@ export function ProductSearch({
             <button
               key={p.id}
               type="button"
-              className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-surface flex items-center justify-between gap-3 transition-colors"
+              className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-surface dark:hover:bg-slate-800/60 flex items-center justify-between gap-3 transition-colors"
               onMouseDown={() => {
                 onSelect(p);
                 setQuery("");
@@ -334,14 +334,14 @@ export function CartonPanel({
   }
 
   return (
-    <div className="border border-primary-200/80 rounded-xl p-4 space-y-3.5 bg-gradient-to-b from-primary-50/40 to-white shadow-sm">
+    <div className="border border-primary-200/80 dark:border-primary-800/60 rounded-xl p-4 space-y-3.5 bg-gradient-to-b from-primary-50/40 dark:from-primary-950/20 to-white dark:to-slate-900 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
           <span className="text-sm font-semibold text-text-primary">{title}</span>
         </div>
         {!enableVariants && (
-          <span className="text-2xs font-medium text-primary-700 bg-primary-100/80 border border-primary-200 px-2 py-0.5 rounded-full">
+          <span className="text-2xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100/80 dark:bg-primary-950/50 border border-primary-200 dark:border-primary-800/60 px-2 py-0.5 rounded-full">
             Mode simple (sans pointures)
           </span>
         )}
@@ -409,7 +409,7 @@ export function CartonPanel({
             placeholder="Ex: Mocassin Cuir, BL-HS10…"
             value={config.product_name}
             onChange={(e) => updateField("product_name", e.target.value)}
-            className="form-input text-xs py-1.5 bg-white"
+            className="form-input text-xs py-1.5 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
             readOnly={config.product_id != null}
           />
         </div>
@@ -422,7 +422,7 @@ export function CartonPanel({
             placeholder="Ex: BL-HS10"
             value={config.reference ?? ""}
             onChange={(e) => updateField("reference", e.target.value)}
-            className="form-input text-xs py-1.5 font-mono bg-white"
+            className="form-input text-xs py-1.5 font-mono bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
             readOnly={config.product_id != null && Boolean(config.reference)}
           />
         </div>
@@ -435,7 +435,7 @@ export function CartonPanel({
             placeholder="Optionnel"
             value={config.brand}
             onChange={(e) => updateField("brand", e.target.value)}
-            className="form-input text-xs py-1.5 bg-white"
+            className="form-input text-xs py-1.5 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           />
         </div>
 
@@ -450,7 +450,7 @@ export function CartonPanel({
             placeholder="0.00"
             value={config.purchase_price}
             onChange={(e) => updateField("purchase_price", e.target.value)}
-            className="form-input text-xs py-1.5 font-mono bg-white"
+            className="form-input text-xs py-1.5 font-mono bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           />
         </div>
         <div>
@@ -464,7 +464,7 @@ export function CartonPanel({
             placeholder="0.00"
             value={config.sale_price}
             onChange={(e) => updateField("sale_price", e.target.value)}
-            className="form-input text-xs py-1.5 font-mono bg-white"
+            className="form-input text-xs py-1.5 font-mono bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           />
         </div>
         <div className="sm:col-span-2">
@@ -474,7 +474,7 @@ export function CartonPanel({
           <select
             value={config.category}
             onChange={(e) => updateField("category", e.target.value)}
-            className="form-input text-xs py-1.5 bg-white"
+            className="form-input text-xs py-1.5 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -486,7 +486,7 @@ export function CartonPanel({
       </div>
 
       {/* Quantity / Carton bar */}
-      <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white border border-border rounded-lg text-sm">
+      <div className="flex flex-wrap items-center gap-3 p-2.5 bg-white dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-lg text-sm">
         <div className="flex items-center gap-1.5">
           <span className="text-text-muted text-xs font-medium">{t("inventory.cartons_label")}</span>
           <input
@@ -494,7 +494,7 @@ export function CartonPanel({
             min={1}
             value={cartons_received}
             onChange={(e) => handleCartonCountChange(parseInt(e.target.value) || 1)}
-            className="form-input py-1 w-16 text-center text-sm font-mono"
+            className="form-input py-1 w-16 text-center text-sm font-mono dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           />
         </div>
         <span className="text-text-muted text-xs">×</span>
@@ -581,7 +581,7 @@ export function CartonPanel({
               {colours.map((c) => (
                 <span
                   key={c}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-border rounded-full text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-full text-xs font-medium"
                 >
                   {getColourHex(c) && (
                     <span
@@ -609,7 +609,7 @@ export function CartonPanel({
           </div>
 
           {sizes.length > 0 && (
-            <div className="overflow-x-auto bg-white border border-border rounded-lg p-2">
+            <div className="overflow-x-auto bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg p-2">
               <table className="text-xs border-collapse w-full">
                 <thead>
                   <tr>
@@ -650,7 +650,7 @@ export function CartonPanel({
                               min={0}
                               value={quantities[colour]?.[s] ?? 0}
                               onChange={(e) => updateQty(colour, s, parseInt(e.target.value) || 0)}
-                              className="w-14 text-center py-0.5 text-xs font-mono border border-border rounded bg-white focus:outline-none focus:border-primary-400"
+                              className="w-14 text-center py-0.5 text-xs font-mono border border-border dark:border-slate-700 rounded bg-white dark:bg-slate-800 dark:text-white focus:outline-none focus:border-primary-400"
                             />
                           </td>
                         ))}

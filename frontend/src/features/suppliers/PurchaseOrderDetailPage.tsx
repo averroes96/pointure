@@ -141,7 +141,7 @@ function VariantSearch({
         />
       </div>
       {open && query.length >= 2 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {isFetching && <div className="p-3 text-xs text-text-muted">Chargement…</div>}
           {!isFetching && results.length === 0 && (
             <div className="p-3 text-xs text-text-muted">Aucun résultat pour « {query} »</div>
@@ -208,7 +208,7 @@ function LineResolutionRow({
                 className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition-colors ${
                   mode === m
                     ? "bg-primary-600 text-white border-primary-600"
-                    : "bg-white text-text-muted border-border hover:border-primary-400"
+                    : "bg-white dark:bg-slate-800 text-text-muted border-border dark:border-slate-700 hover:border-primary-400"
                 }`}
               >
                 <Icon size={11} />
@@ -738,7 +738,7 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
       {/* Partial reception confirmation dialog */}
       {showPartialConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={20} className="text-warning" />

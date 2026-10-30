@@ -57,15 +57,15 @@ function SupplierFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/60">
           <div>
-            <h2 className="text-base font-bold text-slate-900 font-sans">{t("supplier.new")}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Ajouter un nouveau fournisseur partenaire</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white font-sans">{t("supplier.new")}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ajouter un nouveau fournisseur partenaire</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X size={18} />
           </button>
@@ -73,18 +73,18 @@ function SupplierFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 font-medium">
+            <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs px-3.5 py-2.5 font-medium">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.name_required")}</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("supplier.name_required")}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
+              className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20"
               placeholder={t("supplier.name")}
               required
               autoFocus
@@ -92,51 +92,51 @@ function SupplierFormModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.contact")}</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("supplier.contact")}</label>
             <input
               type="text"
               value={form.contact_name}
               onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
+              className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20"
               placeholder={t("supplier.contact_name")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.phone")}</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("supplier.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 font-mono text-sm"
+                className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20 font-mono text-sm"
                 placeholder="0550 000 000"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.email")}</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("supplier.email")}</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20 text-xs"
+                className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20 text-xs"
                 placeholder="contact@fournisseur.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("supplier.origin_country")}</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("supplier.origin_country")}</label>
             <input
               type="text"
               value={form.origin_country}
               onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
-              className="form-input rounded-xl border-slate-200/90 shadow-2xs focus:ring-primary-500/20"
+              className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20"
               placeholder={t("supplier.origin_placeholder")}
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
@@ -202,7 +202,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-medium"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white shadow-2xs font-medium"
             placeholder={t("supplier.name")}
           />
         </td>
@@ -211,7 +211,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             type="text"
             value={form.contact_name}
             onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white shadow-2xs"
             placeholder={t("supplier.contact")}
           />
         </td>
@@ -220,7 +220,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             type="tel"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs font-mono"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white shadow-2xs font-mono"
             placeholder={t("supplier.phone")}
           />
         </td>
@@ -229,7 +229,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white shadow-2xs"
             placeholder={t("supplier.email")}
           />
         </td>
@@ -238,19 +238,19 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             type="text"
             value={form.origin_country}
             onChange={(e) => setForm({ ...form, origin_country: e.target.value })}
-            className="form-input py-1 text-xs rounded-lg border-slate-300 bg-white shadow-2xs"
+            className="form-input py-1 text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white shadow-2xs"
             placeholder={t("supplier.origin_country")}
           />
         </td>
-        <td className="px-4 py-2.5 text-end font-mono font-medium text-slate-500 tabular-nums">
+        <td className="px-4 py-2.5 text-end font-mono font-medium text-slate-500 dark:text-slate-400 tabular-nums">
           {formatDZD(supplier.outstanding_balance)} DZD
         </td>
         <td className="px-4 py-2.5">
           <span className={cn(
             "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
             supplier.is_active
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-              : "bg-slate-100 text-slate-600 border border-slate-200"
+              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
           )}>
             {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
           </span>
@@ -267,7 +267,7 @@ function EditRow({ supplier, onDone }: EditRowProps) {
             </button>
             <button
               onClick={onDone}
-              className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               title={t("common.cancel")}
             >
               <X size={13} />
@@ -322,9 +322,9 @@ export default function SuppliersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("supplier.suppliers")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            <span className="font-mono font-semibold text-slate-700">{data?.count ?? 0}</span> fournisseurs enregistrés
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("supplier.suppliers")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data?.count ?? 0}</span> fournisseurs enregistrés
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -347,31 +347,31 @@ export default function SuppliersPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
+          className="form-input ps-9 pe-12 bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20"
           placeholder={t("supplier.search_supplier")}
         />
-        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+        <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
           F2
         </kbd>
       </div>
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.name")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.contact")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.phone")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.email")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.origin_country")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("supplier.balance_due")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("supplier.active")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.name")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.contact")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.phone")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.email")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.origin_country")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("supplier.balance_due")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("supplier.active")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">{t("common.loading")}</td>
@@ -390,25 +390,25 @@ export default function SuppliersPage() {
                     onDone={() => setEditingId(null)}
                   />
                 ) : (
-                  <tr key={supplier.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={supplier.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 py-3.5">
                       <Link
                         to={`/suppliers/${supplier.id}`}
-                        className="font-semibold text-slate-900 hover:text-primary-600 transition-colors font-sans"
+                        className="font-semibold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-sans"
                       >
                         {supplier.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-600 text-sm">{supplier.contact_name || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3.5 text-slate-600 text-sm font-mono">{supplier.phone || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3.5 text-slate-500 text-xs font-mono">{supplier.email || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-sm">{supplier.contact_name || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-sm font-mono">{supplier.phone || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 text-xs font-mono">{supplier.email || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
                     <td className="px-4 py-3.5">
                       {supplier.origin_country ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/60">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
                           {supplier.origin_country}
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-end">
@@ -416,11 +416,11 @@ export default function SuppliersPage() {
                         className={cn(
                           "font-mono font-semibold tabular-nums text-sm",
                           parseFloat(supplier.outstanding_balance) > 0
-                            ? "text-rose-600"
-                            : "text-slate-400"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-slate-400 dark:text-slate-500"
                         )}
                       >
-                        {formatDZD(supplier.outstanding_balance)} <span className="text-2xs font-normal text-slate-400">DZD</span>
+                        {formatDZD(supplier.outstanding_balance)} <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">DZD</span>
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
@@ -428,11 +428,11 @@ export default function SuppliersPage() {
                         className={cn(
                           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-2xs font-semibold",
                           supplier.is_active
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                            : "bg-slate-100 text-slate-600 border border-slate-200"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                         )}
                       >
-                        <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400")} />
+                        <span className={cn("w-1.5 h-1.5 rounded-full", supplier.is_active ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
                         {supplier.is_active ? t("supplier.active") : t("supplier.inactive")}
                       </span>
                     </td>
@@ -440,14 +440,14 @@ export default function SuppliersPage() {
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/suppliers/${supplier.id}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 bg-primary-50/70 hover:bg-primary-100/70 transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-primary-700 dark:text-primary-300 bg-primary-50/70 dark:bg-primary-950/50 hover:bg-primary-100/70 dark:hover:bg-primary-900/50 transition-colors"
                         >
                           <Eye size={13} />
                           {t("common.view")}
                         </Link>
                         <button
                           onClick={() => setEditingId(supplier.id)}
-                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title={t("common.edit")}
                         >
                           <Pencil size={14} />
