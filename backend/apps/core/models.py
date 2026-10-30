@@ -137,11 +137,12 @@ class Tenant(models.Model):
 # ─────────────────────────────────────────────
 
 class User(AbstractUser):
-    """Custom user model. Tied to a tenant and has a role."""
+    """Custom user model. Phone is primary identifier with legacy email support."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # Remove username — we use email
+    # Remove username — we use phone as primary with legacy email support
     username = None
-    email = models.EmailField(_("Email Address"), unique=True)
+    phone = models.CharField(_("Phone"), max_length=20, unique=True, null=True, blank=True, db_index=True)
+    email = models.EmailField(_("Email Address"), unique=True, null=True, blank=True)
 
     tenant = models.ForeignKey(
         Tenant,
@@ -162,7 +163,6 @@ class User(AbstractUser):
         choices=LanguageChoices.choices,
         default=LanguageChoices.FRENCH,
     )
-    phone = models.CharField(_("Phone"), max_length=20, blank=True)
     avatar = models.ImageField(_("Avatar"), upload_to="users/avatars/", blank=True, null=True)
 
     # Cashier permissions & Manager PIN controls
@@ -196,16 +196,35 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = []
 
     class Meta:
         verbose_name = _("User")
         verbose_name_plural = _("Users")
-        ordering = ["email"]
+        ordering = ["-date_joined"]
 
     def __str__(self):
-        return self.email
+        return self.phone or self.email or str(self.id)
+
+    def clean(self):
+        super().clean()
+        from apps.core.utils.phone import normalize_algerian_phone
+        if self.phone:
+            cleaned_phone = normalize_algerian_phone(self.phone)
+            self.phone = cleaned_phone if cleaned_phone else None
+        else:
+            self.phone = None
+
+        if self.email:
+            cleaned_email = self.email.strip().lower()
+            self.email = cleaned_email if cleaned_email else None
+        else:
+            self.email = None
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     @property
     def is_owner(self):

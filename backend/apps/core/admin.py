@@ -178,16 +178,16 @@ class TenantAdmin(ModelAdmin):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_display = (
-        "email", "_name", "_tenant", "_role", "_active", "is_staff", "is_superuser", "last_login",
+        "phone", "email", "_name", "_tenant", "_role", "_active", "is_staff", "is_superuser", "last_login",
     )
     list_filter = ("role", "is_active", "tenant__plan")
-    search_fields = ("email", "first_name", "last_name", "tenant__name")
+    search_fields = ("phone", "email", "first_name", "last_name", "tenant__name")
     ordering = ("-date_joined",)
     actions = ["activate_users", "deactivate_users"]
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
-        (_("Informations personnelles"), {"fields": ("first_name", "last_name", "phone")}),
+        (None, {"fields": ("phone", "email", "password")}),
+        (_("Informations personnelles"), {"fields": ("first_name", "last_name")}),
         (_("Organisation"), {"fields": ("tenant", "role", "language_preference")}),
         (_("Permissions"), {
             "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions"),
@@ -201,7 +201,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("email", "password1", "password2", "tenant", "role"),
+            "fields": ("phone", "email", "password1", "password2", "tenant", "role"),
         }),
     )
 
