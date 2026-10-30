@@ -98,16 +98,16 @@ function EnterpriseBadge() {
 
 function UpgradePlaceholder() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-8 text-center max-w-md mx-auto mt-16">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-8 text-center max-w-md mx-auto mt-16">
       <div className="flex justify-center mb-4">
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-          <Lock className="text-amber-600" size={32} />
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 p-4">
+          <Lock className="text-amber-600 dark:text-amber-400" size={32} />
         </div>
       </div>
-      <h2 className="text-xl font-bold font-sans tracking-tight text-slate-900 mb-2">
+      <h2 className="text-xl font-bold font-sans tracking-tight text-slate-900 dark:text-white mb-2">
         Fonctionnalité Enterprise
       </h2>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Le constructeur de rapports est disponible sur le plan Enterprise.
       </p>
     </div>
@@ -122,15 +122,15 @@ interface SourceTabsProps {
 function SourceTabs({ source, onChange }: SourceTabsProps) {
   const sources: Source[] = ["sales", "inventory", "clients"];
   return (
-    <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/80 w-fit">
+    <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700 w-fit">
       {sources.map((s) => (
         <button
           key={s}
           onClick={() => onChange(s)}
           className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
             source === s
-              ? "bg-white shadow-2xs text-slate-900 font-bold"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium"
+              ? "bg-white dark:bg-slate-900 shadow-2xs text-slate-900 dark:text-white font-bold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium"
           }`}
         >
           {SOURCE_LABELS[s]}
@@ -165,7 +165,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
     if (!fieldDef) {
       return (
         <input
-          className="form-input flex-1"
+          className="form-input flex-1 bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
           placeholder={t("common.value", "Valeur")}
@@ -175,7 +175,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
     if (fieldDef.type === "choice") {
       return (
         <select
-          className="form-input flex-1"
+          className="form-input flex-1 bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
         >
@@ -191,7 +191,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
     if (fieldDef.type === "boolean") {
       return (
         <select
-          className="input rounded-xl border-slate-200 text-xs flex-1 min-w-[130px]"
+          className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs flex-1 min-w-[130px]"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
         >
@@ -205,7 +205,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
       return (
         <input
           type="date"
-          className="input rounded-xl border-slate-200 text-xs flex-1 min-w-[140px] font-mono"
+          className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs flex-1 min-w-[140px] font-mono"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
         />
@@ -215,7 +215,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
       return (
         <input
           type="number"
-          className="input rounded-xl border-slate-200 text-xs flex-1 min-w-[120px] font-mono"
+          className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs flex-1 min-w-[120px] font-mono"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
           placeholder="Valeur"
@@ -225,7 +225,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
     return (
       <input
         type="text"
-        className="input rounded-xl border-slate-200 text-xs flex-1 min-w-[140px]"
+        className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs flex-1 min-w-[140px]"
         value={filter.value}
         onChange={(e) => onChange({ ...filter, value: e.target.value })}
         placeholder="Valeur"
@@ -234,10 +234,10 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-50 border border-slate-200/80 rounded-xl">
+    <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 rounded-xl">
       {/* Field selector */}
       <select
-        className="input w-44 rounded-xl border-slate-200 text-xs"
+        className="input w-44 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs"
         value={filter.field}
         onChange={(e) => handleFieldChange(e.target.value)}
       >
@@ -251,7 +251,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
 
       {/* Operator selector */}
       <select
-        className="input w-36 rounded-xl border-slate-200 text-xs"
+        className="input w-36 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs"
         value={filter.operator}
         onChange={(e) => onChange({ ...filter, operator: e.target.value })}
         disabled={!fieldDef}
@@ -270,7 +270,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
       {/* Remove */}
       <button
         onClick={onRemove}
-        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors shrink-0"
         title="Supprimer ce filtre"
       >
         <X size={15} />
@@ -510,7 +510,7 @@ export default function ReportBuilderPage() {
     <div className="space-y-6">
       {/* Page title */}
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">
           Constructeur de rapports
         </h1>
         <EnterpriseBadge />
@@ -520,9 +520,9 @@ export default function ReportBuilderPage() {
       <div className="flex flex-col md:flex-row gap-6" style={{ minHeight: "70vh" }}>
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <div className="w-full md:w-60 shrink-0 flex flex-col gap-2">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex-1 flex flex-col overflow-hidden">
-            <div className="p-3.5 border-b border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex-1 flex flex-col overflow-hidden">
+            <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Mes modèles
               </span>
               <span className="text-2xs font-mono font-semibold text-slate-400">
@@ -538,11 +538,11 @@ export default function ReportBuilderPage() {
                 templates.slice(0, 15).map((tpl) => (
                   <div
                     key={tpl.id}
-                    className="flex items-center justify-between rounded-xl px-2.5 py-2 hover:bg-slate-50 cursor-pointer group transition-colors"
+                    className="flex items-center justify-between rounded-xl px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer group transition-colors"
                     onClick={() => loadTemplate(tpl)}
                   >
                     <div className="flex flex-col gap-1 min-w-0 flex-1">
-                      <span className="text-xs font-semibold text-slate-900 truncate leading-tight">
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white truncate leading-tight">
                         {tpl.name}
                       </span>
                       <span
@@ -556,7 +556,7 @@ export default function ReportBuilderPage() {
                         e.stopPropagation();
                         deleteTemplate(tpl.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 ml-1 p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all shrink-0"
+                      className="opacity-0 group-hover:opacity-100 ml-1 p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all shrink-0"
                       title={t("common.delete")}
                     >
                       <X size={13} />
@@ -567,11 +567,11 @@ export default function ReportBuilderPage() {
             </div>
 
             {/* Save button / inline form */}
-            <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
               {saveFormOpen ? (
                 <div className="space-y-2">
                   <input
-                    className="input text-xs w-full rounded-xl border-slate-200"
+                    className="input text-xs w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     placeholder={t("report.template_name")}
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
@@ -621,7 +621,7 @@ export default function ReportBuilderPage() {
           <SourceTabs source={source} onChange={handleSourceChange} />
 
           {fieldsLoading ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-slate-400 text-sm font-medium text-center">
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-12 text-slate-400 text-sm font-medium text-center">
               <div className="flex items-center justify-center gap-2">
                 <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                 <span>{t("common.loading")}</span>
@@ -630,15 +630,15 @@ export default function ReportBuilderPage() {
           ) : (
             <>
               {/* Columns section */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="font-semibold text-slate-900 text-sm">
+              <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm">
                     {t("report.columns")}{" "}
                     <span className="text-slate-400 font-normal text-xs">
                       (max {MAX_COLUMNS})
                     </span>
                   </span>
-                  <span className="text-xs font-mono font-medium text-slate-500">
+                  <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
                     {t("report.columns_selected", { count: columns.length, max: MAX_COLUMNS })}
                   </span>
                 </div>
@@ -665,15 +665,15 @@ export default function ReportBuilderPage() {
                           }
                           className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                             selected
-                              ? "bg-primary-50 border-primary-200 text-primary-700 shadow-2xs cursor-default"
+                              ? "bg-primary-50 dark:bg-primary-950/60 border-primary-200 dark:border-primary-800/60 text-primary-700 dark:text-primary-300 shadow-2xs cursor-default"
                               : maxed
-                              ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50"
-                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-primary-300 shadow-2xs cursor-pointer"
+                              ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50"
+                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-primary-300 dark:hover:border-primary-600 shadow-2xs cursor-pointer"
                           }`}
                         >
                           {f.label}
                           {selected && (
-                            <span className="ml-1 text-primary-600">✓</span>
+                            <span className="ml-1 text-primary-600 dark:text-primary-400">✓</span>
                           )}
                         </button>
                       );
@@ -687,7 +687,7 @@ export default function ReportBuilderPage() {
 
                   {/* Selected columns ordered list */}
                   {columns.length > 0 && (
-                    <div className="border border-slate-200/80 rounded-xl divide-y divide-slate-100 overflow-hidden bg-slate-50/30">
+                    <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-slate-50/30 dark:bg-slate-950/20">
                       {columns.map((colId, idx) => {
                         const fieldDef = currentFields.find(
                           (f) => f.id === colId
@@ -695,19 +695,19 @@ export default function ReportBuilderPage() {
                         return (
                           <div
                             key={colId}
-                            className="flex items-center gap-3 px-4 py-2.5 bg-white"
+                            className="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900"
                           >
                             <span className="text-xs font-mono font-semibold text-slate-400 w-5 text-end shrink-0">
                               {idx + 1}
                             </span>
-                            <span className="flex-1 text-xs font-semibold text-slate-900">
+                            <span className="flex-1 text-xs font-semibold text-slate-900 dark:text-white">
                               {fieldDef?.label ?? colId}
                             </span>
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={() => moveColumn(idx, "up")}
                                 disabled={idx === 0}
-                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-default transition-colors"
                                 title="Monter"
                               >
                                 <ChevronUp size={14} />
@@ -715,14 +715,14 @@ export default function ReportBuilderPage() {
                               <button
                                 onClick={() => moveColumn(idx, "down")}
                                 disabled={idx === columns.length - 1}
-                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-default transition-colors"
+                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-default transition-colors"
                                 title="Descendre"
                               >
                                 <ChevronDown size={14} />
                               </button>
                               <button
                                 onClick={() => removeColumn(colId)}
-                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 ml-1 transition-colors"
+                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 ml-1 transition-colors"
                                 title="Retirer"
                               >
                                 <X size={14} />
@@ -737,11 +737,11 @@ export default function ReportBuilderPage() {
               </div>
 
               {/* Filters section */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="font-semibold text-slate-900 text-sm">{t("report.filters")}</span>
+              <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.filters")}</span>
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary-700 bg-primary-50 border border-primary-200 hover:bg-primary-100 rounded-xl transition-colors shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800/60 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-xl transition-colors shadow-2xs"
                     onClick={addFilter}
                   >
                     <Plus size={14} />
@@ -769,21 +769,21 @@ export default function ReportBuilderPage() {
 
               {/* Date range (sales only) */}
               {source === "sales" && (
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-                  <div className="border-b border-slate-100 pb-3">
-                    <span className="font-semibold text-slate-900 text-sm">
+                <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 space-y-4">
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">
                       Plage de dates <span className="text-rose-500">*</span>
                     </span>
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                           De
                         </label>
                         <input
                           type="date"
-                          className="input rounded-xl border-slate-200 text-sm font-mono"
+                          className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm font-mono"
                           value={dateFrom}
                           onChange={(e) => {
                             setDateFrom(e.target.value);
@@ -792,12 +792,12 @@ export default function ReportBuilderPage() {
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                           À
                         </label>
                         <input
                           type="date"
-                          className="input rounded-xl border-slate-200 text-sm font-mono"
+                          className="input rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm font-mono"
                           value={dateTo}
                           onChange={(e) => {
                             setDateTo(e.target.value);
@@ -814,9 +814,9 @@ export default function ReportBuilderPage() {
               )}
 
               {/* Sort section */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                     <ArrowUpDown size={15} className="text-slate-400" />
                     Tri
                   </span>
@@ -832,7 +832,7 @@ export default function ReportBuilderPage() {
                 <div>
                   <div className="flex items-center gap-3">
                     <select
-                      className="input w-56 rounded-xl border-slate-200 text-sm"
+                      className="input w-56 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
                       value={sort?.field ?? ""}
                       onChange={(e) => {
                         const fieldId = e.target.value;
@@ -855,7 +855,7 @@ export default function ReportBuilderPage() {
                     </select>
 
                     {sort && (
-                      <div className="flex rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
+                      <div className="flex rounded-xl border border-slate-200/80 dark:border-slate-700 overflow-hidden shadow-2xs">
                         <button
                           onClick={() =>
                             setSort({ ...sort, direction: "asc" })
@@ -863,7 +863,7 @@ export default function ReportBuilderPage() {
                           className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
                             sort.direction === "asc"
                               ? "bg-primary-600 text-white"
-                              : "bg-white text-slate-700 hover:bg-slate-50"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                           }`}
                         >
                           ASC
@@ -875,7 +875,7 @@ export default function ReportBuilderPage() {
                           className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
                             sort.direction === "desc"
                               ? "bg-primary-600 text-white"
-                              : "bg-white text-slate-700 hover:bg-slate-50"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                           }`}
                         >
                           DESC
@@ -923,18 +923,18 @@ export default function ReportBuilderPage() {
                   )}
                 </button>
                 {previewError && (
-                  <span className="text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl">{previewError}</span>
+                  <span className="text-xs font-medium text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-3 py-1.5 rounded-xl">{previewError}</span>
                 )}
               </div>
 
               {/* Preview table */}
               {previewData && (
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <span className="font-semibold text-slate-900 text-sm">
+                <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">
                       Aperçu des résultats
                     </span>
-                    <span className="text-xs font-mono font-medium text-slate-500">
+                    <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
                       {previewData.count} ligne{previewData.count !== 1 ? "s" : ""}
                       {previewData.count > 200 && " (aperçu limité à 200)"}
                     </span>
@@ -947,7 +947,7 @@ export default function ReportBuilderPage() {
                     ) : (
                       <table className="w-full text-start text-sm border-collapse">
                         <thead>
-                          <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                             {columns.map((colId) => (
                               <th key={colId} className="px-4 py-3.5 whitespace-nowrap text-start">
                                 {previewData.column_labels[colId] ?? colId}
@@ -955,13 +955,13 @@ export default function ReportBuilderPage() {
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {previewData.rows.map((row, rowIdx) => (
-                            <tr key={rowIdx} className="hover:bg-slate-50/70 transition-colors">
+                            <tr key={rowIdx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                               {columns.map((colId) => {
                                 const val = row[colId];
                                 return (
-                                  <td key={colId} className="px-4 py-3 text-xs text-slate-700">
+                                  <td key={colId} className="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
                                     {val === null || val === undefined
                                       ? "—"
                                       : String(val)}

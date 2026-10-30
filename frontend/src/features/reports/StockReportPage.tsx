@@ -43,12 +43,12 @@ function KPICard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition-all">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</div>
-          <div className="text-xl font-bold font-mono tracking-tight text-slate-900 mt-1.5 tabular-nums truncate">{value}</div>
-          {sub && <div className="text-xs font-medium text-slate-500 mt-1">{sub}</div>}
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">{label}</div>
+          <div className="text-xl font-bold font-mono tracking-tight text-slate-900 dark:text-white mt-1.5 tabular-nums truncate">{value}</div>
+          {sub && <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{sub}</div>}
         </div>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
           <Icon size={18} className="text-white" />
@@ -97,8 +97,8 @@ export default function StockReportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("report.stock_report")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("report.stock_report_subtitle")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("report.stock_report")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t("report.stock_report_subtitle")}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
@@ -120,7 +120,7 @@ export default function StockReportPage() {
       </div>
 
       {isLoading && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-center text-slate-400 font-medium">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-12 text-center text-slate-400 font-medium">
           <div className="flex items-center justify-center gap-2">
             <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             <span>{t("report.loading_report")}</span>
@@ -129,7 +129,7 @@ export default function StockReportPage() {
       )}
 
       {isError && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center text-rose-700 font-medium text-sm shadow-2xs">
+        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 text-center text-rose-700 dark:text-rose-300 font-medium text-sm shadow-2xs">
           Impossible de charger le rapport de stock.
         </div>
       )}
@@ -185,21 +185,21 @@ export default function StockReportPage() {
           {/* Tables row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* By category */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">{t("report.by_category")}</h2>
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.by_category")}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-sm border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       <th className="px-4 py-3.5 text-start">{t("report.category")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.references")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.units")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.stock_value")}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {byCategory.length === 0 && (
                       <tr>
                         <td colSpan={4} className="text-center py-8 text-slate-400 font-medium">
@@ -208,13 +208,13 @@ export default function StockReportPage() {
                       </tr>
                     )}
                     {byCategory.map((row) => (
-                      <tr key={row.category} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-4 py-3.5 font-semibold text-slate-900">
+                      <tr key={row.category} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">
                           {t(`category.${row.category}`, { defaultValue: row.category })}
                         </td>
-                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 tabular-nums">{row.units}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 tabular-nums">
+                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600 dark:text-slate-300">{row.count}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 dark:text-slate-200 tabular-nums">{row.units}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 dark:text-primary-400 tabular-nums">
                           {formatDZD(row.value)}{" "}
                           <span className="text-2xs text-slate-400 font-normal">DZD</span>
                         </td>
@@ -223,15 +223,15 @@ export default function StockReportPage() {
                   </tbody>
                   {byCategory.length > 0 && (
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 bg-slate-50/70">
-                        <td className="px-4 py-3.5 font-bold text-slate-900">{t("common.total")}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700">
+                      <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/60">
+                        <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{t("common.total")}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700 dark:text-slate-300">
                           {byCategory.reduce((s, r) => s + r.count, 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-900 text-sm">
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-900 dark:text-white text-sm">
                           {byCategory.reduce((s, r) => s + r.units, 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-primary-600 text-sm tabular-nums">
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-primary-600 dark:text-primary-400 text-sm tabular-nums">
                           {formatDZD(
                             byCategory
                               .reduce((s, r) => s + parseFloat(r.value || "0"), 0)
@@ -247,20 +247,20 @@ export default function StockReportPage() {
             </div>
 
             {/* By brand */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">{t("report.by_brand")}</h2>
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.by_brand")}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-sm border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.references")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.units")}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {byBrand.length === 0 && (
                       <tr>
                         <td colSpan={3} className="text-center py-8 text-slate-400 font-medium">
@@ -269,21 +269,21 @@ export default function StockReportPage() {
                       </tr>
                     )}
                     {byBrand.map((row) => (
-                      <tr key={row.brand} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-4 py-3.5 font-semibold text-slate-900">{row.brand || "—"}</td>
-                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 tabular-nums">{row.units}</td>
+                      <tr key={row.brand} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">{row.brand || "—"}</td>
+                        <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600 dark:text-slate-300">{row.count}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 dark:text-slate-200 tabular-nums">{row.units}</td>
                       </tr>
                     ))}
                   </tbody>
                   {byBrand.length > 0 && (
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 bg-slate-50/70">
-                        <td className="px-4 py-3.5 font-bold text-slate-900">{t("common.total")}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700">
+                      <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/60">
+                        <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{t("common.total")}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700 dark:text-slate-300">
                           {byBrand.reduce((s, r) => s + r.count, 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-900 text-sm">
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-900 dark:text-white text-sm">
                           {byBrand.reduce((s, r) => s + r.units, 0)}
                         </td>
                       </tr>

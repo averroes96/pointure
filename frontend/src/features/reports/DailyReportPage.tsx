@@ -59,12 +59,12 @@ function KPICard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition-all">
+    <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 mt-1.5 tabular-nums truncate">{value}</div>
-          {sub && <div className="text-xs font-medium text-slate-500 mt-1">{sub}</div>}
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">{label}</div>
+          <div className="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-white mt-1.5 tabular-nums truncate">{value}</div>
+          {sub && <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{sub}</div>}
         </div>
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
           <Icon size={20} className="text-white" />
@@ -210,8 +210,8 @@ export default function DailyReportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.daily_report")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("report.daily_summary")}</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.daily_report")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t("report.daily_summary")}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
@@ -235,12 +235,12 @@ export default function DailyReportPage() {
 
       {/* Date picker */}
       <div className="flex items-center gap-3 print:hidden">
-        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">{t("report.analysis_date")}</label>
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">{t("report.analysis_date")}</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="input max-w-[200px] rounded-xl border-slate-200 text-sm font-mono"
+          className="input max-w-[200px] rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm font-mono"
           max={todayISO()}
         />
       </div>
@@ -252,7 +252,7 @@ export default function DailyReportPage() {
       </div>
 
       {isLoading && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-center text-slate-400 font-medium">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-12 text-center text-slate-400 font-medium">
           <div className="flex items-center justify-center gap-2">
             <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             <span>{t("report.loading_report")}</span>
@@ -261,7 +261,7 @@ export default function DailyReportPage() {
       )}
 
       {isError && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center text-rose-700 font-medium text-sm shadow-2xs">
+        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 text-center text-rose-700 dark:text-rose-300 font-medium text-sm shadow-2xs">
           {t("report.error_loading_date")}
         </div>
       )}
@@ -323,28 +323,28 @@ export default function DailyReportPage() {
           {/* Bottom section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Payment breakdown */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">{t("report.payment_breakdown")}</h2>
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.payment_breakdown")}</h2>
               </div>
               {paymentBreakdown.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-start text-sm border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         <th className="px-4 py-3.5 text-start">{t("payment.method", "Mode de paiement")}</th>
                         <th className="px-4 py-3.5 text-end">{t("report.transactions_count")}</th>
                         <th className="px-4 py-3.5 text-end">{t("report.amount")}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {paymentBreakdown.filter((r) => r.method !== "account").map((row) => (
-                        <tr key={row.method} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-4 py-3.5 font-semibold text-slate-900">
+                        <tr key={row.method} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">
                             {t(`payment_method.${row.method}`, { defaultValue: row.method })}
                           </td>
-                          <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
-                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
+                          <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600 dark:text-slate-300">{row.count}</td>
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
                             {formatDZD(row.amount)}{" "}
                             <span className="text-2xs text-slate-400 font-normal">DZD</span>
                           </td>
@@ -352,18 +352,18 @@ export default function DailyReportPage() {
                       ))}
                       {paymentBreakdown.some((r) => r.method === "account") && (
                         <>
-                          <tr className="border-t border-slate-200 bg-slate-50/70">
-                            <td colSpan={3} className="py-2.5 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/50">
+                            <td colSpan={3} className="py-2.5 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                               Solde / Crédit Client
                             </td>
                           </tr>
                           {paymentBreakdown.filter((r) => r.method === "account").map((row) => (
-                            <tr key={row.method} className="hover:bg-slate-50/70 transition-colors">
-                              <td className="px-4 py-3.5 font-semibold text-slate-900">
+                            <tr key={row.method} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">
                                 {t(`payment_method.${row.method}`, { defaultValue: row.method })}
                               </td>
-                              <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600">{row.count}</td>
-                              <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-indigo-600 tabular-nums">
+                              <td className="px-4 py-3.5 text-end font-mono text-xs text-slate-600 dark:text-slate-300">{row.count}</td>
+                              <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400 tabular-nums">
                                 {formatDZD(row.amount)}{" "}
                                 <span className="text-2xs text-slate-400 font-normal">DZD</span>
                               </td>
@@ -373,12 +373,12 @@ export default function DailyReportPage() {
                       )}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 bg-slate-50/70">
-                        <td className="px-4 py-3.5 font-bold text-slate-900">{t("common.total")}</td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700">
+                      <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/60">
+                        <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{t("common.total")}</td>
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-slate-700 dark:text-slate-300">
                           {paymentBreakdown.reduce((s, r) => s + r.count, 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-end font-mono font-bold text-primary-600 text-base tabular-nums">
+                        <td className="px-4 py-3.5 text-end font-mono font-bold text-primary-600 dark:text-primary-400 text-base tabular-nums">
                           {formatDZD(data.total_revenue)} <span className="text-xs text-slate-400 font-normal">DZD</span>
                         </td>
                       </tr>
@@ -393,15 +393,15 @@ export default function DailyReportPage() {
             </div>
 
             {/* Top products */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">{t("report.top_5_items")}</h2>
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.top_5_items")}</h2>
               </div>
               {topProducts.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-start text-sm border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         <th className="w-12 px-4 py-3.5 text-center">#</th>
                         <th className="px-4 py-3.5 text-start">{t("report.item")}</th>
                         <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
@@ -409,18 +409,18 @@ export default function DailyReportPage() {
                         <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {topProducts.slice(0, 5).map((product, i) => (
-                        <tr key={i} className="hover:bg-slate-50/70 transition-colors">
+                        <tr key={i} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                           <td className="px-4 py-3.5 text-center">
-                            <span className="w-7 h-7 rounded-xl bg-primary-50 text-primary-700 text-xs font-bold inline-flex items-center justify-center">
+                            <span className="w-7 h-7 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-100/50 dark:border-primary-800/60 text-xs font-bold inline-flex items-center justify-center">
                               {i + 1}
                             </span>
                           </td>
-                          <td className="px-4 py-3.5 font-semibold text-slate-900">{product.name}</td>
+                          <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">{product.name}</td>
                           <td className="px-4 py-3.5 text-slate-400 font-medium text-xs">{product.brand || "—"}</td>
-                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 tabular-nums">{product.units}</td>
-                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 tabular-nums">
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 dark:text-slate-200 tabular-nums">{product.units}</td>
+                          <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 dark:text-primary-400 tabular-nums">
                             {formatDZD(product.revenue)}{" "}
                             <span className="text-2xs text-slate-400 font-normal">DZD</span>
                           </td>
