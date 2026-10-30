@@ -8,45 +8,59 @@ from django.conf import settings
 def load_wilayas_and_communes(apps, schema_editor):
     Wilaya = apps.get_model('core', 'Wilaya')
     Commune = apps.get_model('core', 'Commune')
-    
-    fixtures_dir = os.path.join(settings.BASE_DIR, 'apps', 'core', 'fixtures')
-    wilayas_path = os.path.join(fixtures_dir, 'wilayas.json')
-    communes_path = os.path.join(fixtures_dir, 'communes.json')
-    
-    # Load Wilayas
-    if os.path.exists(wilayas_path):
-        with open(wilayas_path, 'r', encoding='utf-8-sig') as f:
-            wilayas_data = json.load(f)
-            # The JSON id corresponds to the Wilaya code but we should zero-pad it to 2 digits
-            # if we want it to match existing "01", "02" format in the db.
-            # However, looking at the JSON, code is "1", "2".
-            # Let's zero-pad them so they match the standard 58 Algerian wilaya codes.
-            wilaya_objs = []
-            for item in wilayas_data:
-                code = str(item.get('id')).zfill(2)
-                wilaya_objs.append(Wilaya(
-                    id=int(item.get('id')),
-                    code=code,
-                    name=item.get('name'),
-                    ar_name=item.get('ar_name')
-                ))
-            Wilaya.objects.bulk_create(wilaya_objs)
-            
-    # Load Communes
-    if os.path.exists(communes_path):
-        with open(communes_path, 'r', encoding='utf-8-sig') as f:
-            communes_data = json.load(f)
-            
-            commune_objs = []
-            for item in communes_data:
-                commune_objs.append(Commune(
-                    id=int(item.get('id')),
-                    wilaya_id=int(item.get('wilaya_id')),
-                    post_code=item.get('post_code', ''),
-                    name=item.get('name'),
-                    ar_name=item.get('ar_name')
-                ))
-            Commune.objects.bulk_create(commune_objs)
+
+    possible_dirs = [
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fixtures')),
+        os.path.join(str(settings.BASE_DIR), 'apps', 'core', 'fixtures') if hasattr(settings, 'BASE_DIR') else '',
+        os.path.join(str(settings.BASE_DIR), 'backend', 'apps', 'core', 'fixtures') if hasattr(settings, 'BASE_DIR') else '',
+    ]
+    fixtures_dir = None
+    for p in possible_dirs:
+        if p and os.path.isdir(p) and os.path.exists(os.path.join(p, 'wilayas.json')):
+            fixtures_dir = p
+            break
+
+    if fixtures_dir:
+        wilayas_path = os.path.join(fixtures_dir, 'wilayas.json')
+        communes_path = os.path.join(fixtures_dir, 'communes.json')
+        
+        # Load Wilayas
+        if os.path.exists(wilayas_path):
+            with open(wilayas_path, 'r', encoding='utf-8-sig') as f:
+                wilayas_data = json.load(f)
+                wilaya_objs = []
+                for item in wilayas_data:
+                    code = str(item.get('id')).zfill(2)
+                    wilaya_objs.append(Wilaya(
+                        id=int(item.get('id')),
+                        code=code,
+                        name=item.get('name'),
+                        ar_name=item.get('ar_name')
+                    ))
+                Wilaya.objects.bulk_create(wilaya_objs, ignore_conflicts=True)
+                
+        # Load Communes
+        if os.path.exists(communes_path):
+            with open(communes_path, 'r', encoding='utf-8-sig') as f:
+                communes_data = json.load(f)
+                commune_objs = []
+                for item in communes_data:
+                    commune_objs.append(Commune(
+                        id=int(item.get('id')),
+                        wilaya_id=int(item.get('wilaya_id')),
+                        post_code=item.get('post_code', '') or '',
+                        name=item.get('name'),
+                        ar_name=item.get('ar_name')
+                    ))
+                Commune.objects.bulk_create(commune_objs, ignore_conflicts=True)
+    else:
+        # Fallback to standard 58 wilayas
+        from apps.core.models import WILAYA_CHOICES
+        wilaya_objs = [
+            Wilaya(id=int(code), code=code, name=name, ar_name='')
+            for code, name in WILAYA_CHOICES
+        ]
+        Wilaya.objects.bulk_create(wilaya_objs, ignore_conflicts=True)
 
 def unload_wilayas_and_communes(apps, schema_editor):
     Wilaya = apps.get_model('core', 'Wilaya')

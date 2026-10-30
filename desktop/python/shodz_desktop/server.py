@@ -141,6 +141,13 @@ def run_server(port: int = 8745):
         print("[ShoeDZ ERR] Database migration failed (see logs/shodz.log)", file=sys.stderr, flush=True)
         raise
 
+    # Ensure Algerian wilayas and communes reference data are populated
+    try:
+        from apps.core.utils.location import ensure_wilayas_loaded
+        ensure_wilayas_loaded()
+    except Exception as e:
+        logger.warning("Could not auto-load wilayas reference data: %s", e)
+
     # Start the in-process background scheduler (license heartbeat, daily tasks)
     from apps.core.desktop.scheduler import start_scheduler
     start_scheduler()

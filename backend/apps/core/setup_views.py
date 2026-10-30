@@ -112,6 +112,21 @@ class SetupView(APIView):
             user.set_password(admin_password)
             user.save()
 
+            # Create default headquarters branch
+            from apps.core.models import Branch, StoreSettings
+            Branch.objects.create(
+                tenant=tenant,
+                name="Siège Principal",
+                address=address,
+                wilaya=wilaya,
+                phone=normalize_algerian_phone(store_phone) if store_phone else "",
+                is_headquarters=True,
+                is_active=True,
+            )
+
+            # Ensure default store settings exist
+            StoreSettings.objects.get_or_create(tenant=tenant)
+
         # Activate license if provided (best-effort — failure must not block setup)
         if license_key:
             try:

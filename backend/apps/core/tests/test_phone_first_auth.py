@@ -299,6 +299,15 @@ class TestFirstRunSetupView:
             assert owner.role == "owner"
             assert owner.check_password("strongpassword123")
 
+            # Verify default headquarters branch and store settings
+            from apps.core.models import Branch, StoreSettings
+            branch = Branch.objects.get(tenant=tenant)
+            assert branch.name == "Siège Principal"
+            assert branch.is_headquarters is True
+            assert branch.wilaya == "16"
+            assert branch.address == "Didouche Mourad, Alger"
+            assert StoreSettings.objects.filter(tenant=tenant).exists()
+
     def test_setup_with_phone_and_email_succeeds(self):
         from django.test import override_settings
         from rest_framework.test import APIClient
@@ -369,6 +378,41 @@ class TestFirstRunSetupView:
             }
             resp = client.post("/api/v1/setup/", payload)
             assert resp.status_code == 403
+
+    def test_wilayas_viewset_unauthenticated_and_auto_loads(self):
+        from rest_framework.test import APIClient
+        from apps.core.models import Wilaya
+
+        client = APIClient()
+        resp = client.get("/api/v1/core/wilayas/")
+        assert resp.status_code == 200
+        assert len(resp.data) >= 58
+        first = resp.data[0]
+        assert "code" in first
+        assert "name" in first
+
+    def test_branch_viewset_auto_heals_missing_branch(self):
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant, Branch
+
+        tenant = Tenant.objects.create(name="Bare Tenant", wilaya="16", is_active=True)
+        user = User.objects.create_user(
+            phone="0555998877",
+            password="password123",
+            tenant=tenant,
+            role="owner",
+        )
+        assert Branch.objects.filter(tenant=tenant).count() == 0
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        resp = client.get("/api/v1/core/branches/")
+        assert resp.status_code == 200
+        # Auto-healed branch
+        assert Branch.objects.filter(tenant=tenant).count() == 1
+        hq = Branch.objects.get(tenant=tenant)
+        assert hq.name == "Siège Principal"
+        assert hq.is_headquarters is True
 
 
 @pytest.mark.django_db

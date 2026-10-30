@@ -26,12 +26,22 @@ from apps.core.serializers import (
 class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Wilaya.objects.all()
     serializer_class = WilayaSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
     pagination_class = None
+
+    def get_queryset(self):
+        qs = Wilaya.objects.all()
+        if not qs.exists():
+            from apps.core.utils.location import ensure_wilayas_loaded
+            ensure_wilayas_loaded()
+            qs = Wilaya.objects.all()
+        return qs
 
 class CommuneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Commune.objects.all()
     serializer_class = CommuneSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
     filterset_fields = ["wilaya"]
     pagination_class = None
@@ -198,7 +208,18 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Branch.objects.all()
-        return Branch.objects.filter(tenant=self.request.tenant)
+        tenant = getattr(self.request, "tenant", None)
+        if tenant and not Branch.objects.filter(tenant=tenant).exists():
+            Branch.objects.create(
+                tenant=tenant,
+                name="Siège Principal",
+                address=tenant.address or "",
+                wilaya=tenant.wilaya or "",
+                phone=tenant.phone or "",
+                is_headquarters=True,
+                is_active=True,
+            )
+        return Branch.objects.filter(tenant=tenant) if tenant else Branch.objects.none()
 
     def perform_create(self, serializer):
         self.require_manager()

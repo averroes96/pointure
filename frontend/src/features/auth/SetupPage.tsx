@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, Loader2, Smartphone } from "lucide-react";
 import api from "@/lib/api";
 import { useWilayas } from "@/hooks/useLocationData";
+import { WILAYA_ENTRIES } from "@/lib/wilayas";
 import { cn } from "@/lib/utils";
 import {
   isValidAlgerianPhone,
@@ -59,6 +60,16 @@ export default function SetupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: wilayas } = useWilayas();
+
+  const wilayaOptions = (wilayas && wilayas.length > 0)
+    ? wilayas.map((w) => ({
+        code: w.code,
+        label: `${w.code} - ${w.name}${w.ar_name ? ` (${w.ar_name})` : ""}`,
+      }))
+    : WILAYA_ENTRIES.map((w) => ({
+        code: w.code,
+        label: `${w.code} - ${w.name}`,
+      }));
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({
@@ -314,9 +325,9 @@ export default function SetupPage() {
                     className="form-input"
                   >
                     <option value="">— Sélectionner —</option>
-                    {wilayas?.map((w) => (
+                    {wilayaOptions.map((w) => (
                       <option key={w.code} value={w.code}>
-                        {w.code} - {w.name} ({w.ar_name})
+                        {w.label}
                       </option>
                     ))}
                   </select>
