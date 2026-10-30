@@ -53,6 +53,9 @@ class SetupView(APIView):
         admin_password = data.get("admin_password", "")
         confirm_password = data.get("confirm_password", "")
         license_key = (data.get("license_key") or "").strip()
+        business_mode = (data.get("business_mode") or "mixed").strip().lower()
+        if business_mode not in ("retail", "wholesale", "mixed"):
+            business_mode = "mixed"
 
         errors = {}
         if not business_name:
@@ -92,13 +95,15 @@ class SetupView(APIView):
         if errors:
             return Response(errors, status=400)
 
+        initial_plan = "pro_retail" if business_mode == "retail" else "pro_wholesale"
+
         with transaction.atomic():
             tenant = Tenant.objects.create(
                 name=business_name,
                 wilaya=wilaya,
                 phone=normalize_algerian_phone(store_phone) if store_phone else "",
                 address=address,
-                plan="pro_retail",
+                plan=initial_plan,
                 is_active=True,
             )
             user = User(
@@ -124,8 +129,10 @@ class SetupView(APIView):
                 is_active=True,
             )
 
-            # Ensure default store settings exist
-            StoreSettings.objects.get_or_create(tenant=tenant)
+            # Ensure default store settings exist with chosen business mode
+            store_settings, _ = StoreSettings.objects.get_or_create(tenant=tenant)
+            store_settings.business_mode = business_mode
+            store_settings.save(update_fields=["business_mode"])
 
         # Activate license if provided (best-effort — failure must not block setup)
         if license_key:
@@ -151,9 +158,26 @@ class SetupView(APIView):
             except Exception:
                 pass
 
+        # Issue JWT tokens for instant auto-login
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
         return Response(
             {
-                "detail": "Installation terminée. Vous pouvez maintenant vous connecter.",
+                "detail": "Installation terminée. Vous êtes maintenant connecté.",
+                "access": access_token,
+                "refresh": refresh_token,
+                "business_mode": business_mode,
+                "user": {
+                    "id": user.id,
+                    "phone": admin_phone,
+                    "phone_display": format_algerian_phone_display(admin_phone),
+                    "email": admin_email or "",
+                    "first_name": user.first_name,
+                    "role": user.role,
+                },
                 "phone": admin_phone,
                 "phone_display": format_algerian_phone_display(admin_phone),
                 "email": admin_email or "",

@@ -34,6 +34,12 @@ class LanguageChoices(models.TextChoices):
     ENGLISH = "en", _("English")
 
 
+class BusinessModeChoices(models.TextChoices):
+    RETAIL = "retail", _("Détail (Boutique)")
+    WHOLESALE = "wholesale", _("Gros & Demi-gros")
+    MIXED = "mixed", _("Mixte (Détail & Gros)")
+
+
 WILAYA_CHOICES = [
     ("01", "Adrar"), ("02", "Chlef"), ("03", "Laghouat"), ("04", "Oum El Bouaghi"),
     ("05", "Batna"), ("06", "Béjaïa"), ("07", "Biskra"), ("08", "Béchar"),
@@ -345,6 +351,13 @@ class AuditLog(models.Model):
 
 class StoreSettings(TenantScopedModel):
     """Per-tenant configurable store policies."""
+    business_mode = models.CharField(
+        _("Mode de commerce"),
+        max_length=20,
+        choices=BusinessModeChoices.choices,
+        default=BusinessModeChoices.MIXED,
+        help_text="Adapte l'interface aux opérations de détail, de gros, ou mixtes.",
+    )
     min_versement_pct = models.PositiveSmallIntegerField(
         _("Minimum versement (% of total)"), default=30,
         help_text="Minimum percentage of sale total required as first payment for versement."

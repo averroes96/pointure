@@ -137,7 +137,7 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreSettings
         fields = [
-            "id", "min_versement_pct", "versement_due_days",
+            "id", "business_mode", "min_versement_pct", "versement_due_days",
             "versement_requires_client", "enable_variants", "allow_negative_stock",
             "require_manager_pin_for_returns", "require_manager_pin_for_discounts", "default_max_discount_pct",
             "enable_layaway", "min_layaway_deposit_pct", "layaway_duration_days",

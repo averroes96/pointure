@@ -286,6 +286,9 @@ class TestFirstRunSetupView:
             assert resp.data["phone"] == "0555123456"
             assert resp.data["phone_display"] == "0555 12 34 56"
             assert resp.data["email"] == ""
+            assert "access" in resp.data
+            assert "refresh" in resp.data
+            assert resp.data["business_mode"] == "mixed"
 
             # Verify database state
             tenant = Tenant.objects.get(name="Boutique Chaussure Alger")
@@ -330,6 +333,34 @@ class TestFirstRunSetupView:
 
             owner = User.objects.get(phone="0661234567")
             assert owner.email == "owner@oranfootwear.dz"
+
+    def test_setup_with_business_mode_retail_and_auto_login(self):
+        from django.test import override_settings
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant, StoreSettings
+
+        client = APIClient()
+        with override_settings(DEPLOYMENT_MODE="local"):
+            payload = {
+                "business_name": "Sétif Chaussures Détail",
+                "wilaya": "19",
+                "admin_phone": "0555 99 88 77",
+                "admin_password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+                "business_mode": "retail",
+            }
+            resp = client.post("/api/v1/setup/", payload)
+            assert resp.status_code == 201
+            assert resp.data["business_mode"] == "retail"
+            assert "access" in resp.data and len(resp.data["access"]) > 20
+            assert "refresh" in resp.data and len(resp.data["refresh"]) > 20
+            assert resp.data["user"]["phone"] == "0555998877"
+
+            tenant = Tenant.objects.get(name="Sétif Chaussures Détail")
+            assert tenant.plan == "pro_retail"
+
+            settings_obj = StoreSettings.objects.get(tenant=tenant)
+            assert settings_obj.business_mode == "retail"
 
     def test_setup_missing_phone_fails(self):
         from django.test import override_settings
