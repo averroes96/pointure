@@ -19,6 +19,7 @@ import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
+import PosShortcutsCoachmark from "./PosShortcutsCoachmark";
 
 interface CartItem {
   variant: Variant;
@@ -1395,6 +1396,15 @@ export default function SalesPage() {
               >
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Alt+M</kbd>
                 <span>{t("pos.movements", "Mouvements")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("app-toggle-pos-coachmark"))}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary-50/70 dark:bg-primary-950/50 border border-primary-200/80 dark:border-primary-800 shadow-2xs text-xs font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors cursor-pointer"
+                title="F12 : Guide des raccourcis essentiels de caisse"
+              >
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 border border-primary-200 dark:border-primary-800 rounded text-primary-700 dark:text-primary-300">F12</kbd>
+                <span>{t("sales.coachmark.pill_btn", "Raccourcis Caisse (F12)")}</span>
               </button>
             </div>
           </div>
@@ -2861,6 +2871,9 @@ export default function SalesPage() {
           setManagerPinPrompt((prev) => ({ ...prev, isOpen: false }));
         }}
       />
+
+      {/* POS Register Coachmark & Floating Shortcuts Cheat-sheet */}
+      <PosShortcutsCoachmark />
     </div>
   );
 }

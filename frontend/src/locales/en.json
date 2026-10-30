@@ -828,7 +828,29 @@
     "articles_count": "items",
     "clear_cart": "Clear",
     "shortcut_clear": "Clear cart / Reset",
-    "total_to_pay": "Total to pay"
+    "total_to_pay": "Total to pay",
+    "coachmark": {
+      "title": "Essential POS Shortcuts",
+      "badge": "POS Guide",
+      "subtitle": "Speed up register checkout with these 5 high-frequency hotkeys:",
+      "f1_title": "New sale / Clear ticket",
+      "f1_desc": "Resets the cart for a new transaction.",
+      "f2_title": "Search product / Focus scanner",
+      "f2_desc": "Focuses the search bar ready for typing or barcode scan.",
+      "f10_title": "Quick cashout & receipt print",
+      "f10_desc": "Validates exact cash sale and prints the receipt ticket.",
+      "f11_title": "Fullscreen kiosk mode",
+      "f11_desc": "Hides the desktop taskbar for a dedicated POS register.",
+      "esc_title": "Cancel / Back",
+      "esc_desc": "Closes modals or clears the current search input.",
+      "or_key": "or",
+      "numpad_dot": "Numpad Dot (.)",
+      "tip_f12": "Tip: Press F12 anytime to review these keyboard shortcuts.",
+      "got_it": "Got it (Close)",
+      "pill_btn": "POS Shortcuts (F12)",
+      "minimize": "Minimize",
+      "expand": "Expand"
+    }
   },
   "cheque": {
     "number": "Cheque #",

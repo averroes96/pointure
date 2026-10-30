@@ -186,7 +186,11 @@ export function useGlobalShortcuts() {
         // F12: Guide des raccourcis clavier
         case "F12": {
           e?.preventDefault?.();
-          window.dispatchEvent(new CustomEvent("app-toggle-shortcuts-modal"));
+          if (isSalesNew) {
+            window.dispatchEvent(new CustomEvent("app-toggle-pos-coachmark"));
+          } else {
+            window.dispatchEvent(new CustomEvent("app-toggle-shortcuts-modal"));
+          }
           break;
         }
 

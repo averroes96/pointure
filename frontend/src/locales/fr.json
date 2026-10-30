@@ -828,7 +828,29 @@
     "articles_count": "articles",
     "clear_cart": "Vider",
     "shortcut_clear": "Vider panier / Effacer",
-    "total_to_pay": "Total à payer"
+    "total_to_pay": "Total à payer",
+    "coachmark": {
+      "title": "Raccourcis Essentiels de Caisse",
+      "badge": "Guide Caisse",
+      "subtitle": "Gagnez du temps au comptoir avec les 5 raccourcis haute fréquence :",
+      "f1_title": "Nouvelle vente / Vider ticket",
+      "f1_desc": "Réinitialise le panier pour un nouvel encaissement.",
+      "f2_title": "Rechercher produit / Douchette",
+      "f2_desc": "Place le curseur dans la recherche ou prêt pour le scan.",
+      "f10_title": "Encaissement express & ticket",
+      "f10_desc": "Valide la vente en espèces et lance l'impression.",
+      "f11_title": "Mode kiosque plein écran",
+      "f11_desc": "Masque l'interface Windows pour une caisse dédiée.",
+      "esc_title": "Annuler / Retour",
+      "esc_desc": "Ferme les fenêtres modales ou vide la recherche.",
+      "or_key": "ou",
+      "numpad_dot": "Point (.) Pavé num.",
+      "tip_f12": "Astuce : Appuyez sur F12 à tout moment pour revoir ces raccourcis.",
+      "got_it": "J'ai compris (Fermer)",
+      "pill_btn": "Raccourcis Caisse (F12)",
+      "minimize": "Réduire",
+      "expand": "Agrandir"
+    }
   },
   "cheque": {
     "number": "N° chèque",
