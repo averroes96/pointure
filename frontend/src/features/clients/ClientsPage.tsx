@@ -49,8 +49,8 @@ export default function ClientsPage() {
       )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("nav.client_list")}</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("nav.client_list")}</h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
             {t("client.registered_count", { count: data?.count ?? 0 })}
           </p>
         </div>
@@ -75,17 +75,17 @@ export default function ClientsPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="form-input ps-9 pe-12 bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
+            className="form-input ps-9 pe-12 bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20"
             placeholder={t("client.search_placeholder")}
           />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
             F2
           </kbd>
         </div>
         <select
           value={clientType}
           onChange={(e) => { setClientType(e.target.value); setPage(1); }}
-          className="form-input max-w-[170px] bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
+          className="form-input max-w-[170px] bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white shadow-2xs rounded-xl focus:ring-primary-500/20"
         >
           <option value="">{t("client.all_types")}</option>
           <option value="retail">{t("client.retail")}</option>
@@ -94,21 +94,21 @@ export default function ClientsPage() {
       </div>
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900/90">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.name")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.phone")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.wilaya")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.credit_limit")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.balance")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("client.name")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("client.phone")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("client.wilaya")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("client.credit_limit")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("client.balance")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-slate-400">
@@ -129,17 +129,17 @@ export default function ClientsPage() {
               {clients.map((client) => (
                 <tr
                   key={client.id}
-                  className="group cursor-pointer hover:bg-slate-50/80 transition-colors"
+                  className="group cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                   onClick={() => navigate(`/clients/${client.id}`)}
                 >
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{client.name}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 transition-colors">{client.name}</span>
                       <span className={cn(
                         "text-2xs font-bold px-2 py-0.5 rounded-md border",
                         client.client_type === "wholesale"
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : "bg-blue-50 text-blue-700 border-blue-200"
+                          ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                          : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
                       )}>
                         {client.client_type === "wholesale" ? t("client.wholesale") : t("client.retail")}
                       </span>
@@ -152,17 +152,17 @@ export default function ClientsPage() {
                         href={whatsappLink(client.phone, `Bonjour ${client.name}`)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <MessageCircle size={13} className="text-emerald-600" />
+                        <MessageCircle size={13} className="text-emerald-600 dark:text-emerald-400" />
                         {client.phone}
                       </a>
                     ) : (
                       <span className="text-slate-400 font-mono text-xs">—</span>
                     )}
                   </td>
-                  <td className="py-3.5 px-4 text-slate-600 font-medium text-sm">{wilayaName(client.wilaya) || "—"}</td>
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium text-sm">{wilayaName(client.wilaya) || "—"}</td>
                   <td className="py-3.5 px-4 text-end font-mono text-slate-500 tabular-nums text-sm">
                     {parseFloat(client.credit_limit) > 0 ? (
                       <>

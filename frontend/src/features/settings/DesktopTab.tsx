@@ -383,60 +383,60 @@ export default function DesktopTab() {
         {/* Status Metrics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Last backup */}
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs flex items-center justify-between">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs flex items-center justify-between">
             <div>
               <div className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                 {t("settings.backup_last", "Dernière sauvegarde")}
               </div>
-              <div className="text-sm font-bold text-slate-900 mt-1">
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
                 {backupsLoading ? "..." : formatRelativeTime(latestBackup)}
               </div>
               <div className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[180px]">
                 {backups[0]?.filename || "Aucune sauvegarde générée"}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center shrink-0">
               <CheckCircle2 size={18} />
             </div>
           </div>
 
           {/* Schedule */}
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs flex items-center justify-between">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs flex items-center justify-between">
             <div>
               <div className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                 {t("settings.backup_schedule", "Sauvegarde automatique")}
               </div>
-              <div className="text-sm font-bold text-slate-900 mt-1">{t("desktop.schedule_daily")}</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">{t("desktop.schedule_daily")}</div>
               <div className="text-2xs text-slate-400 mt-0.5">
                 {backupsData?.max_copies ? t("desktop.rolling_retention", { count: backupsData.max_copies }) : t("desktop.days_retention")}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center shrink-0">
               <Clock size={18} />
             </div>
           </div>
 
           {/* Data Location */}
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs flex items-center justify-between">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs flex items-center justify-between">
             <div>
               <div className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                 {t("settings.backup_location", "Emplacement des données")}
               </div>
-              <div className="text-sm font-bold text-slate-900 mt-1">{t("desktop.active_db")}</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">{t("desktop.active_db")}</div>
               <div className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[180px]" title={backupsData?.backups_dir}>
                 {backupsData?.backups_dir || "%ProgramData%\\ShoeDZ\\backups"}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 border border-slate-200/60 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center shrink-0">
               <HardDrive size={18} />
             </div>
           </div>
         </div>
 
         {/* Backups Table */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
               {t("desktop.backup_files_count", { count: backups.length })}
             </span>
             <span className="text-2xs text-slate-400 font-medium">{t("desktop.sqlite_format_desc")}</span>
@@ -453,7 +453,7 @@ export default function DesktopTab() {
                 <Database size={22} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-800">
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                   {t("settings.backup_no_backups", "Aucune sauvegarde disponible")}
                 </h4>
                 <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
@@ -476,7 +476,7 @@ export default function DesktopTab() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500 font-semibold uppercase tracking-wider text-2xs">
+                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-2xs">
                     <th className="py-3 px-4">{t("settings.backup_filename", "Fichier de sauvegarde")}</th>
                     <th className="py-3 px-4">{t("settings.backup_date", "Date de création")}</th>
                     <th className="py-3 px-4 text-end">{t("settings.backup_size", "Taille")}</th>
@@ -484,21 +484,21 @@ export default function DesktopTab() {
                     <th className="py-3 px-4 text-end">{t("common.actions", "Actions")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                   {backups.map((b, index) => {
                     const isLatest = index === 0;
                     return (
-                      <tr key={b.filename} className="hover:bg-slate-50/70 transition-colors group">
+                      <tr key={b.filename} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group">
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center border border-slate-200/60 shrink-0 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shrink-0 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                               <FileText size={15} />
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-semibold text-slate-900">{b.filename}</span>
+                                <span className="font-mono font-semibold text-slate-900 dark:text-white">{b.filename}</span>
                                 {isLatest && (
-                                  <span className="px-1.5 py-0.5 rounded-md font-bold text-3xs uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <span className="px-1.5 py-0.5 rounded-md font-bold text-3xs uppercase bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                     Dernière
                                   </span>
                                 )}
@@ -506,14 +506,14 @@ export default function DesktopTab() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-medium text-slate-600">
+                        <td className="py-3.5 px-4 font-medium text-slate-600 dark:text-slate-400">
                           {formatDateTime(b.created_at)}
                         </td>
-                        <td className="py-3.5 px-4 text-end font-mono font-bold text-slate-900">
+                        <td className="py-3.5 px-4 text-end font-mono font-bold text-slate-900 dark:text-white">
                           {b.size_human}
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             <CheckCircle2 size={11} /> Prête
                           </span>
                         </td>
@@ -629,46 +629,46 @@ export default function DesktopTab() {
 
         {/* Update Status Card (only active when in Electron) */}
         {isDesktop && (
-          <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Monitor size={18} className="text-primary-600" />
-                <h4 className="text-sm font-semibold text-slate-900">{t("desktop.update_status")}</h4>
+                <Monitor size={18} className="text-primary-600 dark:text-primary-400" />
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t("desktop.update_status")}</h4>
               </div>
 
               {/* Status Badge */}
               {status === "checking" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                   <RefreshCw size={12} className="animate-spin" /> Recherche en cours...
                 </span>
               )}
               {status === "not-available" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 size={13} /> Votre application est à jour
                 </span>
               )}
               {status === "available" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   <Download size={13} /> Nouvelle version v{updateInfo?.version} disponible
                 </span>
               )}
               {status === "downloading" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                   <Download size={13} className="animate-bounce" /> Téléchargement ({downloadProgress}%)
                 </span>
               )}
               {status === "downloaded" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 size={13} /> Prête pour installation
                 </span>
               )}
               {status === "error" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                   <AlertCircle size={13} /> Erreur de vérification
                 </span>
               )}
               {status === ("idle" as any) && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                   Canal de mise à jour stable (GitHub Releases)
                 </span>
               )}
@@ -677,24 +677,24 @@ export default function DesktopTab() {
             {/* Progress bar during download */}
             {status === "downloading" && (
               <div className="space-y-1.5 pt-1">
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
                   <div
                     className="bg-primary-600 h-full rounded-full transition-all duration-300"
                     style={{ width: `${downloadProgress}%` }}
                   />
                 </div>
-                <p className="text-2xs text-slate-500 text-right font-mono font-medium">{downloadProgress}% téléchargé</p>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 text-right font-mono font-medium">{downloadProgress}% téléchargé</p>
               </div>
             )}
 
             {/* Downloaded: Call to Action */}
             {status === "downloaded" && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                 <div>
-                  <p className="text-sm font-bold text-emerald-900">
+                  <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
                     La version {updateInfo?.version || "récente"} est téléchargée et prête !
                   </p>
-                  <p className="text-xs text-emerald-700 mt-0.5">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
                     Cliquez sur le bouton ci-contre pour redémarrer l'application et appliquer automatiquement la mise à jour.
                   </p>
                 </div>
@@ -710,7 +710,7 @@ export default function DesktopTab() {
 
             {/* Error message */}
             {status === "error" && errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 font-medium">
                 {errorMessage}
               </div>
             )}
@@ -718,20 +718,20 @@ export default function DesktopTab() {
         )}
 
         {/* ── 3. Diagnostics & Données Locales ──────────────────────────────── */}
-        <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <HardDrive size={18} className="text-primary-600" />
-            <h4 className="text-sm font-semibold text-slate-900">{t("desktop.local_diagnostics")}</h4>
+        <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <HardDrive size={18} className="text-primary-600 dark:text-primary-400" />
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t("desktop.local_diagnostics")}</h4>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center justify-between">
+            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs">
                   <FolderArchive size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">{t("desktop.auto_backups")}</p>
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("desktop.auto_backups")}</p>
                   <p className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[200px]" title={backupsData?.backups_dir}>
                     {backupsData?.backups_dir || "C:\\ProgramData\\ShoeDZ\\backups"}
                   </p>
@@ -740,7 +740,7 @@ export default function DesktopTab() {
               {isDesktop && (
                 <button
                   onClick={() => window.electronAPI?.openBackupsFolder?.()}
-                  className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors cursor-pointer"
+                  className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
                   title={t("desktop.open_in_explorer")}
                 >
                   <ExternalLink size={15} />
@@ -748,20 +748,20 @@ export default function DesktopTab() {
               )}
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center justify-between">
+            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs">
                   <FileText size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">{t("desktop.tech_logs")}</p>
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("desktop.tech_logs")}</p>
                   <p className="text-2xs text-slate-400 font-mono mt-0.5">C:\ProgramData\ShoeDZ\logs</p>
                 </div>
               </div>
               {isDesktop && (
                 <button
                   onClick={() => window.electronAPI?.openLogsFolder?.()}
-                  className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors cursor-pointer"
+                  className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
                   title={t("desktop.open_in_explorer")}
                 >
                   <ExternalLink size={15} />
@@ -771,21 +771,21 @@ export default function DesktopTab() {
           </div>
 
           {/* Horloge & Anti-Tamper Card */}
-          <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <div
                 className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
                   anomalyDetected
-                    ? "bg-amber-100 text-amber-700 border border-amber-200"
-                    : "bg-white text-slate-700 border border-slate-200/80"
+                    ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
                 )}
               >
-                <Clock size={18} className={anomalyDetected ? "text-amber-600" : "text-primary-600"} />
+                <Clock size={18} className={anomalyDetected ? "text-amber-600 dark:text-amber-400" : "text-primary-600 dark:text-primary-400"} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold text-slate-900">{t("desktop.clock_integrity")}</p>
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("desktop.clock_integrity")}</p>
                   {anomalyDetected ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
                       <AlertCircle size={11} /> Anomalie détectée

@@ -202,17 +202,17 @@ export default function PrintersTab() {
       </div>
 
       {/* ── Section 1: Ticket de Caisse & Reçus ───────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4 shadow-xs">
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+      <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 space-y-4 shadow-xs">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 flex items-center justify-center shadow-2xs">
               <Receipt size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Tickets de Caisse & Bons de Versement
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Imprimante thermique de caisse (ESC/POS 80mm ou 58mm, ex: Xprinter, Epson, Bixolon, Rongta).
               </p>
             </div>
@@ -224,7 +224,7 @@ export default function PrintersTab() {
             disabled={testingTicket}
             className="btn-secondary text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 hover:border-amber-400"
           >
-            <Zap size={13} className="text-amber-600" />
+            <Zap size={13} className="text-amber-600 dark:text-amber-400" />
             <span>{testingTicket ? "Impression..." : "Tester le ticket"}</span>
           </button>
         </div>
@@ -232,7 +232,7 @@ export default function PrintersTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           {/* Printer Selection */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Imprimante assignée aux tickets
             </label>
             <select
@@ -243,7 +243,7 @@ export default function PrintersTab() {
                   ticket: { ...config.ticket, printerName: e.target.value },
                 })
               }
-              className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
@@ -259,7 +259,7 @@ export default function PrintersTab() {
 
           {/* Paper Width */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Largeur du rouleau thermique
             </label>
             <div className="grid grid-cols-2 gap-2 mt-0.5">
@@ -274,8 +274,8 @@ export default function PrintersTab() {
                 className={cn(
                   "py-2 px-3 rounded-xl border text-xs font-semibold text-center transition-all",
                   config.ticket.paperWidth === "80mm"
-                    ? "border-primary-600 bg-primary-50 text-primary-800 ring-1 ring-primary-600 shadow-2xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-primary-600 bg-primary-50 dark:bg-primary-950/40 text-primary-800 dark:text-primary-300 ring-1 ring-primary-600 shadow-2xs"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                 )}
               >
                 80 mm (Standard Caisse)
@@ -291,8 +291,8 @@ export default function PrintersTab() {
                 className={cn(
                   "py-2 px-3 rounded-xl border text-xs font-semibold text-center transition-all",
                   config.ticket.paperWidth === "58mm"
-                    ? "border-primary-600 bg-primary-50 text-primary-800 ring-1 ring-primary-600 shadow-2xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-primary-600 bg-primary-50 dark:bg-primary-950/40 text-primary-800 dark:text-primary-300 ring-1 ring-primary-600 shadow-2xs"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                 )}
               >
                 58 mm (Étroit / Portable)
@@ -420,17 +420,17 @@ export default function PrintersTab() {
       </div>
 
       {/* ── Section 2: Factures & Documents A4 ───────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4 shadow-xs">
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+      <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 space-y-4 shadow-xs">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 flex items-center justify-center shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900/50 text-sky-800 dark:text-sky-300 flex items-center justify-center shadow-2xs">
               <FileText size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Factures, Bons de Livraison & Documents A4
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Imprimante bureautique standard pour les documents officiels et comptables (LaserJet, DeskJet, etc.).
               </p>
             </div>
@@ -442,14 +442,14 @@ export default function PrintersTab() {
             disabled={testingA4}
             className="btn-secondary text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 hover:border-sky-400"
           >
-            <Zap size={13} className="text-sky-600" />
+            <Zap size={13} className="text-sky-600 dark:text-sky-400" />
             <span>{testingA4 ? "Impression..." : "Tester A4"}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Imprimante assignée aux documents A4
             </label>
             <select
@@ -460,7 +460,7 @@ export default function PrintersTab() {
                   invoice: { ...config.invoice, printerName: e.target.value },
                 })
               }
-              className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
@@ -472,7 +472,7 @@ export default function PrintersTab() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("printers.doc_format_label")}</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("printers.doc_format_label")}</label>
             <select
               value={config.invoice.paperSize}
               onChange={(e) =>
@@ -484,7 +484,7 @@ export default function PrintersTab() {
                   },
                 })
               }
-              className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="A4">{t("printers.a4_standard")}</option>
               <option value="Letter">{t("printers.us_letter")}</option>
@@ -494,17 +494,17 @@ export default function PrintersTab() {
       </div>
 
       {/* ── Section 3: Étiquettes Rayon & Code-barres ─────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4 shadow-xs">
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+      <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 space-y-4 shadow-xs">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shadow-2xs">
               <Tag size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Étiquettes Rayon & Code-barres
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Imprimante thermique d'étiquettes adhésives pour rayons et boîtes (ex: Gprinter GP-3150TN, Xprinter, Zebra).
               </p>
             </div>
@@ -516,14 +516,14 @@ export default function PrintersTab() {
             disabled={testingLabel}
             className="btn-secondary text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 hover:border-emerald-400"
           >
-            <Zap size={13} className="text-emerald-600" />
+            <Zap size={13} className="text-emerald-600 dark:text-emerald-400" />
             <span>{testingLabel ? "Impression..." : "Tester l'étiquette (45×35 mm)"}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Imprimante assignée aux étiquettes
             </label>
             <select
@@ -534,7 +534,7 @@ export default function PrintersTab() {
                   labels: { ...config.labels, printerName: e.target.value },
                 })
               }
-              className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
@@ -549,7 +549,7 @@ export default function PrintersTab() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("printers.label_roll_format")}</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("printers.label_roll_format")}</label>
             <select
               value={config.labels.labelSize}
               onChange={(e) =>
@@ -561,7 +561,7 @@ export default function PrintersTab() {
                   },
                 })
               }
-              className="input w-full text-xs font-medium rounded-xl border-slate-200"
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               {LABEL_SIZE_PRESETS.map((p) => (
                 <option key={p.value} value={p.value}>

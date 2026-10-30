@@ -814,7 +814,7 @@ function Leaderboard({
                     type="button"
                     onClick={() => onSelectHistory(acc)}
                     title="Historique des points"
-                    className="p-1.5 rounded-lg text-text-muted hover:text-primary-600 hover:bg-white border border-transparent hover:border-border"
+                    className="p-1.5 rounded-lg text-text-muted hover:text-primary-600 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-border"
                   >
                     <History size={14} />
                   </button>
@@ -822,7 +822,7 @@ function Leaderboard({
                     type="button"
                     onClick={() => printLoyaltyCard(acc, program, storeName)}
                     title="Imprimer Carte de Fidélité"
-                    className="p-1.5 rounded-lg text-text-muted hover:text-primary-600 hover:bg-white border border-transparent hover:border-border"
+                    className="p-1.5 rounded-lg text-text-muted hover:text-primary-600 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-border"
                   >
                     <Printer size={14} />
                   </button>
@@ -889,10 +889,10 @@ function EnrollClientModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border bg-primary-50/50">
+      <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border dark:border-slate-800 bg-primary-50/50 dark:bg-primary-950/40">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
+            <div className="p-2 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300">
               <UserPlus size={18} />
             </div>
             <div>
@@ -911,8 +911,8 @@ function EnrollClientModal({
           )}
 
           {/* Quick Bulk Sync Button */}
-          <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 flex items-center justify-between gap-3">
-            <div className="text-2xs text-indigo-950">
+          <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
+            <div className="text-2xs text-indigo-950 dark:text-indigo-200">
               <strong className="block">{t("loyalty.enroll_all_active")}</strong>
               <span>{t("loyalty.enroll_all_desc")}</span>
             </div>
@@ -920,7 +920,7 @@ function EnrollClientModal({
               type="button"
               onClick={() => enrollAllMutation.mutate()}
               disabled={enrollAllMutation.isPending}
-              className="btn-secondary btn-xs whitespace-nowrap border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+              className="btn-secondary btn-xs whitespace-nowrap border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
             >
               {enrollAllMutation.isPending ? t("common.loading") : t("loyalty.enroll_all_active")}
             </button>
@@ -1040,8 +1040,8 @@ function AccountHistoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border">
+      <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-text-primary">{accountSummary.client_name}</h3>
@@ -1171,8 +1171,8 @@ function AdjustModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-5 border-b border-border">
+      <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between p-5 border-b border-border dark:border-slate-800">
           <div>
             <h3 className="font-semibold text-text-primary">{t("loyalty.adjust_points")}</h3>
             <p className="text-xs text-text-muted mt-0.5">{account.client_name}</p>
@@ -1354,7 +1354,7 @@ function AccountsPanel({
                 "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer",
                 tierFilter === tier.value
                   ? "bg-primary-600 text-white border-primary-600"
-                  : "bg-white text-text-secondary border-border hover:border-primary-300",
+                  : "bg-white dark:bg-slate-900 text-text-secondary border-border dark:border-slate-800 hover:border-primary-300 dark:hover:border-slate-700",
               )}
             >
               {tier.label}
@@ -1583,7 +1583,7 @@ export default function LoyaltyPage() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer",
               tab === key
-                ? "bg-white text-text-primary shadow-sm"
+                ? "bg-white dark:bg-slate-900 text-text-primary shadow-sm"
                 : "text-text-muted hover:text-text-secondary",
             )}
           >

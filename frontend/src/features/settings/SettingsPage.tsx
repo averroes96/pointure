@@ -363,7 +363,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
             >
               <Upload size={14} className="text-slate-500" />
               {t("settings.change_logo")}
@@ -375,79 +375,79 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
               className="hidden"
               onChange={handleLogoChange}
             />
-            <p className="text-xs text-slate-500 mt-1.5">{t("settings.logo_format_hint")}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">{t("settings.logo_format_hint")}</p>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("settings.store_name_req")} <span className="text-rose-500">*</span>
         </label>
         <input
           type="text"
           {...register("name", { required: "Obligatoire" })}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
         />
         {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name.message}</p>}
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("user.phone")}
         </label>
         <input
           type="tel"
           {...register("phone")}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("settings.address")}
         </label>
         <textarea
           {...register("address")}
           rows={2}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("settings.nif")}
           </label>
           <input
             type="text"
             {...register("nif")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("settings.rc")}
           </label>
           <input
             type="text"
             {...register("rc")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("settings.ai")}
           </label>
           <input
             type="text"
             {...register("ai")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
         </div>
       </div>
 
-      <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+      <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="submit"
           disabled={mutation.isPending || !isDirty}
@@ -506,14 +506,14 @@ function SecurityTab() {
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("settings.current_password")} <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
           <input
             type="password"
             {...register("old_password", { required: "Obligatoire" })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
             autoComplete="current-password"
           />
         </div>
@@ -523,7 +523,7 @@ function SecurityTab() {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           {t("settings.new_password")} <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
@@ -533,7 +533,7 @@ function SecurityTab() {
               required: "Obligatoire",
               minLength: { value: 8, message: "Minimum 8 caractères" },
             })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
             autoComplete="new-password"
           />
         </div>
@@ -543,7 +543,7 @@ function SecurityTab() {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           Confirmer le nouveau mot de passe <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
@@ -553,7 +553,7 @@ function SecurityTab() {
               required: "Obligatoire",
               validate: (val) => val === newPassword || t("settings.password_mismatch"),
             })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
             autoComplete="new-password"
           />
         </div>
@@ -562,7 +562,7 @@ function SecurityTab() {
         )}
       </div>
 
-      <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+      <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="submit"
           disabled={mutation.isPending}
@@ -748,26 +748,26 @@ function UsersTab() {
           <form onSubmit={handleSubmit(onInvite)} className="space-y-4 max-w-lg">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   {t("user.first_name")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   {...register("first_name", { required: "Obligatoire" })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
                 />
                 {errors.first_name && (
                   <p className="text-xs text-rose-600 mt-1">{errors.first_name.message}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   {t("user.last_name")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   {...register("last_name", { required: "Obligatoire" })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
                 />
                 {errors.last_name && (
                   <p className="text-xs text-rose-600 mt-1">{errors.last_name.message}</p>
@@ -776,10 +776,10 @@ function UsersTab() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-0">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-0">
                   {t("common.phone", "Téléphone")} <span className="text-rose-500">*</span>
                 </label>
-                <span className="text-2xs font-semibold px-2 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
+                <span className="text-2xs font-semibold px-2 py-0.5 rounded bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60">
                   🇩🇿 05 / 06 / 07 / 02
                 </span>
               </div>
@@ -791,9 +791,9 @@ function UsersTab() {
                   validate: (val) =>
                     isValidAlgerianPhone(val) || "Numéro de téléphone algérien invalide",
                 })}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
               />
-              <p className="text-2xs text-slate-500 mt-1">
+              <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
                 Identifiant principal de connexion pour ce membre du personnel.
               </p>
               {errors.phone && (
@@ -801,16 +801,16 @@ function UsersTab() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Email <span className="text-slate-400 font-normal lowercase">(facultatif)</span>
               </label>
               <input
                 type="email"
                 placeholder="Ex : caissier@boutique.dz"
                 {...register("email")}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
               />
-              <p className="text-2xs text-slate-500 mt-1">
+              <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
                 Optionnel — pour envoyer les notifications et invitations par email.
               </p>
               {errors.email && (
@@ -819,7 +819,7 @@ function UsersTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Mot de passe <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -829,14 +829,14 @@ function UsersTab() {
                     required: "Obligatoire",
                     minLength: { value: 8, message: "8 caractères minimum" },
                   })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
                 />
                 {errors.password && (
                   <p className="text-xs text-rose-600 mt-1">{errors.password.message}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Confirmer <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -847,7 +847,7 @@ function UsersTab() {
                     validate: (val, formVals) =>
                       val === formVals.password || "Les mots de passe ne correspondent pas",
                   })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
                 />
                 {errors.confirm_password && (
                   <p className="text-xs text-rose-600 mt-1">{errors.confirm_password.message}</p>
@@ -855,12 +855,12 @@ function UsersTab() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 {t("settings.role")}
               </label>
               <select
                 {...register("role")}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
               >
                 <option value="cashier">{t("roles.cashier", "Caissier")}</option>
                 <option value="manager">{t("roles.manager", "Gérant")}</option>
@@ -869,13 +869,13 @@ function UsersTab() {
 
             {/* Cashier-specific permissions & PIN in invite form */}
             {selectedRole === "cashier" ? (
-              <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-3">
-                <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-amber-600" />
+              <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/50 space-y-3">
+                <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-amber-600 dark:text-amber-400" />
                   Permissions & Limites de Caisse
                 </span>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Remise max autorisée sans PIN (%)
                   </label>
                   <input
@@ -883,11 +883,11 @@ function UsersTab() {
                     min={0}
                     max={100}
                     {...register("max_discount_pct")}
-                    className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono"
+                    className="w-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-sm font-mono text-slate-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-2 pt-1">
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer">
                     <input
                       type="checkbox"
                       {...register("can_modify_price")}
@@ -895,7 +895,7 @@ function UsersTab() {
                     />
                     Autoriser la modification des prix de vente au panier
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer">
                     <input
                       type="checkbox"
                       {...register("can_process_returns")}
@@ -906,9 +906,9 @@ function UsersTab() {
                 </div>
               </div>
             ) : (
-              <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-200/80">
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <Key size={14} className="text-blue-600" />
+              <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-200/80 dark:border-blue-900/50">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Key size={14} className="text-blue-600 dark:text-blue-400" />
                   Code PIN Manager (4 ou 6 chiffres)
                 </label>
                 <input
@@ -917,7 +917,7 @@ function UsersTab() {
                   maxLength={6}
                   placeholder="Ex: 1234"
                   {...register("pin_code")}
-                  className="w-32 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono"
+                  className="w-32 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-sm font-mono text-slate-900 dark:text-white"
                 />
               </div>
             )}
@@ -936,7 +936,7 @@ function UsersTab() {
                   setShowInvite(false);
                   reset();
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 Annuler
               </button>
@@ -946,7 +946,7 @@ function UsersTab() {
       )}
 
       {/* Users table */}
-      <div className="rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50/70 border-b border-slate-200/80">
@@ -1126,20 +1126,20 @@ function UsersTab() {
       {/* Edit User Permissions & PIN Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-primary-600" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-primary-600 dark:text-primary-400" />
                   Permissions & PIN: {editingUser.full_name || editingUser.email}
                 </h3>
-                <p className="text-2xs text-slate-500 mt-0.5">
+                <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Rôle: <span className="font-semibold">{ROLE_LABELS[editingUser.role] ?? editingUser.role}</span>
                 </p>
               </div>
               <button
                 onClick={() => setEditingUser(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
               >
                 ✕
               </button>
@@ -1148,13 +1148,13 @@ function UsersTab() {
             <div className="p-5 space-y-5 overflow-y-auto max-h-[75vh]">
               {/* Cashier Permissions */}
               {editingUser.role === "cashier" && (
-                <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                     Contrôle de Caisse
                   </h4>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Remise maximum autorisée sans validation manager (%)
                     </label>
                     <div className="flex items-center gap-2">
@@ -1164,14 +1164,14 @@ function UsersTab() {
                         max={100}
                         defaultValue={editingUser.max_discount_pct ?? 10}
                         id="edit_max_discount_pct"
-                        className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-mono font-bold"
+                        className="w-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-sm font-mono font-bold text-slate-900 dark:text-white"
                       />
                       <span className="text-xs font-mono text-slate-400">%</span>
                     </div>
                   </div>
 
                   <div className="space-y-2 pt-2">
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer">
                       <input
                         type="checkbox"
                         defaultChecked={editingUser.can_modify_price ?? false}
@@ -1180,7 +1180,7 @@ function UsersTab() {
                       />
                       Autoriser la modification des prix de vente au panier
                     </label>
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer">
                       <input
                         type="checkbox"
                         defaultChecked={editingUser.can_process_returns ?? false}
@@ -1189,7 +1189,7 @@ function UsersTab() {
                       />
                       Autoriser les retours et remboursements sans PIN manager
                     </label>
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer">
                       <input
                         type="checkbox"
                         defaultChecked={editingUser.can_cancel_sale ?? false}
@@ -1229,31 +1229,31 @@ function UsersTab() {
               )}
 
               {/* PIN Code Configuration */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+              <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Key size={14} className="text-amber-600" />
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Key size={14} className="text-amber-600 dark:text-amber-400" />
                     Code PIN de sécurité
                   </h4>
                   <span
                     className={cn(
                       "px-2 py-0.5 rounded-full text-2xs font-semibold border",
                       editingUser.has_pin
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-slate-100 text-slate-500 border-slate-200"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                     )}
                   >
                     {editingUser.has_pin ? "Configuré" : "Non configuré"}
                   </span>
                 </div>
 
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   Le code PIN (4 ou 6 chiffres) permet au responsable d'autoriser rapidement les retours,
                   les remises et les dérogations directement depuis le terminal de caisse.
                 </p>
 
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-700">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Nouveau code PIN
                   </label>
                   <div className="flex items-center gap-2">
@@ -1264,7 +1264,7 @@ function UsersTab() {
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
                       placeholder="Ex: 1234"
-                      className="w-36 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-mono tracking-widest text-center focus:border-primary-500 focus:outline-none"
+                      className="w-36 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-1.5 text-sm font-mono tracking-widest text-center focus:border-primary-500 focus:outline-none"
                     />
                     <button
                       type="button"
@@ -1283,7 +1283,7 @@ function UsersTab() {
                             handleSetPin(editingUser.id, "");
                           }
                         }}
-                        className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-semibold transition-all disabled:opacity-40"
+                        className="py-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold transition-all disabled:opacity-40"
                       >
                         Supprimer
                       </button>
@@ -1293,20 +1293,20 @@ function UsersTab() {
               </div>
 
               {/* Quick Password Reset */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+              <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock size={14} className="text-primary-600" />
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock size={14} className="text-primary-600 dark:text-primary-400" />
                     Réinitialiser le mot de passe
                   </h4>
                 </div>
 
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   Idéal pour les comptes sans adresse email : réinitialisez directement le mot de passe du caissier sans lien de réinitialisation externe.
                 </p>
 
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-700">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Nouveau mot de passe (8 caractères min.)
                   </label>
                   <div className="flex items-center gap-2">
@@ -1316,7 +1316,7 @@ function UsersTab() {
                       value={resetPasswordInput}
                       onChange={(e) => setResetPasswordInput(e.target.value)}
                       placeholder="••••••••"
-                      className="w-48 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-mono focus:border-primary-500 focus:outline-none"
+                      className="w-48 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-1.5 text-sm font-mono focus:border-primary-500 focus:outline-none"
                     />
                     <button
                       type="button"
@@ -1331,11 +1331,11 @@ function UsersTab() {
               </div>
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex justify-end">
               <button
                 type="button"
                 onClick={() => setEditingUser(null)}
-                className="py-1.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all"
+                className="py-1.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all"
               >
                 Fermer
               </button>
@@ -1420,31 +1420,31 @@ function AgencesTab() {
 
       {/* Add branch form */}
       {showForm && (
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-6 shadow-xs animate-in fade-in duration-150">
-          <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-            <MapPin size={16} className="text-primary-600" />
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 p-6 shadow-xs animate-in fade-in duration-150">
+          <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-sm flex items-center gap-2">
+            <MapPin size={16} className="text-primary-600 dark:text-primary-400" />
             {t("settings.new_branch")}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Nom <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 {...register("name", { required: "Obligatoire" })}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
                 placeholder="Agence centrale, Annexe nord..."
               />
               {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   {t("client.wilaya")}
                 </label>
                 <select
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
                   {...register("wilaya")}
                 >
                   <option value="">{t("common.select", "Sélectionner...")}</option>
@@ -1456,24 +1456,24 @@ function AgencesTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   {t("user.phone")}
                 </label>
                 <input
                   type="tel"
                   {...register("phone")}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 {t("settings.address")}
               </label>
               <input
                 type="text"
                 {...register("address")}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
               />
             </div>
             <div className="flex gap-2 pt-2">
@@ -1490,7 +1490,7 @@ function AgencesTab() {
                   setShowForm(false);
                   reset();
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 {t("common.cancel")}
               </button>
@@ -1510,15 +1510,15 @@ function AgencesTab() {
         {branches.map((branch) => (
           <div
             key={branch.id}
-            className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs hover:border-slate-300 transition-all flex items-center justify-between gap-4"
+            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex items-center justify-between gap-4"
           >
             <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-100/60 flex items-center justify-center flex-shrink-0 text-primary-600">
+              <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100/60 dark:border-primary-800/60 flex items-center justify-center flex-shrink-0 text-primary-600 dark:text-primary-400">
                 <MapPin size={18} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-900 text-sm">{branch.name}</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">{branch.name}</span>
                   {branch.is_headquarters && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-bold bg-primary-50 text-primary-700 border border-primary-200">
                       Siège
@@ -1680,18 +1680,18 @@ function VersementsTab() {
             <div>
               <label
                 htmlFor="require_manager_pin_for_discounts"
-                className="text-sm font-semibold text-slate-900 cursor-pointer"
+                className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
               >
                 {t("settings.policy_pin_discounts")}
               </label>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                 {t("settings.policy_pin_discounts_desc")}
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               {t("settings.policy_max_discount")}
             </label>
             <div className="flex items-center gap-2 max-w-xs">
@@ -1700,11 +1700,11 @@ function VersementsTab() {
                 min={0}
                 max={100}
                 {...register("default_max_discount_pct", { min: 0, max: 100 })}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono font-bold"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono font-bold"
               />
               <span className="text-xs font-mono font-bold text-slate-400">%</span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {t("settings.policy_max_discount_desc")}
             </p>
           </div>
@@ -1712,9 +1712,9 @@ function VersementsTab() {
       </div>
 
       {/* Stock Policy */}
-      <div className="pt-6 border-t border-slate-200/80 space-y-3">
-        <h3 className="text-sm font-bold text-slate-900">{t("settings.policy_stock_title")}</h3>
-        <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50">
+      <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t("settings.policy_stock_title")}</h3>
+        <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60">
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -1725,11 +1725,11 @@ function VersementsTab() {
             <div>
               <label
                 htmlFor="allow_negative_stock"
-                className="text-sm font-semibold text-slate-900 cursor-pointer"
+                className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
               >
                 {t("settings.policy_negative_stock")}
               </label>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                 {t("settings.policy_negative_stock_desc")}
               </p>
             </div>
@@ -1738,11 +1738,11 @@ function VersementsTab() {
       </div>
 
       {/* Versements Policy */}
-      <div className="pt-6 border-t border-slate-200/80 space-y-4">
-        <h3 className="text-sm font-bold text-slate-900">{t("settings.payment_settings_credit")}</h3>
+      <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t("settings.payment_settings_credit")}</h3>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("settings.policy_min_versement")} <span className="text-rose-500">*</span>
           </label>
           <input
@@ -1750,29 +1750,29 @@ function VersementsTab() {
             min={1}
             max={100}
             {...register("min_versement_pct", { required: "Obligatoire", min: 1, max: 100 })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("settings.policy_min_versement_desc")}
           </p>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             {t("settings.policy_due_days")} <span className="text-rose-500">*</span>
           </label>
           <input
             type="number"
             min={1}
             {...register("versement_due_days", { required: "Obligatoire", min: 1 })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("settings.policy_due_days_desc")}
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center gap-3">
+        <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex items-center gap-3">
           <input
             type="checkbox"
             id="versement_requires_client"
@@ -1781,7 +1781,7 @@ function VersementsTab() {
           />
           <label
             htmlFor="versement_requires_client"
-            className="text-sm font-medium text-slate-800 cursor-pointer"
+            className="text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
           >
             {t("settings.policy_require_client")}
           </label>
@@ -1789,18 +1789,18 @@ function VersementsTab() {
       </div>
 
       {/* Layaway / Mise de côté Policy */}
-      <div className="pt-6 border-t border-slate-200/80 space-y-4">
+      <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <PackageCheck size={16} className="text-indigo-600" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <PackageCheck size={16} className="text-indigo-600 dark:text-indigo-400" />
             {t("settings.policy_layaway_title")}
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {t("settings.policy_layaway_desc")}
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-start gap-3">
+        <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex items-start gap-3">
           <input
             type="checkbox"
             id="enable_layaway"
@@ -1810,19 +1810,19 @@ function VersementsTab() {
           <div>
             <label
               htmlFor="enable_layaway"
-              className="text-sm font-semibold text-slate-900 cursor-pointer"
+              className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
             >
               {t("settings.policy_layaway_enable")}
             </label>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               {t("settings.policy_layaway_enable_desc")}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               {t("settings.policy_layaway_min_deposit")} <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
@@ -1831,17 +1831,17 @@ function VersementsTab() {
                 min={1}
                 max={100}
                 {...register("min_layaway_deposit_pct", { required: true, min: 1, max: 100 })}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
               />
               <span className="text-xs font-mono font-bold text-slate-400">%</span>
             </div>
-            <p className="text-2xs text-slate-500">
+            <p className="text-2xs text-slate-500 dark:text-slate-400">
               {t("settings.policy_layaway_min_deposit_hint")}
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               {t("settings.policy_layaway_duration")} <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
@@ -1850,18 +1850,18 @@ function VersementsTab() {
                 min={1}
                 max={365}
                 {...register("layaway_duration_days", { required: true, min: 1, max: 365 })}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
               />
               <span className="text-xs font-mono font-bold text-slate-400">{t("common.days", "jours")}</span>
             </div>
-            <p className="text-2xs text-slate-500">
+            <p className="text-2xs text-slate-500 dark:text-slate-400">
               {t("settings.policy_layaway_duration_hint")}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+      <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="submit"
           disabled={mutation.isPending || !isDirty}

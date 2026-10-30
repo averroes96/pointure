@@ -273,78 +273,78 @@ export default function ChequePage() {
 
       {/* KPI Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
+        <div className="card p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+            <span className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
               {t("cheque.to_collect_clients")}
             </span>
-            <p className="text-lg font-black font-mono text-blue-700 mt-1 tabular-nums">
+            <p className="text-lg font-black font-mono text-blue-700 dark:text-blue-400 mt-1 tabular-nums">
               {formatDZD(pendingReceivableTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
-            <span className="text-2xs text-slate-500 font-medium">
+            <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium">
               {t("cheque.cheque_count", { count: pendingReceivables.length })}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <ArrowDownLeft size={20} />
           </div>
         </div>
 
-        <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
+        <div className="card p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+            <span className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
               {t("cheque.to_pay_suppliers")}
             </span>
-            <p className="text-lg font-black font-mono text-indigo-700 mt-1 tabular-nums">
+            <p className="text-lg font-black font-mono text-indigo-700 dark:text-indigo-400 mt-1 tabular-nums">
               {formatDZD(pendingPayableTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
-            <span className="text-2xs text-slate-500 font-medium">
+            <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium">
               {t("cheque.cheque_count", { count: pendingPayables.length })}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <ArrowUpRight size={20} />
           </div>
         </div>
 
-        <div className="card p-4 rounded-xl border border-amber-200/70 bg-amber-50/40 shadow-2xs flex items-center justify-between">
+        <div className="card p-4 rounded-xl border border-amber-200/70 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/30 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-2xs font-bold text-amber-700 uppercase tracking-wider block">
+            <span className="text-2xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
               {t("cheque.near_or_overdue")}
             </span>
-            <p className="text-lg font-black font-mono text-amber-900 mt-1 tabular-nums">
-              {urgentCount} <span className="text-2xs font-normal text-amber-600">{t("cheque.cheque_count", { count: urgentCount })}</span>
+            <p className="text-lg font-black font-mono text-amber-900 dark:text-amber-300 mt-1 tabular-nums">
+              {urgentCount} <span className="text-2xs font-normal text-amber-600 dark:text-amber-400">{t("cheque.cheque_count", { count: urgentCount })}</span>
             </p>
-            <span className="text-2xs text-amber-700 font-medium">J ≤ 3 {t("cheque.days_until_due")}</span>
+            <span className="text-2xs text-amber-700 dark:text-amber-400 font-medium">J ≤ 3 {t("cheque.days_until_due")}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
             <AlertTriangle size={20} />
           </div>
         </div>
 
-        <div className="card p-4 rounded-xl border border-slate-200/80 bg-white shadow-2xs flex items-center justify-between">
+        <div className="card p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
+            <span className="text-2xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
               {t("cheque.deposited_collected")}
             </span>
-            <p className="text-lg font-black font-mono text-emerald-700 mt-1 tabular-nums">
+            <p className="text-lg font-black font-mono text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
               {formatDZD(depositedTotal)}{" "}
               <span className="text-2xs font-normal text-slate-400">DZD</span>
             </p>
-            <span className="text-2xs text-slate-500 font-medium">
+            <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium">
               {t("cheque.cheque_count", { count: cheques.filter((c) => c.status === "deposited").length })}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <Landmark size={20} />
           </div>
         </div>
       </div>
 
       {/* Filters & Search Bar */}
-      <div className="card p-4 rounded-2xl border border-slate-200/80 bg-white shadow-2xs space-y-3">
+      <div className="card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -443,38 +443,38 @@ export default function ChequePage() {
       </div>
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900/90">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("cheque.number")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("cheque.direction_and_party")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("cheque.bank")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("cheque.due_date")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("client.delay")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
                   {t("cheque.amount")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("common.status")}
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
                   {t("common.actions")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
@@ -485,8 +485,8 @@ export default function ChequePage() {
               {!isLoading && cheques.length === 0 && (
                 <tr>
                   <td colSpan={8} className="text-center py-14 text-slate-500 text-sm">
-                    <Landmark size={36} className="mx-auto mb-2 text-slate-300" />
-                    <p className="font-bold text-slate-700">{t("cheque.no_cheques_recorded")}</p>
+                    <Landmark size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{t("cheque.no_cheques_recorded")}</p>
                     <p className="text-xs text-slate-400 mt-1 mb-4">
                       {t("cheque.no_cheques_desc")}
                     </p>
@@ -502,11 +502,11 @@ export default function ChequePage() {
                 </tr>
               )}
               {cheques.map((cheque) => (
-                <tr key={cheque.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={cheque.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-4 py-3.5">
-                    <div className="font-mono font-bold text-slate-900 text-sm">{cheque.number}</div>
+                    <div className="font-mono font-bold text-slate-900 dark:text-white text-sm">{cheque.number}</div>
                     {cheque.notes && (
-                      <div className="text-2xs text-slate-500 line-clamp-1 mt-0.5">{cheque.notes}</div>
+                      <div className="text-2xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{cheque.notes}</div>
                     )}
                   </td>
                   <td className="px-4 py-3.5">
@@ -515,8 +515,8 @@ export default function ChequePage() {
                         className={cn(
                           "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-3xs font-bold uppercase",
                           cheque.direction === "payable"
-                            ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                            : "bg-blue-50 text-blue-700 border border-blue-200",
+                            ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                            : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
                         )}
                       >
                         {cheque.direction === "payable" ? (
@@ -529,21 +529,21 @@ export default function ChequePage() {
                           </>
                         )}
                       </span>
-                      <span className="font-sans font-bold text-slate-800 text-sm">
+                      <span className="font-sans font-bold text-slate-800 dark:text-slate-200 text-sm">
                         {cheque.client_name || cheque.supplier_name || t("cheque.unspecified_party")}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 text-xs font-medium">
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-xs font-medium">
                     {cheque.bank ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
                         {cheque.bank}
                       </span>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-slate-300 dark:text-slate-600">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 text-xs font-mono">
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-xs font-mono">
                     {formatDate(cheque.due_date)}
                   </td>
                   <td className="px-4 py-3.5">
@@ -552,10 +552,10 @@ export default function ChequePage() {
                         className={cn(
                           "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
                           cheque.days_until_due <= 0
-                            ? "bg-rose-50 text-rose-700 border border-rose-200"
+                            ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
                             : cheque.days_until_due <= 3
-                            ? "bg-amber-50 text-amber-800 border border-amber-200"
-                            : "bg-blue-50 text-blue-700 border border-blue-200",
+                            ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                            : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
                         )}
                       >
                         <Clock size={11} />
@@ -567,7 +567,7 @@ export default function ChequePage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">
+                  <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
                     {formatDZD(cheque.amount)}{" "}
                     <span className="text-2xs font-normal text-slate-400">DZD</span>
                   </td>
@@ -576,10 +576,10 @@ export default function ChequePage() {
                       className={cn(
                         "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-semibold",
                         cheque.status === "deposited"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                           : cheque.status === "bounced"
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : "bg-amber-50 text-amber-800 border border-amber-200",
+                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                          : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
                       )}
                     >
                       <span
@@ -606,7 +606,7 @@ export default function ChequePage() {
                           <button
                             onClick={() => depositMutation.mutate(cheque.id)}
                             disabled={depositMutation.isPending}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-bold rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-bold rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
                             title={t("cheque.mark_deposited", "Marquer comme encaissé")}
                           >
                             <CheckCircle2 size={12} />
@@ -615,7 +615,7 @@ export default function ChequePage() {
                           <button
                             onClick={() => bounceMutation.mutate(cheque.id)}
                             disabled={bounceMutation.isPending}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-bold rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-bold rounded-lg text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer"
                             title={t("cheque.mark_bounced", "Marquer comme rejeté")}
                           >
                             <XCircle size={12} />
@@ -626,7 +626,7 @@ export default function ChequePage() {
                         <button
                           onClick={() => pendingMutation.mutate(cheque.id)}
                           disabled={pendingMutation.isPending}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-2xs font-semibold rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-2xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                           title={t("supplier.revert_draft", "Remettre en attente")}
                         >
                           <RotateCcw size={12} />
@@ -639,7 +639,7 @@ export default function ChequePage() {
                             deleteMutation.mutate(cheque.id);
                           }
                         }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                         title={t("common.delete")}
                       >
                         <Trash2 size={13} />
@@ -757,15 +757,15 @@ function CreateChequeModal({
               className={cn(
                 "p-3 rounded-2xl border text-left transition-all cursor-pointer",
                 direction === "receivable"
-                  ? "border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20"
-                  : "border-slate-200 bg-slate-50/60 hover:bg-slate-100",
+                  ? "border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-blue-500/20"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700",
               )}
             >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900">
-                <ArrowDownLeft size={15} className="text-blue-600" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
+                <ArrowDownLeft size={15} className="text-blue-600 dark:text-blue-400" />
                 {t("cheque.client_incoming")}
               </div>
-              <p className="text-2xs text-slate-500 mt-0.5">{t("cheque.cheque_client_desc")}</p>
+              <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">{t("cheque.cheque_client_desc")}</p>
             </button>
 
             <button
@@ -774,15 +774,15 @@ function CreateChequeModal({
               className={cn(
                 "p-3 rounded-2xl border text-left transition-all cursor-pointer",
                 direction === "payable"
-                  ? "border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/20"
-                  : "border-slate-200 bg-slate-50/60 hover:bg-slate-100",
+                  ? "border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20"
+                  : "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700",
               )}
             >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
-                <ArrowUpRight size={15} className="text-indigo-600" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                <ArrowUpRight size={15} className="text-indigo-600 dark:text-indigo-400" />
                 {t("cheque.supplier_outgoing")}
               </div>
-              <p className="text-2xs text-slate-500 mt-0.5">{t("cheque.cheque_supplier_desc")}</p>
+              <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">{t("cheque.cheque_supplier_desc")}</p>
             </button>
           </div>
 

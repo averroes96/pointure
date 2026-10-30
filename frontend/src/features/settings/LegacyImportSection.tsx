@@ -170,15 +170,15 @@ export const LegacyImportSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveWizardEntity('products')}
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
                 <Package className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900">Produits & Stocks</div>
-                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Produits & Stocks</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Excel / CSV</div>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
@@ -187,15 +187,15 @@ export const LegacyImportSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveWizardEntity('clients')}
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
                 <Users className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900">Clients</div>
-                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Clients</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Excel / CSV</div>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
@@ -204,15 +204,15 @@ export const LegacyImportSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveWizardEntity('suppliers')}
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-primary-400 hover:shadow-xs transition-all text-start group cursor-pointer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-xs transition-all text-start group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
                 <Truck className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900">Fournisseurs</div>
-                <div className="text-[11px] text-slate-500 font-medium">Excel / CSV</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Fournisseurs</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Excel / CSV</div>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
@@ -222,30 +222,30 @@ export const LegacyImportSection: React.FC = () => {
 
       {/* Legacy DBF Migration Section */}
       <div className="space-y-5 pt-2">
-        <div className="border-t border-slate-200/80 pt-6">
-          <h2 className="text-base font-bold text-slate-900">{t("settings.legacy_migration")}</h2>
-          <p className="text-xs text-slate-500 mt-1">
+        <div className="border-t border-slate-200/80 dark:border-slate-800 pt-6">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">{t("settings.legacy_migration")}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("settings.legacy_desc")}
           </p>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex gap-3 text-amber-800">
-          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-semibold text-amber-900">{t("settings.warning_proceed")}</h3>
-            <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
+            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t("settings.warning_proceed")}</h3>
+            <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-1 leading-relaxed">
               {t("settings.warning_desc")}
             </p>
           </div>
         </div>
 
         {/* Inventory Management Mode */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Mode de gestion du stock (Articles)</h3>
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Mode de gestion du stock (Articles)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className={cn(
               "p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3",
-              options.easy_mode ? "border-primary-500 bg-primary-50/50 ring-1 ring-primary-500/20" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
+              options.easy_mode ? "border-primary-500 bg-primary-50/50 dark:bg-primary-950/30 ring-1 ring-primary-500/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-800/40"
             )}>
               <input
                 type="radio"
@@ -256,11 +256,11 @@ export const LegacyImportSection: React.FC = () => {
                 className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   Mode Simple (Recommandé)
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Par défaut</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">Par défaut</span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                   1 article = 1 référence directe avec son stock réel exact. Encaissement 1-clic rapide au POS sans sélection de pointures.
                 </p>
               </div>
@@ -268,7 +268,7 @@ export const LegacyImportSection: React.FC = () => {
 
             <label className={cn(
               "p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3",
-              !options.easy_mode ? "border-primary-500 bg-primary-50/50 ring-1 ring-primary-500/20" : "border-slate-200 hover:border-slate-300 bg-slate-50/40"
+              !options.easy_mode ? "border-primary-500 bg-primary-50/50 dark:bg-primary-950/30 ring-1 ring-primary-500/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-800/40"
             )}>
               <input
                 type="radio"
@@ -279,10 +279,10 @@ export const LegacyImportSection: React.FC = () => {
                 className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <div className="text-xs font-bold text-slate-900">
+                <div className="text-xs font-bold text-slate-900 dark:text-white">
                   Mode Variantes (Découper par tailles)
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                   Génère une grille de pointures (36–41 / 40–45) et répartit le stock estimé sur chaque taille.
                 </p>
               </div>
@@ -290,48 +290,48 @@ export const LegacyImportSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Software Version</h3>
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Software Version</h3>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="radio" checked={options.software_type === 'retail'} onChange={() => setOptions({...options, software_type: 'retail'})} disabled={isZipping || isUploading} className="border-slate-300 text-primary-600 focus:ring-primary-500" name="software_type" value="retail" />
-              <span className="text-xs font-medium text-slate-800">Retail (Standard)</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Retail (Standard)</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="radio" checked={options.software_type === 'wholesale'} onChange={() => setOptions({...options, software_type: 'wholesale'})} disabled={isZipping || isUploading} className="border-slate-300 text-primary-600 focus:ring-primary-500" name="software_type" value="wholesale" />
-              <span className="text-xs font-medium text-slate-800">Wholesale</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Wholesale</span>
             </label>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">{t("settings.select_data")}</h3>
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{t("settings.select_data")}</h3>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.suppliers} onChange={(e) => setOptions({...options, suppliers: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_suppliers")}</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{t("settings.legacy_suppliers")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.clients} onChange={(e) => setOptions({...options, clients: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_clients")}</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{t("settings.legacy_clients")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.products} onChange={(e) => setOptions({...options, products: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_products")}</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{t("settings.legacy_products")}</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.purchases} onChange={(e) => setOptions({...options, purchases: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-slate-800">Bons d'Achat & Réceptions (ACHAT)</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Bons d'Achat & Réceptions (ACHAT)</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={options.sales} onChange={(e) => setOptions({...options, sales: e.target.checked})} disabled={isZipping || isUploading} className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-              <span className="text-xs font-medium text-slate-800">{t("settings.legacy_sales")}</span>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{t("settings.legacy_sales")}</span>
             </label>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="border-2 border-dashed border-slate-200/90 rounded-2xl p-8 text-center hover:bg-slate-50/60 transition-colors relative">
+          <div className="border-2 border-dashed border-slate-200/90 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors relative">
             <input
               type="file"
               // @ts-ignore
@@ -347,28 +347,28 @@ export const LegacyImportSection: React.FC = () => {
             {isZipping || isUploading ? (
               <div className="flex flex-col items-center">
                 <Loader2 className="h-10 w-10 text-primary-600 animate-spin mb-3" />
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {isZipping ? `${t("settings.zipping")} ${progress}%` : t("settings.uploading")}
                 </p>
               </div>
             ) : (
               <div className="flex flex-col items-center">
                 <UploadCloud className="h-10 w-10 text-slate-400 mb-3" />
-                <p className="text-sm font-semibold text-slate-900">{t("settings.click_select")}</p>
-                <p className="text-xs text-slate-500 mt-1">{t("settings.contains_dbf")}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{t("settings.click_select")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.contains_dbf")}</p>
               </div>
             )}
           </div>
 
           <div className="flex items-center justify-center gap-3 text-xs text-slate-400">
-            <span className="h-px bg-slate-200 flex-1" />
+            <span className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
             <span>OU</span>
-            <span className="h-px bg-slate-200 flex-1" />
+            <span className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
           </div>
 
           <div className="flex items-center justify-center">
             <label className={cn(
-              "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer",
+              "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all cursor-pointer",
               (isZipping || isUploading) && "opacity-50 pointer-events-none"
             )}>
               <UploadCloud size={15} className="text-slate-500" />
