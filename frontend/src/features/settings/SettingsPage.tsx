@@ -688,7 +688,7 @@ function UsersTab() {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <span className="text-sm font-semibold text-slate-700">Comptes d'accès</span>
+          <span className="text-sm font-semibold text-slate-700">{t("settings.access_accounts")}</span>
           <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200/80">
             {users.length} utilisateur(s)
           </span>
@@ -799,8 +799,8 @@ function UsersTab() {
                 {...register("role")}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
               >
-                <option value="cashier">Caissier</option>
-                <option value="manager">Gérant</option>
+                <option value="cashier">{t("roles.cashier", "Caissier")}</option>
+                <option value="manager">{t("roles.manager", "Gérant")}</option>
               </select>
             </div>
 
@@ -1284,7 +1284,7 @@ function AgencesTab() {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <span className="text-sm font-semibold text-slate-700">Réseau d'agences</span>
+          <span className="text-sm font-semibold text-slate-700">{t("settings.branch_network")}</span>
           <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200/80">
             {branches.length} agence(s)
           </span>
@@ -1324,13 +1324,13 @@ function AgencesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Wilaya
+                  {t("client.wilaya")}
                 </label>
                 <select
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
                   {...register("wilaya")}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="">{t("common.select", "Sélectionner...")}</option>
                   {wilayas?.map((w) => (
                     <option key={w.code} value={w.code}>
                       {w.code} - {w.name} ({w.ar_name})
@@ -1375,7 +1375,7 @@ function AgencesTab() {
                 }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
               >
-                Annuler
+                {t("common.cancel")}
               </button>
             </div>
           </form>
@@ -1388,7 +1388,7 @@ function AgencesTab() {
           <div className="text-center py-8 text-slate-400">{t("common.loading")}</div>
         )}
         {!isLoading && branches.length === 0 && (
-          <div className="text-center py-8 text-slate-400">Aucune agence enregistrée.</div>
+          <div className="text-center py-8 text-slate-400">{t("settings.no_branch_registered")}</div>
         )}
         {branches.map((branch) => (
           <div

@@ -148,7 +148,7 @@ function PromotionModal({
       <div className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border">
           <h2 className="font-bold text-text-primary">
-            {isEdit ? "Modifier la promotion" : "Nouvelle promotion"}
+            {isEdit ? t("promotions.edit_promo") : t("promotions.new_promo")}
           </h2>
           <button onClick={onClose} className="btn-ghost btn-sm"><X size={16} /></button>
         </div>
@@ -164,13 +164,13 @@ function PromotionModal({
           {/* Name */}
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1">
-              Nom <span className="text-danger">*</span>
+              {t("common.name")} <span className="text-danger">*</span>
             </label>
             <input
               className="form-input"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              placeholder="Ex : Soldes été 2026"
+              placeholder={t("promotions.name_placeholder")}
               required
             />
           </div>
@@ -203,10 +203,10 @@ function PromotionModal({
           {/* Conditions */}
           <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-              Conditions (cumulables)
+              {t("promotions.conditions")}
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Catégorie</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("report.category")}</label>
               <select
                 className="form-input"
                 value={form.category}
@@ -219,7 +219,7 @@ function PromotionModal({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Qté minimum</label>
+                <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.min_qty")}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -246,11 +246,11 @@ function PromotionModal({
           {/* Effect */}
           <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-              Remise (choisir l'un ou l'autre)
+              {t("promotions.discount")}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">% remise</label>
+                <label className="block text-xs font-medium text-text-muted mb-1">% {t("promotions.discount")}</label>
                 <input
                   type="number"
                   className="form-input font-mono"
@@ -266,7 +266,7 @@ function PromotionModal({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Montant fixe / unité (DZD)</label>
+                <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.fixed_amount_unit")}</label>
                 <input
                   type="number"
                   className="form-input font-mono"
@@ -286,7 +286,7 @@ function PromotionModal({
           {/* Priority + max uses */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Priorité</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.priority")}</label>
               <input
                 type="number"
                 className="form-input"
@@ -296,14 +296,14 @@ function PromotionModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Max utilisations</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.uses")}</label>
               <input
                 type="number"
                 className="form-input"
                 value={form.max_uses ?? ""}
                 onChange={(e) => set("max_uses", parseInt(e.target.value) || null)}
                 min={1}
-                placeholder="Illimité"
+                placeholder={t("promotions.unlimited")}
               />
             </div>
           </div>
@@ -316,15 +316,15 @@ function PromotionModal({
               onChange={(e) => set("is_active", e.target.checked)}
               className="w-4 h-4 rounded border-border"
             />
-            <span className="text-sm text-text-primary">Promotion active</span>
+            <span className="text-sm text-text-primary">{t("promotions.active")}</span>
           </label>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t("common.cancel")}</button>
             <button type="submit" disabled={mutation.isPending} className="btn-primary">
               {mutation.isPending
-                ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
-                : <><Save size={14} /> {isEdit ? "Modifier" : "Créer"}</>
+                ? <><Loader2 size={14} className="animate-spin" /> {t("common.saving")}</>
+                : <><Save size={14} /> {isEdit ? t("common.edit") : t("common.create")}</>
               }
             </button>
           </div>
@@ -337,6 +337,7 @@ function PromotionModal({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PromotionsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [modalData, setModalData] = useState<FormState | null>(null);
 
@@ -365,10 +366,10 @@ export default function PromotionsPage() {
         <div>
           <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">
             <Tag size={20} />
-            Promotions
+            {t("promotions.title")}
           </h1>
           <p className="text-sm text-text-muted">
-            Remises automatiques appliquées au caisse selon des conditions.
+            {t("promotions.subtitle")}
           </p>
         </div>
         <button
@@ -376,7 +377,7 @@ export default function PromotionsPage() {
           className="btn-primary"
         >
           <Plus size={16} />
-          Nouvelle promotion
+          {t("promotions.new_promo")}
         </button>
       </div>
 
@@ -385,26 +386,26 @@ export default function PromotionsPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Conditions</th>
-              <th>Remise</th>
-              <th>Période</th>
-              <th className="text-end">Utilisations</th>
-              <th>Statut</th>
+              <th>{t("common.name")}</th>
+              <th>{t("promotions.conditions")}</th>
+              <th>{t("promotions.discount")}</th>
+              <th>{t("promotions.period")}</th>
+              <th className="text-end">{t("promotions.uses")}</th>
+              <th>{t("invoice.status")}</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-text-muted">Chargement...</td>
+                <td colSpan={7} className="text-center py-8 text-text-muted">{t("common.loading")}</td>
               </tr>
             )}
             {!isLoading && promotions.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-10 text-text-muted">
                   <Tag size={32} className="mx-auto mb-2 opacity-30" />
-                  <p>Aucune promotion. Créez-en une pour commencer.</p>
+                  <p>{t("promotions.no_promotions")}</p>
                 </td>
               </tr>
             )}
@@ -425,7 +426,7 @@ export default function PromotionsPage() {
                     {promo.end_date ? ` → ${formatDate(promo.end_date)}` : " →  ∞"}
                   </div>
                   {promo.priority > 0 && (
-                    <div className="text-2xs text-primary-500 mt-0.5">Priorité {promo.priority}</div>
+                    <div className="text-2xs text-primary-500 mt-0.5">{t("promotions.priority")} {promo.priority}</div>
                   )}
                 </td>
                 <td className="text-end font-mono text-sm">
@@ -441,13 +442,13 @@ export default function PromotionsPage() {
                       "flex items-center gap-1 text-xs font-medium",
                       promo.is_active ? "text-success" : "text-text-muted"
                     )}
-                    title={promo.is_active ? "Désactiver" : "Activer"}
+                    title={promo.is_active ? t("promotions.deactivate") : t("promotions.activate")}
                   >
                     {promo.is_active
                       ? <ToggleRight size={18} />
                       : <ToggleLeft size={18} />
                     }
-                    {promo.is_active ? "Active" : "Inactive"}
+                    {promo.is_active ? t("promotions.active") : t("promotions.inactive")}
                   </button>
                 </td>
                 <td>

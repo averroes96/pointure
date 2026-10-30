@@ -261,7 +261,7 @@ export default function SalesReportPage() {
           {preset === "custom" && (
             <div className="flex items-end gap-2">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Du</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("report.date_from")}</label>
                 <input
                   type="date"
                   value={customFrom}
@@ -270,7 +270,7 @@ export default function SalesReportPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Au</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("report.date_to")}</label>
                 <input
                   type="date"
                   value={customTo}
@@ -284,13 +284,13 @@ export default function SalesReportPage() {
 
           {/* Branch filter */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Agence</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("reconciliation.legacy_col_branch")}</label>
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
               className="input rounded-xl border-slate-200 text-sm min-w-[180px]"
             >
-              <option value="">Toutes les agences</option>
+              <option value="">{t("report.all_branches")}</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
@@ -303,20 +303,20 @@ export default function SalesReportPage() {
       {showMargin && isManagerOrOwner && plData && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CA Total</div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("report.total_revenue")}</div>
             <div className="text-2xl font-bold font-mono tracking-tight text-primary-600 dark:text-primary-400 mt-1 tabular-nums">
               {formatDZD(plData.totals.revenue)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Coût des ventes</div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("report.cogs")}</div>
             <div className="text-2xl font-bold font-mono tracking-tight text-rose-600 dark:text-rose-400 mt-1 tabular-nums">
               {formatDZD(plData.totals.cogs)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5">
             <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Marge brute{" "}
+              {t("report.gross_margin")}{" "}
               <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                 ({parseFloat(plData.totals.gross_margin_pct).toFixed(1)}%)
               </span>
@@ -332,7 +332,7 @@ export default function SalesReportPage() {
       {data && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5 lg:col-span-2">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CA total période</div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("report.period_revenue")}</div>
             <div className="text-2xl font-bold font-mono tracking-tight text-primary-600 dark:text-primary-400 mt-1 tabular-nums">
               {formatDZD(data.total_revenue)} <span className="text-xs font-normal text-slate-400">DZD</span>
             </div>
@@ -344,7 +344,7 @@ export default function SalesReportPage() {
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Croissance vs période préc.</div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("report.growth_vs_previous")}</div>
             <div className="mt-2">
               <GrowthBadge pct={data.growth_pct ?? null} />
             </div>
@@ -366,11 +366,11 @@ export default function SalesReportPage() {
           {/* Bar chart */}
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Évolution du CA</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.revenue_evolution")}</h2>
             </div>
             <div>
               {rows.length === 0 ? (
-                <div className="text-center text-slate-400 py-8 font-medium">Aucune donnée disponible.</div>
+                <div className="text-center text-slate-400 py-8 font-medium">{t("common.no_data")}</div>
               ) : (
                 <div className="space-y-2.5">
                   {rows.map((row) => {
@@ -407,20 +407,20 @@ export default function SalesReportPage() {
           {/* Table */}
           <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Détail par période</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("report.detail_by_period")}</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-start text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="px-4 py-3.5 text-start">Date / Semaine</th>
+                    <th className="px-4 py-3.5 text-start">{t("report.date_week")}</th>
                     <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
                     <th className="px-4 py-3.5 text-end">{t("report.sale_count")}</th>
-                    <th className="px-4 py-3.5 text-end">Panier moyen</th>
+                    <th className="px-4 py-3.5 text-end">{t("report.avg_basket")}</th>
                     {showMargin && isManagerOrOwner && (
                       <>
-                        <th className="px-4 py-3.5 text-end">Marge brute</th>
-                        <th className="px-4 py-3.5 text-end">Marge %</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.gross_margin")}</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.gross_margin_pct")}</th>
                       </>
                     )}
                   </tr>
@@ -429,7 +429,7 @@ export default function SalesReportPage() {
                   {rows.length === 0 && (
                     <tr>
                       <td colSpan={showMargin && isManagerOrOwner ? 6 : 4} className="text-center py-10 text-slate-400 font-medium">
-                        Aucune donnée pour cette période.
+                        {t("report.no_data_period")}
                       </td>
                     </tr>
                   )}

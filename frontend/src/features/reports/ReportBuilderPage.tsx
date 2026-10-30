@@ -556,7 +556,7 @@ export default function ReportBuilderPage() {
                         deleteTemplate(tpl.id);
                       }}
                       className="opacity-0 group-hover:opacity-100 ml-1 p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all shrink-0"
-                      title="Supprimer"
+                      title={t("common.delete")}
                     >
                       <X size={13} />
                     </button>
@@ -571,7 +571,7 @@ export default function ReportBuilderPage() {
                 <div className="space-y-2">
                   <input
                     className="input text-xs w-full rounded-xl border-slate-200"
-                    placeholder="Nom du modèle"
+                    placeholder={t("report.template_name")}
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
                     onKeyDown={(e) => {
@@ -589,7 +589,7 @@ export default function ReportBuilderPage() {
                       onClick={saveTemplate}
                       disabled={saveLoading || !saveName.trim()}
                     >
-                      {saveLoading ? "…" : "Enregistrer"}
+                      {saveLoading ? "…" : t("common.save")}
                     </button>
                     <button
                       className="btn-secondary py-1.5 px-2.5 rounded-xl text-xs"
@@ -598,7 +598,7 @@ export default function ReportBuilderPage() {
                         setSaveName("");
                       }}
                     >
-                      Annuler
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -623,7 +623,7 @@ export default function ReportBuilderPage() {
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-12 text-slate-400 text-sm font-medium text-center">
               <div className="flex items-center justify-center gap-2">
                 <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                <span>Chargement des champs…</span>
+                <span>{t("common.loading")}</span>
               </div>
             </div>
           ) : (
@@ -632,13 +632,13 @@ export default function ReportBuilderPage() {
               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <span className="font-semibold text-slate-900 text-sm">
-                    Colonnes{" "}
+                    {t("report.columns")}{" "}
                     <span className="text-slate-400 font-normal text-xs">
                       (max {MAX_COLUMNS})
                     </span>
                   </span>
                   <span className="text-xs font-mono font-medium text-slate-500">
-                    {columns.length}/{MAX_COLUMNS} sélectionnées
+                    {t("report.columns_selected", { count: columns.length, max: MAX_COLUMNS })}
                   </span>
                 </div>
                 <div className="space-y-4">
@@ -744,7 +744,7 @@ export default function ReportBuilderPage() {
                     onClick={addFilter}
                   >
                     <Plus size={14} />
-                    Ajouter un filtre
+                    {t("report.add_filter")}
                   </button>
                 </div>
                 <div className="space-y-2.5">

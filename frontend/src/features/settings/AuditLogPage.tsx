@@ -70,8 +70,8 @@ export default function AuditLogPage() {
           <Shield size={22} className="text-primary-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Journal d'activité</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">Historique et audit trail de toutes les modifications du système</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("audit.title")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("audit.subtitle")}</p>
         </div>
       </div>
 
@@ -82,7 +82,7 @@ export default function AuditLogPage() {
           onChange={(e) => { setModelFilter(e.target.value); setPage(1); }}
           className="input max-w-[220px] rounded-xl border-slate-200 text-sm"
         >
-          <option value="">Tous les modèles</option>
+          <option value="">{t("audit.all_models")}</option>
           {Object.entries(MODEL_LABELS).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
@@ -92,10 +92,10 @@ export default function AuditLogPage() {
           onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
           className="input max-w-[180px] rounded-xl border-slate-200 text-sm"
         >
-          <option value="">Toutes les actions</option>
-          <option value="create">Création</option>
-          <option value="update">Modification</option>
-          <option value="delete">Suppression</option>
+          <option value="">{t("audit.all_actions")}</option>
+          <option value="create">{t("common.creation")}</option>
+          <option value="update">{t("audit.update")}</option>
+          <option value="delete">{t("audit.delete")}</option>
         </select>
       </div>
 
@@ -105,21 +105,21 @@ export default function AuditLogPage() {
           <div className="p-12 text-center text-slate-400 font-medium">
             <div className="flex items-center justify-center gap-2">
               <div className="h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-              <span>Chargement...</span>
+              <span>{t("common.loading")}</span>
             </div>
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 font-medium">Aucune entrée d'audit trouvée.</div>
+          <div className="p-12 text-center text-slate-400 font-medium">{t("audit.no_logs")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-start text-sm border-collapse">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="px-4 py-3.5 text-start">Date</th>
-                  <th className="px-4 py-3.5 text-start">Utilisateur</th>
-                  <th className="px-4 py-3.5 text-start">Action</th>
-                  <th className="px-4 py-3.5 text-start">Objet</th>
-                  <th className="px-4 py-3.5 text-start">Détails</th>
+                  <th className="px-4 py-3.5 text-start">{t("invoice.date")}</th>
+                  <th className="px-4 py-3.5 text-start">{t("audit.user")}</th>
+                  <th className="px-4 py-3.5 text-start">{t("audit.action")}</th>
+                  <th className="px-4 py-3.5 text-start">{t("audit.object")}</th>
+                  <th className="px-4 py-3.5 text-start">{t("audit.details")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

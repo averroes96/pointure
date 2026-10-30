@@ -248,6 +248,7 @@ function StatsStrip({
   statsData?: LoyaltyStatsResponse;
   accounts: LoyaltyAccountSummary[];
 }) {
+  const { t } = useTranslation();
   const totalMembers = statsData?.total_members ?? accounts.length;
   const totalPts =
     statsData?.total_points_balance ?? accounts.reduce((s, a) => s + a.points_balance, 0);
@@ -268,7 +269,7 @@ function StatsStrip({
           <Users size={20} />
         </div>
         <div className="min-w-0">
-          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">Clients Membres</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{t("loyalty.members_title")}</p>
           <p className="text-xl font-black text-text-primary font-mono">{totalMembers}</p>
           <p className="text-2xs text-text-muted mt-0.5">
             🥉 {bronzeCount} · 🥈 {silverCount} · 🥇 {goldCount}
@@ -281,12 +282,12 @@ function StatsStrip({
           <Gift size={20} />
         </div>
         <div className="min-w-0">
-          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">Points Actifs</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{t("loyalty.active_points")}</p>
           <p className="text-xl font-black text-emerald-700 font-mono">
             {totalPts.toLocaleString("fr-DZ")} <span className="text-xs font-sans">pts</span>
           </p>
           <p className="text-2xs font-semibold text-emerald-600 mt-0.5">
-            Valeur remise : {formatDZD(totalPtsDzd)} DZD
+            {t("loyalty.pts_value_discount", { val: formatDZD(totalPtsDzd) })}
           </p>
         </div>
       </div>
@@ -296,12 +297,12 @@ function StatsStrip({
           <Coins size={20} />
         </div>
         <div className="min-w-0">
-          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">Points Rachetés</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{t("loyalty.redeemed_points")}</p>
           <p className="text-xl font-black text-indigo-700 font-mono">
             {redeemedPts.toLocaleString("fr-DZ")} <span className="text-xs font-sans">pts</span>
           </p>
           <p className="text-2xs font-semibold text-indigo-600 mt-0.5">
-            Remises accordées : {formatDZD(redeemedDzd)} DZD
+            {t("loyalty.discounts_granted", { val: formatDZD(redeemedDzd) })}
           </p>
         </div>
       </div>
@@ -311,10 +312,10 @@ function StatsStrip({
           <Trophy size={20} />
         </div>
         <div className="min-w-0">
-          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">Membres VIP (Argent & Or)</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{t("loyalty.vip_members")}</p>
           <p className="text-xl font-black text-amber-700 font-mono">{silverCount + goldCount}</p>
           <p className="text-2xs text-text-muted mt-0.5">
-            {totalMembers > 0 ? Math.round(((silverCount + goldCount) / totalMembers) * 100) : 0}% du fichier fidélité
+            {t("loyalty.pct_of_file", { pct: totalMembers > 0 ? Math.round(((silverCount + goldCount) / totalMembers) * 100) : 0 })}
           </p>
         </div>
       </div>
@@ -337,6 +338,7 @@ interface ProgramFormData {
 }
 
 function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { user } = useAuth();
   const isOwner = user?.role === "owner" || user?.role === "manager";
@@ -491,7 +493,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
               <TierBadge tier="bronze" />
               <span className="text-xs font-black font-mono text-amber-800">×1.0</span>
             </div>
-            <p className="text-2xs text-amber-900/80 font-medium">Dès l'inscription (0 pt requis)</p>
+            <p className="text-2xs text-amber-900/80 font-medium">{t("loyalty.bronze_entry")}</p>
             <div className="mt-3 pt-2.5 border-t border-amber-200/80 flex items-baseline justify-between">
               <span className="text-2xs text-amber-900">Gain sur {simAmount.toLocaleString("fr-DZ")} DA :</span>
               <div className="text-right">
@@ -556,8 +558,8 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
             <Settings size={18} className="text-primary-500" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Configuration des règles</h2>
-            <p className="text-xs text-text-muted">Règles d'accumulation, seuils et conversion en dinars</p>
+            <h2 className="text-sm font-semibold text-text-primary">{t("loyalty.config_rules_title")}</h2>
+            <p className="text-xs text-text-muted">{t("loyalty.config_rules_subtitle")}</p>
           </div>
           {program && (
             <span
@@ -566,7 +568,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 program.is_active ? "bg-success-light text-success" : "bg-danger-light text-danger",
               )}
             >
-              {program.is_active ? "Programme Actif" : "Inactif"}
+              {program.is_active ? t("loyalty.program_active") : t("loyalty.program_inactive")}
             </span>
           )}
         </div>
@@ -588,7 +590,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Points gagnés par tranche de 100 DZD dépensés</label>
+              <label className="form-label">{t("loyalty.pts_earned_per_100")}</label>
               <input
                 type="number"
                 min={1}
@@ -599,7 +601,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
               {errors.points_per_100dzd && <p className="form-error">Requis (min 1)</p>}
             </div>
             <div>
-              <label className="form-label">Points requis pour obtenir 100 DZD de remise</label>
+              <label className="form-label">{t("loyalty.pts_redeem_per_100")}</label>
               <input
                 type="number"
                 min={1}
@@ -613,7 +615,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Seuil minimum de points pour racheter en caisse</label>
+              <label className="form-label">{t("loyalty.min_pts_redemption")}</label>
               <input
                 type="number"
                 min={0}
@@ -623,11 +625,11 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
               />
             </div>
             <div>
-              <label className="form-label">Expiration des points (en mois, vide = illimité)</label>
+              <label className="form-label">{t("loyalty.expiry_months")}</label>
               <input
                 type="number"
                 min={1}
-                placeholder="Illimité (jamais d'expiration)"
+                placeholder={t("loyalty.unlimited_expiry")}
                 {...register("expiry_months")}
                 className="form-input"
                 disabled={!isOwner}
@@ -641,7 +643,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="form-label">Seuil Argent (pts cumulés)</label>
+                <label className="form-label">{t("loyalty.silver_threshold")}</label>
                 <input
                   type="number"
                   min={1}
@@ -651,7 +653,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 />
               </div>
               <div>
-                <label className="form-label">Multiplicateur Argent</label>
+                <label className="form-label">{t("loyalty.silver_mult")}</label>
                 <input
                   type="number"
                   min={1}
@@ -662,7 +664,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 />
               </div>
               <div>
-                <label className="form-label">Seuil Or (pts cumulés)</label>
+                <label className="form-label">{t("loyalty.gold_threshold")}</label>
                 <input
                   type="number"
                   min={1}
@@ -672,7 +674,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 />
               </div>
               <div>
-                <label className="form-label">Multiplicateur Or</label>
+                <label className="form-label">{t("loyalty.gold_mult")}</label>
                 <input
                   type="number"
                   min={1}
@@ -818,6 +820,7 @@ function EnrollClientModal({
 }: {
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -870,8 +873,8 @@ function EnrollClientModal({
               <UserPlus size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-text-primary text-sm">Inscrire un client à la Fidélité</h3>
-              <p className="text-2xs text-text-muted">Création immédiate de la carte fidélité</p>
+              <h3 className="font-bold text-text-primary text-sm">{t("loyalty.enroll_client")}</h3>
+              <p className="text-2xs text-text-muted">{t("loyalty.enroll_client")}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface">
@@ -887,8 +890,8 @@ function EnrollClientModal({
           {/* Quick Bulk Sync Button */}
           <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 flex items-center justify-between gap-3">
             <div className="text-2xs text-indigo-950">
-              <strong className="block">Inscrire tout le fichier client existant</strong>
-              <span>Crée un compte Bronze pour tous vos clients actifs en un clic.</span>
+              <strong className="block">{t("loyalty.enroll_all_active")}</strong>
+              <span>{t("loyalty.enroll_all_desc")}</span>
             </div>
             <button
               type="button"
@@ -896,28 +899,28 @@ function EnrollClientModal({
               disabled={enrollAllMutation.isPending}
               className="btn-secondary btn-xs whitespace-nowrap border-indigo-300 text-indigo-700 hover:bg-indigo-100"
             >
-              {enrollAllMutation.isPending ? "Synchronisation…" : "Tout synchroniser"}
+              {enrollAllMutation.isPending ? t("common.loading") : t("loyalty.enroll_all_active")}
             </button>
           </div>
 
           <div>
-            <label className="form-label text-xs">Rechercher un client du magasin *</label>
+            <label className="form-label text-xs">{t("loyalty.search_member_placeholder")} *</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nom ou téléphone du client..."
+                placeholder={t("loyalty.search_member_placeholder")}
                 className="form-input pl-9 text-xs"
               />
             </div>
 
             <div className="mt-2 max-h-44 overflow-y-auto divide-y divide-border border border-border rounded-xl">
               {isLoading ? (
-                <p className="p-3 text-xs text-text-muted text-center">Chargement…</p>
+                <p className="p-3 text-xs text-text-muted text-center">{t("common.loading")}</p>
               ) : (clientsData?.results ?? []).length === 0 ? (
-                <p className="p-3 text-xs text-text-muted text-center">Aucun client trouvé.</p>
+                <p className="p-3 text-xs text-text-muted text-center">{t("common.no_data")}</p>
               ) : (
                 (clientsData?.results ?? []).map((c) => (
                   <button
@@ -943,7 +946,7 @@ function EnrollClientModal({
           </div>
 
           <div>
-            <label className="form-label text-xs">Bonus de bienvenue (points offerts à l'ouverture)</label>
+            <label className="form-label text-xs">{t("loyalty.welcome_bonus")}</label>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -1116,6 +1119,7 @@ function AdjustModal({
   account: LoyaltyAccountSummary;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [points, setPoints] = useState("");
   const [description, setDescription] = useState("");
@@ -1146,7 +1150,7 @@ function AdjustModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h3 className="font-semibold text-text-primary">Ajuster les points</h3>
+            <h3 className="font-semibold text-text-primary">{t("loyalty.adjust_points")}</h3>
             <p className="text-xs text-text-muted mt-0.5">{account.client_name}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface transition-colors">
@@ -1157,7 +1161,7 @@ function AdjustModal({
         <div className="p-5 space-y-4">
           <div className="flex items-center justify-between rounded-xl bg-surface p-3">
             <div>
-              <p className="text-xs text-text-muted">Solde actuel</p>
+              <p className="text-xs text-text-muted">{t("loyalty.balance_pts")}</p>
               <p className="text-lg font-bold text-text-primary">
                 {account.points_balance.toLocaleString("fr-DZ")} pts
               </p>
@@ -1166,7 +1170,7 @@ function AdjustModal({
           </div>
 
           <div>
-            <label className="form-label">Points à ajouter / retirer</label>
+            <label className="form-label">{t("loyalty.points_delta")}</label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {[50, 100, 250, 500, -100, -500].map((preset) => (
                 <button
@@ -1198,13 +1202,13 @@ function AdjustModal({
 
           <div>
             <label className="form-label">
-              Motif <span className="text-text-muted font-normal">(optionnel)</span>
+              {t("invoice.reason")} <span className="text-text-muted font-normal">(optionnel)</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ex : Bonus fidélité, geste commercial…"
+              placeholder={t("loyalty.reason_placeholder")}
               className="form-input"
             />
           </div>
@@ -1284,6 +1288,7 @@ function AccountsPanel({
   if (debouncedSearch) params.set("search", debouncedSearch);
   if (tierFilter !== "all") params.set("tier", tierFilter);
 
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<PaginatedResponse<LoyaltyAccountSummary>>({
     queryKey: ["loyalty-accounts", debouncedSearch, tierFilter, page],
     queryFn: () => api.get(`/loyalty/accounts/?${params}`).then((r) => r.data),
@@ -1294,7 +1299,7 @@ function AccountsPanel({
   const totalPages = Math.ceil(totalCount / 20);
 
   const TIERS: { value: TierFilter; label: string }[] = [
-    { value: "all", label: "Tous les niveaux" },
+    { value: "all", label: t("loyalty.all_tiers") },
     { value: "gold", label: "🥇 Or" },
     { value: "silver", label: "🥈 Argent" },
     { value: "bronze", label: "🥉 Bronze" },
@@ -1309,54 +1314,54 @@ function AccountsPanel({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un client par nom ou téléphone…"
+            placeholder={t("loyalty.search_member_placeholder")}
             className="form-input pl-9"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {TIERS.map((t) => (
+          {TIERS.map((tier) => (
             <button
-              key={t.value}
+              key={tier.value}
               onClick={() => {
-                setTierFilter(t.value);
+                setTierFilter(tier.value);
                 setPage(1);
               }}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer",
-                tierFilter === t.value
+                tierFilter === tier.value
                   ? "bg-primary-600 text-white border-primary-600"
                   : "bg-white text-text-secondary border-border hover:border-primary-300",
               )}
             >
-              {t.label}
+              {tier.label}
             </button>
           ))}
         </div>
       </div>
 
       <p className="text-xs text-text-muted mb-3">
-        {isLoading ? "Chargement…" : `${totalCount} compte${totalCount !== 1 ? "s" : ""} fidélité`}
+        {isLoading ? t("common.loading") : `${totalCount} compte${totalCount !== 1 ? "s" : ""} fidélité`}
       </p>
 
       {isLoading ? (
-        <div className="text-center py-12 text-text-muted text-sm">Chargement…</div>
+        <div className="text-center py-12 text-text-muted text-sm">{t("common.loading")}</div>
       ) : accounts.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">
           <Users size={36} className="mx-auto mb-3 opacity-30" />
-          Aucun compte fidélité trouvé.
+          {t("common.no_data")}
         </div>
       ) : (
         <div className="overflow-x-auto -mx-6">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface/60">
-                <th className="text-left text-xs font-semibold text-text-muted px-5 py-2.5">Client</th>
+                <th className="text-left text-xs font-semibold text-text-muted px-5 py-2.5">{t("invoice.client")}</th>
                 <th className="text-left text-xs font-semibold text-text-muted px-3 py-2.5">Niveau & Progression</th>
-                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">Solde Points</th>
-                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">Valeur Remise</th>
-                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">Cumulés</th>
-                <th className="text-left text-xs font-semibold text-text-muted px-3 py-2.5">Inscrit le</th>
-                <th className="text-right text-xs font-semibold text-text-muted px-5 py-2.5">Actions</th>
+                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("loyalty.balance_pts")}</th>
+                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("sales.discount")}</th>
+                <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("loyalty.cumulated_pts")}</th>
+                <th className="text-left text-xs font-semibold text-text-muted px-3 py-2.5">{t("invoice.date")}</th>
+                <th className="text-right text-xs font-semibold text-text-muted px-5 py-2.5">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

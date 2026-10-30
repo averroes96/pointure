@@ -179,7 +179,7 @@ export default function DeliverySettingsPage() {
             <button
               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-xl transition-colors cursor-pointer"
               onClick={() => deleteMutation.mutate(config.id)}
-              title="Supprimer ce transporteur"
+              title={t("deliveries.delete_provider")}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -321,7 +321,7 @@ export default function DeliverySettingsPage() {
                 <button
                   className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-xl transition-colors cursor-pointer"
                   onClick={() => socialDeleteMutation.mutate(sc.id)}
-                  title="Supprimer cette intégration"
+                  title={t("deliveries.delete_integration")}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

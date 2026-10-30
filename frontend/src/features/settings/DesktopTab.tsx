@@ -348,7 +348,7 @@ export default function DesktopTab() {
               onClick={() => refetchBackups()}
               disabled={backupsLoading || backupsRefetching}
               className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Rafraîchir la liste"
+              title={t("desktop.refresh_list")}
             >
               <RefreshCw size={13} className={cn((backupsLoading || backupsRefetching) && "animate-spin text-primary-600")} />
               <span>Actualiser</span>
@@ -469,7 +469,7 @@ export default function DesktopTab() {
                 className="btn-secondary py-2 px-4 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus size={14} />
-                <span>Créer une première sauvegarde</span>
+                <span>{t("desktop.create_first_backup")}</span>
               </button>
             </div>
           ) : (
@@ -578,7 +578,7 @@ export default function DesktopTab() {
         <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-start gap-3.5 text-xs text-amber-900">
           <ShieldCheck size={20} className="text-amber-700 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold">Bonnes pratiques de sécurité pour votre commerce</p>
+            <p className="font-bold">{t("desktop.security_practices")}</p>
             <p className="text-amber-800 leading-relaxed">
               {t(
                 "settings.backup_safety_tip",
@@ -633,7 +633,7 @@ export default function DesktopTab() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Monitor size={18} className="text-primary-600" />
-                <h4 className="text-sm font-semibold text-slate-900">État des mises à jour logicielles</h4>
+                <h4 className="text-sm font-semibold text-slate-900">{t("desktop.update_status")}</h4>
               </div>
 
               {/* Status Badge */}
@@ -703,7 +703,7 @@ export default function DesktopTab() {
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs shrink-0 transition-colors cursor-pointer"
                 >
                   <Download size={14} />
-                  <span>Redémarrer et appliquer</span>
+                  <span>{t("desktop.restart_apply")}</span>
                 </button>
               </div>
             )}
@@ -721,7 +721,7 @@ export default function DesktopTab() {
         <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <HardDrive size={18} className="text-primary-600" />
-            <h4 className="text-sm font-semibold text-slate-900">Diagnostics et Données Locales</h4>
+            <h4 className="text-sm font-semibold text-slate-900">{t("desktop.local_diagnostics")}</h4>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -785,7 +785,7 @@ export default function DesktopTab() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold text-slate-900">Horloge & Intégrité Temporelle</p>
+                  <p className="text-xs font-semibold text-slate-900">{t("desktop.clock_integrity")}</p>
                   {anomalyDetected ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
                       <AlertCircle size={11} /> Anomalie détectée
@@ -831,7 +831,7 @@ export default function DesktopTab() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-rose-950">Zone de Danger : Réinitialisation des données</h4>
+                    <h4 className="text-sm font-bold text-rose-950">{t("desktop.danger_zone")}</h4>
                     <span className="px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase bg-rose-100 text-rose-800 border border-rose-300">
                       Propriétaire uniquement
                     </span>
@@ -847,7 +847,7 @@ export default function DesktopTab() {
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs hover:shadow-md transition-all shrink-0 cursor-pointer"
               >
                 <Trash2 size={14} />
-                <span>Réinitialiser la base...</span>
+                <span>{t("desktop.reset_db")}</span>
               </button>
             </div>
           </div>

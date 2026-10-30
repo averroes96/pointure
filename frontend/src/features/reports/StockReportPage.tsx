@@ -97,8 +97,8 @@ export default function StockReportPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">Rapport de stock</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">Synthèse et valorisation de l'inventaire actuel</p>
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">{t("report.stock_report")}</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">{t("report.stock_report_subtitle")}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
@@ -106,7 +106,7 @@ export default function StockReportPage() {
             className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl shadow-2xs"
           >
             <ExternalLink size={14} />
-            Générer rapport PDF
+            {t("report.generate_pdf")}
           </button>
           <button
             onClick={handleExportCSV}
@@ -139,42 +139,42 @@ export default function StockReportPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <KPICard
-              label="Références (SKU)"
+              label={t("report.sku_references")}
               value={data.total_sku_count}
               icon={Package}
               color="bg-primary-600"
               sub="variantes actives"
             />
             <KPICard
-              label="Total unités"
+              label={t("report.total_units")}
               value={data.total_units}
               icon={BarChart2}
               color="bg-indigo-600"
               sub="en stock"
             />
             <KPICard
-              label="Valeur Achat"
+              label={t("report.purchase_value")}
               value={formatDZD(data.total_stock_value) + " DZD"}
               icon={DollarSign}
               color="bg-slate-700"
               sub="prix d'achat × qté"
             />
             <KPICard
-              label="Valeur Revente"
+              label={t("report.resale_value")}
               value={formatDZD(data.total_retail_value) + " DZD"}
               icon={DollarSign}
               color="bg-emerald-600"
               sub="prix de vente × qté"
             />
             <KPICard
-              label="Stock bas"
+              label={t("report.low_stock")}
               value={data.low_stock_count}
               icon={AlertTriangle}
               color="bg-amber-500"
               sub="sous le seuil"
             />
             <KPICard
-              label="Ruptures"
+              label={t("report.out_of_stock")}
               value={data.out_of_stock_count}
               icon={AlertTriangle}
               color="bg-rose-500"
@@ -187,16 +187,16 @@ export default function StockReportPage() {
             {/* By category */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
               <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">Par catégorie</h2>
+                <h2 className="font-semibold text-slate-900 text-sm">{t("report.by_category")}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <th className="px-4 py-3.5 text-start">Catégorie</th>
-                      <th className="px-4 py-3.5 text-end">Références</th>
+                      <th className="px-4 py-3.5 text-start">{t("report.category")}</th>
+                      <th className="px-4 py-3.5 text-end">{t("report.references")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.units")}</th>
-                      <th className="px-4 py-3.5 text-end">Valeur</th>
+                      <th className="px-4 py-3.5 text-end">{t("report.stock_value")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -249,14 +249,14 @@ export default function StockReportPage() {
             {/* By brand */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
               <div className="p-4 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">Par marque</h2>
+                <h2 className="font-semibold text-slate-900 text-sm">{t("report.by_brand")}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
-                      <th className="px-4 py-3.5 text-end">Références</th>
+                      <th className="px-4 py-3.5 text-end">{t("report.references")}</th>
                       <th className="px-4 py-3.5 text-end">{t("report.units")}</th>
                     </tr>
                   </thead>

@@ -195,16 +195,16 @@ export default function DraftOrdersPage() {
                   <input className="form-input text-sm" value={selectedOrder.customer_phone || ''} onChange={(e) => setSelectedOrder({...selectedOrder, customer_phone: e.target.value})} />
                 </div>
                 <div>
-                  <label className="form-label text-xs">Wilaya</label>
+                  <label className="form-label text-xs">{t("client.wilaya")}</label>
                   <select className="form-input text-sm" value={selectedOrder.wilaya || ''} onChange={(e) => setSelectedOrder({...selectedOrder, wilaya: e.target.value, commune: ""})}>
-                    <option value="">Select Wilaya</option>
+                    <option value="">{t("deliveries.select_wilaya")}</option>
                     {wilayas?.map((w: any) => <option key={w.code} value={w.code}>{w.code} - {w.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="form-label text-xs">Commune</label>
+                  <label className="form-label text-xs">{t("deliveries.commune")}</label>
                   <select className="form-input text-sm" value={selectedOrder.commune || ''} onChange={(e) => setSelectedOrder({...selectedOrder, commune: e.target.value})}>
-                    <option value="">Select Commune</option>
+                    <option value="">{t("deliveries.select_commune")}</option>
                     {selectedCommunes?.map((c: any) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>

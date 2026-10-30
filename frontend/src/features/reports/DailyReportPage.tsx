@@ -235,7 +235,7 @@ export default function DailyReportPage() {
 
       {/* Date picker */}
       <div className="flex items-center gap-3 print:hidden">
-        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">Date d'analyse :</label>
+        <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">{t("report.analysis_date")}</label>
         <input
           type="date"
           value={date}
@@ -271,20 +271,20 @@ export default function DailyReportPage() {
           {/* Primary KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <KPICard
-              label="CA brut du jour"
+              label={t("report.gross_revenue_today")}
               value={formatDZD(data.total_revenue) + " DZD"}
               icon={TrendingUp}
               color="bg-primary-600"
               sub={`${data.sale_count} vente(s)`}
             />
             <KPICard
-              label="Retours / Remboursements"
+              label={t("report.refunds_returns")}
               value={"− " + formatDZD(data.total_refunds) + " DZD"}
               icon={RotateCcw}
               color="bg-rose-500"
             />
             <KPICard
-              label="CA net du jour"
+              label={t("report.net_revenue_today")}
               value={formatDZD(data.net_revenue) + " DZD"}
               icon={BarChart2}
               color="bg-emerald-600"
@@ -294,26 +294,26 @@ export default function DailyReportPage() {
           {/* Secondary KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
-              label="Articles vendus"
+              label={t("report.items_sold")}
               value={data.items_sold}
               icon={ShoppingBag}
               color="bg-indigo-600"
               sub="unités"
             />
             <KPICard
-              label="Chèques reçus"
+              label={t("report.cheques_received")}
               value={formatDZD(data.cheque_total) + " DZD"}
               icon={CreditCard}
               color="bg-amber-500"
             />
             <KPICard
-              label="Total des remises"
+              label={t("report.total_discounts")}
               value={formatDZD(data.total_discounts) + " DZD"}
               icon={Tag}
               color="bg-sky-500"
             />
             <KPICard
-              label="Timbres fiscaux"
+              label={t("report.tax_stamps")}
               value={formatDZD(data.total_stamps) + " DZD"}
               icon={FileSignature}
               color="bg-slate-700"

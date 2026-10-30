@@ -103,12 +103,12 @@ export default function PrintersTab() {
   <h1>ShoeDZ — Test d'Impression Document A4</h1>
   <p>Ce document confirme la liaison entre ShoeDZ et votre imprimante de bureau.</p>
   <div class="box">
-    <strong>Détails du test :</strong><br/>
-    Imprimante assignée : ${config.invoice.printerName || "Imprimante par défaut Windows"}<br/>
+    <strong>${t("printers.test_details")}</strong><br/>
+    Imprimante assignée : ${config.invoice.printerName || t("printers.default_os_printer")}<br/>
     Format : A4 Portrait<br/>
     Date : ${new Date().toLocaleString("fr-DZ")}
   </div>
-  <p style="color: #16a34a; font-weight: bold;">✔ Configuration A4 opérationnelle.</p>
+  <p style="color: #16a34a; font-weight: bold;">${t("printers.a4_operational")}</p>
 </body>
 </html>`;
       await printDocumentA4(html, { printerName: config.invoice.printerName, silent: config.invoice.silent });
@@ -245,7 +245,7 @@ export default function PrintersTab() {
               }
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
-              <option value="">(Imprimante par défaut Windows)</option>
+              <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
                 <option key={p.name} value={p.name}>
                   {p.displayName || p.name} {p.isDefault ? "★ (Défaut)" : ""}
@@ -462,7 +462,7 @@ export default function PrintersTab() {
               }
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
-              <option value="">(Imprimante par défaut Windows)</option>
+              <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
                 <option key={p.name} value={p.name}>
                   {p.displayName || p.name} {p.isDefault ? "★ (Défaut)" : ""}
@@ -486,7 +486,7 @@ export default function PrintersTab() {
               }
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
-              <option value="A4">A4 (Standard Algérie - 210 × 297 mm)</option>
+              <option value="A4">{t("printers.a4_standard")}</option>
               <option value="Letter">US Letter</option>
             </select>
           </div>
@@ -536,7 +536,7 @@ export default function PrintersTab() {
               }
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
-              <option value="">(Imprimante par défaut Windows)</option>
+              <option value="">{t("printers.default_os_printer")}</option>
               {printers.map((p) => (
                 <option key={p.name} value={p.name}>
                   {p.displayName || p.name} {p.isDefault ? "★ (Défaut)" : ""}
@@ -549,7 +549,7 @@ export default function PrintersTab() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Format du rouleau d'étiquettes</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("printers.label_roll_format")}</label>
             <select
               value={config.labels.labelSize}
               onChange={(e) =>
@@ -568,7 +568,7 @@ export default function PrintersTab() {
                   {p.label}
                 </option>
               ))}
-              <option value="custom">Format Personnalisé (mm)...</option>
+              <option value="custom">{t("printers.custom_format_mm")}</option>
             </select>
 
             {config.labels.labelSize === "custom" && (
@@ -678,7 +678,7 @@ export default function PrintersTab() {
             </p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-2xs text-slate-600 block mb-1 font-medium">Décalage horizontal (X)</span>
+                <span className="text-2xs text-slate-600 block mb-1 font-medium">{t("printers.offset_horizontal")}</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -700,11 +700,11 @@ export default function PrintersTab() {
                   />
                   <span className="text-2xs text-slate-400">mm</span>
                 </div>
-                <span className="text-3xs text-slate-400 mt-0.5 block">+2 mm décale vers la droite</span>
+                <span className="text-3xs text-slate-400 mt-0.5 block">{t("printers.offset_h_hint")}</span>
               </div>
 
               <div>
-                <span className="text-2xs text-slate-600 block mb-1 font-medium">Décalage vertical (Y)</span>
+                <span className="text-2xs text-slate-600 block mb-1 font-medium">{t("printers.offset_vertical")}</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -741,7 +741,7 @@ export default function PrintersTab() {
           className="btn-primary py-2.5 px-6 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-xs"
         >
           <CheckCircle2 size={16} />
-          <span>Enregistrer les préférences d'impression</span>
+          <span>{t("printers.save_preferences")}</span>
         </button>
       </div>
     </div>
