@@ -62,7 +62,7 @@ export default function PosShortcutsCoachmark() {
   // If collapsed or closed, show the subtle floating trigger pill
   if (!isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 z-40">
+      <div className="fixed bottom-4 end-4 z-40">
         <button
           type="button"
           onClick={handleToggleOpen}
@@ -79,7 +79,7 @@ export default function PosShortcutsCoachmark() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 max-w-sm w-[calc(100vw-2rem)] sm:w-96 animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed bottom-4 end-4 z-40 max-w-sm w-[calc(100vw-2rem)] sm:w-96 animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="relative rounded-3xl bg-white/98 dark:bg-slate-900/98 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 bg-gradient-to-r from-primary-50/50 via-slate-50/30 to-transparent dark:from-primary-950/30 dark:via-slate-900/30">

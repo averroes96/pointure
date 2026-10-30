@@ -87,7 +87,7 @@
   }
 
   .layout-sidebar {
-    @apply fixed top-14 bottom-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-30 overflow-y-auto text-slate-300;
+    @apply fixed top-14 bottom-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-30 overflow-y-auto text-slate-300;
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -104,20 +104,25 @@
   }
 
   .layout-main {
-    @apply pt-14 ps-64 min-h-screen bg-slate-50/70 dark:bg-[#0B0F19];
+    @apply pt-14 min-h-screen bg-slate-50/70 dark:bg-[#0B0F19];
+    padding-left: 16rem;
+    padding-right: 0;
     transition: padding 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .sidebar-closed .layout-main {
-    @apply ps-0;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   html[dir="rtl"] .layout-main {
-    @apply ps-0 pe-64;
+    padding-right: 16rem;
+    padding-left: 0;
   }
 
   html[dir="rtl"] .sidebar-closed .layout-main {
-    @apply pe-0;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   /* ── Cards ── */

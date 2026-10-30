@@ -26,6 +26,15 @@
             document.documentElement.classList.remove("dark");
             document.documentElement.style.colorScheme = "light";
           }
+
+          var lang = localStorage.getItem("i18nextLng") || "fr";
+          if (lang && lang.startsWith("ar")) {
+            document.documentElement.dir = "rtl";
+            document.documentElement.lang = "ar";
+          } else {
+            document.documentElement.dir = "ltr";
+            document.documentElement.lang = lang || "fr";
+          }
         } catch (e) {}
       })();
     </script>

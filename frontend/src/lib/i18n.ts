@@ -20,11 +20,19 @@ i18n
     },
   });
 
-export default i18n;
-
 /** Apply RTL direction and lang attribute to <html> */
 export function applyDirection(lang: string) {
-  const isRTL = lang === "ar";
+  const isRTL = lang === "ar" || lang?.startsWith?.("ar");
   document.documentElement.dir = isRTL ? "rtl" : "ltr";
-  document.documentElement.lang = lang;
+  document.documentElement.lang = isRTL ? "ar" : lang;
 }
+
+// Immediately apply direction for the detected language on module load
+applyDirection(i18n.language || "fr");
+
+// Ensure documentElement is synchronized whenever language changes
+i18n.on("languageChanged", (lng) => {
+  applyDirection(lng);
+});
+
+export default i18n;
