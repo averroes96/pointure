@@ -7,6 +7,7 @@
  * - Client Points Transaction Ledger Modal
  * - Printable Client Loyalty Card (with scannable barcode) & 1-click WhatsApp summary
  */
+import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -177,7 +178,7 @@ function printLoyaltyCard(
     <div class="header">
       <div>
         <div class="store">${storeName}</div>
-        <div style="font-size:10px;color:#64748b;font-weight:600;">CARTE DE FIDÉLITÉ VIP</div>
+        <div style="font-size:10px;color:#64748b;font-weight:600;">${i18n.t("loyalty.vip_loyalty_card")}</div>
       </div>
       <div class="tier">${tierCfg.emoji} ${tierCfg.label.toUpperCase()}</div>
     </div>
@@ -185,11 +186,11 @@ function printLoyaltyCard(
     <div class="client-phone">Tél : ${acc.client_phone || "—"}</div>
     <div class="points-box">
       <div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">Solde Points</div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">${i18n.t("loyalty.points_balance_card")}</div>
         <div class="pts">${acc.points_balance.toLocaleString("fr-DZ")} pts</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">Valeur Remise</div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">${i18n.t("loyalty.discount_value")}</div>
         <div class="dzd">${formatDZD(dzdVal)} DZD</div>
       </div>
     </div>
@@ -598,7 +599,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 className="form-input"
                 disabled={!isOwner}
               />
-              {errors.points_per_100dzd && <p className="form-error">Requis (min 1)</p>}
+              {errors.points_per_100dzd && <p className="form-error">{t("common.required_min_1")}</p>}
             </div>
             <div>
               <label className="form-label">{t("loyalty.pts_redeem_per_100")}</label>
@@ -609,7 +610,7 @@ function ProgramPanel({ program }: { program: LoyaltyProgram | null }) {
                 className="form-input"
                 disabled={!isOwner}
               />
-              {errors.redemption_value && <p className="form-error">Requis (min 1)</p>}
+              {errors.redemption_value && <p className="form-error">{t("common.required_min_1")}</p>}
             </div>
           </div>
 
@@ -731,6 +732,7 @@ function Leaderboard({
   storeName: string;
   onSelectHistory: (acc: LoyaltyAccountSummary) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="card p-6 h-fit">
       <div className="flex items-center gap-3 mb-5">
@@ -738,8 +740,8 @@ function Leaderboard({
           <Trophy size={18} className="text-yellow-500" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-text-primary">Classement des meilleurs clients</h2>
-          <p className="text-xs text-text-muted">Top membres par points cumulés & actions rapides</p>
+          <h2 className="text-sm font-semibold text-text-primary">{t("loyalty.top_clients_ranking")}</h2>
+          <p className="text-xs text-text-muted">{t("loyalty.top_members_desc")}</p>
         </div>
       </div>
 
@@ -1004,6 +1006,7 @@ function AccountHistoryModal({
   storeName: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: fullAccount, isLoading } = useQuery<LoyaltyAccount>({
     queryKey: ["loyalty-account-detail", accountSummary.id],
     queryFn: () => api.get(`/loyalty/accounts/${accountSummary.id}/`).then((r) => r.data),
@@ -1045,19 +1048,19 @@ function AccountHistoryModal({
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-3 gap-3 bg-surface p-3.5 rounded-xl border border-border text-center">
             <div>
-              <span className="text-2xs uppercase font-bold text-text-muted block">Solde Actuel</span>
+              <span className="text-2xs uppercase font-bold text-text-muted block">{t("loyalty.current_balance_pts")}</span>
               <span className="text-base font-black font-mono text-primary-600">
                 {accountSummary.points_balance.toLocaleString("fr-DZ")} pts
               </span>
             </div>
             <div>
-              <span className="text-2xs uppercase font-bold text-text-muted block">Valeur Remise</span>
+              <span className="text-2xs uppercase font-bold text-text-muted block">{t("loyalty.discount_value")}</span>
               <span className="text-base font-black font-mono text-emerald-600">
                 {formatDZD(dzdVal)} DZD
               </span>
             </div>
             <div>
-              <span className="text-2xs uppercase font-bold text-text-muted block">Total Cumulé</span>
+              <span className="text-2xs uppercase font-bold text-text-muted block">{t("loyalty.total_accumulated")}</span>
               <span className="text-base font-black font-mono text-text-primary">
                 {accountSummary.total_earned.toLocaleString("fr-DZ")} pts
               </span>
@@ -1070,7 +1073,7 @@ function AccountHistoryModal({
 
           <div className="max-h-72 overflow-y-auto divide-y divide-border border border-border rounded-xl">
             {isLoading ? (
-              <p className="p-6 text-center text-xs text-text-muted">Chargement de l'historique…</p>
+              <p className="p-6 text-center text-xs text-text-muted">{t("common.loading")}</p>
             ) : transactions.length === 0 ? (
               <p className="p-6 text-center text-xs text-text-muted">
                 Aucune transaction enregistrée pour ce client.
@@ -1202,7 +1205,7 @@ function AdjustModal({
 
           <div>
             <label className="form-label">
-              {t("invoice.reason")} <span className="text-text-muted font-normal">(optionnel)</span>
+              {t("invoice.reason")} <span className="text-text-muted font-normal">({t("common.optional", "optionnel")})</span>
             </label>
             <input
               type="text"
@@ -1356,7 +1359,7 @@ function AccountsPanel({
             <thead>
               <tr className="border-b border-border bg-surface/60">
                 <th className="text-left text-xs font-semibold text-text-muted px-5 py-2.5">{t("invoice.client")}</th>
-                <th className="text-left text-xs font-semibold text-text-muted px-3 py-2.5">Niveau & Progression</th>
+                <th className="text-left text-xs font-semibold text-text-muted px-3 py-2.5">{t("loyalty.tier_and_progression")}</th>
                 <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("loyalty.balance_pts")}</th>
                 <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("sales.discount")}</th>
                 <th className="text-right text-xs font-semibold text-text-muted px-3 py-2.5">{t("loyalty.cumulated_pts")}</th>

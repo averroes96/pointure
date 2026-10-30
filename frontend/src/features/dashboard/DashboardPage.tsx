@@ -567,7 +567,7 @@ export default function DashboardPage() {
                     <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                   </div>
                   <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
-                    {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
+                    {item.units_sold} <span className="text-2xs font-normal text-slate-400">{t("common.pairs")}</span>
                   </div>
                 </div>
               ))}
@@ -598,7 +598,7 @@ export default function DashboardPage() {
                   <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
                 </div>
                 <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
-                  {item.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
+                  {item.units_sold} <span className="text-2xs font-normal text-slate-400">{t("common.pairs")}</span>
                 </div>
               </div>
             ))}

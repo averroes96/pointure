@@ -91,7 +91,7 @@ export default function PrintersTab() {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Test Impression A4</title>
+  <title>${t("printers.test_doc_title")}</title>
   <style>
     @media print { @page { size: A4 portrait; margin: 15mm; } }
     body { font-family: Arial, sans-serif; color: #1e293b; padding: 20px; line-height: 1.6; }
@@ -100,19 +100,19 @@ export default function PrintersTab() {
   </style>
 </head>
 <body>
-  <h1>ShoeDZ — Test d'Impression Document A4</h1>
-  <p>Ce document confirme la liaison entre ShoeDZ et votre imprimante de bureau.</p>
+  <h1>${t("printers.test_doc_title")}</h1>
+  <p>${t("printers.test_doc_desc")}</p>
   <div class="box">
     <strong>${t("printers.test_details")}</strong><br/>
-    Imprimante assignée : ${config.invoice.printerName || t("printers.default_os_printer")}<br/>
-    Format : A4 Portrait<br/>
-    Date : ${new Date().toLocaleString("fr-DZ")}
+    ${t("printers.assigned_printer")} : ${config.invoice.printerName || t("printers.default_os_printer")}<br/>
+    ${t("printers.format_a4_portrait")}<br/>
+    ${t("printers.date_label")} : ${new Date().toLocaleString("fr-DZ")}
   </div>
   <p style="color: #16a34a; font-weight: bold;">${t("printers.a4_operational")}</p>
 </body>
 </html>`;
       await printDocumentA4(html, { printerName: config.invoice.printerName, silent: config.invoice.silent });
-      showToast("Document A4 de test envoyé !");
+      showToast(t("printers.test_a4_sent"));
     } catch (err: any) {
       showToast(err?.message || "Erreur test A4", "error");
     } finally {
@@ -304,7 +304,7 @@ export default function PrintersTab() {
         {/* Printing Mode & Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">Mode d'impression ticket</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-2">{t("printers.ticket_print_mode")}</label>
             <div className="space-y-2.5">
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
@@ -356,7 +356,7 @@ export default function PrintersTab() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Exemplaires par ticket</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("printers.ticket_copies_label")}</label>
               <select
                 value={config.ticket.copies}
                 onChange={(e) =>
@@ -367,8 +367,8 @@ export default function PrintersTab() {
                 }
                 className="input w-full text-xs font-medium rounded-xl border-slate-200"
               >
-                <option value={1}>1 exemplaire (Reçu client)</option>
-                <option value={2}>2 exemplaires (1 Client + 1 Caisse magasin)</option>
+                <option value={1}>{t("printers.copy_1_client")}</option>
+                <option value={2}>{t("printers.copy_2_client_store")}</option>
               </select>
             </div>
 
@@ -472,7 +472,7 @@ export default function PrintersTab() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Format du document</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t("printers.doc_format_label")}</label>
             <select
               value={config.invoice.paperSize}
               onChange={(e) =>
@@ -487,7 +487,7 @@ export default function PrintersTab() {
               className="input w-full text-xs font-medium rounded-xl border-slate-200"
             >
               <option value="A4">{t("printers.a4_standard")}</option>
-              <option value="Letter">US Letter</option>
+              <option value="Letter">{t("printers.us_letter")}</option>
             </select>
           </div>
         </div>
@@ -574,7 +574,7 @@ export default function PrintersTab() {
             {config.labels.labelSize === "custom" && (
               <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
                 <div>
-                  <span className="text-2xs text-slate-500 block mb-1">Largeur (mm)</span>
+                  <span className="text-2xs text-slate-500 block mb-1">{t("printers.width_mm")}</span>
                   <input
                     type="number"
                     min={15}
@@ -593,7 +593,7 @@ export default function PrintersTab() {
                   />
                 </div>
                 <div>
-                  <span className="text-2xs text-slate-500 block mb-1">Hauteur (mm)</span>
+                  <span className="text-2xs text-slate-500 block mb-1">{t("printers.height_mm")}</span>
                   <input
                     type="number"
                     min={15}
@@ -619,7 +619,7 @@ export default function PrintersTab() {
         {/* Mode d'impression étiquettes & Calibrage */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">Mode d'impression étiquettes</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-2">{t("printers.labels_print_mode")}</label>
             <div className="space-y-2.5">
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
@@ -726,7 +726,7 @@ export default function PrintersTab() {
                   />
                   <span className="text-2xs text-slate-400">mm</span>
                 </div>
-                <span className="text-3xs text-slate-400 mt-0.5 block">+ vers le bas / - vers le haut</span>
+                <span className="text-3xs text-slate-400 mt-0.5 block">{t("printers.offset_y_hint")}</span>
               </div>
             </div>
           </div>

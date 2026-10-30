@@ -111,8 +111,8 @@ export default function DraftOrdersPage() {
             <div key={order.id} className="card p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-semibold text-lg text-text-primary">{order.customer_name || <span className="text-text-muted italic">Unnamed Customer</span>}</h3>
-                  <div className="text-sm text-text-muted">{order.customer_phone || <span className="italic">No Phone Number</span>}</div>
+                  <h3 className="font-semibold text-lg text-text-primary">{order.customer_name || <span className="text-text-muted italic">{t("deliveries.unnamed_customer")}</span>}</h3>
+                  <div className="text-sm text-text-muted">{order.customer_phone || <span className="italic">{t("deliveries.no_phone")}</span>}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={cn("px-2 py-1 text-xs font-medium rounded capitalize", order.status === 'draft' ? 'bg-amber-100 text-amber-800' : 'bg-primary-50 text-primary-600')}>
@@ -126,7 +126,7 @@ export default function DraftOrdersPage() {
                         }
                       }}
                       className="p-1.5 text-error/80 hover:text-error hover:bg-error/10 rounded transition-colors"
-                      title="Delete Draft"
+                      title={t("deliveries.delete_draft")}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -145,7 +145,7 @@ export default function DraftOrdersPage() {
                 <div>
                   <span className="text-text-muted block text-xs">{t("deliveries.destination")}</span>
                   <div className="mt-0.5 text-text-primary">
-                    {order.wilaya ? `${order.wilaya}, ${order.commune}` : <span className="text-text-muted italic">Unknown</span>}
+                    {order.wilaya ? `${order.wilaya}, ${order.commune}` : <span className="text-text-muted italic">{t("common.unknown")}</span>}
                   </div>
                 </div>
                 <div className="col-span-2">
@@ -184,14 +184,14 @@ export default function DraftOrdersPage() {
           <div className="card p-5 h-fit sticky top-24">
             <h2 className="text-lg font-bold mb-4 text-text-primary">{t("deliveries.dispatch_order")}</h2>
             <div className="mb-4 space-y-3 p-4 border border-border rounded bg-surface">
-              <h3 className="font-semibold text-sm text-text-primary mb-2">Edit Customer Details</h3>
+              <h3 className="font-semibold text-sm text-text-primary mb-2">{t("deliveries.edit_customer_details")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label text-xs">Name</label>
+                  <label className="form-label text-xs">{t("client.name")}</label>
                   <input className="form-input text-sm" value={selectedOrder.customer_name || ''} onChange={(e) => setSelectedOrder({...selectedOrder, customer_name: e.target.value})} />
                 </div>
                 <div>
-                  <label className="form-label text-xs">Phone</label>
+                  <label className="form-label text-xs">{t("client.phone")}</label>
                   <input className="form-input text-sm" value={selectedOrder.customer_phone || ''} onChange={(e) => setSelectedOrder({...selectedOrder, customer_phone: e.target.value})} />
                 </div>
                 <div>
@@ -338,11 +338,11 @@ export default function DraftOrdersPage() {
                   }
                 }}
                 disabled={deleteMutation.isPending}
-                title="Delete Draft"
+                title={t("deliveries.delete_draft")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-              <button className="btn-secondary" onClick={() => { setSelectedOrder(null); setDispatchItems([]); }}>Cancel</button>
+              <button className="btn-secondary" onClick={() => { setSelectedOrder(null); setDispatchItems([]); }}>{t("common.cancel")}</button>
             </div>
           </div>
         )}

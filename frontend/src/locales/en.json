@@ -228,7 +228,8 @@
     "total_billed_item": "Total billed for this item:",
     "stock_exceeded_error": "Quantity exceeds available stock.",
     "search_product_min2": "Search product (min. 2 letters)...",
-    "delete_item": "Delete this item"
+    "delete_item": "Delete this item",
+    "not_invoiced": "Unbilled"
   },
   "client": {
     "new": "New Client",
@@ -1023,7 +1024,10 @@
     "add": "Add",
     "select": "Select",
     "escape": "Esc",
-    "creation": "Created At"
+    "creation": "Created At",
+    "pairs": "pairs",
+    "required_min_1": "Required (min 1)",
+    "unknown": "Unknown"
   },
   "status": {
     "completed": "Completed",
@@ -1119,7 +1123,7 @@
     "detail_by_period": "Breakdown by period",
     "date_week": "Date / Week",
     "avg_basket": "Average Basket",
-    "units_sold": "Units sold",
+    "units_sold": "Units Sold",
     "no_data_period": "No data for this period.",
     "analysis_date": "Analysis date:",
     "gross_revenue_today": "Today's Gross Revenue",
@@ -1146,7 +1150,12 @@
     "template_name": "Template name",
     "columns": "Columns",
     "columns_selected": "{{count}}/{{max}} selected",
-    "add_filter": "Add filter"
+    "add_filter": "Add filter",
+    "no_products": "No products recorded.",
+    "transactions_count": "Transactions Count",
+    "select_field": "— field —",
+    "select_operator": "— operator —",
+    "no_sort": "— no sort —"
   },
   "settings": {
     "active": "Active",
@@ -1213,7 +1222,37 @@
     "access_accounts": "Access accounts",
     "branch_network": "Branch network",
     "no_branch_registered": "No branch registered.",
-    "payment_settings_credit": "Payment Settings (Credit)"
+    "payment_settings_credit": "Payment Settings (Credit)",
+    "logo_format_hint": "PNG or JPG format. Max 2 MB.",
+    "invite_user": "Invite User",
+    "new_user": "New User",
+    "add_branch": "Add Branch",
+    "new_branch": "New Branch",
+    "loading_store": "Loading store information...",
+    "policy_caisse_manager_title": "Cash Drawer Control & Manager PIN Code",
+    "policy_caisse_manager_desc": "Protect your sales transactions against return fraud and excessive discounts.",
+    "policy_pin_returns": "Require Manager PIN for returns & refunds",
+    "policy_pin_returns_desc": "Prevents a cashier from approving a return or refund without the presence and PIN of a manager.",
+    "policy_pin_discounts": "Require Manager PIN when discount limit is exceeded",
+    "policy_pin_discounts_desc": "If a cashier offers a discount above their authorized limit, a manager PIN will be required to finalize payment.",
+    "policy_max_discount": "Default maximum discount for cashiers (%)",
+    "policy_max_discount_desc": "Limit applied to any cashier without custom permissions.",
+    "policy_stock_title": "Stock & POS Policy",
+    "policy_negative_stock": "Allow negative stock sales",
+    "policy_negative_stock_desc": "Allows making sales even if in-stock quantity is insufficient or depleted. A confirmation alert will be shown to the cashier before checkout.",
+    "policy_min_versement": "Minimum deposit (%)",
+    "policy_min_versement_desc": "Percentage of total sale required as initial down payment at checkout.",
+    "policy_due_days": "Payment grace period (days)",
+    "policy_due_days_desc": "Number of days allowed before an installment is marked overdue.",
+    "policy_require_client": "Require selecting a registered customer for credit sales",
+    "policy_layaway_title": "Reservations & Layaway (Consigned Stock)",
+    "policy_layaway_desc": "Allows customers to hold footwear in-store with a partial deposit and immediate stock reservation.",
+    "policy_layaway_enable": "Enable Layaway option at checkout",
+    "policy_layaway_enable_desc": "Displays the \"Layaway\" button on the POS terminal to consign items and print a Barcoded Reservation Voucher.",
+    "policy_layaway_min_deposit": "Mandatory minimum deposit (%)",
+    "policy_layaway_min_deposit_hint": "E.g. 20% minimum to secure the layaway hold.",
+    "policy_layaway_duration": "Default validity duration (days)",
+    "policy_layaway_duration_hint": "Period after which the layaway reservation is marked as expired."
   },
   "user": {
     "first_name": "First Name",
@@ -1269,7 +1308,12 @@
     "delete_integration": "Delete this integration",
     "select_wilaya": "Select Wilaya",
     "select_commune": "Select Municipality",
-    "commune": "Commune"
+    "commune": "Commune",
+    "unnamed_customer": "Unnamed Customer",
+    "no_phone": "No Phone Number",
+    "delete_draft": "Delete Draft",
+    "edit_customer_details": "Edit Customer Details",
+    "connect_facebook": "Connect with Facebook"
   },
   "product": {
     "pairs_per_carton": "Pairs / Carton",
@@ -1467,7 +1511,14 @@
     "all_tiers": "All tiers",
     "welcome_bonus": "Welcome bonus (points offered on opening)",
     "points_delta": "Points to add / deduct",
-    "reason_placeholder": "e.g. Loyalty bonus, courtesy discount…"
+    "reason_placeholder": "e.g. Loyalty bonus, courtesy discount…",
+    "vip_loyalty_card": "VIP LOYALTY CARD",
+    "points_balance_card": "Points Balance",
+    "top_clients_ranking": "Top Customers Ranking",
+    "top_members_desc": "Top members by accumulated points & quick actions",
+    "current_balance_pts": "Current Balance",
+    "total_accumulated": "Total Accumulated",
+    "tier_and_progression": "Tier & Progress"
   },
   "pos": {
     "versement": "Layaway Deposit",
@@ -1696,7 +1747,9 @@
     "unlimited": "Unlimited",
     "min_qty": "Minimum Qty",
     "fixed_amount_unit": "Fixed amount / unit (DZD)",
-    "name_placeholder": "e.g. Summer Sale 2026"
+    "name_placeholder": "e.g. Summer Sale 2026",
+    "end_date_optional": "End (optional)",
+    "min_amount_dzd": "Min amount (DZD)"
   },
   "audit": {
     "title": "Activity Log",
@@ -1723,7 +1776,23 @@
     "offset_horizontal": "Horizontal offset (X)",
     "offset_h_hint": "+2 mm shifts right",
     "offset_vertical": "Vertical offset (Y)",
-    "save_preferences": "Save printing preferences"
+    "save_preferences": "Save printing preferences",
+    "ticket_print_mode": "Receipt Print Mode",
+    "ticket_copies_label": "Copies per receipt",
+    "copy_1_client": "1 copy (Customer receipt)",
+    "copy_2_client_store": "2 copies (1 Customer + 1 Store cashier)",
+    "doc_format_label": "Document Format",
+    "us_letter": "US Letter",
+    "labels_print_mode": "Label Print Mode",
+    "width_mm": "Width (mm)",
+    "height_mm": "Height (mm)",
+    "offset_y_hint": "+ downwards / - upwards",
+    "test_doc_title": "ShoeDZ — A4 Document Print Test",
+    "test_doc_desc": "This document confirms the connection between ShoeDZ and your desktop printer.",
+    "assigned_printer": "Assigned printer",
+    "format_a4_portrait": "Format: A4 Portrait",
+    "date_label": "Date",
+    "test_a4_sent": "A4 test document sent!"
   },
   "desktop": {
     "refresh_list": "Refresh list",
@@ -1734,6 +1803,18 @@
     "local_diagnostics": "Diagnostics & Local Data",
     "clock_integrity": "Clock & Time Integrity",
     "danger_zone": "Danger Zone: Data Reset",
-    "reset_db": "Reset database..."
+    "reset_db": "Reset database...",
+    "open_folder": "Open Folder",
+    "open_in_explorer": "Open in Windows Explorer",
+    "schedule_daily": "Daily",
+    "rolling_retention": "Rolling retention: {{count}} copies",
+    "days_retention": "14 days",
+    "active_db": "Active Database (SQLite)",
+    "backup_files_count": "Backup files ({{count}})",
+    "sqlite_format_desc": "Standard SQLite 3 format (.sqlite3)",
+    "loading_backups": "Loading backups...",
+    "browser_local_mode": "Local web browser mode",
+    "auto_backups": "Automatic Backups",
+    "tech_logs": "Technical logs"
   }
 }

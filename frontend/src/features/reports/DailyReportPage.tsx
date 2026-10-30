@@ -332,8 +332,8 @@ export default function DailyReportPage() {
                   <table className="w-full text-start text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200/80 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        <th className="px-4 py-3.5 text-start">Mode de paiement</th>
-                        <th className="px-4 py-3.5 text-end">Nb transactions</th>
+                        <th className="px-4 py-3.5 text-start">{t("payment.method", "Mode de paiement")}</th>
+                        <th className="px-4 py-3.5 text-end">{t("report.transactions_count")}</th>
                         <th className="px-4 py-3.5 text-end">{t("report.amount")}</th>
                       </tr>
                     </thead>

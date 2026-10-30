@@ -228,7 +228,8 @@
     "total_billed_item": "الإجمالي المفوتر لهذه السلعة:",
     "stock_exceeded_error": "الكمية تتجاوز المخزون المتوفر.",
     "search_product_min2": "البحث عن منتج (حرفان على الأقل)...",
-    "delete_item": "حذف هذا العنصر"
+    "delete_item": "حذف هذا العنصر",
+    "not_invoiced": "غير مفوتر"
   },
   "client": {
     "new": "زبون جديد",
@@ -1023,7 +1024,10 @@
     "add": "إضافة",
     "select": "تحديد",
     "escape": "هروب",
-    "creation": "تاريخ الإنشاء"
+    "creation": "تاريخ الإنشاء",
+    "pairs": "أزواج",
+    "required_min_1": "مطلوب (الحد الأدنى 1)",
+    "unknown": "غير معروف"
   },
   "status": {
     "completed": "مكتمل",
@@ -1146,7 +1150,12 @@
     "template_name": "اسم النموذج",
     "columns": "أعمدة",
     "columns_selected": "{{count}}/{{max}} محددة",
-    "add_filter": "إضافة فلتر"
+    "add_filter": "إضافة فلتر",
+    "no_products": "لا توجد منتجات مسجلة.",
+    "transactions_count": "عدد المعاملات",
+    "select_field": "— الحقل —",
+    "select_operator": "— المعامل —",
+    "no_sort": "— بدون ترتيب —"
   },
   "settings": {
     "active": "نشط",
@@ -1213,7 +1222,37 @@
     "access_accounts": "حسابات الوصول",
     "branch_network": "شبكة الفروع",
     "no_branch_registered": "لا توجد أي وكالة مسجلة.",
-    "payment_settings_credit": "إعدادات الدفع (الآجل)"
+    "payment_settings_credit": "إعدادات الدفع (الآجل)",
+    "logo_format_hint": "صيغة PNG أو JPG. الحجم الأقصى 2 ميغابايت.",
+    "invite_user": "دعوة مستخدم",
+    "new_user": "مستخدم جديد",
+    "add_branch": "إضافة فرع",
+    "new_branch": "فرع جديد",
+    "loading_store": "جارٍ تحميل بيانات المتجر...",
+    "policy_caisse_manager_title": "مراقبة الصندوق ورمز PIN للمدير",
+    "policy_caisse_manager_desc": "حماية المقبوضات النقدية من عمليات الاحتيال في المرتجعات والخصومات المفرطة.",
+    "policy_pin_returns": "طلب رمز PIN للمدير عند المرتجعات واسترداد الأموال",
+    "policy_pin_returns_desc": "يمنع أمين الصندوق من تأكيد إرجاع أو استرداد نقدي دون حضور المدير وإدخال رمزه السري.",
+    "policy_pin_discounts": "طلب رمز PIN للمدير عند تجاوز نسبة الخصم المسموحة",
+    "policy_pin_discounts_desc": "إذا منح أمين الصندوق خصماً أعلى من حده المصرح به، فسيتطلب إدخال رمز المدير لإتمام البيع.",
+    "policy_max_discount": "الحد الأقصى للخصم الافتراضي لأمناء الصندوق (%)",
+    "policy_max_discount_desc": "الحد المطبق على أي أمين صندوق ليس لديه صلاحيات مخصصة.",
+    "policy_stock_title": "سياسة المخزون ونقاط البيع",
+    "policy_negative_stock": "السماح بالبيع في المخزون السالب",
+    "policy_negative_stock_desc": "يسمح بإجراء المبيعات حتى لو كانت الكمية غير كافية أو نافدة. سيظهر تنبيه تأكيد لأمين الصندوق قبل إتمام البيع.",
+    "policy_min_versement": "الدفعة الأولى كحد أدنى (%)",
+    "policy_min_versement_desc": "النسبة المئوية من إجمالي البيع المطلوبة كأول دفعة في الصندوق.",
+    "policy_due_days": "مهلة السداد (بالأيام)",
+    "policy_due_days_desc": "عدد الأيام المسموح بها قبل اعتبار القسط متأخراً.",
+    "policy_require_client": "إلزام تحديد عميل مسجل للمبيعات بالتقسيط / الآجل",
+    "policy_layaway_title": "الحجز والاحتفاظ بالسلع (مخزون محجوز)",
+    "policy_layaway_desc": "يتيح للعملاء حجز الأحذية في المحل مع دفع عربون جزئي وحجز المخزون فورياً.",
+    "policy_layaway_enable": "تفعيل خيار الحجز في شاشة الصندوق",
+    "policy_layaway_enable_desc": "يُظهر زر \"حجز السلع\" في نقطة البيع لاحتجاز البضاعة وطباعة وصل حجز بباركود.",
+    "policy_layaway_min_deposit": "الحد الأدنى الإلزامي للعربون (%)",
+    "policy_layaway_min_deposit_hint": "مثال: 20% كحد أدنى لتأكيد الحجز.",
+    "policy_layaway_duration": "مدة الصلاحية الافتراضية (بالأيام)",
+    "policy_layaway_duration_hint": "المهلة التي بعدها يُعتبر الحجز منتهي الصلاحية."
   },
   "user": {
     "first_name": "الاسم الأول",
@@ -1269,7 +1308,12 @@
     "delete_integration": "حذف هذا التكامل",
     "select_wilaya": "اختر الولاية",
     "select_commune": "اختر البلدية",
-    "commune": "البلدية"
+    "commune": "البلدية",
+    "unnamed_customer": "عميل مجهول الاسم",
+    "no_phone": "لا يوجد رقم هاتف",
+    "delete_draft": "حذف المسودة",
+    "edit_customer_details": "تعديل بيانات العميل",
+    "connect_facebook": "تسجيل الدخول عبر فيسبوك"
   },
   "defects": {
     "title": "إدارة السلع المعيبة وإرجاع الموردين",
@@ -1467,7 +1511,14 @@
     "all_tiers": "جميع المستويات",
     "welcome_bonus": "مكافأة ترحيبية (نقاط مهداة عند التسجيل)",
     "points_delta": "النقاط المراد إضافتها / خصمها",
-    "reason_placeholder": "مثال: مكافأة وفاء، لفتة تجارية…"
+    "reason_placeholder": "مثال: مكافأة وفاء، لفتة تجارية…",
+    "vip_loyalty_card": "بطاقة ولاء VIP",
+    "points_balance_card": "رصيد النقاط",
+    "top_clients_ranking": "ترتيب أفضل العملاء",
+    "top_members_desc": "أفضل الأعضاء حسب مجموع النقاط وإجراءات سريعة",
+    "current_balance_pts": "الرصيد الحالي",
+    "total_accumulated": "المجموع التراكمي",
+    "tier_and_progression": "المستوى والتقدم"
   },
   "pos": {
     "versement": "تسبيق",
@@ -1696,7 +1747,9 @@
     "unlimited": "غير محدود",
     "min_qty": "الكمية الدنيا",
     "fixed_amount_unit": "مبلغ ثابت / وحدة (دج)",
-    "name_placeholder": "مثال: تخفيضات صيف 2026"
+    "name_placeholder": "مثال: تخفيضات صيف 2026",
+    "end_date_optional": "النهاية (اختياري)",
+    "min_amount_dzd": "المبلغ الأدنى (دج)"
   },
   "audit": {
     "title": "سجل النشاطات",
@@ -1723,7 +1776,23 @@
     "offset_horizontal": "الإزاحة الأفقية (X)",
     "offset_h_hint": "+2 مم إزاحة لليمين",
     "offset_vertical": "الإزاحة العمودية (Y)",
-    "save_preferences": "حفظ تفضيلات الطباعة"
+    "save_preferences": "حفظ تفضيلات الطباعة",
+    "ticket_print_mode": "وضع طباعة التذاكر",
+    "ticket_copies_label": "عدد النسخ لكل وصل",
+    "copy_1_client": "نسخة واحدة (وصل العميل)",
+    "copy_2_client_store": "نسختان (1 للعميل + 1 لصندوق المتجر)",
+    "doc_format_label": "تنسيق المستند",
+    "us_letter": "رسالة أمريكية (US Letter)",
+    "labels_print_mode": "وضع طباعة الملصقات",
+    "width_mm": "العرض (ملم)",
+    "height_mm": "الارتفاع (ملم)",
+    "offset_y_hint": "+ للأسفل / - للأعلى",
+    "test_doc_title": "ShoeDZ — اختبار طباعة مستند A4",
+    "test_doc_desc": "هذا المستند يؤكد الاتصال بين ShoeDZ وطابعتك المكتبية.",
+    "assigned_printer": "الطابعة المخصصة",
+    "format_a4_portrait": "التنسيق: A4 عمودي",
+    "date_label": "التاريخ",
+    "test_a4_sent": "تم إرسال مستند A4 التجريبي!"
   },
   "desktop": {
     "refresh_list": "تحديث القائمة",
@@ -1734,6 +1803,18 @@
     "local_diagnostics": "التشخيص والبيانات المحلية",
     "clock_integrity": "الساعة وسلامة الوقت",
     "danger_zone": "منطقة الخطر: إعادة تعيين البيانات",
-    "reset_db": "إعادة تعيين قاعدة البيانات..."
+    "reset_db": "إعادة تعيين قاعدة البيانات...",
+    "open_folder": "فتح المجلد",
+    "open_in_explorer": "فتح في متصفح الملفات",
+    "schedule_daily": "يومياً",
+    "rolling_retention": "احتفاظ دوري: {{count}} نسخ",
+    "days_retention": "14 يوماً",
+    "active_db": "قاعدة البيانات النشطة (SQLite)",
+    "backup_files_count": "ملفات النسخ الاحتياطي ({{count}})",
+    "sqlite_format_desc": "صيغة SQLite 3 القياسية (.sqlite3)",
+    "loading_backups": "جارٍ تحميل النسخ الاحتياطية...",
+    "browser_local_mode": "وضع متصفح الويب المحلي",
+    "auto_backups": "النسخ الاحتياطي التلقائي",
+    "tech_logs": "السجلات التقنية (Logs)"
   }
 }

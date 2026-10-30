@@ -228,7 +228,8 @@
     "total_billed_item": "Total facturé pour cet article :",
     "stock_exceeded_error": "Quantité supérieure au stock disponible.",
     "search_product_min2": "Rechercher un produit (min. 2 lettres)...",
-    "delete_item": "Supprimer cet article"
+    "delete_item": "Supprimer cet article",
+    "not_invoiced": "Non facturé"
   },
   "client": {
     "new": "Nouveau client",
@@ -1023,7 +1024,10 @@
     "add": "Ajouter",
     "select": "Sélectionner",
     "escape": "Échap",
-    "creation": "Création"
+    "creation": "Création",
+    "pairs": "paires",
+    "required_min_1": "Requis (min 1)",
+    "unknown": "Inconnu"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -1146,7 +1150,12 @@
     "template_name": "Nom du modèle",
     "columns": "Colonnes",
     "columns_selected": "{{count}}/{{max}} sélectionnées",
-    "add_filter": "Ajouter un filtre"
+    "add_filter": "Ajouter un filtre",
+    "no_products": "Aucun produit enregistré.",
+    "transactions_count": "Nb transactions",
+    "select_field": "— champ —",
+    "select_operator": "— opérateur —",
+    "no_sort": "— aucun tri —"
   },
   "settings": {
     "active": "Actif",
@@ -1213,7 +1222,37 @@
     "access_accounts": "Comptes d'accès",
     "branch_network": "Réseau d'agences",
     "no_branch_registered": "Aucune agence enregistrée.",
-    "payment_settings_credit": "Paramètres de Versement (Crédit)"
+    "payment_settings_credit": "Paramètres de Versement (Crédit)",
+    "logo_format_hint": "Format PNG ou JPG. Max 2 Mo.",
+    "invite_user": "Inviter un utilisateur",
+    "new_user": "Nouvel utilisateur",
+    "add_branch": "Ajouter une agence",
+    "new_branch": "Nouvelle agence",
+    "loading_store": "Chargement des informations boutique...",
+    "policy_caisse_manager_title": "Contrôle Caisse & Code PIN Manager",
+    "policy_caisse_manager_desc": "Sécurisez vos encaissements contre les fraudes de retour et les remises excessives.",
+    "policy_pin_returns": "Exiger le code PIN Manager pour les retours & remboursements",
+    "policy_pin_returns_desc": "Empêche un caissier de valider un retour ou de rembourser un client sans la présence et le PIN d'un responsable.",
+    "policy_pin_discounts": "Exiger le code PIN Manager en cas de dépassement de remise",
+    "policy_pin_discounts_desc": "Si un caissier accorde une remise supérieure à sa limite autorisée, le PIN d'un gérant sera requis pour finaliser l'encaissement.",
+    "policy_max_discount": "Remise maximale par défaut pour les caissiers (%)",
+    "policy_max_discount_desc": "Limite appliquée à tout caissier n'ayant pas de règle spécifique personnalisée.",
+    "policy_stock_title": "Politique de Stock & Caisse",
+    "policy_negative_stock": "Autoriser les ventes en stock négatif",
+    "policy_negative_stock_desc": "Permet d'effectuer des ventes même si la quantité en stock est insuffisante ou épuisée. Une alerte de confirmation sera affichée au caissier avant de valider la vente.",
+    "policy_min_versement": "Acompte minimum (%)",
+    "policy_min_versement_desc": "Pourcentage du total de la vente requis comme premier paiement à la caisse.",
+    "policy_due_days": "Délai de paiement (jours)",
+    "policy_due_days_desc": "Nombre de jours accordés avant qu'une échéance soit marquée en retard.",
+    "policy_require_client": "Exiger la sélection d'un client enregistré pour les ventes à crédit",
+    "policy_layaway_title": "Réservations & Mise de Côté (Stock Consigné)",
+    "policy_layaway_desc": "Permet aux clients de réserver des paires en magasin avec versement d'un acompte partiel et blocage immédiat du stock.",
+    "policy_layaway_enable": "Activer l'option Mise de Côté à la caisse",
+    "policy_layaway_enable_desc": "Affiche le bouton \"Mise de côté\" sur le terminal de caisse pour consigner les articles et imprimer un Bon de Réservation avec code-barres.",
+    "policy_layaway_min_deposit": "Acompte minimum obligatoire (%)",
+    "policy_layaway_min_deposit_hint": "Ex : 20% minimum pour sécuriser la mise de côté.",
+    "policy_layaway_duration": "Durée de validité par défaut (jours)",
+    "policy_layaway_duration_hint": "Délai après lequel la réservation est marquée comme expirée."
   },
   "user": {
     "first_name": "Prénom",
@@ -1269,7 +1308,12 @@
     "delete_integration": "Supprimer cette intégration",
     "select_wilaya": "Sélectionner la Wilaya",
     "select_commune": "Sélectionner la Commune",
-    "commune": "Commune"
+    "commune": "Commune",
+    "unnamed_customer": "Client sans nom",
+    "no_phone": "Aucun téléphone",
+    "delete_draft": "Supprimer le brouillon",
+    "edit_customer_details": "Modifier les coordonnées client",
+    "connect_facebook": "Se connecter avec Facebook"
   },
   "product": {
     "pairs_per_carton": "Paires / Carton",
@@ -1467,7 +1511,14 @@
     "all_tiers": "Tous les niveaux",
     "welcome_bonus": "Bonus de bienvenue (points offerts à l'ouverture)",
     "points_delta": "Points à ajouter / retirer",
-    "reason_placeholder": "Ex : Bonus fidélité, geste commercial…"
+    "reason_placeholder": "Ex : Bonus fidélité, geste commercial…",
+    "vip_loyalty_card": "CARTE DE FIDÉLITÉ VIP",
+    "points_balance_card": "Solde Points",
+    "top_clients_ranking": "Classement des meilleurs clients",
+    "top_members_desc": "Top membres par points cumulés & actions rapides",
+    "current_balance_pts": "Solde Actuel",
+    "total_accumulated": "Total Cumulé",
+    "tier_and_progression": "Niveau & Progression"
   },
   "pos": {
     "versement": "Versement",
@@ -1696,7 +1747,9 @@
     "unlimited": "Illimité",
     "min_qty": "Qté minimum",
     "fixed_amount_unit": "Montant fixe / unité (DZD)",
-    "name_placeholder": "Ex : Soldes été 2026"
+    "name_placeholder": "Ex : Soldes été 2026",
+    "end_date_optional": "Fin (optionnel)",
+    "min_amount_dzd": "Montant min (DZD)"
   },
   "audit": {
     "title": "Journal d'activité",
@@ -1723,7 +1776,23 @@
     "offset_horizontal": "Décalage horizontal (X)",
     "offset_h_hint": "+2 mm décale vers la droite",
     "offset_vertical": "Décalage vertical (Y)",
-    "save_preferences": "Enregistrer les préférences d'impression"
+    "save_preferences": "Enregistrer les préférences d'impression",
+    "ticket_print_mode": "Mode d'impression ticket",
+    "ticket_copies_label": "Exemplaires par ticket",
+    "copy_1_client": "1 exemplaire (Reçu client)",
+    "copy_2_client_store": "2 exemplaires (1 Client + 1 Caisse magasin)",
+    "doc_format_label": "Format du document",
+    "us_letter": "US Letter",
+    "labels_print_mode": "Mode d'impression étiquettes",
+    "width_mm": "Largeur (mm)",
+    "height_mm": "Hauteur (mm)",
+    "offset_y_hint": "+ vers le bas / - vers le haut",
+    "test_doc_title": "ShoeDZ — Test d'Impression Document A4",
+    "test_doc_desc": "Ce document confirme la liaison entre ShoeDZ et votre imprimante de bureau.",
+    "assigned_printer": "Imprimante assignée",
+    "format_a4_portrait": "Format : A4 Portrait",
+    "date_label": "Date",
+    "test_a4_sent": "Document A4 de test envoyé !"
   },
   "desktop": {
     "refresh_list": "Rafraîchir la liste",
@@ -1734,6 +1803,18 @@
     "local_diagnostics": "Diagnostics et Données Locales",
     "clock_integrity": "Horloge & Intégrité Temporelle",
     "danger_zone": "Zone de Danger : Réinitialisation des données",
-    "reset_db": "Réinitialiser la base..."
+    "reset_db": "Réinitialiser la base...",
+    "open_folder": "Ouvrir dossier",
+    "open_in_explorer": "Ouvrir dans l'Explorateur Windows",
+    "schedule_daily": "Quotidienne",
+    "rolling_retention": "Rétention glissante : {{count}} copies",
+    "days_retention": "14 jours",
+    "active_db": "Base active (SQLite)",
+    "backup_files_count": "Fichiers de sauvegarde ({{count}})",
+    "sqlite_format_desc": "Format standard SQLite 3 (.sqlite3)",
+    "loading_backups": "Chargement des sauvegardes...",
+    "browser_local_mode": "Mode navigateur web local",
+    "auto_backups": "Sauvegardes automatiques",
+    "tech_logs": "Journaux techniques (Logs)"
   }
 }

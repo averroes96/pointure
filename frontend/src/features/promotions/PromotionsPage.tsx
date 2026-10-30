@@ -190,7 +190,7 @@ function PromotionModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Fin (optionnel)</label>
+              <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.end_date_optional")}</label>
               <input
                 type="date"
                 className="form-input"
@@ -230,7 +230,7 @@ function PromotionModal({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1">Montant min (DZD)</label>
+                <label className="block text-xs font-medium text-text-muted mb-1">{t("promotions.min_amount_dzd")}</label>
                 <input
                   type="number"
                   className="form-input"

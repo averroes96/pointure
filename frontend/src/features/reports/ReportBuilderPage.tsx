@@ -148,6 +148,7 @@ interface FilterRowProps {
 }
 
 function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
+  const { t } = useTranslation();
   const fieldDef = fields.find((f) => f.id === filter.field);
 
   function handleFieldChange(fieldId: string) {
@@ -167,7 +168,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
           className="form-input flex-1"
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
-          placeholder="Valeur"
+          placeholder={t("common.value", "Valeur")}
         />
       );
     }
@@ -178,7 +179,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
         >
-          <option value="">— choisir —</option>
+          <option value="">{t("common.select_placeholder", "— choisir —")}</option>
           {fieldDef.choices.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -194,9 +195,9 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
           value={filter.value}
           onChange={(e) => onChange({ ...filter, value: e.target.value })}
         >
-          <option value="">— choisir —</option>
-          <option value="true">Oui</option>
-          <option value="false">Non</option>
+          <option value="">{t("common.select_placeholder", "— choisir —")}</option>
+          <option value="true">{t("common.yes", "Oui")}</option>
+          <option value="false">{t("common.no", "Non")}</option>
         </select>
       );
     }
@@ -240,7 +241,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
         value={filter.field}
         onChange={(e) => handleFieldChange(e.target.value)}
       >
-        <option value="">— champ —</option>
+        <option value="">{t("report.select_field")}</option>
         {fields.map((f) => (
           <option key={f.id} value={f.id}>
             {f.label}
@@ -255,7 +256,7 @@ function FilterRow({ filter, fields, onChange, onRemove }: FilterRowProps) {
         onChange={(e) => onChange({ ...filter, operator: e.target.value })}
         disabled={!fieldDef}
       >
-        <option value="">— op —</option>
+        <option value="">{t("report.select_operator")}</option>
         {(fieldDef?.operators ?? []).map((op) => (
           <option key={op.value} value={op.value}>
             {op.label}
@@ -845,7 +846,7 @@ export default function ReportBuilderPage() {
                         }
                       }}
                     >
-                      <option value="">— aucun tri —</option>
+                      <option value="">{t("report.no_sort")}</option>
                       {sortableFields.map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.label}

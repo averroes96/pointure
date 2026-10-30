@@ -201,7 +201,7 @@ export default function DeliveryNotesPage() {
                           {note.invoice_number || `#${note.invoice}`}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">Non facturé</span>
+                        <span className="text-xs text-slate-400 italic">{t("invoice.not_invoiced")}</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-900 tabular-nums">

@@ -351,17 +351,17 @@ export default function DesktopTab() {
               title={t("desktop.refresh_list")}
             >
               <RefreshCw size={13} className={cn((backupsLoading || backupsRefetching) && "animate-spin text-primary-600")} />
-              <span>Actualiser</span>
+              <span>{t("common.refresh", "Actualiser")}</span>
             </button>
 
             {isDesktop && (
               <button
                 onClick={() => window.electronAPI?.openBackupsFolder?.()}
                 className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Ouvrir dans l'Explorateur Windows"
+                title={t("desktop.open_in_explorer")}
               >
                 <FolderArchive size={13} className="text-slate-500" />
-                <span>Ouvrir dossier</span>
+                <span>{t("desktop.open_folder")}</span>
               </button>
             )}
 
@@ -406,9 +406,9 @@ export default function DesktopTab() {
               <div className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                 {t("settings.backup_schedule", "Sauvegarde automatique")}
               </div>
-              <div className="text-sm font-bold text-slate-900 mt-1">Quotidienne</div>
+              <div className="text-sm font-bold text-slate-900 mt-1">{t("desktop.schedule_daily")}</div>
               <div className="text-2xs text-slate-400 mt-0.5">
-                {backupsData?.max_copies ? `Rétention glissante : ${backupsData.max_copies} copies` : "14 jours"}
+                {backupsData?.max_copies ? t("desktop.rolling_retention", { count: backupsData.max_copies }) : t("desktop.days_retention")}
               </div>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
@@ -422,7 +422,7 @@ export default function DesktopTab() {
               <div className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                 {t("settings.backup_location", "Emplacement des données")}
               </div>
-              <div className="text-sm font-bold text-slate-900 mt-1">Base active (SQLite)</div>
+              <div className="text-sm font-bold text-slate-900 mt-1">{t("desktop.active_db")}</div>
               <div className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[180px]" title={backupsData?.backups_dir}>
                 {backupsData?.backups_dir || "%ProgramData%\\ShoeDZ\\backups"}
               </div>
@@ -437,15 +437,15 @@ export default function DesktopTab() {
         <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800">
-              Fichiers de sauvegarde ({backups.length})
+              {t("desktop.backup_files_count", { count: backups.length })}
             </span>
-            <span className="text-2xs text-slate-400 font-medium">Format standard SQLite 3 (.sqlite3)</span>
+            <span className="text-2xs text-slate-400 font-medium">{t("desktop.sqlite_format_desc")}</span>
           </div>
 
           {backupsLoading ? (
             <div className="p-12 text-center text-slate-400">
               <Loader2 size={24} className="animate-spin mx-auto text-primary-600 mb-2" />
-              <p className="text-xs font-medium">Chargement des sauvegardes...</p>
+              <p className="text-xs font-medium">{t("desktop.loading_backups")}</p>
             </div>
           ) : backups.length === 0 ? (
             <div className="p-12 text-center space-y-3">
@@ -481,7 +481,7 @@ export default function DesktopTab() {
                     <th className="py-3 px-4">{t("settings.backup_date", "Date de création")}</th>
                     <th className="py-3 px-4 text-end">{t("settings.backup_size", "Taille")}</th>
                     <th className="py-3 px-4 text-center">{t("settings.backup_status", "État")}</th>
-                    <th className="py-3 px-4 text-end">Actions</th>
+                    <th className="py-3 px-4 text-end">{t("common.actions", "Actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -622,7 +622,7 @@ export default function DesktopTab() {
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
               <Info size={14} className="text-slate-400" />
-              <span>Mode navigateur web local</span>
+              <span>{t("desktop.browser_local_mode")}</span>
             </div>
           )}
         </div>
@@ -731,7 +731,7 @@ export default function DesktopTab() {
                   <FolderArchive size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">Sauvegardes automatiques</p>
+                  <p className="text-xs font-semibold text-slate-900">{t("desktop.auto_backups")}</p>
                   <p className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[200px]" title={backupsData?.backups_dir}>
                     {backupsData?.backups_dir || "C:\\ProgramData\\ShoeDZ\\backups"}
                   </p>
@@ -741,7 +741,7 @@ export default function DesktopTab() {
                 <button
                   onClick={() => window.electronAPI?.openBackupsFolder?.()}
                   className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors cursor-pointer"
-                  title="Ouvrir dans l'Explorateur Windows"
+                  title={t("desktop.open_in_explorer")}
                 >
                   <ExternalLink size={15} />
                 </button>
@@ -754,7 +754,7 @@ export default function DesktopTab() {
                   <FileText size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">Journaux techniques (Logs)</p>
+                  <p className="text-xs font-semibold text-slate-900">{t("desktop.tech_logs")}</p>
                   <p className="text-2xs text-slate-400 font-mono mt-0.5">C:\ProgramData\ShoeDZ\logs</p>
                 </div>
               </div>
@@ -762,7 +762,7 @@ export default function DesktopTab() {
                 <button
                   onClick={() => window.electronAPI?.openLogsFolder?.()}
                   className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-colors cursor-pointer"
-                  title="Ouvrir dans l'Explorateur Windows"
+                  title={t("desktop.open_in_explorer")}
                 >
                   <ExternalLink size={15} />
                 </button>

@@ -476,7 +476,7 @@ export default function SalesReportPage() {
                     <th className="w-12 px-4 py-3.5 text-center">#</th>
                     <th className="px-4 py-3.5 text-start">{t("report.item")}</th>
                     <th className="px-4 py-3.5 text-start">{t("report.brand")}</th>
-                    <th className="px-4 py-3.5 text-end">Unités vendues</th>
+                    <th className="px-4 py-3.5 text-end">{t("report.units_sold")}</th>
                     <th className="px-4 py-3.5 text-end">{t("report.revenue")}</th>
                   </tr>
                 </thead>
@@ -484,7 +484,7 @@ export default function SalesReportPage() {
                   {topProducts.length === 0 && (
                     <tr>
                       <td colSpan={5} className="text-center py-10 text-slate-400 font-medium">
-                        Aucun produit enregistré.
+                        {t("report.no_products")}
                       </td>
                     </tr>
                   )}
@@ -498,7 +498,7 @@ export default function SalesReportPage() {
                       <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-white">{p.product_name}</td>
                       <td className="px-4 py-3.5 text-slate-400 font-medium text-xs">{p.brand || "—"}</td>
                       <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-slate-800 dark:text-slate-200 tabular-nums">
-                        {p.units_sold} <span className="text-2xs font-normal text-slate-400">paires</span>
+                        {p.units_sold} <span className="text-2xs font-normal text-slate-400">{t("common.pairs")}</span>
                       </td>
                       <td className="px-4 py-3.5 text-end font-mono font-bold text-sm text-primary-600 dark:text-primary-400 tabular-nums">
                         {formatDZD(p.revenue)}{" "}

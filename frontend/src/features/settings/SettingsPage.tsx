@@ -370,7 +370,7 @@ function BoutiqueTab({ tenant }: { tenant: Tenant }) {
               className="hidden"
               onChange={handleLogoChange}
             />
-            <p className="text-xs text-slate-500 mt-1.5">Format PNG ou JPG. Max 2 Mo.</p>
+            <p className="text-xs text-slate-500 mt-1.5">{t("settings.logo_format_hint")}</p>
           </div>
         </div>
       </div>
@@ -701,7 +701,7 @@ function UsersTab() {
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-xs shadow-primary-500/20 transition-all cursor-pointer"
         >
           <Plus size={14} />
-          <span>Inviter un utilisateur</span>
+          <span>{t("settings.invite_user")}</span>
         </button>
       </div>
 
@@ -710,7 +710,7 @@ function UsersTab() {
         <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-6 shadow-xs animate-in fade-in duration-150">
           <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
             <Users size={16} className="text-primary-600" />
-            Nouvel utilisateur
+            {t("settings.new_user")}
           </h3>
           <form onSubmit={handleSubmit(onInvite)} className="space-y-4 max-w-lg">
             <div className="grid grid-cols-2 gap-3">
@@ -1297,7 +1297,7 @@ function AgencesTab() {
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-xs shadow-primary-500/20 transition-all cursor-pointer"
         >
           <Plus size={14} />
-          <span>Ajouter une agence</span>
+          <span>{t("settings.add_branch")}</span>
         </button>
       </div>
 
@@ -1306,7 +1306,7 @@ function AgencesTab() {
         <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-6 shadow-xs animate-in fade-in duration-150">
           <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
             <MapPin size={16} className="text-primary-600" />
-            Nouvelle agence
+            {t("settings.new_branch")}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
             <div>
@@ -1525,10 +1525,10 @@ function VersementsTab() {
         <div>
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <ShieldCheck size={16} className="text-amber-600" />
-            Contrôle Caisse & Code PIN Manager
+            {t("settings.policy_caisse_manager_title")}
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Sécurisez vos encaissements contre les fraudes de retour et les remises excessives.
+            {t("settings.policy_caisse_manager_desc")}
           </p>
         </div>
 
@@ -1545,10 +1545,10 @@ function VersementsTab() {
                 htmlFor="require_manager_pin_for_returns"
                 className="text-sm font-semibold text-slate-900 cursor-pointer"
               >
-                Exiger le code PIN Manager pour les retours & remboursements
+                {t("settings.policy_pin_returns")}
               </label>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Empêche un caissier de valider un retour ou de rembourser un client sans la présence et le PIN d'un responsable.
+                {t("settings.policy_pin_returns_desc")}
               </p>
             </div>
           </div>
@@ -1565,17 +1565,17 @@ function VersementsTab() {
                 htmlFor="require_manager_pin_for_discounts"
                 className="text-sm font-semibold text-slate-900 cursor-pointer"
               >
-                Exiger le code PIN Manager en cas de dépassement de remise
+                {t("settings.policy_pin_discounts")}
               </label>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Si un caissier accorde une remise supérieure à sa limite autorisée, le PIN d'un gérant sera requis pour finaliser l'encaissement.
+                {t("settings.policy_pin_discounts_desc")}
               </p>
             </div>
           </div>
 
           <div className="p-4 rounded-2xl border border-slate-200/80 bg-white">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-              Remise maximale par défaut pour les caissiers (%)
+              {t("settings.policy_max_discount")}
             </label>
             <div className="flex items-center gap-2 max-w-xs">
               <input
@@ -1588,7 +1588,7 @@ function VersementsTab() {
               <span className="text-xs font-mono font-bold text-slate-400">%</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Limite appliquée à tout caissier n'ayant pas de règle spécifique personnalisée.
+              {t("settings.policy_max_discount_desc")}
             </p>
           </div>
         </div>
@@ -1596,7 +1596,7 @@ function VersementsTab() {
 
       {/* Stock Policy */}
       <div className="pt-6 border-t border-slate-200/80 space-y-3">
-        <h3 className="text-sm font-bold text-slate-900">Politique de Stock & Caisse</h3>
+        <h3 className="text-sm font-bold text-slate-900">{t("settings.policy_stock_title")}</h3>
         <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50">
           <div className="flex items-start gap-3">
             <input
@@ -1610,11 +1610,10 @@ function VersementsTab() {
                 htmlFor="allow_negative_stock"
                 className="text-sm font-semibold text-slate-900 cursor-pointer"
               >
-                Autoriser les ventes en stock négatif
+                {t("settings.policy_negative_stock")}
               </label>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Permet d'effectuer des ventes même si la quantité en stock est insuffisante ou épuisée.
-                Une alerte de confirmation sera affichée au caissier avant de valider la vente.
+                {t("settings.policy_negative_stock_desc")}
               </p>
             </div>
           </div>
@@ -1623,11 +1622,11 @@ function VersementsTab() {
 
       {/* Versements Policy */}
       <div className="pt-6 border-t border-slate-200/80 space-y-4">
-        <h3 className="text-sm font-bold text-slate-900">Paramètres de Versement (Crédit)</h3>
+        <h3 className="text-sm font-bold text-slate-900">{t("settings.payment_settings_credit")}</h3>
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-            Acompte minimum (%) <span className="text-rose-500">*</span>
+            {t("settings.policy_min_versement")} <span className="text-rose-500">*</span>
           </label>
           <input
             type="number"
@@ -1637,13 +1636,13 @@ function VersementsTab() {
             className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Pourcentage du total de la vente requis comme premier paiement à la caisse.
+            {t("settings.policy_min_versement_desc")}
           </p>
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-            Délai de paiement (jours) <span className="text-rose-500">*</span>
+            {t("settings.policy_due_days")} <span className="text-rose-500">*</span>
           </label>
           <input
             type="number"
@@ -1652,7 +1651,7 @@ function VersementsTab() {
             className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Nombre de jours accordés avant qu'une échéance soit marquée en retard.
+            {t("settings.policy_due_days_desc")}
           </p>
         </div>
 
@@ -1667,7 +1666,7 @@ function VersementsTab() {
             htmlFor="versement_requires_client"
             className="text-sm font-medium text-slate-800 cursor-pointer"
           >
-            Exiger la sélection d'un client enregistré pour les ventes à crédit
+            {t("settings.policy_require_client")}
           </label>
         </div>
       </div>
@@ -1677,10 +1676,10 @@ function VersementsTab() {
         <div>
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <PackageCheck size={16} className="text-indigo-600" />
-            Réservations & Mise de Côté (Stock Consigné)
+            {t("settings.policy_layaway_title")}
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Permet aux clients de réserver des paires en magasin avec versement d'un acompte partiel et blocage immédiat du stock.
+            {t("settings.policy_layaway_desc")}
           </p>
         </div>
 
@@ -1696,10 +1695,10 @@ function VersementsTab() {
               htmlFor="enable_layaway"
               className="text-sm font-semibold text-slate-900 cursor-pointer"
             >
-              Activer l'option Mise de Côté à la caisse
+              {t("settings.policy_layaway_enable")}
             </label>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Affiche le bouton "Mise de côté" sur le terminal de caisse pour consigner les articles et imprimer un Bon de Réservation avec code-barres.
+              {t("settings.policy_layaway_enable_desc")}
             </p>
           </div>
         </div>
@@ -1707,7 +1706,7 @@ function VersementsTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Acompte minimum obligatoire (%) <span className="text-rose-500">*</span>
+              {t("settings.policy_layaway_min_deposit")} <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -1720,13 +1719,13 @@ function VersementsTab() {
               <span className="text-xs font-mono font-bold text-slate-400">%</span>
             </div>
             <p className="text-2xs text-slate-500">
-              Ex : 20% minimum pour sécuriser la mise de côté.
+              {t("settings.policy_layaway_min_deposit_hint")}
             </p>
           </div>
 
           <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Durée de validité par défaut (jours) <span className="text-rose-500">*</span>
+              {t("settings.policy_layaway_duration")} <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -1736,10 +1735,10 @@ function VersementsTab() {
                 {...register("layaway_duration_days", { required: true, min: 1, max: 365 })}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono font-bold"
               />
-              <span className="text-xs font-mono font-bold text-slate-400">jours</span>
+              <span className="text-xs font-mono font-bold text-slate-400">{t("common.days", "jours")}</span>
             </div>
             <p className="text-2xs text-slate-500">
-              Délai après lequel la réservation est marquée comme expirée.
+              {t("settings.policy_layaway_duration_hint")}
             </p>
           </div>
         </div>
@@ -1876,7 +1875,7 @@ export default function SettingsPage() {
               (tenant ? (
                 <BoutiqueTab tenant={tenant as Tenant} />
               ) : (
-                <div className="text-slate-400 py-4">Chargement des informations boutique...</div>
+                <div className="text-slate-400 py-4">{t("settings.loading_store")}</div>
               ))}
 
             {activeTab === "securite" && <SecurityTab />}
