@@ -616,7 +616,15 @@
     "auto_distribute_pairs": "توزيع الأزواج تلقائياً على المقاسات",
     "received_at_date": "تم الاستلام {{date}}",
     "bulk_price_updated_success": "تم تحديث {{count}} منتج(ات) بنجاح.",
-    "no_product_matching_create_hint": "لم يتم العثور على أي منتج مطابق — املأ الحقول أدناه لإنشاء عنصر جديد تلقائياً."
+    "no_product_matching_create_hint": "لم يتم العثور على أي منتج مطابق — املأ الحقول أدناه لإنشاء عنصر جديد تلقائياً.",
+    "stocktake_report_title": "محضر الجرد",
+    "stocktake_pv_heading": "محضر الجرد المادي",
+    "branch": "الفرع",
+    "closed_by": "تم الإغلاق بواسطة",
+    "manager": "المسؤول",
+    "in_progress": "قيد التنفيذ",
+    "items_with_variance": "أصناف بها فروقات",
+    "references_count": "مراجع"
   },
   "sales": {
     "search_product": "ابحث عن منتج أو امسح باركود...",
@@ -812,7 +820,19 @@
     "search_placeholder": "البحث برقم الشيك، الزبون، المورد، البنك أو ملاحظة...",
     "no_cheques_recorded": "لم يتم تسجيل أي شيك",
     "no_cheques_desc": "سجل شيكات الزبائن أو الموردين، أو استلم الدفع بالشيك مباشرة من نقطة البيع.",
-    "delete_confirm": "هل تريد حذف الشيك رقم {{number}}؟"
+    "delete_confirm": "هل تريد حذف الشيك رقم {{number}}؟",
+    "deposit_slip_heading": "حافظة وجدول استحقاق الشيكات",
+    "generated_on": "تاريخ الإصدار",
+    "cheque_count": "عدد الشيكات:",
+    "col_cheque_no": "رقم الشيك",
+    "col_bank": "البنك",
+    "col_party": "الطرف (زبون / مورد)",
+    "col_direction": "الاتجاه",
+    "col_due_date": "تاريخ الاستحقاق",
+    "col_amount": "المبلغ",
+    "total_slip": "إجمالي الحافظة",
+    "depositor_stamp": "تأشيرة وخاتم المودع",
+    "bank_acknowledgement": "إشعار استلام البنك"
   },
   "payment_method": {
     "cash": "نقداً",
@@ -1027,7 +1047,8 @@
     "creation": "تاريخ الإنشاء",
     "pairs": "أزواج",
     "required_min_1": "مطلوب (الحد الأدنى 1)",
-    "unknown": "غير معروف"
+    "unknown": "غير معروف",
+    "phone": "الهاتف"
   },
   "status": {
     "completed": "مكتمل",
@@ -1518,7 +1539,15 @@
     "top_members_desc": "أفضل الأعضاء حسب مجموع النقاط وإجراءات سريعة",
     "current_balance_pts": "الرصيد الحالي",
     "total_accumulated": "المجموع التراكمي",
-    "tier_and_progression": "المستوى والتقدم"
+    "tier_and_progression": "المستوى والتقدم",
+    "discount_value": "قيمة الخصم",
+    "card_title": "بطاقة الوفاء",
+    "pts_unit": "نقطة",
+    "no_phone_error": "لا يوجد رقم هاتف مسجل لهذا الزبون.",
+    "whatsapp_greeting": "مرحبًا {{name}} 👋،\nشكرًا لوفائكم لمتجر *{{store}}*!",
+    "whatsapp_status": "🏅 المستوى: *{{tier}}*",
+    "whatsapp_balance": "🎁 رصيدكم الحالي: *{{points}} نقطة* (ما يعادل خصم *{{value}} {{currency}}* على مشترياتكم القادمة).",
+    "whatsapp_farewell": "إلى اللقاء قريبًا!"
   },
   "pos": {
     "versement": "تسبيق",

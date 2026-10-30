@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardList,
@@ -94,6 +95,8 @@ function printVarianceReport(
   storeName: string,
   t: (key: string, defaultVal?: string) => string
 ) {
+  const lang = i18n.language || "fr";
+  const isRtl = lang.startsWith("ar");
   const items = session.items || [];
   const shortages = items.filter((i) => i.counted_qty < i.expected_qty);
   const surpluses = items.filter((i) => i.counted_qty > i.expected_qty);
@@ -103,11 +106,11 @@ function printVarianceReport(
   if (!win) return;
 
   const html = `<!DOCTYPE html>
-<html>
+<html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="utf-8">
   <meta name="color-scheme" content="light">
-  <title>PV d'Inventaire — ${session.title}</title>
+  <title>${t("inventory.stocktake_report_title", "PV d'Inventaire")} — ${session.title}</title>
   <style>
     :root { color-scheme: light !important; }
     html, body {
@@ -115,7 +118,12 @@ function printVarianceReport(
       color: #1e293b !important;
       color-scheme: light !important;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 30px; font-size: 13px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif;
+      margin: 30px;
+      font-size: 13px;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
+    }
     .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
     .header h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
     .meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; background: #f8fafc; padding: 12px; border-radius: 8px; }
@@ -124,9 +132,15 @@ function printVarianceReport(
     .kpi-val { font-size: 18px; font-weight: bold; font-family: monospace; }
     .kpi-lbl { font-size: 11px; color: #64748b; text-transform: uppercase; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-    th { background: #f1f5f9; text-align: left; padding: 8px; border: 1px solid #cbd5e1; font-weight: 600; }
+    th {
+      background: #f1f5f9;
+      text-align: ${isRtl ? 'right' : 'left'};
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      font-weight: 600;
+    }
     td { padding: 6px 8px; border: 1px solid #e2e8f0; }
-    .num { text-align: right; font-family: monospace; }
+    .num { text-align: ${isRtl ? 'left' : 'right'}; font-family: monospace; }
     .neg { color: #dc2626; font-weight: bold; }
     .pos { color: #16a34a; font-weight: bold; }
     .signatures { margin-top: 50px; display: flex; justify-content: space-between; padding: 0 40px; }
@@ -139,18 +153,18 @@ function printVarianceReport(
 </head>
 <body>
   <div class="header">
-    <h1>${storeName} — PROCÈS-VERBAL D'INVENTAIRE</h1>
+    <h1>${storeName} — ${t("inventory.stocktake_pv_heading", "PROCÈS-VERBAL D'INVENTAIRE")}</h1>
     <p style="margin: 4px 0; color: #64748b;">${session.title}</p>
   </div>
 
   <div class="meta">
     <div>
-      <strong>Date :</strong> ${new Date(session.created_at).toLocaleString("fr-DZ")}<br>
-      <strong>Succursale :</strong> ${session.branch_name || t("inventory.all_branches_global", "Toutes succursales")}
+      <strong>${t("common.date", "Date")} :</strong> ${new Date(session.created_at).toLocaleString(lang === "ar" ? "ar-DZ" : lang === "en" ? "en-US" : "fr-DZ")}<br>
+      <strong>${t("inventory.branch", "Succursale")} :</strong> ${session.branch_name || t("inventory.all_branches_global", "Toutes succursales")}
     </div>
-    <div style="text-align: right;">
-      <strong>Statut :</strong> ${session.status_display}<br>
-      <strong>Clôturé par :</strong> ${session.completed_by ? "Responsable" : "En cours"}
+    <div style="text-align: ${isRtl ? 'left' : 'right'};">
+      <strong>${t("common.status", "Statut")} :</strong> ${session.status_display}<br>
+      <strong>${t("inventory.closed_by", "Clôturé par")} :</strong> ${session.completed_by ? t("inventory.manager", "Responsable") : t("inventory.in_progress", "En cours")}
     </div>
   </div>
 
@@ -171,13 +185,13 @@ function printVarianceReport(
     </div>
     <div class="kpi">
       <div class="kpi-val ${Number(session.total_variance_cost) < 0 ? 'neg' : Number(session.total_variance_cost) > 0 ? 'pos' : ''}">
-        ${formatDZD(session.total_variance_cost)} DZD
+        ${formatDZD(session.total_variance_cost)} ${t("common.dzd", "DZD")}
       </div>
       <div class="kpi-lbl">${t("inventory.financial_impact", "Impact Financier")}</div>
     </div>
   </div>
 
-  <h3 style="margin-bottom: 6px;">Articles avec écarts (${shortages.length + surpluses.length} références)</h3>
+  <h3 style="margin-bottom: 6px;">${t("inventory.items_with_variance", "Articles avec écarts")} (${shortages.length + surpluses.length} ${t("inventory.references_count", "références")})</h3>
   <table>
     <thead>
       <tr>
@@ -187,7 +201,7 @@ function printVarianceReport(
         <th class="num">${t("inventory.col_theoretical", "Théorique")}</th>
         <th class="num">${t("inventory.col_counted", "Compté")}</th>
         <th class="num">${t("inventory.col_variance", "Écart")}</th>
-        <th class="num">${t("inventory.col_cost_impact", "Impact (DZD)")}</th>
+        <th class="num">${t("inventory.col_cost_impact", "Impact")} (${t("common.dzd", "DZD")})</th>
         <th>${t("inventory.col_notes", "Remarques")}</th>
       </tr>
     </thead>
@@ -1609,9 +1623,9 @@ export default function StocktakePage() {
               <div className="pt-4 border-t border-border mt-4 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => printVarianceReport(sess, storeName)}
+                  onClick={() => printVarianceReport(sess, storeName, t)}
                   className="btn-secondary btn-xs flex items-center gap-1 text-text-muted hover:text-text-primary"
-                  title="Imprimer PV"
+                  title={t("inventory.print_pv", "Imprimer PV")}
                 >
                   <Printer size={13} />
                   PV

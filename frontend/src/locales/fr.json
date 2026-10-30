@@ -616,7 +616,15 @@
     "auto_distribute_pairs": "Répartir automatiquement les paires sur les pointures",
     "received_at_date": "Reçu {{date}}",
     "bulk_price_updated_success": "{{count}} produit(s) mis à jour avec succès.",
-    "no_product_matching_create_hint": "Aucun produit existant trouvé — remplissez les champs ci-dessous pour créer un nouvel article automatiquement."
+    "no_product_matching_create_hint": "Aucun produit existant trouvé — remplissez les champs ci-dessous pour créer un nouvel article automatiquement.",
+    "stocktake_report_title": "PV d'Inventaire",
+    "stocktake_pv_heading": "PROCÈS-VERBAL D'INVENTAIRE",
+    "branch": "Succursale",
+    "closed_by": "Clôturé par",
+    "manager": "Responsable",
+    "in_progress": "En cours",
+    "items_with_variance": "Articles avec écarts",
+    "references_count": "références"
   },
   "sales": {
     "search_product": "Rechercher article ou scanner...",
@@ -812,7 +820,19 @@
     "search_placeholder": "Rechercher par N° de chèque, client, fournisseur, banque ou note…",
     "no_cheques_recorded": "Aucun chèque enregistré",
     "no_cheques_desc": "Enregistrez vos chèques clients ou fournisseurs, ou encaissez par chèque directement depuis la caisse POS.",
-    "delete_confirm": "Supprimer le chèque N° {{number}} ?"
+    "delete_confirm": "Supprimer le chèque N° {{number}} ?",
+    "deposit_slip_heading": "BORDEREAU & ÉCHÉANCIER DES CHÈQUES",
+    "generated_on": "Édité le",
+    "cheque_count": "Nombre de chèques :",
+    "col_cheque_no": "N° Chèque",
+    "col_bank": "Banque",
+    "col_party": "Tiers (Client / Fournisseur)",
+    "col_direction": "Sens",
+    "col_due_date": "Échéance",
+    "col_amount": "Montant",
+    "total_slip": "TOTAL BORDEREAU",
+    "depositor_stamp": "Visa & Cachet du Déposant",
+    "bank_acknowledgement": "Accusé de Réception Banque"
   },
   "payment_method": {
     "cash": "Espèces",
@@ -1027,7 +1047,8 @@
     "creation": "Création",
     "pairs": "paires",
     "required_min_1": "Requis (min 1)",
-    "unknown": "Inconnu"
+    "unknown": "Inconnu",
+    "phone": "Téléphone"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -1518,7 +1539,15 @@
     "top_members_desc": "Top membres par points cumulés & actions rapides",
     "current_balance_pts": "Solde Actuel",
     "total_accumulated": "Total Cumulé",
-    "tier_and_progression": "Niveau & Progression"
+    "tier_and_progression": "Niveau & Progression",
+    "discount_value": "Valeur Remise",
+    "card_title": "Carte Fidélité",
+    "pts_unit": "pts",
+    "no_phone_error": "Ce client n'a pas de numéro de téléphone enregistré.",
+    "whatsapp_greeting": "Bonjour {{name}} 👋,\nMerci pour votre fidélité chez *{{store}}* !",
+    "whatsapp_status": "🏅 Statut : *{{tier}}*",
+    "whatsapp_balance": "🎁 Solde actuel : *{{points}} points* (équivalent à *{{value}} {{currency}}* de remise sur votre prochain achat).",
+    "whatsapp_farewell": "À très bientôt !"
   },
   "pos": {
     "versement": "Versement",

@@ -491,11 +491,13 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             from apps.core.models import Branch
             branch = Branch.objects.filter(tenant=request.tenant, id=branch_id).first()
 
+        lang = request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]
         html = render_daily_detailed_report(
             tenant=request.tenant,
             target_date=target_date,
             branch=branch,
             user=request.user,
+            lang=lang,
         )
         return Response(
             {
@@ -803,7 +805,8 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         session.save()
 
         store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
-        html = render_thermal_z_report(session, is_x_report=False, stats=stats, store_name=store_name)
+        lang = request.data.get("lang") or request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]
+        html = render_thermal_z_report(session, is_x_report=False, stats=stats, store_name=store_name, lang=lang)
 
         return Response({
             "session": CashSessionSerializer(session).data,
@@ -818,7 +821,8 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         session = self.get_object()
         stats = compute_session_stats(session)
         store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
-        html = render_thermal_z_report(session, is_x_report=True, stats=stats, store_name=store_name)
+        lang = request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]
+        html = render_thermal_z_report(session, is_x_report=True, stats=stats, store_name=store_name, lang=lang)
         return Response({
             "session": CashSessionSerializer(session).data,
             "stats": stats,
@@ -832,7 +836,8 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         session = self.get_object()
         store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
-        html = render_thermal_z_report(session, is_x_report=False, store_name=store_name)
+        lang = request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]
+        html = render_thermal_z_report(session, is_x_report=False, store_name=store_name, lang=lang)
         return Response({
             "session": CashSessionSerializer(session).data,
             "z_report_html": html,

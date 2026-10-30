@@ -616,7 +616,15 @@
     "auto_distribute_pairs": "Automatically distribute pairs across sizes",
     "received_at_date": "Received {{date}}",
     "bulk_price_updated_success": "{{count}} product(s) updated successfully.",
-    "no_product_matching_create_hint": "No existing product found — fill in the fields below to create a new item automatically."
+    "no_product_matching_create_hint": "No existing product found — fill in the fields below to create a new item automatically.",
+    "stocktake_report_title": "Physical Inventory Report",
+    "stocktake_pv_heading": "PHYSICAL INVENTORY AUDIT SHEET",
+    "branch": "Branch",
+    "closed_by": "Closed by",
+    "manager": "Manager",
+    "in_progress": "In progress",
+    "items_with_variance": "Items with discrepancies",
+    "references_count": "references"
   },
   "sales": {
     "search_product": "Search product or scan barcode...",
@@ -812,7 +820,19 @@
     "search_placeholder": "Search by cheque number, client, supplier, bank or note…",
     "no_cheques_recorded": "No cheques recorded",
     "no_cheques_desc": "Record your client or supplier cheques, or accept cheque payments directly from the POS.",
-    "delete_confirm": "Delete cheque No. {{number}}?"
+    "delete_confirm": "Delete cheque No. {{number}}?",
+    "deposit_slip_heading": "CHECK DEPOSIT & MATURITY SCHEDULE",
+    "generated_on": "Generated on",
+    "cheque_count": "Check count:",
+    "col_cheque_no": "Check No.",
+    "col_bank": "Bank",
+    "col_party": "Party (Client / Supplier)",
+    "col_direction": "Direction",
+    "col_due_date": "Due Date",
+    "col_amount": "Amount",
+    "total_slip": "TOTAL SLIP",
+    "depositor_stamp": "Depositor Visa & Stamp",
+    "bank_acknowledgement": "Bank Acknowledgement Receipt"
   },
   "payment_method": {
     "cash": "Cash",
@@ -1027,7 +1047,8 @@
     "creation": "Created At",
     "pairs": "pairs",
     "required_min_1": "Required (min 1)",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "phone": "Phone"
   },
   "status": {
     "completed": "Completed",
@@ -1518,7 +1539,15 @@
     "top_members_desc": "Top members by accumulated points & quick actions",
     "current_balance_pts": "Current Balance",
     "total_accumulated": "Total Accumulated",
-    "tier_and_progression": "Tier & Progress"
+    "tier_and_progression": "Tier & Progress",
+    "discount_value": "Discount Value",
+    "card_title": "Loyalty Card",
+    "pts_unit": "pts",
+    "no_phone_error": "This customer has no registered phone number.",
+    "whatsapp_greeting": "Hello {{name}} 👋,\nThank you for your loyalty to *{{store}}*!",
+    "whatsapp_status": "🏅 Status: *{{tier}}*",
+    "whatsapp_balance": "🎁 Current balance: *{{points}} points* (equivalent to *{{value}} {{currency}}* discount on your next purchase).",
+    "whatsapp_farewell": "See you soon!"
   },
   "pos": {
     "versement": "Layaway Deposit",

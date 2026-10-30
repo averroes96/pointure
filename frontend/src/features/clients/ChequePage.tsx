@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 import {
   CheckCircle2,
   XCircle,
@@ -41,6 +42,10 @@ export const ALGERIAN_BANKS = [
 ];
 
 function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: (k: string, fallback?: string) => string) {
+  const lang = i18n.language || "fr";
+  const isRtl = lang.startsWith("ar");
+  const translate = t || ((k: string, fb?: string) => i18n.t(k, fb || k));
+
   const pendingReceivables = cheques.filter(
     (c) => c.status === "pending" && c.direction === "receivable",
   );
@@ -58,16 +63,16 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: (k: st
         <td style="font-family:monospace;font-weight:bold;">${c.number}</td>
         <td>${c.bank || "—"}</td>
         <td>${c.client_name || c.supplier_name || "—"}</td>
-        <td>${c.direction === "payable" ? "Fournisseur (Sortant)" : "Client (Entrant)"}</td>
+        <td>${c.direction === "payable" ? translate("cheque.supplier_outgoing", "Fournisseur (Sortant)") : translate("cheque.client_incoming", "Client (Entrant)")}</td>
         <td style="font-family:monospace;">${formatDate(c.due_date)}</td>
-        <td style="text-align:right;font-family:monospace;font-weight:bold;">${formatDZD(c.amount)} DZD</td>
+        <td style="text-align:${isRtl ? 'left' : 'right'};font-family:monospace;font-weight:bold;">${formatDZD(c.amount)} ${translate("common.dzd", "DZD")}</td>
       </tr>`,
     )
     .join("");
 
-  const slipTitle = t ? t("cheque.schedule_slip", "Bordereau d'Échéancier Chèques") : "Bordereau d'Échéancier Chèques";
+  const slipTitle = translate("cheque.schedule_slip", "Bordereau d'Échéancier Chèques");
   const html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="color-scheme" content="light" />
@@ -79,44 +84,56 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: (k: st
       color: #0f172a !important;
       color-scheme: light !important;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 28px; font-size: 12px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif;
+      margin: 28px;
+      font-size: 12px;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
+    }
     .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 18px; }
     h1 { margin: 0; font-size: 18px; text-transform: uppercase; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: left; }
-    th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
-    .total-box { margin-top: 16px; text-align: right; font-size: 15px; font-weight: bold; font-family: monospace; }
+    th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: ${isRtl ? 'right' : 'left'}; }
+    th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+    .total-box { margin-top: 16px; text-align: ${isRtl ? 'left' : 'right'}; font-size: 15px; font-weight: bold; font-family: monospace; }
+    .signatures { margin-top: 40px; display: flex; justify-content: space-between; padding: 0 40px; }
+    .sig-box { width: 220px; border-top: 1px solid #0f172a; text-align: center; padding-top: 8px; font-weight: bold; }
     @media print {
       body { margin: 12px; background: #ffffff !important; color: #0f172a !important; }
+      @page { size: A4; margin: 1.5cm; }
     }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <h1>${storeName} — BORDEREAU & ÉCHÉANCIER DES CHÈQUES</h1>
-      <p style="margin:4px 0;color:#64748b;">Édité le ${new Date().toLocaleString("fr-DZ")}</p>
+      <h1>${storeName} — ${translate("cheque.deposit_slip_heading", "BORDEREAU & ÉCHÉANCIER DES CHÈQUES")}</h1>
+      <p style="margin:4px 0;color:#64748b;">${translate("cheque.generated_on", "Édité le")} ${new Date().toLocaleString(lang === "ar" ? "ar-DZ" : lang === "en" ? "en-US" : "fr-DZ")}</p>
     </div>
-    <div style="text-align:right;">
-      <strong>Nombre de chèques :</strong> ${list.length}<br/>
-      <strong>Total :</strong> ${formatDZD(totalAmount)} DZD
+    <div style="text-align:${isRtl ? 'left' : 'right'};">
+      <strong>${translate("cheque.cheque_count", "Nombre de chèques :")}</strong> ${list.length}<br/>
+      <strong>${translate("common.total", "Total :")}</strong> ${formatDZD(totalAmount)} ${translate("common.dzd", "DZD")}
     </div>
   </div>
   <table>
     <thead>
       <tr>
         <th style="width:36px;text-align:center;">#</th>
-        <th>N° Chèque</th>
-        <th>Banque</th>
-        <th>Tiers (Client / Fournisseur)</th>
-        <th>Sens</th>
-        <th>Échéance</th>
-        <th style="text-align:right;">Montant</th>
+        <th>${translate("cheque.col_cheque_no", "N° Chèque")}</th>
+        <th>${translate("cheque.col_bank", "Banque")}</th>
+        <th>${translate("cheque.col_party", "Tiers (Client / Fournisseur)")}</th>
+        <th>${translate("cheque.col_direction", "Sens")}</th>
+        <th>${translate("cheque.col_due_date", "Échéance")}</th>
+        <th style="text-align:${isRtl ? 'left' : 'right'};">${translate("cheque.col_amount", "Montant")}</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
   </table>
-  <div class="total-box">TOTAL BORDEREAU : ${formatDZD(totalAmount)} DZD</div>
+  <div class="total-box">${translate("cheque.total_slip", "TOTAL BORDEREAU")} : ${formatDZD(totalAmount)} ${translate("common.dzd", "DZD")}</div>
+  <div class="signatures">
+    <div class="sig-box">${translate("cheque.depositor_stamp", "Visa & Cachet du Déposant")}</div>
+    <div class="sig-box">${translate("cheque.bank_acknowledgement", "Accusé de Réception Banque")}</div>
+  </div>
   <script>window.onload = function() { window.print(); };</script>
 </body>
 </html>`;

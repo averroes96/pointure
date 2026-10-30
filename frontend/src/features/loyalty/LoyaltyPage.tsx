@@ -67,6 +67,7 @@ const TIER_CONFIG = {
 } as const;
 
 function TierBadge({ tier }: { tier: "bronze" | "silver" | "gold" }) {
+  const { t } = useTranslation();
   const cfg = TIER_CONFIG[tier] ?? TIER_CONFIG.bronze;
   const Icon = cfg.icon;
   return (
@@ -77,7 +78,7 @@ function TierBadge({ tier }: { tier: "bronze" | "silver" | "gold" }) {
       )}
     >
       <Icon size={11} />
-      {cfg.label}
+      {t(`loyalty.tier_${tier}`, cfg.label)}
     </span>
   );
 }
@@ -92,11 +93,14 @@ function printLoyaltyCard(
   const win = window.open("", "_blank", "width=460,height=620");
   if (!win) return;
 
+  const lang = i18n.language || "fr";
+  const isRtl = lang.startsWith("ar");
+  const tierCfg = TIER_CONFIG[acc.tier] ?? TIER_CONFIG.bronze;
+  const tierName = i18n.t(`loyalty.tier_${acc.tier}`, tierCfg.label);
   const dzdVal = program
     ? Math.floor((acc.points_balance / (program.redemption_value || 100)) * 100)
     : acc.points_balance;
   const codeText = (acc.client_phone || `CL-${acc.client}`).replace(/\s+/g, "");
-  const tierCfg = TIER_CONFIG[acc.tier] ?? TIER_CONFIG.bronze;
 
   // Generate a clean visual barcode pattern from codeText characters
   const barsHtml = Array.from(codeText + storeName.slice(0, 3))
@@ -108,11 +112,11 @@ function printLoyaltyCard(
     .join("");
 
   const html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="color-scheme" content="light" />
-  <title>Carte Fidélité — ${acc.client_name}</title>
+  <title>${i18n.t("loyalty.card_title", "Carte Fidélité")} — ${acc.client_name}</title>
   <style>
     :root { color-scheme: light !important; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,10 +126,11 @@ function printLoyaltyCard(
       color-scheme: light !important;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif;
       padding: 16px;
       display: flex;
       justify-content: center;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
     }
     .card {
       width: 82mm;
@@ -180,18 +185,18 @@ function printLoyaltyCard(
         <div class="store">${storeName}</div>
         <div style="font-size:10px;color:#64748b;font-weight:600;">${i18n.t("loyalty.vip_loyalty_card")}</div>
       </div>
-      <div class="tier">${tierCfg.emoji} ${tierCfg.label.toUpperCase()}</div>
+      <div class="tier">${tierCfg.emoji} ${tierName.toUpperCase()}</div>
     </div>
     <div class="client-name">${acc.client_name}</div>
-    <div class="client-phone">Tél : ${acc.client_phone || "—"}</div>
+    <div class="client-phone">${i18n.t("common.phone", "Tél")} : ${acc.client_phone || "—"}</div>
     <div class="points-box">
       <div>
         <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">${i18n.t("loyalty.points_balance_card")}</div>
-        <div class="pts">${acc.points_balance.toLocaleString("fr-DZ")} pts</div>
+        <div class="pts">${acc.points_balance.toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ")} ${i18n.t("loyalty.pts_unit", "pts")}</div>
       </div>
-      <div style="text-align:right;">
+      <div style="text-align:${isRtl ? 'left' : 'right'};">
         <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">${i18n.t("loyalty.discount_value")}</div>
-        <div class="dzd">${formatDZD(dzdVal)} DZD</div>
+        <div class="dzd">${formatDZD(dzdVal)} ${i18n.t("common.dzd", "DZD")}</div>
       </div>
     </div>
     <div class="barcode-wrap">
@@ -214,15 +219,31 @@ function sendLoyaltyWhatsApp(
 ) {
   const rawPhone = (acc.client_phone || "").replace(/\D/g, "");
   if (!rawPhone) {
-    alert("Ce client n'a pas de numéro de téléphone enregistré.");
+    alert(i18n.t("loyalty.no_phone_error", "Ce client n'a pas de numéro de téléphone enregistré."));
     return;
   }
+  const lang = i18n.language || "fr";
   const intlPhone = rawPhone.startsWith("0") ? `213${rawPhone.slice(1)}` : rawPhone;
   const dzdVal = program
     ? Math.floor((acc.points_balance / (program.redemption_value || 100)) * 100)
     : acc.points_balance;
-  const tierLabel = TIER_CONFIG[acc.tier]?.label ?? acc.tier;
-  const msg = `Bonjour ${acc.client_name} 👋,\nMerci pour votre fidélité chez *${storeName}* !\n\n🏅 Statut : *${tierLabel}*\n🎁 Solde actuel : *${acc.points_balance.toLocaleString("fr-DZ")} points* (équivalent à *${formatDZD(dzdVal)} DZD* de remise sur votre prochain achat).\n\nÀ très bientôt !`;
+  const tierCfg = TIER_CONFIG[acc.tier] ?? TIER_CONFIG.bronze;
+  const tierLabel = i18n.t(`loyalty.tier_${acc.tier}`, tierCfg.label);
+
+  const greeting = i18n.t("loyalty.whatsapp_greeting", "Bonjour {{name}} 👋,\nMerci pour votre fidélité chez *{{store}}* !", { name: acc.client_name, store: storeName });
+  const statusLine = i18n.t("loyalty.whatsapp_status", "🏅 Statut : *{{tier}}*", { tier: tierLabel });
+  const balanceLine = i18n.t(
+    "loyalty.whatsapp_balance",
+    "🎁 Solde actuel : *{{points}} points* (équivalent à *{{value}} {{currency}}* de remise sur votre prochain achat).",
+    {
+      points: acc.points_balance.toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ"),
+      value: formatDZD(dzdVal),
+      currency: i18n.t("common.dzd", "DZD"),
+    }
+  );
+  const farewell = i18n.t("loyalty.whatsapp_farewell", "À très bientôt !");
+
+  const msg = `${greeting}\n\n${statusLine}\n${balanceLine}\n\n${farewell}`;
   window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 

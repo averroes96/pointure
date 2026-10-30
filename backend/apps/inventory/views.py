@@ -582,6 +582,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                    otherwise a PDF.
         """
         w_mm, h_mm = _label_dims(request)
+        lang = _get_label_lang(request)
+        t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
         product = self.get_object()
         variants = list(
             product.variants
@@ -595,20 +597,21 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
 
         labels_html = "\n".join(
-            _render_label(product, v, w_mm, h_mm) for v in variants if v.barcode
+            _render_label(product, v, w_mm, h_mm, lang=lang) for v in variants if v.barcode
         )
 
         if not labels_html:
             labels_html = (
-                '<div class="page"><p style="font-family:sans-serif;color:#888;">'
-                "Aucune variante active avec code-barres.</p></div>"
+                f'<div class="page"><p style="font-family:sans-serif;color:#888;">'
+                f"{t['no_variants']}</p></div>"
             )
 
         html_string = _barcode_page(
-            title=f"{product.name} — Étiquettes",
+            title=f"{product.name} — {t['labels']}",
             labels_html=labels_html,
             w_mm=w_mm,
             h_mm=h_mm,
+            lang=lang,
         )
 
         safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in product.name)
@@ -621,6 +624,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Query params: ?copies=N (default 1), ?w=&h= (mm), ?output=html.
         """
         w_mm, h_mm = _label_dims(request)
+        lang = _get_label_lang(request)
+        t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
         product = self.get_object()
         try:
             copies = max(1, min(int(request.query_params.get("copies", 1)), 200))
@@ -640,15 +645,16 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
         single_html = _render_shelf_label(
-            product, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm
+            product, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm, lang=lang
         )
         labels_html = "\n".join(single_html for _ in range(copies))
 
         html_string = _shelf_labels_page(
-            title=f"{product.name} — Étiquette Rayon",
+            title=f"{product.name} — {t['shelf_label']}",
             labels_html=labels_html,
             w_mm=w_mm,
             h_mm=h_mm,
+            lang=lang,
         )
 
         safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in product.name)
@@ -664,6 +670,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Label size via ?w=&h= (mm); ?output=html returns raw HTML.
         """
         w_mm, h_mm = _label_dims(request)
+        lang = _get_label_lang(request)
+        t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
         if request.method == "POST":
             product_ids = request.data.get("product_ids", [])
             copies = request.data.get("copies", 1)
@@ -701,17 +709,18 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 Variant.objects.filter(pk=variant.pk).update(barcode=variant.barcode)
 
             single_html = _render_shelf_label(
-                p, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm
+                p, location=location_str, variant=variant, w_mm=w_mm, h_mm=h_mm, lang=lang
             )
             for _ in range(copies):
                 labels_list.append(single_html)
 
         labels_html = "\n".join(labels_list)
         html_string = _shelf_labels_page(
-            title=f"Étiquettes Rayon ({len(products)} produits)",
+            title=f"{t['shelf_labels']} ({len(products)})",
             labels_html=labels_html,
             w_mm=w_mm,
             h_mm=h_mm,
+            lang=lang,
         )
 
         return _label_response(request, html_string, filename="etiquettes_rayon_selection.pdf")
@@ -1042,6 +1051,60 @@ DEFAULT_LABEL_W_MM = 45.0
 DEFAULT_LABEL_H_MM = 35.0
 _LABEL_INSET_MM = 1.2
 
+LABEL_TRANSLATIONS = {
+    "fr": {
+        "currency": "DZD",
+        "labels": "Étiquettes",
+        "shelf_label": "Étiquette Rayon",
+        "shelf_labels": "Étiquettes Rayon",
+        "reception_labels": "Étiquettes Réception Commande",
+        "no_variants": "Aucune variante active avec code-barres.",
+        "no_items": "Aucun article fourni.",
+        "no_variants_to_print": "Aucune variante liée à imprimer.",
+        "size": "Pointure",
+        "location": "Emplacement",
+        "price": "Prix",
+    },
+    "ar": {
+        "currency": "د.ج",
+        "labels": "ملصقات الباركود",
+        "shelf_label": "ملصق الرف",
+        "shelf_labels": "ملصقات الرف",
+        "reception_labels": "ملصقات استلام الطلبية",
+        "no_variants": "لا توجد متغيرات نشطة مع رمز شريطي.",
+        "no_items": "لم يتم تحديد أي صنف.",
+        "no_variants_to_print": "لا توجد متغيرات للطباعة.",
+        "size": "المقاس",
+        "location": "الموقع",
+        "price": "السعر",
+    },
+    "en": {
+        "currency": "DZD",
+        "labels": "Barcode Labels",
+        "shelf_label": "Shelf Label",
+        "shelf_labels": "Shelf Labels",
+        "reception_labels": "Order Reception Labels",
+        "no_variants": "No active variants with barcodes.",
+        "no_items": "No items provided.",
+        "no_variants_to_print": "No linked variants to print.",
+        "size": "Size",
+        "location": "Location",
+        "price": "Price",
+    },
+}
+
+
+def _get_label_lang(request) -> str:
+    lang = None
+    if hasattr(request, "query_params"):
+        lang = request.query_params.get("lang")
+    if not lang and hasattr(request, "data") and isinstance(request.data, dict):
+        lang = request.data.get("lang")
+    if not lang and hasattr(request, "headers"):
+        lang = request.headers.get("Accept-Language", "fr")
+    lang = lang[:2].lower() if lang else "fr"
+    return lang if lang in ("fr", "ar", "en") else "fr"
+
 
 def _label_dims(request, default_w: float = DEFAULT_LABEL_W_MM, default_h: float = DEFAULT_LABEL_H_MM):
     """Read ``w`` / ``h`` (millimetres) from the query string, clamped to sane bounds."""
@@ -1116,7 +1179,13 @@ def _label_base_css(w_mm: float, h_mm: float) -> str:
 """
 
 
-def _render_label(product, variant, w_mm: float = DEFAULT_LABEL_W_MM, h_mm: float = DEFAULT_LABEL_H_MM) -> str:
+def _render_label(
+    product,
+    variant,
+    w_mm: float = DEFAULT_LABEL_W_MM,
+    h_mm: float = DEFAULT_LABEL_H_MM,
+    lang: str = "fr",
+) -> str:
     """
     One barcode label = one page.
     No text inside the SVG — avoids double-printing the barcode number.
@@ -1153,13 +1222,15 @@ def _barcode_page(
     labels_html: str,
     w_mm: float = DEFAULT_LABEL_W_MM,
     h_mm: float = DEFAULT_LABEL_H_MM,
+    lang: str = "fr",
 ) -> str:
     """
     HTML document for barcode labels. Each @page is exactly ``w_mm × h_mm``
     (default 45 × 35 mm) with zero margins.
     """
+    dir_attr = 'dir="rtl"' if lang == "ar" else 'dir="ltr"'
     return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}" {dir_attr}>
 <head>
 <meta charset="UTF-8">
 <meta name="color-scheme" content="light">
@@ -1245,6 +1316,7 @@ def _render_shelf_label(
     variant=None,
     w_mm: float = DEFAULT_LABEL_W_MM,
     h_mm: float = DEFAULT_LABEL_H_MM,
+    lang: str = "fr",
 ) -> str:
     """
     Render a shelf / shoe-box location label (default 45 mm × 35 mm).
@@ -1252,10 +1324,11 @@ def _render_shelf_label(
     Three lines only, no captions, so every millimetre goes to the text:
       1. Reference (falls back to product name) — shown once
       2. Location / emplacement — largest text
-      3. Sale price in DZD
+      3. Sale price in DZD / د.ج
     """
     s = min(w_mm / DEFAULT_LABEL_W_MM, h_mm / DEFAULT_LABEL_H_MM)
     width_factor = w_mm / DEFAULT_LABEL_W_MM
+    t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
 
     ref_text = (product.reference or "").strip() or (product.name or "").strip()
     loc_text = location.strip() if (location and location.strip()) else "—"
@@ -1271,7 +1344,7 @@ def _render_shelf_label(
       <div class="shelf-label">
         <div class="ref" style="font-size:{ref_pt:.2f}pt">{ref_text}</div>
         <div class="loc" style="font-size:{loc_pt:.2f}pt">{loc_text}</div>
-        <div class="price" style="font-size:{price_pt:.2f}pt">{price_text}<span class="dzd" style="font-size:{dzd_pt:.2f}pt">DZD</span></div>
+        <div class="price" style="font-size:{price_pt:.2f}pt">{price_text}<span class="dzd" style="font-size:{dzd_pt:.2f}pt">{t['currency']}</span></div>
       </div>
     </div>
     """
@@ -1282,13 +1355,15 @@ def _shelf_labels_page(
     labels_html: str,
     w_mm: float = DEFAULT_LABEL_W_MM,
     h_mm: float = DEFAULT_LABEL_H_MM,
+    lang: str = "fr",
 ) -> str:
     """
     HTML document for shelf / location labels. Each @page is exactly
     ``w_mm × h_mm`` (default 45 × 35 mm) with zero margins.
     """
+    dir_attr = 'dir="rtl"' if lang == "ar" else 'dir="ltr"'
     return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}" {dir_attr}>
 <head>
 <meta charset="UTF-8">
 <meta name="color-scheme" content="light">
@@ -1333,6 +1408,7 @@ def _shelf_labels_page(
   .dzd {{
     font-weight: 800;
     margin-left: 1mm;
+    margin-right: 1mm;
   }}
 </style>
 </head>
@@ -1387,6 +1463,8 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
           output    "html" → raw HTML for the desktop native print dialog.
         """
         w_mm, h_mm = _label_dims(request)
+        lang = _get_label_lang(request)
+        t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
         variant = self.get_object()
         if not variant.barcode:
             variant.barcode = generate_barcode(variant)
@@ -1398,14 +1476,15 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             copies = 1
 
         product = variant.product
-        single_label = _render_label(product, variant, w_mm, h_mm)
+        single_label = _render_label(product, variant, w_mm, h_mm, lang=lang)
         labels_html = "\n".join([single_label] * copies)
 
         html_string = _barcode_page(
-            title=f"{product.name} EU{variant.size_eu} {variant.colour} — étiquettes",
+            title=f"{product.name} EU{variant.size_eu} {variant.colour} — {t['labels']}",
             labels_html=labels_html,
             w_mm=w_mm,
             h_mm=h_mm,
+            lang=lang,
         )
 
         safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in f"{product.name}_EU{variant.size_eu}_{variant.colour}")
@@ -1422,10 +1501,12 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         h_mm = float(request.data.get("h") or request.query_params.get("h") or DEFAULT_LABEL_H_MM)
         w_mm = min(max(w_mm, 15.0), 150.0)
         h_mm = min(max(h_mm, 15.0), 150.0)
+        lang = _get_label_lang(request)
+        t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
 
         raw_items = request.data.get("items") or []
         if not isinstance(raw_items, list) or not raw_items:
-            return Response({"detail": "Aucun article fourni."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": t["no_items"]}, status=status.HTTP_400_BAD_REQUEST)
 
         variant_ids = [int(it.get("variant_id")) for it in raw_items if it.get("variant_id")]
         variants_map = {
@@ -1443,17 +1524,18 @@ class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 v.barcode = generate_barcode(v)
                 Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
             copies = max(1, min(int(it.get("copies") or 1), 100))
-            single_html = _render_label(v.product, v, w_mm, h_mm)
+            single_html = _render_label(v.product, v, w_mm, h_mm, lang=lang)
             labels_chunks.extend([single_html] * copies)
 
         if not labels_chunks:
-            return Response({"detail": "Aucune variante liée à imprimer."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": t["no_variants_to_print"]}, status=status.HTTP_400_BAD_REQUEST)
 
         html_string = _barcode_page(
-            title="Étiquettes Réception Commande",
+            title=f"{t['reception_labels']}",
             labels_html="\n".join(labels_chunks),
             w_mm=w_mm,
             h_mm=h_mm,
+            lang=lang,
         )
         if request.data.get("output") == "html" or request.query_params.get("output") == "html":
             return HttpResponse(html_string, content_type="text/html; charset=utf-8")
