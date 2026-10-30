@@ -51,6 +51,10 @@ class Command(BaseCommand):
 
         from apps.core.models import Branch, PlanChoices, RoleChoices, Tenant, User
 
+        if options.get("reset"):
+            self.stdout.write("  Cleaning up existing demo data...")
+            Tenant.objects.filter(name="ShoeDZ Demo Store").delete()
+
         # ── Tenant ──────────────────────────────────────────────────────────────
         tenant, created = Tenant.objects.get_or_create(
             name="ShoeDZ Demo Store",
@@ -71,12 +75,15 @@ class Command(BaseCommand):
             email="admin@demo.com",
             defaults={
                 "tenant": tenant,
+                "phone": "0555000001",
                 "role": RoleChoices.OWNER,
                 "first_name": "Admin",
                 "last_name": "Owner",
                 "is_staff": True,
             },
         )
+        if not owner.phone:
+            owner.phone = "0555000001"
         owner.set_password("demo1234")
         owner.save()
 
@@ -84,11 +91,14 @@ class Command(BaseCommand):
             email="manager@demo.com",
             defaults={
                 "tenant": tenant,
+                "phone": "0555000002",
                 "role": RoleChoices.MANAGER,
                 "first_name": "Karim",
                 "last_name": "Manager",
             },
         )
+        if not manager.phone:
+            manager.phone = "0555000002"
         manager.set_password("demo1234")
         manager.save()
 
@@ -96,11 +106,14 @@ class Command(BaseCommand):
             email="cashier@demo.com",
             defaults={
                 "tenant": tenant,
+                "phone": "0555000003",
                 "role": RoleChoices.CASHIER,
                 "first_name": "Yacine",
                 "last_name": "Cashier",
             },
         )
+        if not cashier.phone:
+            cashier.phone = "0555000003"
         cashier.set_password("demo1234")
         cashier.save()
         self.stdout.write("  ✓ Users: admin@demo.com / manager@demo.com / cashier@demo.com (password: demo1234)")
@@ -199,56 +212,57 @@ class Command(BaseCommand):
         from apps.sales.models import Payment, Sale, SaleItem
 
         all_variants = list(Variant.objects.filter(tenant=tenant, stock_qty__gt=0)[:50])
-        sale_count = 0
-        for day_offset in range(30):
-            sale_date = timezone.now() - timedelta(days=day_offset)
-            num_sales = random.randint(1, 4)
-            for _ in range(num_sales):
-                if not all_variants:
-                    break
-                branch = random.choice(branches)
-                variant = random.choice(all_variants)
+        sale_count = Sale.objects.filter(tenant=tenant).count()
+        if sale_count == 0:
+            for day_offset in range(30):
+                sale_date = timezone.now() - timedelta(days=day_offset)
+                num_sales = random.randint(1, 4)
+                for _ in range(num_sales):
+                    if not all_variants:
+                        break
+                    branch = random.choice(branches)
+                    variant = random.choice(all_variants)
 
-                total = variant.product.sale_price * random.randint(1, 3)
+                    total = variant.product.sale_price * random.randint(1, 3)
 
-                import datetime
-                date_str = sale_date.strftime("%Y%m%d")
-                seq = Sale.objects.filter(
-                    tenant=tenant, receipt_number__startswith=f"RC-{date_str}"
-                ).count() + 1
-                receipt = f"RC-{date_str}-{seq:04d}"
+                    import datetime
+                    date_str = sale_date.strftime("%Y%m%d")
+                    seq = Sale.objects.filter(
+                        tenant=tenant, receipt_number__startswith=f"RC-{date_str}"
+                    ).count() + 1
+                    receipt = f"RC-{date_str}-{seq:04d}"
 
-                sale = Sale.objects.create(
-                    tenant=tenant,
-                    branch=branch,
-                    cashier=cashier,
-                    total_amount=total,
-                    receipt_number=receipt,
-                    created_at=sale_date,
-                )
-                SaleItem.objects.create(
-                    sale=sale,
-                    variant=variant,
-                    quantity=1,
-                    unit_price=variant.product.sale_price,
-                )
-                Payment.objects.create(
-                    sale=sale,
-                    amount=total,
-                    method=random.choice(["cash", "ccp"]),
-                )
-                # Update stock
-                StockMovement.objects.create(
-                    tenant=tenant,
-                    variant=variant,
-                    branch=branch,
-                    quantity_delta=-1,
-                    reason=MovementReasonChoices.SALE,
-                    reference_id=str(sale.pk),
-                    reference_type="Sale",
-                    user=cashier,
-                )
-                sale_count += 1
+                    sale = Sale.objects.create(
+                        tenant=tenant,
+                        branch=branch,
+                        cashier=cashier,
+                        total_amount=total,
+                        receipt_number=receipt,
+                        created_at=sale_date,
+                    )
+                    SaleItem.objects.create(
+                        sale=sale,
+                        variant=variant,
+                        quantity=1,
+                        unit_price=variant.product.sale_price,
+                    )
+                    Payment.objects.create(
+                        sale=sale,
+                        amount=total,
+                        method=random.choice(["cash", "ccp"]),
+                    )
+                    # Update stock
+                    StockMovement.objects.create(
+                        tenant=tenant,
+                        variant=variant,
+                        branch=branch,
+                        quantity_delta=-1,
+                        reason=MovementReasonChoices.SALE,
+                        reference_id=str(sale.pk),
+                        reference_type="Sale",
+                        user=cashier,
+                    )
+                    sale_count += 1
 
         self.stdout.write(f"  ✓ Sales: {sale_count} transactions over last 30 days")
 
@@ -260,22 +274,26 @@ class Command(BaseCommand):
             client = clients[i % len(clients)]
             inv_date = today - timedelta(days=i * 7)
             due = inv_date + timedelta(days=30)
+            inv_number = f"FA-2026-{i+1:05d}"
 
-            inv, created = Invoice.objects.get_or_create(
-                tenant=tenant,
-                number=f"FA-2026-{i+1:05d}",
-                defaults={
-                    "client": client,
-                    "branch": branch1,
-                    "series_prefix": "FA",
-                    "date": inv_date,
-                    "due_date": due,
-                    "status": inv_status,
-                    "apply_tva": True,
-                    "tva_rate": Decimal("19.00"),
-                    "created_by": manager,
-                },
-            )
+            inv = Invoice.objects.filter(tenant=tenant, number=inv_number).first()
+            created = False
+            if not inv:
+                inv = Invoice.objects.create(
+                    tenant=tenant,
+                    number=inv_number,
+                    client=client,
+                    branch=branch1,
+                    series_prefix="FA",
+                    date=inv_date,
+                    due_date=due,
+                    status=inv_status,
+                    apply_tva=True,
+                    tva_rate=Decimal("19.00"),
+                    created_by=manager,
+                )
+                created = True
+
             if created:
                 # Add 3 lines
                 for j in range(3):
@@ -313,6 +331,6 @@ class Command(BaseCommand):
         self.stdout.write("  ✓ Invoices: 10 in various statuses")
 
         self.stdout.write(self.style.SUCCESS("\n✅ Demo data seeded successfully!\n"))
-        self.stdout.write("   Login: admin@demo.com  |  password: demo1234")
-        self.stdout.write("   Login: manager@demo.com  |  password: demo1234")
-        self.stdout.write("   Login: cashier@demo.com  |  password: demo1234\n")
+        self.stdout.write("   Login: 0555 00 00 01 / admin@demo.com  |  password: demo1234")
+        self.stdout.write("   Login: 0555 00 00 02 / manager@demo.com  |  password: demo1234")
+        self.stdout.write("   Login: 0555 00 00 03 / cashier@demo.com  |  password: demo1234\n")
