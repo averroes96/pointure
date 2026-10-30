@@ -496,8 +496,8 @@
   <p class="tagline">Pointure &mdash; Shoe Retail ERP</p>
   <div class="badge-row">
     <span class="badge">Language: English</span>
-    <span class="badge">Version 1.1</span>
-    <span class="badge">June 2026</span>
+    <span class="badge">Version 1.4 (Desktop Edition &amp; Web)</span>
+    <span class="badge">October 2026</span>
   </div>
   <p class="subtitle">User Manual</p>
   <p style="color:rgba(255,255,255,0.55); font-size:14px; max-width:480px; margin-top:16px;">
@@ -664,6 +664,22 @@
         <li><a href="#loyalty-config">11.1 Configuration</a></li>
         <li><a href="#loyalty-stats">11.2 Statistics &amp; Leaderboard</a></li>
         <li><a href="#loyalty-accounts">11.3 Loyalty Accounts</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#section-12">
+        <span class="toc-num">12</span>
+        <span class="toc-title">Windows Desktop Application &amp; Hardware Features</span>
+        <span class="toc-dots"></span>
+      </a>
+      <ul class="toc-sub">
+        <li><a href="#desk-install">12.1 Installation &amp; First Run</a></li>
+        <li><a href="#desk-printers">12.2 Thermal Receipt, A4 &amp; Label Printer Setup</a></li>
+        <li><a href="#desk-shortcuts">12.3 Windows POS Shortcuts &amp; Kiosk Mode</a></li>
+        <li><a href="#desk-backups">12.4 Automated Local Backups &amp; Safe Wipe</a></li>
+        <li><a href="#desk-updates">12.5 Auto-Updates &amp; Anti-Tamper Clock Guard</a></li>
+        <li><a href="#desk-legacy">12.6 Legacy DBF Migration &amp; Excel Bulk Import</a></li>
+        <li><a href="#desk-darkmode">12.7 Dark Theme &amp; Windows Auto Mode</a></li>
       </ul>
     </li>
   </ul>
@@ -2540,11 +2556,154 @@
 </div>
 
 <!-- ============================================================
+     SECTION 12 — WINDOWS DESKTOP APPLICATION & HARDWARE FEATURES
+     ============================================================ -->
+<div class="section" id="section-12">
+  <h2><span class="sec-num">12</span> Windows Desktop Application &amp; Hardware Features</h2>
+
+  <p>
+    The ShoeDZ Desktop Edition is a standalone Windows executable (<code>.exe</code>) engineered specifically for physical shoe stores in Algeria. It embeds its own local database engine, operates 100% offline without requiring internet access, and directly controls retail hardware peripherals including ESC/POS thermal receipt printers, handheld barcode scanners, and cash drawers.
+  </p>
+
+  <h3 id="desk-install">12.1 Installation &amp; First Run (Windows Desktop Installer)</h3>
+  <p>
+    Installation on Windows 10 or Windows 11 requires no Docker, no external servers, and no specialized technical skills.
+  </p>
+
+  <ol>
+    <li>Download the official installer: <code>ShoeDZ-Setup-x.x.x.exe</code> from GitHub Releases.</li>
+    <li>Double-click the installer. Windows User Account Control (UAC) will request administrative privileges to configure shared store data directories.</li>
+    <li>The NSIS setup wizard automatically configures the data path at <code>%ProgramData%\ShoeDZ</code> with proper user permissions and creates shortcuts on the Desktop and Start Menu.</li>
+    <li>On first launch, an interactive boot splash screen initializes the local database, automatically seeds the <strong>58 Algerian Wilayas</strong>, and provisions the default headquarters branch.</li>
+    <li>Log in using your store administrator credentials or activate your license key.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>Data Safety on Uninstall:</strong> If you ever uninstall the desktop app, an interactive dialog asks if you wish to retain your store database and backup archives. You can safely upgrade or reinstall Windows without losing sales or inventory records.
+  </div>
+
+  <h3 id="desk-printers">12.2 Thermal Receipt, A4 &amp; Label Printer Setup</h3>
+  <p>
+    Navigate to <strong>Settings &rarr; Printers tab</strong> to configure your store's hardware devices. ShoeDZ queries the Windows print spooler and automatically populates all installed printers.
+  </p>
+
+  <h4>1. Thermal Receipt Printer (Point of Sale)</h4>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Setting</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Assigned Printer</td><td>Select your thermal receipt printer (e.g. Xprinter, Epson TM-T20, Bixolon, POS-80).</td></tr>
+        <tr><td>Paper Width</td><td>Select either <strong>80 mm</strong> (standard full receipt) or <strong>58 mm</strong> (compact receipt).</td></tr>
+        <tr><td>Silent Printing</td><td>Enable this option to print tickets instantaneously upon checkout without displaying the Windows print dialog.</td></tr>
+        <tr><td>Header &amp; Footer</td><td>Customize store name, contact phone numbers, boutique address, and welcome/thank-you notes.</td></tr>
+        <tr><td>Print Test Ticket</td><td>Click <strong>"Test Ticket Print"</strong> to verify paper feed, alignment, and auto-cutter functionality.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>2. A4 Document Printer (Invoices, Delivery Notes, Credit Notes)</h4>
+  <p>
+    Assign a dedicated laser or inkjet printer for official customer invoices and delivery notes (BL) with full commercial metadata (NIF, RC, NIS, banking details).
+  </p>
+
+  <h4>3. Barcode Label Printer (Shelf &amp; Box Tags)</h4>
+  <p>
+    Print adhesive barcode labels for shoes and boxes. Choose from popular presets (38&times;25 mm, 50&times;30 mm, 40&times;20 mm) or specify custom width and height. Barcodes are encoded in high-density <strong>CODE-128C</strong> format including product name, price (DZD), and shoe size.
+  </p>
+
+  <h3 id="desk-shortcuts">12.3 Windows POS Shortcuts &amp; Kiosk Mode</h3>
+  <p>
+    To accelerate cashier checkout during peak store hours, ShoeDZ captures function keys at the native Windows level:
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Key</th><th>Action</th><th>Notes / Alternate Shortcut</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>F1</kbd></td><td>New Sale / POS Register</td><td><kbd>Alt</kbd> + <kbd>1</kbd></td></tr>
+        <tr><td><kbd>F2</kbd></td><td>Search Products / Focus Barcode Scanner</td><td><kbd>Alt</kbd> + <kbd>2</kbd></td></tr>
+        <tr><td><kbd>F3</kbd></td><td>Invoices List</td><td><kbd>Shift</kbd> + <kbd>F3</kbd>: New Invoice</td></tr>
+        <tr><td><kbd>F4</kbd></td><td>Clients List</td><td><kbd>Shift</kbd> + <kbd>F4</kbd>: New Client</td></tr>
+        <tr><td><kbd>F5</kbd></td><td>Toggle Side Navigation Menu</td><td><kbd>Alt</kbd> + <kbd>M</kbd></td></tr>
+        <tr><td><kbd>F6</kbd></td><td>Delivery Notes (BL)</td><td><kbd>Shift</kbd> + <kbd>F6</kbd>: New Delivery Note</td></tr>
+        <tr><td><kbd>F7</kbd></td><td>Daily Report &amp; Cash Reconciliation (Z-Report)</td><td><kbd>Alt</kbd> + <kbd>7</kbd></td></tr>
+        <tr><td><kbd>F8</kbd></td><td>Products &amp; Stock Inventory</td><td><kbd>Alt</kbd> + <kbd>8</kbd></td></tr>
+        <tr><td><kbd>F9</kbd></td><td>Create New Product</td><td><kbd>Alt</kbd> + <kbd>9</kbd></td></tr>
+        <tr><td><kbd>F10</kbd> or <kbd>.</kbd></td><td><strong>Confirm &amp; Cash Out Sale</strong></td><td>Numeric keypad dot key for one-tap checkout</td></tr>
+        <tr><td><kbd>F11</kbd></td><td><strong>Fullscreen Kiosk Mode</strong></td><td>Hides Windows taskbar and desktop chrome</td></tr>
+        <tr><td><kbd>F12</kbd></td><td>Open Keyboard Shortcuts Help Guide</td><td>Interactive overlay</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>V</kbd></td><td>Quick Client Versement / Layaway Deposit</td><td>Register customer down-payment</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>M</kbd></td><td>Cash Drawer Movements (In / Out)</td><td><kbd>Ctrl</kbd> + <kbd>M</kbd></td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>P</kbd></td><td>Store Settings &amp; Configuration</td><td><kbd>Ctrl</kbd> + <kbd>,</kbd></td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Clear Cart, Cancel Search or Close Modal Dialog</td><td>Safe cancellation</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="desk-backups">12.4 Automated Local Backups &amp; Safe Wipe</h3>
+  <p>
+    Under <strong>Settings &rarr; Desktop &amp; Backups</strong>, ShoeDZ includes an integrated backup manager:
+  </p>
+
+  <ul>
+    <li><strong>Automatic Rotation:</strong> A timestamped SQLite backup archive is generated automatically each day. ShoeDZ retains up to 30 rotation copies to prevent disk saturation.</li>
+    <li><strong>Instant Manual Snapshot:</strong> Click <strong>"Create Backup Now"</strong> before stocktakes, price updates, or monthly financial closings.</li>
+    <li><strong>One-Click Explorer Access:</strong> Click <strong>"Open Backups Folder"</strong> to view and copy files directly to a USB drive or cloud drive.</li>
+    <li><strong>Safe Purge (Factory Reset):</strong> Reserved exclusively for store Owners. Allows purging test transactions, receipts, and cash movements prior to grand opening while preserving 100% of the product catalog, pricing, suppliers, and customer databases. An automatic backup snapshot is enforced before execution.</li>
+  </ul>
+
+  <h3 id="desk-updates">12.5 Auto-Updates &amp; Anti-Tamper Clock Guard</h3>
+  <p>
+    ShoeDZ continuously monitors software health and version availability:
+  </p>
+
+  <ul>
+    <li><strong>Seamless In-App Updates:</strong> When a new update is released, it downloads automatically in the background without interrupting cashiers. A discreet topbar notification informs you when it is ready. Click <em>"Restart to Update"</em> to install in seconds.</li>
+    <li><strong>Anti-Tamper Clock Guard:</strong> Protects offline licenses and sales audit trails against depleted motherboard CMOS batteries or accidental system clock changes. It tracks monotonic high-water marks from database records. If an anomaly is detected, an alert banner provides a one-click Windows Time resynchronization via <code>w32tm /resync</code>.</li>
+  </ul>
+
+  <h3 id="desk-legacy">12.6 Legacy DBF Migration &amp; Excel Bulk Import</h3>
+  <p>
+    Migrating from older Algerian shoe store applications running FoxPro or DBase (<code>.DBF</code>) is straightforward:
+  </p>
+
+  <ol>
+    <li>Navigate to <strong>Settings &rarr; Import from Legacy Software</strong>.</li>
+    <li>Drop your <code>.DBF</code> files (such as <code>ARTICLES.DBF</code>, <code>CLIENTS.DBF</code>, <code>FOURNIS.DBF</code>) or a combined <code>.ZIP</code> archive.</li>
+    <li>Choose your preferred inventory mode:
+      <ul>
+        <li><strong>Simple Mode:</strong> Treats each item as an independent SKU with consolidated stock — ideal for fast boutique onboarding.</li>
+        <li><strong>Extended Sizes Mode:</strong> Automatically groups references into model families with European shoe size breakdowns (EU 36&ndash;45).</li>
+      </ul>
+    </li>
+    <li>Click <strong>Start Import</strong>. Character encodings (Arabic/French) and duplicate barcodes are resolved automatically.</li>
+  </ol>
+
+  <p>
+    For spreadsheet catalogs, use the built-in <strong>Bulk Import Wizard v2.0</strong> to map Excel (XLSX) or CSV columns with interactive validation previews.
+  </p>
+
+  <h3 id="desk-darkmode">12.7 Dark Theme &amp; Windows Auto Mode</h3>
+  <p>
+    ShoeDZ features a high-contrast dark theme designed to minimize eye fatigue during extended store hours:
+  </p>
+  <ul>
+    <li>Toggle between <strong>Light</strong>, <strong>Dark</strong>, or <strong>Auto</strong> (matches Windows system theme) via the sun/moon icon in the topbar.</li>
+    <li>High-contrast text and surface palettes ensure fast barcode verification and comfortable reading under store lighting.</li>
+    <li>Thermal receipt and A4 invoice printouts always retain pure white paper backgrounds and crisp black ink, unaffected by the on-screen theme.</li>
+  </ul>
+</div>
+
+<!-- ============================================================
      FOOTER
      ============================================================ -->
 <div class="manual-footer">
-  <p><strong>ShoeDZ / Pointure</strong> &mdash; User Manual, Version 1.1</p>
-  <p>Language: English &nbsp;&bull;&nbsp; Published: June 2026</p>
+  <p><strong>ShoeDZ / Pointure</strong> &mdash; User Manual, Version 1.4 (Desktop Edition)</p>
+  <p>Language: English &nbsp;&bull;&nbsp; Published: October 2026</p>
   <p style="margin-top:8px;">
     For technical support, contact your system administrator or visit the ShoeDZ help portal.<br>
     &copy; 2026 Pointure. All rights reserved.

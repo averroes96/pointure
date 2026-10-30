@@ -260,9 +260,9 @@
   <p class="subtitle">Manuel Utilisateur</p>
   <div class="meta">
     <p><strong>Application :</strong> ShoeDZ / Pointure ERP</p>
-    <p><strong>Version :</strong> 1.1</p>
-    <p><strong>Date :</strong> Juin 2026</p>
-    <p><strong>Destination :</strong> Détaillants algériens de chaussures</p>
+    <p><strong>Version :</strong> 1.4 (Desktop Edition & Web)</p>
+    <p><strong>Date :</strong> Octobre 2026</p>
+    <p><strong>Destination :</strong> Détaillants et grossistes algériens de chaussures</p>
     <div class="badge-lang">Français</div>
   </div>
 </div>
@@ -391,6 +391,20 @@
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-1">Configuration</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-2">Statistiques et classement</a></span></div>
       <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s11-3">Comptes fidélité</a></span></div>
+    </div>
+
+    <div class="toc-entry">
+      <span class="toc-num">12</span>
+      <span class="toc-title"><a href="#s12">Application de bureau Windows & Fonctionnalités Desktop</a></span>
+    </div>
+    <div class="toc-sub">
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-1">Installation & Premier démarrage</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-2">Imprimantes tickets (ESC/POS), factures A4 & étiquettes</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-3">Raccourcis clavier caisse (F1 à F12) & Plein écran</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-4">Sauvegardes automatiques & Restauration locale</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-5">Mises à jour automatiques & Horloge anti-fraude</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-6">Migration d'anciens logiciels (DBF) & Import Excel</a></span></div>
+      <div class="toc-entry"><span class="toc-num"></span><span class="toc-title"><a href="#s12-7">Thème sombre & Mode automatique Windows</a></span></div>
     </div>
 
   </ol>
@@ -1809,11 +1823,126 @@
     <strong>Utilisation en caisse :</strong> Lorsqu'un client souhaite utiliser ses points lors d'un achat au PDV, le caissier peut sélectionner le mode de paiement <strong>« Points fidélité »</strong> dans l'écran de paiement, à condition que le client ait atteint le solde minimum de rachat configuré. La valeur des points est automatiquement convertie en DZD et déduite du total.
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 12 — APPLICATION DE BUREAU WINDOWS & FONCTIONNALITÉS DESKTOP
+════════════════════════════════════════════════════════ -->
+<div class="section" id="s12">
+  <h2 class="section-title"><span class="sec-num">12</span> Application de bureau Windows & Fonctionnalités Desktop</h2>
+
+  <div class="intro-block">
+    L'édition Bureau de ShoeDZ est une application Windows autonome (.exe) spécialement conçue pour les commerces physiques de chaussures en Algérie. Elle embarque son propre moteur de base de données local, fonctionne intégralement hors-ligne sans connexion internet obligatoire, et pilote directement le matériel de caisse (imprimantes thermiques ESC/POS, douchettes code-barres, tiroirs-caisses).
+  </div>
+
+  <h3 id="s12-1">12.1 Installation & Premier démarrage</h3>
+  <p>L'installation sur Windows 10 ou Windows 11 ne nécessite aucun serveur, aucun conteneur Docker et aucune compétence technique.</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Téléchargez le fichier d'installation officiel <code>ShoeDZ-Setup-x.x.x.exe</code>.</div></li>
+    <li><div class="step-body">Double-cliquez sur l'installateur. L'élévation administrateur Windows vous demande l'autorisation d'installer pour tous les utilisateurs.</div></li>
+    <li><div class="step-body">L'assistant NSIS prépare automatiquement le dossier de données partagé <code>%ProgramData%\ShoeDZ</code> avec les permissions nécessaires et crée un raccourci sur le Bureau et le Menu Démarrer.</div></li>
+    <li><div class="step-body">Au premier lancement, un écran de démarrage dynamique (Splash) initialise la base de données locale, charge les <strong>58 Wilayas d'Algérie</strong> et crée votre agence principale (Siège).</div></li>
+    <li><div class="step-body">Connectez-vous directement ou activez votre clé de licence en un clic.</div></li>
+  </ol>
+
+  <div class="tip">
+    <strong>Protection des données :</strong> Si vous désinstallez l'application, un message vous demande si vous souhaitez conserver la base de données et les sauvegardes de vos magasins. Vous pouvez ainsi mettre à niveau ou réinstaller Windows sans risquer de perdre votre historique de vente.
+  </div>
+
+  <h3 id="s12-2">12.2 Configuration des Imprimantes & Périphériques POS</h3>
+  <p>Rendez-vous dans <strong>Paramètres → Onglet Imprimantes</strong> pour affecter vos périphériques matériels. ShoeDZ détecte automatiquement toutes les imprimantes installées sous Windows.</p>
+
+  <h4>1. Imprimante Tickets de Caisse (Thermique POS)</h4>
+  <table>
+    <thead><tr><th>Paramètre</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Imprimante assignée</td><td>Sélectionnez votre imprimante thermique (ex : Xprinter, Epson TM-T20, Bixolon, POS-80).</td></tr>
+      <tr><td>Format de papier</td><td>Choisissez entre <strong>80 mm</strong> (standard grande caisse) ou <strong>58 mm</strong> (ticket compact).</td></tr>
+      <tr><td>Impression silencieuse</td><td>Activez cette option pour que le ticket sorte instantanément lors de l'encaissement sans afficher la boîte de dialogue Windows.</td></tr>
+      <tr><td>En-tête & Pied de ticket</td><td>Personnalisez le nom de votre boutique, numéro de téléphone, adresse et message de bienvenue.</td></tr>
+      <tr><td>Test d'impression</td><td>Cliquez sur <strong>« Imprimer ticket test »</strong> pour vérifier le massicotage et le flux direct.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>2. Imprimante Documents A4 (Factures, BL, Avoirs)</h4>
+  <p>Permet d'imprimer vos factures officielles, bons de livraison ou bons de commande sur papier A4 avec en-tête d'entreprise, mentions légales (NIF, RC, NIS) et tableau des articles.</p>
+
+  <h4>3. Imprimante d'Étiquettes Code-Barres</h4>
+  <p>Permet d'imprimer des étiquettes autocollantes pour vos rayons ou boîtes de chaussures. Choisissez parmi les formats standards (38×25 mm, 50×30 mm, 40×20 mm) ou saisissez des dimensions sur mesure. Les codes-barres sont encodés au standard haute lisibilité <strong>CODE-128C</strong>.</p>
+
+  <h3 id="s12-3">12.3 Raccourcis Clavier Windows & Mode Caisse Plein Écran</h3>
+  <p>Pour accélérer le travail des caissiers aux heures d'affluence, ShoeDZ intercepte les touches de fonction Windows avant le système d'exploitation :</p>
+
+  <table>
+    <thead><tr><th>Touche</th><th>Action rapide</th><th>Équivalent</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>F1</kbd></td><td>Ouvrir une nouvelle vente / Caisse POS</td><td><kbd>Alt</kbd> + <kbd>1</kbd></td></tr>
+      <tr><td><kbd>F2</kbd></td><td>Rechercher un produit ou activer le scan douchette</td><td><kbd>Alt</kbd> + <kbd>2</kbd></td></tr>
+      <tr><td><kbd>F3</kbd></td><td>Consulter la liste des Factures</td><td><kbd>Shift</kbd> + <kbd>F3</kbd> (Nouvelle facture)</td></tr>
+      <tr><td><kbd>F4</kbd></td><td>Consulter la liste des Clients</td><td><kbd>Shift</kbd> + <kbd>F4</kbd> (Nouveau client)</td></tr>
+      <tr><td><kbd>F5</kbd></td><td>Ouvrir / Fermer le menu latéral de navigation</td><td><kbd>Alt</kbd> + <kbd>M</kbd></td></tr>
+      <tr><td><kbd>F6</kbd></td><td>Consulter les Bons de Livraison (BL)</td><td><kbd>Shift</kbd> + <kbd>F6</kbd> (Nouveau BL)</td></tr>
+      <tr><td><kbd>F7</kbd></td><td>Rapport journalier & Clôture de caisse (Z)</td><td><kbd>Alt</kbd> + <kbd>7</kbd></td></tr>
+      <tr><td><kbd>F8</kbd></td><td>Catalogue des stocks & Produits</td><td><kbd>Alt</kbd> + <kbd>8</kbd></td></tr>
+      <tr><td><kbd>F9</kbd></td><td>Créer un nouveau produit</td><td><kbd>Alt</kbd> + <kbd>9</kbd></td></tr>
+      <tr><td><kbd>F10</kbd> ou <kbd>.</kbd></td><td><strong>Valider & Encaisser la vente</strong> (Touche point du pavé numérique)</td><td>Encaissement direct</td></tr>
+      <tr><td><kbd>F11</kbd></td><td><strong>Mode Plein Écran Magasin (Kiosk)</strong></td><td>Fermer les bordures Windows</td></tr>
+      <tr><td><kbd>F12</kbd></td><td>Afficher la fenêtre interactive d'aide des raccourcis</td><td>Aide mémoire</td></tr>
+      <tr><td><kbd>Alt</kbd> + <kbd>V</kbd></td><td>Versement rapide & Layaway client</td><td>Crédit client en caisse</td></tr>
+      <tr><td><kbd>Alt</kbd> + <kbd>M</kbd></td><td>Mouvements de tiroir-caisse (Entrée / Sortie d'espèces)</td><td><kbd>Ctrl</kbd> + <kbd>M</kbd></td></tr>
+      <tr><td><kbd>Alt</kbd> + <kbd>P</kbd></td><td>Ouvrir les Paramètres du magasin</td><td><kbd>Ctrl</kbd> + <kbd>,</kbd></td></tr>
+      <tr><td><kbd>Échap</kbd></td><td>Vider le panier, fermer la fenêtre modale ou annuler la recherche</td><td>Annulation</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s12-4">12.4 Sauvegardes Locales, Restauration & Zone de Sécurité</h3>
+  <p>Vos données sont précieuses. L'onglet <strong>Paramètres → Sauvegardes & Bureau</strong> intègre un moteur de sauvegarde autonome :</p>
+
+  <ul class="bullets">
+    <li><strong>Sauvegarde automatique :</strong> Une archive SQLite horodatée est générée quotidiennement. ShoeDZ conserve automatiquement les 30 dernières sauvegardes (rotation sécurisée).</li>
+    <li><strong>Sauvegarde manuelle instantanée :</strong> Cliquez sur <strong>« Créer une sauvegarde maintenant »</strong> avant toute opération majeure (inventaire, import, clôture mensuelle).</li>
+    <li><strong>Téléchargement & Restauration :</strong> Téléchargez le fichier <code>.sqlite3</code> ou ouvrez directement le dossier Windows en cliquant sur <strong>« Ouvrir le dossier des sauvegardes »</strong>.</li>
+    <li><strong>Zone de sécurité (Wipe sécurisé) :</strong> Réservé au Propriétaire (rôle Owner). Permet de remettre à zéro les compteurs de vente et les historiques de caisse avant une ouverture officielle, tout en conservant l'intégralité du catalogue d'articles, des fournisseurs et des clients. Une sauvegarde préalable obligatoire est automatiquement créée.</li>
+  </ul>
+
+  <h3 id="s12-5">12.5 Mises à Jour Automatiques & Horloge Anti-Fraude</h3>
+  <p>L'application vérifie automatiquement la disponibilité de nouvelles versions en arrière-plan sans perturber la saisie des ventes :</p>
+
+  <ul class="bullets">
+    <li><strong>Mise à jour en un clic :</strong> Lorsqu'une nouvelle version est prête, un bandeau discret apparaît dans l'en-tête. Cliquez sur <em>« Redémarrer pour installer »</em> pour appliquer la mise à jour en quelques secondes. Vos données et réglages d'imprimantes sont conservés intacts.</li>
+    <li><strong>Horloge Anti-Fraude (Anti-Tamper Clock Guard) :</strong> Afin de garantir la validité de la licence hors-ligne et l'intégrité comptable de vos ventes même en cas de panne de pile CMOS sur la carte mère du PC de caisse, ShoeDZ utilise un mécanisme d'horloge monotone (High-Water Mark). Si une régression de date est constatée, une alerte vous propose de resynchroniser l'horloge Windows en un clic via <code>w32tm /resync</code>.</li>
+  </ul>
+
+  <h3 id="s12-6">12.6 Migration d'Anciens Logiciels (DBF) & Import Excel</h3>
+  <p>ShoeDZ simplifie la transition depuis vos anciens logiciels de gestion de chaussures sous FoxPro ou DBase :</p>
+
+  <ol class="steps">
+    <li><div class="step-body">Dans <strong>Paramètres → Importer depuis un ancien logiciel</strong>, déposez vos fichiers <code>.DBF</code> (notamment <code>ARTICLES.DBF</code>, <code>CLIENTS.DBF</code>, <code>FOURNIS.DBF</code>) ou une archive <code>.ZIP</code>.</div></li>
+    <li><div class="step-body">Sélectionnez le mode de gestion :
+      <ul class="bullets" style="margin-top:6px;">
+        <li><strong>Mode Simple :</strong> Chaque ligne du logiciel d'origine devient un article unique avec son stock exact consolidé (idéal pour démarrer vite).</li>
+        <li><strong>Mode Tailles étendues :</strong> Les références sont automatiquement regroupées en fiches modèles avec déclinaisons de pointures EU.</li>
+      </ul>
+    </div></li>
+    <li><div class="step-body">Lancez l'importation. Les doublons et encodages de caractères arabes / français sont traités automatiquement.</div></li>
+  </ol>
+
+  <p>Pour les catalogues sous Excel ou CSV, utilisez l'<strong>Assistant d'Import en Masse v2.0</strong> avec prévisualisation des colonnes, détection intelligente des marques et contrôle de conformité avant insertion.</p>
+
+  <h3 id="s12-7">12.7 Thème Sombre & Mode Automatique Windows</h3>
+  <p>ShoeDZ propose un thème sombre haute lisibilité conçu pour minimiser la fatigue oculaire lors des longues gardes en magasin :</p>
+  <ul class="bullets">
+    <li>Cliquez sur l'icône soleil/lune dans la barre supérieure pour choisir entre <strong>Clair</strong>, <strong>Sombre</strong>, ou <strong>Automatique</strong> (s'adapte à l'heure ou au réglage de Windows).</li>
+    <li>Tous les tableaux, tickets, formulaires et indicateurs de marge s'affichent avec des contrastes vifs optimisés pour les écrans tactiles et caisses POS.</li>
+    <li>Les impressions papier (tickets et factures) conservent toujours un fond blanc pur et une encre noire nette indépendamment du thème actif à l'écran.</li>
+  </ul>
+
   <hr class="divider">
 
   <p style="text-align:center; color:#666; font-size:13px; margin-top:32px;">
-    <strong>ShoeDZ / Pointure ERP</strong> — Manuel Utilisateur v1.1<br>
-    Pour toute assistance : contactez votre administrateur système ou l'équipe ShoeDZ.<br>
+    <strong>ShoeDZ / Pointure ERP</strong> — Manuel Utilisateur v1.4 (Desktop Edition)<br>
+    Pour toute assistance : contactez votre administrateur système ou l'équipe technique ShoeDZ.<br>
     <span style="color:#4f46e5;">© 2026 ShoeDZ — Tous droits réservés</span>
   </p>
 

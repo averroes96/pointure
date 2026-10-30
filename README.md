@@ -1,8 +1,8 @@
 # 👟 ShoeDZ / Pointure
 
-> Multi-tenant ERP for Algerian shoe retailers — inventory, sales, invoicing, reporting, and supplier management in one web dashboard.
+> Comprehensive retail & wholesale ERP designed specifically for Algerian shoe stores — available as a **standalone Windows desktop application**, a **self-hosted Docker suite**, or a **multi-tenant cloud platform**.
 
-**Stack:** Django 5 · PostgreSQL 16 · Celery/Redis · React 18 · TypeScript · Tailwind CSS (RTL) · i18next (AR/FR/EN)
+**Desktop Stack:** Electron 32 · Embedded Python (Waitress WSGI + Django 5) · SQLite / PostgreSQL · Chromium PDF Bridge · React 18 · TypeScript · Tailwind CSS (RTL/LTR) · i18next (AR/FR/EN)
 
 ---
 
@@ -10,31 +10,58 @@
 
 | Module | Highlights |
 |---|---|
-| **Dashboard** | Daily revenue KPI, outstanding debt, low-stock alert, cheque due count, 30-day revenue chart, top 5 sellers |
-| **Sales POS** | Cart-based POS, multiple payment methods (cash, CCP, virement, chèque), receipt lookup |
-| **Invoicing** | Draft → Sent → Paid workflow, TVA toggle (19%), per-line discounts, credit limit enforcement, PDF generation |
-| **Delivery notes** | Linked to invoices, PDF export |
-| **Credit notes** | Client credit, linked to original invoice |
-| **Inventory** | Products + variants (EU size, colour, barcode), stock levels per branch, adjustments, transfers |
-| **Low stock** | Real-time alert list for SKUs below their alert threshold |
-| **Barcode labels** | PDF label sheets with CODE-128C barcodes, generated via WeasyPrint |
-| **Clients** | Ledger, balance, payment recording, cheque tracking (deposited/bounced) |
-| **Debt ageing** | Per-client bucket breakdown (current / 30 / 60 / 90+ days), CSV export |
-| **Suppliers** | Balance, payment recording, purchase orders (draft → sent → received) |
-| **Reports** | Daily report (CSV/print), sales analytics with P&L margins, stock report (CSV + PDF), all with branch filter |
-| **Multi-branch** | Branch selector in topbar; sales and reports filtered per branch |
-| **Settings** | Tenant configuration, user management with RBAC (Owner / Manager / Cashier), audit log |
-| **Password reset** | Email-based reset flow via Celery |
-| **First-run wizard** | Browser setup wizard creates tenant + first admin on self-hosted installs |
-| **Licensing** | Offline-tolerant license validation with 7-day grace period and Celery heartbeat |
+| **Windows Desktop App** | Standalone `.exe` installer (NSIS), embedded Python backend, local SQLite database, zero Docker or cloud dependency, automatic GitHub releases updates, low-spec (4GB RAM) hardware optimization. |
+| **Hardware & Thermal Printing** | Direct ESC/POS silent ticket printing (58mm & 80mm), A4 invoices/delivery notes, barcode label printer spooler (CODE-128C with size presets), in-app test prints. |
+| **Keyboard Shortcuts & Kiosk** | Full Windows cashier hotkeys (`F1` new sale, `F2` scan/search, `F10` / `.` cash out, `F11` fullscreen kiosk, `F12` shortcuts guide, `Alt+V` versement, `Alt+M` cash movement). |
+| **Automated Local Backups** | Daily local database rotation, snapshot retention (configurable max copies), one-click download/restore, open backups folder in Windows Explorer. |
+| **Clock Guard & Offline License** | Monotonic high-water mark tamper defense protecting offline licensing and sales against CMOS battery failure; one-click Windows Time sync (`w32tm /resync`). |
+| **Legacy DBF & Excel Import** | One-click FoxPro / DBase (`.DBF`) migration for shoe stores (`FOURNIS.DBF`, `CLIENTS.DBF`, `ARTICLES.DBF`) with Simple Mode vs Extended Sizes, plus bulk Excel/CSV import wizard. |
+| **Dark, Light & Auto Themes** | High-contrast dark mode tailored for long cashier shifts, synchronized automatically with Windows system theme preference. |
+| **Dashboard** | Daily revenue KPI, outstanding debt, low-stock alert, cheque due count, 30-day revenue chart, top 5 sellers. |
+| **Sales POS** | Cart-based POS, multi-payment (cash, CCP, bank transfer, cheque), cashier shift reconciliation (X/Z reports), customer layaway / versement. |
+| **Invoicing & Documents** | Draft → Sent → Paid workflow, TVA toggle (19%), per-line discounts, credit limit enforcement, PDF generation, Delivery Notes (BL) and Credit Notes (Avoirs). |
+| **Inventory & Matrix** | Products + variants (EU shoe sizes, colours, barcodes), stock per branch, stocktakes (inventaire tournant), stock movements, branch transfers. |
+| **Low stock & Alerts** | Real-time threshold alerts, quick restock modal, carton calculation. |
+| **Clients & Cheques** | Ledger, balance, payment recording, cheque tracking (pending, deposited, bounced) with due-date countdowns. |
+| **Debt Ageing** | Per-client bucket breakdown (current / 30 / 60 / 90+ days), CSV export. |
+| **Suppliers & Purchasing** | Supplier balance, purchase orders (draft → sent → received), carton packing calculators, payables overview. |
+| **Reports & Analytics** | Daily report (print/CSV), sales analytics with P&L gross margins, stock valuation reports, custom Report Builder. |
+| **Loyalty Program** | Bronze, Silver, Gold tiers with multiplier rules, point redemption at POS, printable loyalty cards, top-20 leaderboard. |
+| **Multi-branch & RBAC** | Multi-branch selector; roles: Owner, Manager, Cashier with granular permission controls and supervisor PIN overrides. |
 
 ---
 
-## Deployment options
+## Deployment Options
 
-### A) Self-hosted (one command)
+### A) Windows Desktop Application (Recommended for Retail Stores)
 
-For clients who run the app on their own machine or server.
+The standalone Windows desktop installer is the fastest and easiest way to run ShoeDZ in physical boutiques. It requires **no Docker, no command-line tools, and no internet connection** to operate.
+
+1. Download the latest installer: `ShoeDZ-Setup-x.x.x.exe` from GitHub Releases.
+2. Run the installer (administrator privileges requested automatically).
+3. The installer creates shortcuts on the Desktop and Start Menu, pre-configures data directories at `%ProgramData%\ShoeDZ`, and sets up Windows user permissions.
+4. Launch **ShoeDZ** from the desktop shortcut. On first launch, the app automatically initializes the database, loads the 58 Algerian Wilayas, and creates the primary headquarters store branch.
+
+**Building the Desktop Installer from Source:**
+```bash
+# 1. Build the production React frontend
+cd frontend
+npm install
+npm run build
+cd ..
+
+# 2. Package the Electron Windows installer
+cd desktop
+npm install
+npm run build
+# The resulting installer is generated in desktop/dist/ShoeDZ-Setup-1.x.x-x64.exe
+```
+
+---
+
+### B) Self-Hosted Docker (One Command)
+
+For servers, central back-offices, or multi-terminal networked setups:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/averroes96/pointure/main/install.sh | bash
@@ -42,14 +69,11 @@ curl -sSL https://raw.githubusercontent.com/averroes96/pointure/main/install.sh 
 
 The script:
 1. Checks Docker + Docker Compose v2 prerequisites
-2. Generates `.env.local` with random secrets (asks for license key + public URL)
-3. Builds and starts all containers
+2. Generates `.env.local` with random secrets
+3. Builds and starts all containers (PostgreSQL 16, Redis, Gunicorn, Celery, Nginx)
 4. Runs migrations and collects static files
 5. Activates the license key against the license server
-6. Optionally creates a Django admin superuser
-7. Prints the URL — visit `http://localhost/setup` to finish in the browser
-
-**Requirements:** Docker Desktop (Mac/Windows) or Docker Engine + Compose v2 (Linux). No other dependencies needed.
+6. Prints the URL — visit `http://localhost/setup` to finish in the browser
 
 ```bash
 # Stop
@@ -58,24 +82,16 @@ docker compose -f docker-compose.local.yml down
 # Logs
 docker compose -f docker-compose.local.yml logs -f
 
-# Upgrade (re-run after pulling new image)
+# Upgrade
 docker compose -f docker-compose.local.yml pull && docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml exec -T backend python manage.py migrate
 ```
 
-**License management:**
-```bash
-# Activate / re-activate
-docker compose -f docker-compose.local.yml exec backend python manage.py activate_license SHDZ-XXXX-XXXX-XXXX
+---
 
-# Check status
-docker compose -f docker-compose.local.yml exec backend python manage.py shell -c \
-  "from apps.licensing.models import LicenseState; print(LicenseState.load())"
-```
+### C) SaaS / Cloud Deployment
 
-### B) SaaS / Cloud deployment
-
-Multi-tenant cloud hosting (one instance serves all tenants).
+Multi-tenant cloud hosting (one instance serves multiple tenant organizations):
 
 ```bash
 cp .env.prod.example .env.prod
@@ -155,18 +171,31 @@ pointure/
 │   │   └── urls.py
 │   └── Dockerfile
 │
-├── frontend/                   # React 18 + TypeScript
+├── desktop/                    # Windows Electron standalone wrapper
+│   ├── main.js                 # Electron main process & supervisor
+│   ├── preload.js              # IPC bridge (printing, updates, clock)
+│   ├── installer.nsh           # NSIS installer & permission script
+│   ├── pdf-bridge.js           # Headless Chromium PDF renderer
+│   ├── splash.html             # Boot splash with live migration feedback
+│   └── package.json            # electron-builder packaging config
+│
+├── frontend/                   # React 18 + TypeScript (Vite)
 │   ├── src/
-│   │   ├── features/           # One folder per domain (auth, inventory, sales, …)
-│   │   ├── components/         # Shared UI (layout, modals, plan gates)
-│   │   ├── lib/                # api.ts (axios), csvExport.ts, utils.ts
-│   │   └── types/              # Shared TypeScript interfaces
+│   │   ├── features/           # Domain modules (sales, inventory, clients, ...)
+│   │   ├── components/         # Shared UI, layout, modals, import wizard
+│   │   ├── lib/                # api.ts, printerConfig.ts, time.ts, utils.ts
+│   │   └── types/              # TypeScript definitions
 │   ├── Dockerfile.prod         # Multi-stage build → nginx:alpine
 │   └── nginx.spa.conf
 │
 ├── nginx/
 │   ├── nginx.conf              # Production (SSL, HTTP→HTTPS redirect)
 │   └── nginx.local.conf        # Self-hosted (HTTP only, loopback bind)
+│
+├── manual/                     # Comprehensive User Manuals (HTML)
+│   ├── fr.html                 # Manuel utilisateur en français
+│   ├── ar.html                 # دليل المستخدم باللغة العربية
+│   └── en.html                 # User manual in English
 │
 ├── license-server/             # Separate Django app (SQLite) for key validation
 │
@@ -180,6 +209,27 @@ pointure/
 ---
 
 ## Architecture
+
+### 1. Windows Desktop Architecture (Standalone)
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   Electron 32 Window                   │
+│   (React 18 SPA + POS Hotkeys + Hardware Print Spool)  │
+└───────────────▲────────────────────────▲───────────────┘
+                │                        │
+       IPC (preload.js)          HTTP (127.0.0.1:8745)
+                │                        │
+┌───────────────▼─────────┐    ┌─────────▼───────────────┐
+│   Electron Main Process │    │    Embedded Waitress    │
+│  - Chromium PDF Bridge  │    │     (Django 5 Monolith) │
+│  - ESC/POS Print Spool  │    │  - SQLite Engine        │
+│  - Auto-Updater         │    │  - DBF / Excel Importer │
+│  - Anti-Tamper Guard    │    │  - Local Backups Engine │
+└─────────────────────────┘    └─────────────────────────┘
+```
+
+### 2. Docker & Cloud Architecture (Client / Server)
 
 ```
 Browser
