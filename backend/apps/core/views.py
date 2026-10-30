@@ -291,25 +291,57 @@ class PasswordResetRequestView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        email = request.data.get("email", "").strip().lower()
+        raw_identifier = (
+            request.data.get("identifier")
+            or request.data.get("email")
+            or request.data.get("phone")
+            or ""
+        ).strip()
         _RESPONSE = Response(
-            {"detail": "Si cet email existe, un lien de réinitialisation a été envoyé."}
+            {"detail": "Si ce compte existe et dispose d'une adresse email, un lien de réinitialisation a été envoyé."}
         )
-        if not email:
+        if not raw_identifier:
             return _RESPONSE
 
-        try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            return _RESPONSE
+        user = None
+        if "@" in raw_identifier:
+            try:
+                user = User.objects.get(email__iexact=raw_identifier)
+            except User.DoesNotExist:
+                return _RESPONSE
+        else:
+            from django.db.models import Q
+            from apps.core.utils.phone import normalize_algerian_phone
+            normalized = normalize_algerian_phone(raw_identifier)
+            if normalized:
+                user = User.objects.filter(
+                    Q(phone=normalized) | Q(phone=raw_identifier)
+                ).first()
+            if not user:
+                return _RESPONSE
+
+        if not user.email:
+            return Response(
+                {
+                    "error": "Compte sans adresse email associée. Contactez le gérant de votre boutique pour réinitialiser votre mot de passe.",
+                    "code": "no_email",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token = PasswordResetTokenGenerator().make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
         from apps.core.tasks import send_password_reset_email
-        send_password_reset_email.delay(user.pk, uid, token)
+        from apps.core.utils.task_runner import run_task
+        run_task(send_password_reset_email, user.pk, uid, token)
 
-        return _RESPONSE
+        return Response(
+            {
+                "detail": "Un lien de réinitialisation a été envoyé à l'adresse email associée à ce compte.",
+                "has_email": True,
+            }
+        )
 
 
 class PasswordResetConfirmView(APIView):

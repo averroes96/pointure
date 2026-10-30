@@ -1,34 +1,49 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Mail, Send } from "lucide-react";
+import { Mail, Send, AlertTriangle, ArrowLeft } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
+import { normalizeAlgerianPhone } from "@/lib/phone";
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [noEmailNotice, setNoEmailNotice] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNoEmailNotice(false);
     setIsLoading(true);
 
     try {
-      await api.post("/auth/password-reset/", { email });
-    } catch (err) {
-      // Silently swallow — we always show the same success message
-      // to avoid leaking user existence. Only surface unexpected errors.
+      const trimmed = identifier.trim();
+      const cleanId = trimmed.includes("@")
+        ? trimmed.toLowerCase()
+        : normalizeAlgerianPhone(trimmed) || trimmed;
+
+      await api.post("/auth/password-reset/", { identifier: cleanId });
+      setSent(true);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err) {
+        const resp = (err as { response?: { data?: { error?: string; code?: string } } }).response;
+        if (resp?.data?.code === "no_email" || resp?.data?.error?.includes("sans adresse email")) {
+          setNoEmailNotice(true);
+          setError(resp.data.error || t("auth.no_email_account_notice"));
+          return;
+        }
+      }
       const msg = getApiError(err);
-      // If it's a network error (no response), let the user know
       if (!msg.includes("404") && !msg.includes("400")) {
-        // network-level failure
+        setError(msg);
+      } else {
+        setSent(true);
       }
     } finally {
       setIsLoading(false);
-      setSent(true);
     }
   };
 
@@ -53,7 +68,7 @@ export default function ForgotPasswordPage() {
               </div>
               <p className="text-text-primary font-medium">{t("auth.email_sent")}</p>
               <p className="text-text-muted text-sm">
-                {t("auth.email_sent_desc")}
+                {t("auth.reset_link_sent_desc")}
               </p>
               <Link
                 to="/login"
@@ -62,6 +77,38 @@ export default function ForgotPasswordPage() {
                 {t("auth.back_to_login")}
               </Link>
             </div>
+          ) : noEmailNotice ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+                  <span>Compte sans adresse email</span>
+                </div>
+                <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+                  {error || t("auth.no_email_account_notice")}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNoEmailNotice(false);
+                    setError("");
+                  }}
+                  className="btn-secondary w-full justify-center py-2 text-xs"
+                >
+                  Essayer un autre identifiant
+                </button>
+                <Link
+                  to="/login"
+                  className="btn-primary w-full justify-center py-2.5 text-sm"
+                >
+                  <ArrowLeft size={16} className="me-1.5" />
+                  {t("auth.back_to_login")}
+                </Link>
+              </div>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-text-muted text-sm">
@@ -69,14 +116,14 @@ export default function ForgotPasswordPage() {
               </p>
 
               <div>
-                <label className="form-label" htmlFor="email">
-                  {t("auth.email")}
+                <label className="form-label" htmlFor="identifier">
+                  {t("auth.phone_or_email")}
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="identifier"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="form-input"
                   placeholder={t("auth.email_placeholder")}
                   required

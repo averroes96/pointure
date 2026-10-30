@@ -466,5 +466,77 @@ class TestUserCreateSerializer:
         assert "email" in serializer.errors
 
 
+@pytest.mark.django_db
+class TestPasswordRecoveryAndStaffReset:
+    """Test phone/email password recovery and Owner/Manager direct reset."""
+
+    def test_password_reset_request_with_email_succeeds(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        user = User.objects.create_user(email="reset.me@shodz.dz", password="oldpassword123")
+
+        resp = client.post("/api/v1/auth/password-reset/", {"email": "reset.me@shodz.dz"})
+        assert resp.status_code == 200
+
+    def test_password_reset_request_with_phone_having_email_succeeds(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        User.objects.create_user(phone="0555123456", email="linked@shodz.dz", password="oldpassword123")
+
+        resp = client.post("/api/v1/auth/password-reset/", {"identifier": "0555 12 34 56"})
+        assert resp.status_code == 200
+
+    def test_password_reset_request_with_phone_no_email_returns_helpful_notice(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        User.objects.create_user(phone="0555987654", password="oldpassword123")  # no email
+
+        resp = client.post("/api/v1/auth/password-reset/", {"identifier": "0555 98 76 54"})
+        assert resp.status_code == 400
+        assert resp.data.get("code") == "no_email"
+        assert "sans adresse email" in resp.data.get("error", "")
+
+    def test_password_reset_nonexistent_returns_generic_200(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        resp = client.post("/api/v1/auth/password-reset/", {"identifier": "0555000000"})
+        assert resp.status_code == 200
+
+    def test_manager_can_reset_cashier_password(self):
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant
+        tenant = Tenant.objects.create(name="Store Dz", is_active=True)
+
+        manager = User.objects.create_user(phone="0555111111", password="managerpass123", role="manager", tenant=tenant)
+        cashier = User.objects.create_user(phone="0555222222", password="oldcashierpass123", role="cashier", tenant=tenant)
+
+        client = APIClient()
+        client.force_authenticate(user=manager)
+
+        resp = client.post(f"/api/v1/core/users/{cashier.id}/reset-password/", {"new_password": "brandnewpassword123"})
+        assert resp.status_code == 200
+
+        # Verify cashier can authenticate with new password
+        cashier.refresh_from_db()
+        assert cashier.check_password("brandnewpassword123")
+        assert not cashier.check_password("oldcashierpass123")
+
+    def test_manager_reset_password_too_short_fails(self):
+        from rest_framework.test import APIClient
+        from apps.core.models import Tenant
+        tenant = Tenant.objects.create(name="Store Dz", is_active=True)
+
+        manager = User.objects.create_user(phone="0555111111", password="managerpass123", role="manager", tenant=tenant)
+        cashier = User.objects.create_user(phone="0555222222", password="oldcashierpass123", role="cashier", tenant=tenant)
+
+        client = APIClient()
+        client.force_authenticate(user=manager)
+
+        resp = client.post(f"/api/v1/core/users/{cashier.id}/reset-password/", {"new_password": "short"})
+        assert resp.status_code == 400
+        assert "8 caractères" in resp.data.get("error", "")
+
+
+
 
 

@@ -601,6 +601,8 @@ function UsersTab() {
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinActionLoading, setPinActionLoading] = useState(false);
+  const [resetPasswordInput, setResetPasswordInput] = useState("");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<UserType>>({
     queryKey: ["settings", "users"],
@@ -694,6 +696,22 @@ function UsersTab() {
       setToast({ msg: getApiError(err), type: "error" });
     } finally {
       setPinActionLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (userId: number, newPassword: string) => {
+    setResetPasswordLoading(true);
+    try {
+      await api.post(`/core/users/${userId}/reset-password/`, { new_password: newPassword });
+      setToast({
+        msg: "Mot de passe réinitialisé avec succès.",
+        type: "success",
+      });
+      setResetPasswordInput("");
+    } catch (err) {
+      setToast({ msg: getApiError(err), type: "error" });
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -1270,6 +1288,44 @@ function UsersTab() {
                         Supprimer
                       </button>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Password Reset */}
+              <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock size={14} className="text-primary-600" />
+                    Réinitialiser le mot de passe
+                  </h4>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Idéal pour les comptes sans adresse email : réinitialisez directement le mot de passe du caissier sans lien de réinitialisation externe.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Nouveau mot de passe (8 caractères min.)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={resetPasswordInput}
+                      onChange={(e) => setResetPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-48 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-mono focus:border-primary-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={resetPasswordLoading || resetPasswordInput.length < 8}
+                      onClick={() => handleResetPassword(editingUser.id, resetPasswordInput)}
+                      className="py-1.5 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-40"
+                    >
+                      {resetPasswordLoading ? "..." : "Changer mot de passe"}
+                    </button>
                   </div>
                 </div>
               </div>
