@@ -61,12 +61,21 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             due_date__gte=today, due_date__lte=week_end,
         ).count()
 
+        # Counts for onboarding milestones & store inventory overview
+        from apps.core.models import User
+        product_count = Product.objects.filter(tenant=tenant, is_active=True).count()
+        cashier_count = User.objects.filter(tenant=tenant, role="cashier", is_active=True).count()
+        sale_count = Sale.objects.filter(tenant=tenant, status="completed").count()
+
         return Response({
             "today_revenue": today_sales,
             "total_outstanding_debt": total_debt,
             "low_stock_sku_count": low_stock_count,
             "cheques_due_this_week": cheques_due,
             "as_of": str(today),
+            "product_count": product_count,
+            "cashier_count": cashier_count,
+            "sale_count": sale_count,
         })
 
     @action(detail=False, methods=["get"], url_path="sales-by-period")

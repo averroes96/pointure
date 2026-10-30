@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -6,6 +7,7 @@ import {
   Wifi, WifiOff, Bell, X,
   ShoppingCart, Package, PlusCircle, ScanBarcode, FileText,
   Users, BarChart2, Settings, History, ClipboardCheck, ArrowUpRight,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -19,6 +21,7 @@ import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useSSE } from "@/hooks/useSSE";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+import GetStartedWidget from "./GetStartedWidget";
 
 // ── Quick action card ─────────────────────────────────────────────────────────
 
@@ -251,6 +254,10 @@ export default function DashboardPage() {
   const isEnterprise = canAccess("enterprise");
   const isCashier = user?.role === "cashier";
 
+  const [hideGetStarted, setHideGetStarted] = useState(() => {
+    return localStorage.getItem("shodz_hide_onboarding_widget") === "true";
+  });
+
   const {
     status, lastSale, stockAlerts, totalSalesDelta, saleCountDelta, clearAlerts,
   } = useSSE(isEnterprise);
@@ -420,6 +427,20 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {hideGetStarted && !isCashier && ((kpis?.product_count ?? 0) === 0 || (kpis?.sale_count ?? 0) === 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem("shodz_hide_onboarding_widget");
+                setHideGetStarted(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200/80 dark:border-primary-800/80 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors shadow-2xs"
+            >
+              <Sparkles size={14} className="text-primary-600" />
+              <span>{t("dashboard.onboarding.show_guide_btn", "Guide de démarrage")}</span>
+            </button>
+          )}
+
           <Link
             to="/inventory/products"
             className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:shadow-xs transition-all"
@@ -442,6 +463,14 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Onboarding Getting Started Checklist Widget */}
+      {!hideGetStarted && !isCashier && (
+        <GetStartedWidget
+          kpis={kpis}
+          onDismiss={() => setHideGetStarted(true)}
+        />
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

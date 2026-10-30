@@ -732,6 +732,9 @@ export interface DashboardKPIs {
   low_stock_sku_count: number;
   cheques_due_this_week: number;
   as_of: string;
+  product_count?: number;
+  cashier_count?: number;
+  sale_count?: number;
 }
 
 export interface SalesByPeriodRow {

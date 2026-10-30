@@ -340,6 +340,107 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         out_serializer = ProductSerializer(product, context={"request": request})
         return Response(out_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=["post"], url_path="seed-demo-catalog")
+    def seed_demo_catalog(self, request):
+        """
+        POST /inventory/products/seed-demo-catalog/
+        Seeds 20 standard footwear models with size variants and initial stock.
+        """
+        self.require_manager()
+        import random
+        from decimal import Decimal
+        from django.db import transaction
+        from apps.core.models import Branch
+        from apps.inventory.models import Product, Variant, StockMovement, MovementReasonChoices
+        from apps.core.plan_permissions import check_quota
+
+        tenant = self._get_tenant()
+        if not tenant:
+            return Response({"detail": "Tenant introuvable."}, status=status.HTTP_400_BAD_REQUEST)
+
+        branch = Branch.objects.filter(tenant=tenant, is_active=True).first()
+        if not branch:
+            branch = Branch.objects.create(
+                tenant=tenant,
+                name="Magasin Principal",
+                is_headquarters=True,
+                is_active=True,
+            )
+
+        DEMO_MODELS = [
+            ("Air Max Pulse", "Nike", "sneakers", "M", 6500, 11500),
+            ("Ultra Boost 1.0", "Adidas", "sneakers", "U", 7200, 12800),
+            ("Classic Leather", "Reebok", "sneakers", "U", 4500, 8200),
+            ("Chuck Taylor All Star", "Converse", "sneakers", "U", 3800, 6900),
+            ("Old Skool Classic", "Vans", "sneakers", "U", 4200, 7500),
+            ("Stan Smith Vintage", "Adidas", "sneakers", "U", 4800, 8500),
+            ("574 Core Classic", "New Balance", "sneakers", "M", 5200, 9200),
+            ("Suede Classic XXI", "Puma", "sneakers", "U", 4100, 7400),
+            ("D-Lites Sport", "Skechers", "sneakers", "F", 3900, 6800),
+            ("Court Vision Low", "Nike", "sneakers", "M", 4600, 7900),
+            ("Derby Cuir Ville", "Bata", "formal", "M", 5500, 9800),
+            ("Richelieu Oxford Prestige", "Geox", "formal", "M", 7800, 13900),
+            ("Bottine Chelsea Daim", "Clarks", "boots", "M", 6900, 12500),
+            ("Mocassin Confort Cuir", "Bata", "formal", "M", 4200, 7600),
+            ("Sandale Arizona Cuir", "Birkenstock", "sandals", "U", 3500, 6200),
+            ("Chaussure Randonnée Terrex", "Adidas", "sport", "U", 8200, 14500),
+            ("Escarpin Chic Soirée", "Zara", "formal", "F", 4400, 7900),
+            ("Ballerine Souple Cuir", "Geox", "formal", "F", 3200, 5800),
+            ("Sabot Ergonomique Pro", "Crocs", "sandals", "U", 2800, 4900),
+            ("Basket Running Gel", "Asics", "sport", "U", 5900, 10500),
+        ]
+
+        COLOURS = ["Noir", "Blanc", "Marron", "Bleu"]
+        SIZES = [39, 40, 41, 42, 43, 44]
+
+        # Verify quota
+        current_count = Product.objects.filter(tenant=tenant).count()
+        check_quota(self.request, "products", current_count + len(DEMO_MODELS))
+
+        created_count = 0
+        with transaction.atomic():
+            for name, brand, category, gender, purchase, sale in DEMO_MODELS:
+                prod, p_created = Product.objects.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    brand=brand,
+                    defaults={
+                        "category": category,
+                        "gender": gender,
+                        "purchase_price": Decimal(str(purchase)),
+                        "sale_price": Decimal(str(sale)),
+                        "alert_threshold": 3,
+                    },
+                )
+                if p_created:
+                    created_count += 1
+
+                for size in SIZES:
+                    for colour in COLOURS[:2]:  # 2 colours per model
+                        v, v_created = Variant.objects.get_or_create(
+                            tenant=tenant,
+                            product=prod,
+                            size_eu=size,
+                            colour=colour,
+                            defaults={"alert_threshold": 2},
+                        )
+                        if v_created:
+                            StockMovement.objects.create(
+                                tenant=tenant,
+                                variant=v,
+                                branch=branch,
+                                quantity_delta=random.randint(4, 15),
+                                reason=MovementReasonChoices.INITIAL,
+                                user=request.user,
+                                notes="Stock initial démo onboarding",
+                            )
+
+        return Response({
+            "detail": f"{created_count} modèles ont été ajoutés à votre inventaire.",
+            "created_count": created_count,
+            "total_models": len(DEMO_MODELS),
+        }, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=["post"], url_path="import")
     def import_products(self, request):
         """
