@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Zap,
   AlertCircle,
+  ScanBarcode,
 } from "lucide-react";
 import {
   getPrinterConfig,
@@ -20,6 +21,7 @@ import {
   type LabelSizePreset,
   type PrinterConfig,
 } from "@/lib/printerConfig";
+import HardwareQuickCheckModal from "./HardwareQuickCheckModal";
 import type { PrinterInfo } from "@/vite-env";
 import { cn } from "@/lib/utils";
 
@@ -28,11 +30,20 @@ export default function PrintersTab() {
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [config, setConfig] = useState<PrinterConfig>(getPrinterConfig());
+  const [showHardwareModal, setShowHardwareModal] = useState(false);
   const [testingTicket, setTestingTicket] = useState(false);
   const [testingA4, setTestingA4] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const isDesktop = !!window.electronAPI?.isDesktop;
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setConfig(getPrinterConfig());
+    };
+    window.addEventListener("shodz-printer-config-changed", handleConfigChange);
+    return () => window.removeEventListener("shodz-printer-config-changed", handleConfigChange);
+  }, []);
 
   const loadPrinters = async () => {
     if (!window.electronAPI?.getPrinters) return;
@@ -187,18 +198,29 @@ export default function PrintersTab() {
           </div>
         </div>
 
-        {isDesktop && (
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             type="button"
-            onClick={loadPrinters}
-            disabled={loadingPrinters}
-            className="btn-secondary text-xs font-semibold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-2xs"
-            title="Actualiser la liste des imprimantes Windows"
+            onClick={() => setShowHardwareModal(true)}
+            className="btn-secondary text-xs font-semibold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-2xs border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 bg-white dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/40 cursor-pointer"
           >
-            <RefreshCw size={14} className={cn(loadingPrinters && "animate-spin text-primary-600")} />
-            <span>{loadingPrinters ? "Détection en cours..." : "Actualiser les imprimantes"}</span>
+            <ScanBarcode size={15} className="text-primary-600 dark:text-primary-400" />
+            <span>{t("hardware.open_assistant_btn", "Assistant Matériel (Douchette & Imprimante)")}</span>
           </button>
-        )}
+
+          {isDesktop && (
+            <button
+              type="button"
+              onClick={loadPrinters}
+              disabled={loadingPrinters}
+              className="btn-secondary text-xs font-semibold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-2xs"
+              title="Actualiser la liste des imprimantes Windows"
+            >
+              <RefreshCw size={14} className={cn(loadingPrinters && "animate-spin text-primary-600")} />
+              <span>{loadingPrinters ? "Détection en cours..." : "Actualiser les imprimantes"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Section 1: Ticket de Caisse & Reçus ───────────────────────────────── */}
@@ -744,6 +766,14 @@ export default function PrintersTab() {
           <span>{t("printers.save_preferences")}</span>
         </button>
       </div>
+
+      {/* Hardware Quick-Check Assistant Modal */}
+      {showHardwareModal && (
+        <HardwareQuickCheckModal
+          isOpen={showHardwareModal}
+          onClose={() => setShowHardwareModal(false)}
+        />
+      )}
     </div>
   );
 }

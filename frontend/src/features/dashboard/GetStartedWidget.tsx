@@ -5,12 +5,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2, Circle, ChevronDown, ChevronUp, X, Sparkles,
   PackagePlus, UploadCloud, Database, Printer, KeyRound, ShoppingCart,
-  ArrowRight, Loader2, RotateCcw, AlertCircle
+  ArrowRight, Loader2, RotateCcw, AlertCircle, ScanBarcode
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import { getPrinterConfig, testPrintTicket, savePrinterConfig } from "@/lib/printerConfig";
 import BulkImportWizardModal from "@/components/import/BulkImportWizardModal";
 import QuickCashierModal from "./QuickCashierModal";
+import HardwareQuickCheckModal from "@/features/settings/HardwareQuickCheckModal";
 import type { DashboardKPIs } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ export default function GetStartedWidget({ kpis, onDismiss }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCashierModal, setShowCashierModal] = useState(false);
+  const [showHardwareModal, setShowHardwareModal] = useState(false);
   const [printerTested, setPrinterTested] = useState<boolean>(() => {
     return localStorage.getItem("shodz_printer_tested") === "true";
   });
@@ -344,6 +346,15 @@ export default function GetStartedWidget({ kpis, onDismiss }: Props) {
                   <span>{t("dashboard.onboarding.m2_btn_test", "Imprimer un ticket de test")}</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={() => setShowHardwareModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-all cursor-pointer shadow-2xs"
+                >
+                  <ScanBarcode size={14} className="text-primary-600 dark:text-primary-400" />
+                  <span>{t("hardware.open_assistant_btn", "Assistant Matériel (Douchette & Imprimante)")}</span>
+                </button>
+
                 <Link
                   to="/settings"
                   className="text-2xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
@@ -486,6 +497,17 @@ export default function GetStartedWidget({ kpis, onDismiss }: Props) {
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ["dashboard", "kpis"] });
             setShowCashierModal(false);
+          }}
+        />
+      )}
+
+      {/* Hardware Quick-Check Assistant Modal */}
+      {showHardwareModal && (
+        <HardwareQuickCheckModal
+          isOpen={showHardwareModal}
+          onClose={() => {
+            setShowHardwareModal(false);
+            setPrinterTested(localStorage.getItem("shodz_printer_tested") === "true");
           }}
         />
       )}
