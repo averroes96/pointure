@@ -9,7 +9,7 @@ interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -42,10 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
+    const cleanIdentifier = identifier.trim();
     const tokenRes = await api.post<{ access: string; refresh: string }>(
       "/auth/login/",
-      { email, password }
+      { username: cleanIdentifier, password }
     );
     setTokens(tokenRes.data.access, tokenRes.data.refresh);
 

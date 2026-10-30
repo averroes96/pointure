@@ -55,6 +55,7 @@
     "login": "Login",
     "logout": "Logout",
     "email": "Email",
+    "phone_or_email": "Phone number or Email",
     "password": "Password",
     "remember_me": "Remember me",
     "forgot_password": "Forgot password?",

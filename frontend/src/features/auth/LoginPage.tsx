@@ -5,17 +5,34 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { getApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { normalizeAlgerianPhone } from "@/lib/phone";
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIdentifier(e.target.value);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text");
+    if (text && !text.includes("@")) {
+      // If phone digits are pasted with extra whitespace or formatting, clean multiple spaces
+      const cleaned = text.trim().replace(/\s+/g, " ");
+      if (/\d/.test(cleaned)) {
+        e.preventDefault();
+        setIdentifier(cleaned);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +40,12 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const trimmed = identifier.trim();
+      const loginIdentifier = trimmed.includes("@")
+        ? trimmed.toLowerCase()
+        : normalizeAlgerianPhone(trimmed) || trimmed;
+
+      await login(loginIdentifier, password);
       navigate("/", { replace: true });
     } catch (err) {
       setError(getApiError(err));
@@ -47,20 +69,22 @@ export default function LoginPage() {
         {/* Form Card */}
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
+            {/* Phone or Email Identifier */}
             <div>
-              <label className="form-label" htmlFor="email">
-                {t("auth.email")}
+              <label className="form-label" htmlFor="identifier">
+                {t("auth.phone_or_email")}
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={handleIdentifierChange}
+                onPaste={handlePaste}
                 className="form-input"
-                placeholder="admin@demo.com"
+                placeholder="0555 12 34 56 ou admin@boutique.dz"
                 required
                 autoFocus
+                autoComplete="username"
               />
             </div>
 
@@ -127,7 +151,8 @@ export default function LoginPage() {
 
         {/* Demo hint */}
         <p className="text-center text-xs text-text-muted mt-4">
-          Demo: <code className="font-mono bg-surface px-1 py-0.5 rounded">admin@demo.com</code>{" "}
+          Demo : <code className="font-mono bg-surface px-1 py-0.5 rounded">0555 12 34 56</code> /{" "}
+          <code className="font-mono bg-surface px-1 py-0.5 rounded">admin@demo.com</code>{" "}
           / <code className="font-mono bg-surface px-1 py-0.5 rounded">demo1234</code>
         </p>
       </div>

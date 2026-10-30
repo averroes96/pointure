@@ -55,6 +55,7 @@
     "login": "Connexion",
     "logout": "Déconnexion",
     "email": "Email",
+    "phone_or_email": "Numéro de téléphone ou Email",
     "password": "Mot de passe",
     "remember_me": "Se souvenir de moi",
     "forgot_password": "Mot de passe oublié?",
