@@ -79,13 +79,18 @@ class UserManager(BaseUserManager):
 
     def get_by_natural_key(self, username):
         from apps.core.utils.phone import normalize_algerian_phone
-        if not username:
-            return self.none()
+        if not username or not str(username).strip():
+            raise self.model.DoesNotExist
         username_str = str(username).strip()
         if "@" in username_str:
             return self.get(email__iexact=username_str)
         normalized = normalize_algerian_phone(username_str)
-        return self.get(models.Q(phone=normalized) | models.Q(phone=username_str))
+        lookup = models.Q(phone=normalized) if normalized else models.Q()
+        if username_str != normalized:
+            lookup = lookup | models.Q(phone=username_str)
+        if not lookup:
+            raise self.model.DoesNotExist
+        return self.get(lookup)
 
 
 class TenantQuerySet(models.QuerySet):

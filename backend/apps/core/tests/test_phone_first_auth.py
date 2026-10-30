@@ -146,3 +146,119 @@ class TestPhoneFirstUserModel:
         found_email = User.objects.get_by_natural_key("support@shodz.dz")
         assert found_email.pk == email_user.pk
 
+
+@pytest.mark.django_db
+class TestPhoneOrEmailBackend:
+    """Test PhoneOrEmailBackend authentication with phone or email credentials."""
+
+    def test_authenticate_with_phone_formats(self):
+        from django.contrib.auth import authenticate
+        user = User.objects.create_user(phone="0555 12 34 56", password="strongpassword123")
+
+        # Local normalized
+        auth_user = authenticate(username="0555123456", password="strongpassword123")
+        assert auth_user == user
+
+        # Spaced local
+        auth_user_spaced = authenticate(username="0555 12 34 56", password="strongpassword123")
+        assert auth_user_spaced == user
+
+        # International with +213
+        auth_user_intl = authenticate(username="+213 555 12 34 56", password="strongpassword123")
+        assert auth_user_intl == user
+
+        # Using 'phone' kwarg directly
+        auth_user_kwarg = authenticate(phone="+213555123456", password="strongpassword123")
+        assert auth_user_kwarg == user
+
+    def test_authenticate_with_legacy_email(self):
+        from django.contrib.auth import authenticate
+        user = User.objects.create_user(email="admin@boutique.dz", password="strongpassword123")
+
+        # Exact email
+        auth_user = authenticate(username="admin@boutique.dz", password="strongpassword123")
+        assert auth_user == user
+
+        # Uppercase / case-insensitive email
+        auth_user_upper = authenticate(username="ADMIN@BOUTIQUE.DZ", password="strongpassword123")
+        assert auth_user_upper == user
+
+        # Using 'email' kwarg
+        auth_user_kwarg = authenticate(email="admin@boutique.dz", password="strongpassword123")
+        assert auth_user_kwarg == user
+
+    def test_authenticate_wrong_password_fails(self):
+        from django.contrib.auth import authenticate
+        User.objects.create_user(phone="0555123456", password="strongpassword123")
+        assert authenticate(username="0555123456", password="wrongpassword") is None
+
+    def test_authenticate_inactive_user_fails(self):
+        from django.contrib.auth import authenticate
+        user = User.objects.create_user(phone="0555123456", password="strongpassword123")
+        user.is_active = False
+        user.save()
+        assert authenticate(username="0555123456", password="strongpassword123") is None
+
+    def test_authenticate_nonexistent_identity_fails(self):
+        from django.contrib.auth import authenticate
+        assert authenticate(username="0555999999", password="somepassword") is None
+        assert authenticate(username="nobody@shodz.dz", password="somepassword") is None
+        assert authenticate(username="", password="somepassword") is None
+        assert authenticate(password="somepassword") is None
+
+
+@pytest.mark.django_db
+class TestPhoneOrEmailLoginApi:
+    """Test /api/v1/auth/login/ endpoint with PhoneOrEmailTokenObtainPairSerializer."""
+
+    def test_login_with_phone(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        User.objects.create_user(phone="0555 12 34 56", password="securepassword123")
+
+        # POST with 'username' as normalized phone
+        resp = client.post("/api/v1/auth/login/", {"username": "0555123456", "password": "securepassword123"})
+        assert resp.status_code == 200
+        assert "access" in resp.data
+        assert "refresh" in resp.data
+
+        # POST with 'username' as formatted international phone
+        resp2 = client.post("/api/v1/auth/login/", {"username": "+213 555 12 34 56", "password": "securepassword123"})
+        assert resp2.status_code == 200
+        assert "access" in resp2.data
+
+        # POST with 'phone' key explicitly
+        resp3 = client.post("/api/v1/auth/login/", {"phone": "0555 12 34 56", "password": "securepassword123"})
+        assert resp3.status_code == 200
+        assert "access" in resp3.data
+
+    def test_login_with_legacy_email(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        User.objects.create_user(email="legacy.admin@boutique.dz", password="securepassword123")
+
+        # POST with 'username' as email
+        resp = client.post("/api/v1/auth/login/", {"username": "legacy.admin@boutique.dz", "password": "securepassword123"})
+        assert resp.status_code == 200
+        assert "access" in resp.data
+
+        # POST with 'email' key explicitly
+        resp2 = client.post("/api/v1/auth/login/", {"email": "legacy.admin@boutique.dz", "password": "securepassword123"})
+        assert resp2.status_code == 200
+        assert "access" in resp2.data
+
+    def test_login_invalid_credentials_returns_401(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        User.objects.create_user(phone="0555123456", password="securepassword123")
+
+        resp = client.post("/api/v1/auth/login/", {"username": "0555123456", "password": "incorrect"})
+        assert resp.status_code == 401
+
+    def test_login_missing_identifier_returns_400(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        resp = client.post("/api/v1/auth/login/", {"password": "securepassword123"})
+        assert resp.status_code == 400
+
+

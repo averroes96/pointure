@@ -43,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "date_joined", "can_see_costs", "has_pin"]
 
     def get_full_name(self, obj):
-        return obj.get_full_name() or obj.email
+        return obj.get_full_name() or obj.phone or obj.email
 
     def get_has_pin(self, obj):
         return bool(obj.pin_code)
@@ -139,3 +139,68 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_has_pin(self, obj):
         return bool(obj.pin_code)
+
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.utils.translation import gettext_lazy as _
+
+class PhoneOrEmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Accepts 'username', 'email', or 'phone' as the login credential,
+    allowing dual login via Algerian phone number or email address.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove default USERNAME_FIELD requirement from SimpleJWT
+        self.fields.pop(self.username_field, None)
+        # Add flexible username/identifier field
+        self.fields["username"] = serializers.CharField(
+            required=False,
+            allow_blank=True,
+            write_only=True,
+            help_text="Phone number or email address",
+        )
+        # Also allow clients posting 'phone' or 'email' directly
+        self.fields["phone"] = serializers.CharField(required=False, allow_blank=True, write_only=True)
+        self.fields["email"] = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+    def validate(self, attrs):
+        identifier = (
+            attrs.get("username")
+            or attrs.get("phone")
+            or attrs.get("email")
+        )
+        if not identifier or not str(identifier).strip():
+            raise serializers.ValidationError({
+                "username": _("Un numéro de téléphone ou une adresse email est requis.")
+            })
+
+        authenticate_kwargs = {
+            "username": str(identifier).strip(),
+            "password": attrs.get("password", ""),
+        }
+        if "request" in self.context:
+            authenticate_kwargs["request"] = self.context["request"]
+
+        from django.contrib.auth import authenticate
+        self.user = authenticate(**authenticate_kwargs)
+
+        from rest_framework_simplejwt.settings import api_settings
+        from rest_framework import exceptions
+        if not api_settings.USER_AUTHENTICATION_RULE(self.user):
+            raise exceptions.AuthenticationFailed(
+                self.error_messages["no_active_account"],
+                "no_active_account",
+            )
+
+        data = {}
+        refresh = self.get_token(self.user)
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
+
+        if api_settings.UPDATE_LAST_LOGIN:
+            from django.contrib.auth.models import update_last_login
+            update_last_login(None, self.user)
+
+        return data
+

@@ -26,10 +26,12 @@ from rest_framework_simplejwt.views import (
 from apps.core.views import PasswordResetRequestView, PasswordResetConfirmView
 from apps.core.setup_views import SetupStatusView, SetupView
 from apps.core.throttling import LoginRateThrottle, PasswordResetRateThrottle
+from apps.core.serializers import PhoneOrEmailTokenObtainPairSerializer
 
 
 class ThrottledLoginView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
+    serializer_class = PhoneOrEmailTokenObtainPairSerializer
 
 
 class ThrottledPasswordResetView(PasswordResetRequestView):
