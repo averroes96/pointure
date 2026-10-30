@@ -732,7 +732,7 @@ export default function ReconciliationPage() {
                               <button
                                 type="button"
                                 onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
-                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                               >
                                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                               </button>
@@ -756,17 +756,17 @@ export default function ReconciliationPage() {
       ) : (
         /* ── Legacy Tab (CashReconciliation) ── */
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
-            <h2 className="text-base font-extrabold text-slate-900 mb-1">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6">
+            <h2 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
               {t("reconciliation.legacy_history_title")}
             </h2>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               {t("reconciliation.legacy_history_desc")}
             </p>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <thead className="bg-slate-50/90 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200/80 dark:border-slate-700">
                   <tr>
                     <th className="py-2.5 px-3 text-start">{t("sales.date")}</th>
                     <th className="py-2.5 px-3 text-start">{t("reconciliation.legacy_col_branch")}</th>
@@ -777,22 +777,22 @@ export default function ReconciliationPage() {
                     <th className="py-2.5 px-3 text-end">{t("common.actions")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                   {legacyHistory && legacyHistory.length > 0 ? (
                     legacyHistory.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 font-medium text-slate-900">{rec.date}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{rec.branch_name ?? "—"}</td>
+                      <tr key={rec.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{rec.date}</td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{rec.branch_name ?? "—"}</td>
                         <td className="py-2.5 px-3 text-end font-mono">{formatDZD(rec.total_system)} DZD</td>
-                        <td className="py-2.5 px-3 text-end font-mono font-bold">{formatDZD(rec.total_actual)} DZD</td>
+                        <td className="py-2.5 px-3 text-end font-mono font-bold text-slate-900 dark:text-white">{formatDZD(rec.total_actual)} DZD</td>
                         <td className="py-2.5 px-3 text-end font-mono">
                           <GapPill gap={parseFloat(rec.total_gap)} />
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600">{rec.submitted_by_name ?? "—"}</td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{rec.submitted_by_name ?? "—"}</td>
                         <td className="py-2.5 px-3 text-end">
                           <button
                             onClick={() => openPrintPopup(buildLegacyPrintHtml(rec), "210mm", 10)}
-                            className="btn-ghost btn-sm text-slate-500 hover:text-slate-900"
+                            className="btn-ghost btn-sm text-slate-500 hover:text-slate-900 dark:hover:text-white"
                             title={t("common.print")}
                           >
                             <Printer size={14} />
@@ -1275,7 +1275,7 @@ export default function ReconciliationPage() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 dark:bg-slate-950/60 flex justify-center">
-              <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
+              <div className="bg-white shadow-sm border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
                 <iframe
                   title={t("reconciliation.ticket_x_title")}
                   srcDoc={xReportData.x_report_html}
@@ -1327,7 +1327,7 @@ export default function ReconciliationPage() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 bg-slate-100/50 dark:bg-slate-950/60 flex justify-center">
-              <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
+              <div className="bg-white shadow-sm border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full max-w-[82mm] h-[480px]">
                 <iframe
                   title={t("reconciliation.ticket_z_title")}
                   srcDoc={zReportData.z_report_html}

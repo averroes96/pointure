@@ -37,7 +37,7 @@ function toISODate(d: Date): string {
 
 const TIER_CONFIG: Record<LoyaltyTier, { label: string; className: string; Icon: typeof Star }> = {
   bronze: { label: "Bronze", className: "text-amber-700 bg-amber-100", Icon: Medal },
-  silver: { label: "Silver", className: "text-slate-600 bg-slate-100", Icon: Star },
+  silver: { label: "Silver", className: "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800", Icon: Star },
   gold:   { label: "Gold",   className: "text-yellow-600 bg-yellow-100", Icon: Trophy },
 };
 
@@ -162,7 +162,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
@@ -186,7 +186,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                   key={s.item.id}
                   className={cn(
                     "border border-border rounded-lg p-3 transition-colors",
-                    s.selected && "border-primary-300 bg-primary-50/30"
+                    s.selected && "border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-950/30"
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -222,7 +222,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                                 ),
                               })
                             }
-                            className="w-16 px-2 py-1 border border-border rounded text-center font-mono text-sm"
+                            className="w-16 px-2 py-1 border border-border dark:border-slate-700 rounded text-center font-mono text-sm dark:bg-slate-800 dark:text-white"
                           />
                           <span className="text-text-muted">/ {s.item.quantity}</span>
                         </label>
@@ -239,7 +239,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                           </label>
                         )}
 
-                        <label className="flex items-center gap-1.5 text-xs cursor-pointer text-amber-700 font-medium">
+                        <label className="flex items-center gap-1.5 text-xs cursor-pointer text-amber-700 dark:text-amber-400 font-medium">
                           <input
                             type="checkbox"
                             checked={s.is_defective}
@@ -258,8 +258,8 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                       </div>
 
                       {s.is_defective && (
-                        <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2 text-xs">
-                          <div className="flex items-center gap-1.5 text-amber-800 text-[11px]">
+                        <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 text-[11px]">
                             <span>ℹ {t("sales.defect_quarantine_hint")}</span>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -270,7 +270,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                               <select
                                 value={s.defect_reason}
                                 onChange={(e) => updateItem(i, { defect_reason: e.target.value as DefectReason })}
-                                className="w-full form-input py-1 px-2 text-xs"
+                                className="w-full form-input py-1 px-2 text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                               >
                                 {DEFECT_REASONS.map((r) => (
                                   <option key={r.value} value={r.value}>
@@ -288,7 +288,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
                                 value={s.defect_notes}
                                 onChange={(e) => updateItem(i, { defect_notes: e.target.value })}
                                 placeholder={t("sales.defect_notes_placeholder")}
-                                className="w-full form-input py-1 px-2 text-xs"
+                                className="w-full form-input py-1 px-2 text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                               />
                             </div>
                           </div>
@@ -407,7 +407,7 @@ function AddPaymentModal({ sale, onClose }: { sale: Sale; onClose: () => void })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xl w-full max-w-md flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
             <h2 className="font-semibold text-text-primary">{t("sales.add_payment")}</h2>
@@ -532,10 +532,10 @@ function CollectLayawayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-indigo-50/50">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-indigo-50/50 dark:bg-indigo-950/40">
           <div className="flex items-center gap-2">
-            <PackageCheck size={18} className="text-indigo-600" />
+            <PackageCheck size={18} className="text-indigo-600 dark:text-indigo-400" />
             <h3 className="font-bold text-text-primary">
               {t("sales_history.collect_layaway_title", { receipt: sale.receipt_number })}
             </h3>
@@ -561,12 +561,12 @@ function CollectLayawayModal({
             </div>
             <div className="flex justify-between border-t border-border pt-1.5">
               <span className="text-text-muted font-bold">{t("sales_history.balance_to_collect_label")}</span>
-              <span className="font-mono font-extrabold text-indigo-700 text-sm">{formatDZD(sale.balance_due)} DZD</span>
+              <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-400 text-sm">{formatDZD(sale.balance_due)} DZD</span>
             </div>
           </div>
 
           {/* Reserved items mini-list */}
-          <div className="border border-border rounded-xl p-3 bg-white">
+          <div className="border border-border rounded-xl p-3 bg-white dark:bg-slate-800/60">
             <p className="text-2xs font-bold text-text-muted uppercase tracking-wider mb-2">
               {t("sales_history.reserved_items_to_handover", { count: sale.items?.length ?? 0 })}
             </p>
@@ -715,10 +715,10 @@ function CancelLayawayModal({
       )}
 
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-red-50/50">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-red-50/50 dark:bg-red-950/40">
             <div className="flex items-center gap-2">
-              <Ban size={18} className="text-red-600" />
+              <Ban size={18} className="text-red-600 dark:text-red-400" />
               <h3 className="font-bold text-text-primary">
                 {t("sales_history.cancel_layaway_title", { receipt: sale.receipt_number })}
               </h3>
@@ -729,13 +729,13 @@ function CancelLayawayModal({
           </div>
 
           <div className="p-5 space-y-4 text-xs">
-            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1">
-              <p className="font-semibold text-slate-800">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-3 space-y-1">
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
                 {t("sales_history.cancel_layaway_action_desc")}
               </p>
               <p className="text-text-muted">
                 {t("sales_history.deposit_recorded_desc")}{" "}
-                <strong className="font-mono text-slate-900">{formatDZD(sale.amount_paid)} DZD</strong>
+                <strong className="font-mono text-slate-900 dark:text-white">{formatDZD(sale.amount_paid)} DZD</strong>
               </p>
             </div>
 
@@ -747,13 +747,15 @@ function CancelLayawayModal({
 
             {amountPaid > 0 && (
               <div className="space-y-2">
-                <label className="form-label font-bold text-slate-800">{t("sales_history.deposit_management_label")}</label>
+                <label className="form-label font-bold text-slate-800 dark:text-slate-200">{t("sales_history.deposit_management_label")}</label>
 
                 <label
                   onClick={() => { setRefundDeposit(true); setDepositForfeited(false); }}
                   className={cn(
                     "flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors",
-                    refundDeposit && !depositForfeited ? "bg-emerald-50/70 border-emerald-300" : "bg-white border-slate-200 hover:bg-slate-50"
+                    refundDeposit && !depositForfeited
+                      ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   )}
                 >
                   <input
@@ -764,8 +766,8 @@ function CancelLayawayModal({
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="font-bold text-emerald-900">{t("sales_history.refund_deposit_option", { amount: formatDZD(amountPaid) })}</p>
-                    <p className="text-2xs text-emerald-700">{t("sales_history.refund_deposit_hint")}</p>
+                    <p className="font-bold text-emerald-900 dark:text-emerald-300">{t("sales_history.refund_deposit_option", { amount: formatDZD(amountPaid) })}</p>
+                    <p className="text-2xs text-emerald-700 dark:text-emerald-400">{t("sales_history.refund_deposit_hint")}</p>
                   </div>
                 </label>
 
@@ -773,7 +775,9 @@ function CancelLayawayModal({
                   onClick={() => { setRefundDeposit(false); setDepositForfeited(true); }}
                   className={cn(
                     "flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors",
-                    depositForfeited ? "bg-amber-50/70 border-amber-300" : "bg-white border-slate-200 hover:bg-slate-50"
+                    depositForfeited
+                      ? "bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   )}
                 >
                   <input
@@ -784,8 +788,8 @@ function CancelLayawayModal({
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="font-bold text-amber-900">{t("sales_history.forfeit_deposit_option")}</p>
-                    <p className="text-2xs text-amber-700">{t("sales_history.forfeit_deposit_hint")}</p>
+                    <p className="font-bold text-amber-900 dark:text-amber-300">{t("sales_history.forfeit_deposit_option")}</p>
+                    <p className="text-2xs text-amber-700 dark:text-amber-400">{t("sales_history.forfeit_deposit_hint")}</p>
                   </div>
                 </label>
               </div>
@@ -1035,22 +1039,22 @@ export default function SalesHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t("nav.sales")}</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t("nav.sales")}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {data?.count ?? 0} {t("sales.sale", { count: data?.count ?? 0, defaultValue: "ventes" })} enregistrées
           </p>
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
           {/* Print Detailed Daily Sales (Ticket Z style) */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-2xs p-1 gap-1.5">
+          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs p-1 gap-1.5">
             <div className="flex items-center gap-1.5 ps-2">
               <Calendar size={14} className="text-slate-400 shrink-0" />
               <input
                 type="date"
                 value={reportDate}
                 onChange={(e) => setReportDate(e.target.value)}
-                className="text-xs font-semibold text-slate-700 bg-transparent border-none focus:outline-none cursor-pointer"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none focus:outline-none cursor-pointer"
                 title={t("sales_history.detailed_report_date")}
               />
             </div>
@@ -1058,7 +1062,7 @@ export default function SalesHistoryPage() {
               type="button"
               onClick={() => handleOpenDetailedReport(reportDate)}
               disabled={isLoadingReport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:opacity-50"
               title={t("sales_history.print_daily_report_tooltip")}
             >
               <Printer size={14} />
@@ -1075,30 +1079,30 @@ export default function SalesHistoryPage() {
 
       {/* Today's KPI strip (Always shows Today's Totals & Count instead of paginated slice) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/60 shrink-0">
             <TrendingUp size={18} />
           </div>
           <div className="min-w-0">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {t("dashboard.today_revenue")}
             </div>
-            <div className="font-mono font-extrabold text-lg text-slate-900 tracking-tight truncate">
+            <div className="font-mono font-extrabold text-lg text-slate-900 dark:text-white tracking-tight truncate">
               {formatDZD(todayRevenue)} <span className="text-xs text-slate-400 font-bold">DZD</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shrink-0">
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 flex items-center justify-center border border-primary-100 dark:border-primary-800/60 shrink-0">
             <ShoppingBag size={18} />
           </div>
           <div className="min-w-0">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {t("sales.recent_sales", "VENTES DU JOUR")}
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono font-extrabold text-lg text-slate-900 tracking-tight">
+              <span className="font-mono font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">
                 {todaySalesCount}
               </span>
               {todayItemsSold > 0 && (
@@ -1110,15 +1114,15 @@ export default function SalesHistoryPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3.5 px-4 py-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+        <div className="flex items-center gap-3.5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-800/60 shrink-0">
             <Receipt size={18} />
           </div>
           <div className="min-w-0">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {t("sales.in_installment", "Versements en cours")}
             </div>
-            <div className="font-mono font-extrabold text-lg text-amber-700 tracking-tight">
+            <div className="font-mono font-extrabold text-lg text-amber-700 dark:text-amber-400 tracking-tight">
               {outstandingVersements}
             </div>
           </div>
@@ -1126,11 +1130,11 @@ export default function SalesHistoryPage() {
       </div>
 
       {/* Expanded Filters Panel */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
         {/* Row 1: Quick Date Presets + Search + Reset */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           {/* Quick Date Pills */}
-          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
+          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-1 flex-wrap">
             {(
               [
                 { id: "all", label: t("status.all") },
@@ -1147,8 +1151,8 @@ export default function SalesHistoryPage() {
                 className={cn(
                   "px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
                   datePreset === preset.id
-                    ? "bg-white text-slate-900 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 )}
               >
                 {preset.label}
@@ -1166,14 +1170,14 @@ export default function SalesHistoryPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="form-input ps-9 py-1.5 rounded-xl text-xs w-full"
+              className="form-input ps-9 py-1.5 rounded-xl text-xs w-full bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
               placeholder={t("sales_history.search_placeholder")}
             />
           </div>
         </div>
 
         {/* Row 2: Detailed Filter Controls */}
-        <div className="flex flex-wrap gap-2.5 items-center pt-1 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2.5 items-center pt-1 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
             <Filter size={13} />
             <span>{t("sales_history.filters")}</span>
@@ -1186,7 +1190,7 @@ export default function SalesHistoryPage() {
               setStatus(e.target.value);
               setPage(1);
             }}
-            className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium"
+            className="form-input w-auto min-w-[140px] py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             title={t("sales_history.filter_status")}
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -1203,7 +1207,7 @@ export default function SalesHistoryPage() {
               setPaymentMethod(e.target.value);
               setPage(1);
             }}
-            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             title={t("sales_history.filter_payment")}
           >
             <option value="">{t("sales_history.all_payments")}</option>
@@ -1221,7 +1225,7 @@ export default function SalesHistoryPage() {
               setClientFilter(e.target.value);
               setPage(1);
             }}
-            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium"
+            className="form-input w-auto min-w-[155px] py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             title={t("sales_history.filter_client")}
           >
             <option value="">{t("sales_history.all_clients")}</option>
@@ -1238,7 +1242,7 @@ export default function SalesHistoryPage() {
                 setCashierId(e.target.value);
                 setPage(1);
               }}
-              className="form-input w-auto min-w-[145px] py-1.5 rounded-xl text-xs font-medium"
+              className="form-input w-auto min-w-[145px] py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
               title={t("sales_history.filter_cashier")}
             >
               <option value="">{t("sales_history.all_cashiers")}</option>
@@ -1260,7 +1264,7 @@ export default function SalesHistoryPage() {
               setOrdering(e.target.value);
               setPage(1);
             }}
-            className="form-input w-auto min-w-[150px] py-1.5 rounded-xl text-xs font-medium"
+            className="form-input w-auto min-w-[150px] py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             title={t("sales_history.sort")}
           >
             <option value="-created_at">{t("sales_history.sort_newest")}</option>
@@ -1271,7 +1275,7 @@ export default function SalesHistoryPage() {
 
           {/* Date Range */}
           <div className="flex items-center gap-1.5 ms-auto">
-            <label className="text-xs text-slate-500 font-semibold whitespace-nowrap">{t("common.from")}</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">{t("common.from")}</label>
             <input
               type="date"
               value={dateFrom}
@@ -1281,9 +1285,9 @@ export default function SalesHistoryPage() {
                 if (e.target.value) setReportDate(e.target.value);
                 setPage(1);
               }}
-              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto"
+              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             />
-            <label className="text-xs text-slate-500 font-semibold">{t("common.to")}</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{t("common.to")}</label>
             <input
               type="date"
               value={dateTo}
@@ -1292,7 +1296,7 @@ export default function SalesHistoryPage() {
                 setDatePreset("custom");
                 setPage(1);
               }}
-              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto"
+              className="form-input text-xs py-1.5 rounded-xl font-medium w-auto bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 dark:text-white"
             />
           </div>
 
@@ -1300,7 +1304,7 @@ export default function SalesHistoryPage() {
             <button
               type="button"
               onClick={resetAllFilters}
-              className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
+              className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 font-bold cursor-pointer rounded-xl px-2.5 py-1.5 text-xs"
             >
               {t("common.reset", "Réinitialiser")}
             </button>
@@ -1309,23 +1313,23 @@ export default function SalesHistoryPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden rounded-2xl border border-slate-200/80 shadow-xs bg-white">
+      <div className="card overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr>
-                <th>{t("sales.receipt_no")}</th>
-                <th>{t("sales_history.datetime_col")}</th>
-                <th>{t("sales.cashier")}</th>
-                <th>{t("sales.client")}</th>
-                <th>{t("sales.payment_methods")}</th>
-                <th>{t("common.status")}</th>
-                <th className="text-end">{t("common.total")}</th>
-                <th className="text-end">{t("sales.balance_due")}</th>
-                <th>{t("common.actions")}</th>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60">
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("sales.receipt_no")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("sales_history.datetime_col")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("sales.cashier")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("sales.client")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("sales.payment_methods")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.total")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("sales.balance_due")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={9} className="text-center py-12 text-slate-400 font-medium">
@@ -1346,33 +1350,33 @@ export default function SalesHistoryPage() {
                   <tr
                     key={sale.id}
                     className={cn(
-                      "cursor-pointer transition-colors",
+                      "cursor-pointer transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50",
                       sale.status === "cancelled" && "opacity-60",
-                      expandedId === sale.id && "bg-primary-50/40"
+                      expandedId === sale.id && "bg-primary-50/40 dark:bg-primary-950/40"
                     )}
                     onClick={() => setExpandedId(expandedId === sale.id ? null : sale.id)}
                   >
                     <td>
                       <div className="flex items-center gap-2">
                         <Receipt size={14} className="text-slate-400 shrink-0" />
-                        <span className="font-mono font-bold text-slate-900">{sale.receipt_number || `#${sale.id}`}</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">{sale.receipt_number || `#${sale.id}`}</span>
                       </div>
                     </td>
-                    <td className="text-slate-600 text-xs font-medium whitespace-nowrap">
+                    <td className="text-slate-600 dark:text-slate-400 text-xs font-medium whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-slate-800">{formatDate(sale.created_at)}</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(sale.created_at)}</span>
                         {formatTime(sale.created_at) && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono text-[11px] font-bold">
                             <Clock size={10} className="text-slate-400" />
                             {formatTime(sale.created_at)}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="text-xs font-semibold text-slate-700">{sale.cashier_name || "—"}</td>
+                    <td className="text-xs font-semibold text-slate-700 dark:text-slate-300">{sale.cashier_name || "—"}</td>
                     <td className="text-xs">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-slate-800">{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-slate-400 italic font-normal">{t("sales.walk_in")}</span>)}</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{sale.client_name ?? (sale.client ? `#${sale.client}` : <span className="text-slate-400 italic font-normal">{t("sales.walk_in")}</span>)}</span>
                         {sale.loyalty_tier && (() => {
                           const { label, className, Icon } = TIER_CONFIG[sale.loyalty_tier];
                           return (
@@ -1407,18 +1411,18 @@ export default function SalesHistoryPage() {
                       {sale.status === "layaway" && (
                         <div className="mt-1 space-y-0.5">
                           {sale.is_layaway_expired ? (
-                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
+                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60">
                               Expirée
                             </span>
                           ) : (
-                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span className="inline-block px-1.5 py-0.5 rounded text-3xs font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
                               Consignée
                             </span>
                           )}
                           {sale.layaway_expires_at && (
                             <p className={cn(
                               "text-2xs font-mono font-medium",
-                              sale.is_layaway_expired ? "text-red-600 font-bold" : "text-indigo-600"
+                              sale.is_layaway_expired ? "text-red-600 dark:text-red-400 font-bold" : "text-indigo-600 dark:text-indigo-400"
                             )}>
                               {sale.is_layaway_expired
                                 ? `Expirée le ${sale.layaway_expires_at}`
@@ -1435,14 +1439,14 @@ export default function SalesHistoryPage() {
                         return (
                           <p className={cn(
                             "text-2xs mt-0.5 font-mono",
-                            dueDays < 0 ? "text-red-600 font-semibold" : dueDays < 7 ? "text-amber-600" : "text-slate-500"
+                            dueDays < 0 ? "text-red-600 dark:text-red-400 font-semibold" : dueDays < 7 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
                           )}>
                             {dueDays < 0 ? t("sales.overdue_days", { days: Math.abs(dueDays) }) : t("sales.due_on", { date: sale.due_date })}
                           </p>
                         );
                       })()}
                     </td>
-                    <td className="text-end font-mono font-bold text-slate-900 text-sm">
+                    <td className="text-end font-mono font-bold text-slate-900 dark:text-white text-sm">
                       {formatDZD(sale.total_amount)}
                       <span className="text-2xs text-slate-400 ms-1 font-semibold">DZD</span>
                     </td>
@@ -1450,7 +1454,7 @@ export default function SalesHistoryPage() {
                       <span
                         className={cn(
                           "font-mono text-sm",
-                          parseFloat(sale.balance_due || "0") > 0 ? "text-red-600 font-bold" : "text-slate-400"
+                          parseFloat(sale.balance_due || "0") > 0 ? "text-red-600 dark:text-red-400 font-bold" : "text-slate-400"
                         )}
                       >
                         {parseFloat(sale.balance_due || "0") > 0
@@ -1552,15 +1556,15 @@ export default function SalesHistoryPage() {
 
                   {/* Expanded row: sale items */}
                   {expandedId === sale.id && (
-                    <tr key={`${sale.id}-detail`} className="bg-slate-50/60">
+                    <tr key={`${sale.id}-detail`} className="bg-slate-50/60 dark:bg-slate-950/40">
                       <td colSpan={9} className="px-6 py-4">
-                        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-                          <div className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">
                             Articles vendus ({sale.items?.length ?? 0})
                           </div>
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="text-slate-400 font-bold border-b border-slate-100">
+                              <tr className="text-slate-400 dark:text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800">
                                 <th className="text-start pb-2">{t("sales.item")}</th>
                                 <th className="text-end pb-2">{t("sales.qty")}</th>
                                 <th className="text-end pb-2">{t("sales.unit_price")}</th>
@@ -1568,29 +1572,29 @@ export default function SalesHistoryPage() {
                                 <th className="text-end pb-2">{t("sales.subtotal")}</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                               {(sale.items ?? []).map((item) => (
-                                <tr key={item.id} className="text-slate-700">
+                                <tr key={item.id} className="text-slate-700 dark:text-slate-300">
                                   <td className="py-2 font-medium">{item.variant_str}</td>
-                                  <td className="text-end font-mono font-bold">{item.quantity}</td>
+                                  <td className="text-end font-mono font-bold text-slate-900 dark:text-white">{item.quantity}</td>
                                   <td className="text-end font-mono">{formatDZD(item.unit_price)}</td>
-                                  <td className="text-end font-mono text-slate-400">
+                                  <td className="text-end font-mono text-slate-400 dark:text-slate-500">
                                     {parseFloat(item.discount_amount) > 0
                                       ? `-${formatDZD(item.discount_amount)}`
                                       : "—"}
                                   </td>
-                                  <td className="text-end font-mono font-bold text-slate-900">
+                                  <td className="text-end font-mono font-bold text-slate-900 dark:text-white">
                                     {formatDZD(item.subtotal)} DZD
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
                             <tfoot>
-                              <tr className="border-t border-slate-200">
-                                <td colSpan={4} className="text-end pt-3 text-xs font-bold text-slate-800">
+                              <tr className="border-t border-slate-200 dark:border-slate-800">
+                                <td colSpan={4} className="text-end pt-3 text-xs font-bold text-slate-800 dark:text-slate-200">
                                   Total:
                                 </td>
-                                <td className="text-end pt-3 font-mono font-black text-sm text-primary-600">
+                                <td className="text-end pt-3 font-mono font-black text-sm text-primary-600 dark:text-primary-400">
                                   {formatDZD(sale.total_amount)} DZD
                                 </td>
                               </tr>
@@ -1599,7 +1603,7 @@ export default function SalesHistoryPage() {
 
                           {/* Notes */}
                           {sale.notes && (
-                            <div className="mt-3 text-xs text-slate-500 italic bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
                               Note: {sale.notes}
                             </div>
                           )}
@@ -1690,7 +1694,7 @@ export default function SalesHistoryPage() {
               <iframe
                 title={reportPreview.title}
                 srcDoc={reportPreview.html}
-                className="bg-white shadow-md border border-slate-200 rounded-md w-[320px] min-h-[540px]"
+                className="bg-white shadow-md border border-slate-200 dark:border-slate-700 rounded-md w-[320px] min-h-[540px]"
               />
             </div>
 

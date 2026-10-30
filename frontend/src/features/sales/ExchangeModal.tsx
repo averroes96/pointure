@@ -278,8 +278,8 @@ export default function ExchangeModal({
                   <div
                     key={s.item.id}
                     className={cn(
-                      "border border-border rounded-lg p-3 transition-colors",
-                      s.selected && "border-primary-300 bg-primary-50/30"
+                      "border border-border dark:border-slate-800 rounded-lg p-3 transition-colors",
+                      s.selected && "border-primary-300 dark:border-primary-600 bg-primary-50/30 dark:bg-primary-950/20"
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -416,7 +416,7 @@ export default function ExchangeModal({
                 {showDropdown && searchResults.length > 0 && (
                   <div
                     ref={dropdownRef}
-                    className="absolute z-10 top-full mt-1 w-full bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                    className="absolute z-10 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg max-h-48 overflow-y-auto"
                   >
                     {searchResults.map((v) => (
                       <button
@@ -424,14 +424,14 @@ export default function ExchangeModal({
                         type="button"
                         onClick={() => addNewItem(v)}
                         className={cn(
-                          "w-full text-start px-3 py-2 text-sm hover:bg-surface transition-colors",
+                          "w-full text-start px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors",
                           v.is_out_of_stock && "opacity-50"
                         )}
                       >
-                        <div className="font-medium text-text-primary">
+                        <div className="font-medium text-text-primary dark:text-slate-100">
                           {v.product_name}
                         </div>
-                        <div className="text-xs text-text-muted flex items-center gap-2">
+                        <div className="text-xs text-text-muted dark:text-slate-400 flex items-center gap-2">
                           {v.size_eu > 0 && <span>EU {v.size_eu}</span>}
                           {v.colour && v.colour !== "N/A" && v.colour !== "Standard" && <span>{v.colour}</span>}
                           <span
@@ -444,7 +444,7 @@ export default function ExchangeModal({
                           >
                             {t('sales.stock_label')} {v.stock_qty}
                           </span>
-                          <span className="font-mono text-primary-600">
+                          <span className="font-mono text-primary-600 dark:text-primary-400">
                             {formatDZD(v.product_sale_price)} DZD
                           </span>
                         </div>
@@ -456,7 +456,7 @@ export default function ExchangeModal({
 
               {/* Added items list */}
               {newItems.length === 0 ? (
-                <div className="text-xs text-text-muted text-center py-6 border border-dashed border-border rounded-lg">
+                <div className="text-xs text-text-muted dark:text-slate-400 text-center py-6 border border-dashed border-border dark:border-slate-800 rounded-lg">
                   {t("sales.search_select_items")}
                 </div>
               ) : (
@@ -464,10 +464,10 @@ export default function ExchangeModal({
                   {newItems.map((item, i) => (
                     <div
                       key={item.variant_id}
-                      className="border border-border rounded-lg p-3 bg-success/5"
+                      className="border border-border dark:border-slate-800 rounded-lg p-3 bg-success/5 dark:bg-success/10"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 text-sm font-medium text-text-primary truncate">
+                        <div className="flex-1 min-w-0 text-sm font-medium text-text-primary dark:text-slate-100 truncate">
                           {item.variant_str}
                         </div>
                         <button
@@ -480,7 +480,7 @@ export default function ExchangeModal({
                       </div>
                       <div className="mt-2 flex items-center gap-3 text-xs">
                         <label className="flex items-center gap-1.5">
-                          <span className="text-text-muted">{t("sales.qty_colon")}</span>
+                          <span className="text-text-muted dark:text-slate-400">{t("sales.qty_colon")}</span>
                           <input
                             type="number"
                             min={1}
@@ -493,11 +493,11 @@ export default function ExchangeModal({
                                 ),
                               })
                             }
-                            className="w-16 px-2 py-1 border border-border rounded text-center font-mono"
+                            className="w-16 px-2 py-1 border border-border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded text-center font-mono"
                           />
                         </label>
                         <label className="flex items-center gap-1.5 flex-1">
-                          <span className="text-text-muted">{t("sales.unit_price_colon")}</span>
+                          <span className="text-text-muted dark:text-slate-400">{t("sales.unit_price_colon")}</span>
                           <input
                             type="number"
                             min={0}
@@ -506,9 +506,9 @@ export default function ExchangeModal({
                             onChange={(e) =>
                               updateNewItem(i, { unit_price: e.target.value })
                             }
-                            className="w-28 px-2 py-1 border border-border rounded font-mono text-right"
+                            className="w-28 px-2 py-1 border border-border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded font-mono text-right"
                           />
-                          <span className="text-text-muted">DZD</span>
+                          <span className="text-text-muted dark:text-slate-400">DZD</span>
                         </label>
                       </div>
                     </div>
@@ -520,17 +520,17 @@ export default function ExchangeModal({
 
           {/* ── Price summary ─────────────────────────────────────────────── */}
           {(selectedReturned.length > 0 || newItems.length > 0) && (
-            <div className="rounded-lg bg-surface p-4 space-y-2 text-sm">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-muted">{t("sales.returned_value")}</span>
-                <span className="font-mono">{formatDZD(returnedValue)} DZD</span>
+                <span className="text-text-muted dark:text-slate-400">{t("sales.returned_value")}</span>
+                <span className="font-mono text-text-primary dark:text-slate-100">{formatDZD(returnedValue)} DZD</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">{t("sales.new_items_value")}</span>
-                <span className="font-mono">{formatDZD(newValue)} DZD</span>
+                <span className="text-text-muted dark:text-slate-400">{t("sales.new_items_value")}</span>
+                <span className="font-mono text-text-primary dark:text-slate-100">{formatDZD(newValue)} DZD</span>
               </div>
-              <div className="flex justify-between border-t border-border pt-2 font-semibold">
-                <span>{t("sales.difference")}</span>
+              <div className="flex justify-between border-t border-border dark:border-slate-700 pt-2 font-semibold">
+                <span className="text-text-primary dark:text-slate-100">{t("sales.difference")}</span>
                 <span
                   className={cn(
                     "font-mono",

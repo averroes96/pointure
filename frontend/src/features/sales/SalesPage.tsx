@@ -42,9 +42,9 @@ interface PaymentLine {
 
 const TIER_ICON = { bronze: Medal, silver: Star, gold: Trophy } as const;
 const TIER_COLOUR = {
-  bronze: "text-amber-700 bg-amber-50",
-  silver: "text-slate-600 bg-slate-100",
-  gold: "text-yellow-700 bg-yellow-50",
+  bronze: "text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40",
+  silver: "text-slate-600 bg-slate-100 dark:text-slate-300 dark:bg-slate-800",
+  gold: "text-yellow-700 bg-yellow-50 dark:text-yellow-300 dark:bg-yellow-950/40",
 } as const;
 
 // ── Quick-create client modal ─────────────────────────────────────────────
