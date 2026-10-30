@@ -50,6 +50,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(required=True)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True)
     pin_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -57,20 +59,43 @@ class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "email", "first_name", "last_name", "password", "confirm_password",
-            "role", "language_preference", "phone",
+            "phone", "email", "first_name", "last_name", "password", "confirm_password",
+            "role", "language_preference",
             "max_discount_pct", "can_modify_price", "can_process_returns", "can_cancel_sale",
             "pin_code",
         ]
 
     def validate(self, data):
+        phone = data.get("phone", "")
+        if not phone or not str(phone).strip():
+            raise serializers.ValidationError({"phone": _("Le numéro de téléphone est obligatoire.")})
+
+        from apps.core.utils.phone import is_valid_algerian_phone, normalize_algerian_phone
+        if not is_valid_algerian_phone(phone):
+            raise serializers.ValidationError({
+                "phone": _("Numéro de téléphone algérien invalide (ex: 0555 12 34 56 ou +213 555 12 34 56).")
+            })
+        normalized_phone = normalize_algerian_phone(phone)
+        if User.objects.filter(phone=normalized_phone).exists():
+            raise serializers.ValidationError({"phone": _("Ce numéro de téléphone est déjà utilisé.")})
+        data["phone"] = normalized_phone
+
+        email = data.get("email")
+        if email and str(email).strip():
+            email_clean = str(email).strip().lower()
+            if User.objects.filter(email__iexact=email_clean).exists():
+                raise serializers.ValidationError({"email": _("Cette adresse email est déjà utilisée.")})
+            data["email"] = email_clean
+        else:
+            data["email"] = None
+
         if data["password"] != data.pop("confirm_password"):
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+            raise serializers.ValidationError({"confirm_password": _("Passwords do not match.")})
         pin = data.get("pin_code")
         if pin:
             pin_str = pin.strip()
             if not pin_str.isdigit() or len(pin_str) not in (4, 6):
-                raise serializers.ValidationError({"pin_code": "Le code PIN doit comporter 4 ou 6 chiffres numériques."})
+                raise serializers.ValidationError({"pin_code": _("Le code PIN doit comporter 4 ou 6 chiffres numériques.")})
         return data
 
     def create(self, validated_data):

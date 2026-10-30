@@ -47,15 +47,19 @@ def send_welcome_email(user_pk: int, temp_password: str, tenant_name: str):
     except User.DoesNotExist:
         return
 
+    if not user.email:
+        return
+
     frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost")
 
     send_mail(
         subject=f"Bienvenue sur ShoeDZ — {tenant_name}",
-        message=f"""Bonjour {user.first_name or user.email},
+        message=f"""Bonjour {user.first_name or user.phone or user.email},
 
 Un compte a été créé pour vous sur ShoeDZ ({tenant_name}).
 
-Email    : {user.email}
+Identifiant : {user.phone or user.email}
+Email       : {user.email}
 Mot de passe temporaire : {temp_password}
 
 Connectez-vous ici : {frontend_url}/login

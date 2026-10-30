@@ -38,6 +38,11 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useWilayas } from "@/hooks/useLocationData";
 import { useTheme } from "@/hooks/useTheme";
 import i18n from "@/lib/i18n";
+import {
+  isValidAlgerianPhone,
+  normalizeAlgerianPhone,
+  formatAlgerianPhoneDisplay,
+} from "@/lib/phone";
 
 const t = i18n.t.bind(i18n);
 
@@ -574,7 +579,8 @@ function SecurityTab() {
 // ─── Tab: Utilisateurs ───────────────────────────────────────────────────
 
 interface InviteFormData {
-  email: string;
+  phone: string;
+  email?: string;
   role: "manager" | "cashier";
   first_name: string;
   last_name: string;
@@ -662,7 +668,16 @@ function UsersTab() {
 
   function onInvite(data: InviteFormData) {
     setToast(null);
-    inviteMutation.mutate(data);
+    const payload: Record<string, unknown> = {
+      ...data,
+      phone: normalizeAlgerianPhone(data.phone.trim()),
+    };
+    if (data.email && data.email.trim()) {
+      payload.email = data.email.trim().toLowerCase();
+    } else {
+      payload.email = null;
+    }
+    inviteMutation.mutate(payload as unknown as InviteFormData);
   }
 
   const handleSetPin = async (userId: number, pin: string) => {
@@ -742,14 +757,44 @@ function UsersTab() {
               </div>
             </div>
             <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-0">
+                  {t("common.phone", "Téléphone")} <span className="text-rose-500">*</span>
+                </label>
+                <span className="text-2xs font-semibold px-2 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
+                  🇩🇿 05 / 06 / 07 / 02
+                </span>
+              </div>
+              <input
+                type="tel"
+                placeholder="Ex : 0555 12 34 56"
+                {...register("phone", {
+                  required: "Le numéro de téléphone est obligatoire",
+                  validate: (val) =>
+                    isValidAlgerianPhone(val) || "Numéro de téléphone algérien invalide",
+                })}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+              />
+              <p className="text-2xs text-slate-500 mt-1">
+                Identifiant principal de connexion pour ce membre du personnel.
+              </p>
+              {errors.phone && (
+                <p className="text-xs text-rose-600 mt-1">{errors.phone.message}</p>
+              )}
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Email <span className="text-rose-500">*</span>
+                Email <span className="text-slate-400 font-normal lowercase">(facultatif)</span>
               </label>
               <input
                 type="email"
-                {...register("email", { required: "Obligatoire" })}
+                placeholder="Ex : caissier@boutique.dz"
+                {...register("email")}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
               />
+              <p className="text-2xs text-slate-500 mt-1">
+                Optionnel — pour envoyer les notifications et invitations par email.
+              </p>
               {errors.email && (
                 <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>
               )}
@@ -892,7 +937,7 @@ function UsersTab() {
                   {t("user.last_name")}
                 </th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Email
+                  Téléphone / Identifiant
                 </th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   {t("settings.role")}
@@ -930,7 +975,23 @@ function UsersTab() {
                       {u.full_name || `${u.first_name} ${u.last_name}`}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-500 text-xs font-mono">{u.email}</td>
+                  <td className="py-3.5 px-4 text-xs">
+                    {u.phone ? (
+                      <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-900">
+                        <span className="px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200/80 font-medium text-xs inline-flex items-center gap-1">
+                          <span>📱</span>
+                          <span>{formatAlgerianPhoneDisplay(u.phone)}</span>
+                        </span>
+                      </div>
+                    ) : null}
+                    {u.email ? (
+                      <div className={cn("font-mono text-slate-500 text-xs", u.phone && "mt-1 text-2xs")}>
+                        {u.email}
+                      </div>
+                    ) : (
+                      !u.phone && <span className="text-slate-400 italic">—</span>
+                    )}
+                  </td>
                   <td className="py-3.5 px-4">
                     <span
                       className={cn(

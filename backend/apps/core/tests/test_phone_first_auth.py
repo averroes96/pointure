@@ -371,4 +371,100 @@ class TestFirstRunSetupView:
             assert resp.status_code == 403
 
 
+@pytest.mark.django_db
+class TestUserCreateSerializer:
+    """Test UserCreateSerializer with phone mandatory and email optional."""
+
+    def test_create_user_with_phone_only_succeeds(self):
+        from apps.core.serializers import UserCreateSerializer
+        payload = {
+            "phone": "0555 12 34 56",
+            "first_name": "Karim",
+            "last_name": "Cashier",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+            "role": "cashier",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        user = serializer.save()
+        assert user.phone == "0555123456"
+        assert user.email is None
+        assert user.first_name == "Karim"
+        assert user.role == "cashier"
+        assert user.check_password("strongpassword123")
+
+    def test_create_user_with_phone_and_email_succeeds(self):
+        from apps.core.serializers import UserCreateSerializer
+        payload = {
+            "phone": "+213 661 23 45 67",
+            "email": "karim.manager@boutique.dz",
+            "first_name": "Karim",
+            "last_name": "Manager",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+            "role": "manager",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        user = serializer.save()
+        assert user.phone == "0661234567"
+        assert user.email == "karim.manager@boutique.dz"
+
+    def test_create_user_missing_phone_fails(self):
+        from apps.core.serializers import UserCreateSerializer
+        payload = {
+            "first_name": "Karim",
+            "last_name": "Cashier",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert "phone" in serializer.errors
+
+    def test_create_user_invalid_phone_fails(self):
+        from apps.core.serializers import UserCreateSerializer
+        payload = {
+            "phone": "0123456789",
+            "first_name": "Karim",
+            "last_name": "Cashier",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert "phone" in serializer.errors
+
+    def test_create_user_duplicate_phone_fails(self):
+        from apps.core.serializers import UserCreateSerializer
+        User.objects.create_user(phone="0555123456", password="somepassword")
+        payload = {
+            "phone": "+213 555 12 34 56",  # Normalizes to existing phone
+            "first_name": "Karim",
+            "last_name": "Cashier",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert "phone" in serializer.errors
+
+    def test_create_user_duplicate_email_fails(self):
+        from apps.core.serializers import UserCreateSerializer
+        User.objects.create_user(phone="0555111111", email="duplicate@boutique.dz", password="somepassword")
+        payload = {
+            "phone": "0555 22 22 22",
+            "email": "DUPLICATE@BOUTIQUE.DZ",
+            "first_name": "Karim",
+            "last_name": "Cashier",
+            "password": "strongpassword123",
+            "confirm_password": "strongpassword123",
+        }
+        serializer = UserCreateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert "email" in serializer.errors
+
+
+
 

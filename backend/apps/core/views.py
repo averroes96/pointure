@@ -85,7 +85,7 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """User management (Owner and Manager only)."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    ordering = ["email"]
+    ordering = ["-date_joined"]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -104,7 +104,7 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         # Capture the plain-text password before the serializer hashes it
         temp_password = self.request.data.get("password", "")
         user = serializer.save(tenant=self.request.tenant)
-        if temp_password:
+        if temp_password and user.email:
             from apps.core.utils.task_runner import run_task
             from apps.core.tasks import send_welcome_email
             tenant_name = getattr(self.request.tenant, "name", "ShoeDZ")
@@ -170,6 +170,23 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "Code PIN configuré avec succès."})
         except ValueError as err:
             return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], url_path="reset-password")
+    def reset_password(self, request, pk=None):
+        """
+        Allows an Owner or Manager to set a new password for a staff member/cashier.
+        """
+        self.require_manager()
+        target_user = self.get_object()
+        new_password = request.data.get("new_password", "").strip()
+        if len(new_password) < 8:
+            return Response(
+                {"error": "Le mot de passe doit contenir au moins 8 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        target_user.set_password(new_password)
+        target_user.save(update_fields=["password"])
+        return Response({"detail": "Mot de passe réinitialisé avec succès."})
 
 
 class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
