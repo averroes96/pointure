@@ -319,8 +319,11 @@ export interface Sale {
   created_at: string;
 }
 
+export type BusinessMode = "retail" | "wholesale" | "mixed";
+
 export interface StoreSettings {
   id: number;
+  business_mode?: BusinessMode;
   min_versement_pct: number;
   versement_due_days: number;
   versement_requires_client: boolean;

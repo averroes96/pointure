@@ -25,6 +25,9 @@ import {
   Sun,
   Moon,
   Check,
+  Store,
+  Boxes,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
@@ -32,11 +35,12 @@ import DeliverySettingsTab from "@/features/deliveries/DeliverySettingsPage";
 import { LegacyImportSection } from "./LegacyImportSection";
 import DesktopTab from "./DesktopTab";
 import PrintersTab from "./PrintersTab";
-import type { User as UserType, Branch, StoreSettings, Tenant } from "@/types";
+import type { User as UserType, Branch, StoreSettings, Tenant, BusinessMode } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useWilayas } from "@/hooks/useLocationData";
 import { useTheme } from "@/hooks/useTheme";
+import { usePlan } from "@/hooks/usePlan";
 import i18n from "@/lib/i18n";
 import {
   isValidAlgerianPhone,
@@ -1551,6 +1555,7 @@ function AgencesTab() {
 // ─── Tab: Versements ─────────────────────────────────────────────────────
 
 interface VersementsFormData {
+  business_mode: BusinessMode;
   min_versement_pct: number;
   versement_due_days: number;
   versement_requires_client: boolean;
@@ -1566,6 +1571,8 @@ interface VersementsFormData {
 function VersementsTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { canAccess } = usePlan();
+  const hasWholesaleTier = canAccess("pro_wholesale");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: settings, isLoading } = useQuery<StoreSettings>({
@@ -1576,10 +1583,13 @@ function VersementsTab() {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { isDirty },
   } = useForm<VersementsFormData>({
     values: settings
       ? {
+          business_mode: settings.business_mode ?? "retail",
           min_versement_pct: settings.min_versement_pct,
           versement_due_days: settings.versement_due_days,
           versement_requires_client: settings.versement_requires_client,
@@ -1592,6 +1602,7 @@ function VersementsTab() {
           layaway_duration_days: settings.layaway_duration_days ?? 14,
         }
       : {
+          business_mode: "retail",
           min_versement_pct: 30,
           versement_due_days: 90,
           versement_requires_client: true,
@@ -1605,11 +1616,13 @@ function VersementsTab() {
         },
   });
 
+  const selectedMode = watch("business_mode");
+
   const mutation = useMutation({
     mutationFn: (data: VersementsFormData) =>
       api.patch("/core/store-settings/update_settings/", data).then((r) => r.data),
     onSuccess: () => {
-      setToast({ msg: "Paramètres enregistrés avec succès.", type: "success" });
+      setToast({ msg: t("settings.settings_saved", "Paramètres enregistrés avec succès."), type: "success" });
       queryClient.invalidateQueries({ queryKey: ["store-settings"] });
     },
     onError: (err) => setToast({ msg: getApiError(err), type: "error" }),
@@ -1619,6 +1632,7 @@ function VersementsTab() {
     setToast(null);
     mutation.mutate({
       ...data,
+      business_mode: data.business_mode,
       min_versement_pct: Number(data.min_versement_pct),
       versement_due_days: Number(data.versement_due_days),
       allow_negative_stock: Boolean(data.allow_negative_stock),
@@ -1637,8 +1651,168 @@ function VersementsTab() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-xl">
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
-      {/* Contrôle Caisse & Code PIN Responsable */}
+      {/* Mode d'activité (Store Business Mode) */}
       <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Store size={16} className="text-primary-600" />
+            {t("settings.business_mode_title", "Mode d'activité du commerce")}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {t("settings.business_mode_desc", "Adapte l'interface, la barre latérale et les raccourcis à votre activité (Détail, Grossiste ou Mixte).")}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {/* Retail option */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setValue("business_mode", "retail", { shouldDirty: true })}
+            className={cn(
+              "p-4 rounded-2xl border text-start cursor-pointer transition-all",
+              selectedMode === "retail"
+                ? "border-primary-500 bg-primary-50/40 dark:bg-primary-950/30 ring-2 ring-primary-500/20"
+                : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "p-2.5 rounded-xl shrink-0 transition-colors",
+                  selectedMode === "retail"
+                    ? "bg-primary-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                <Store size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">
+                    {t("settings.business_mode_retail", "Boutique de détail")}
+                  </span>
+                  {selectedMode === "retail" && (
+                    <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {t("settings.business_mode_current_badge", "Actif")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t("settings.business_mode_retail_desc", "Optimisé pour la vente par paire au comptoir. Masque la facturation B2B et les bons de livraison pour simplifier l'interface.")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Wholesale option */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (hasWholesaleTier) {
+                setValue("business_mode", "wholesale", { shouldDirty: true });
+              }
+            }}
+            className={cn(
+              "p-4 rounded-2xl border text-start transition-all",
+              !hasWholesaleTier && "opacity-60 cursor-not-allowed",
+              hasWholesaleTier && "cursor-pointer",
+              selectedMode === "wholesale"
+                ? "border-primary-500 bg-primary-50/40 dark:bg-primary-950/30 ring-2 ring-primary-500/20"
+                : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "p-2.5 rounded-xl shrink-0 transition-colors",
+                  selectedMode === "wholesale"
+                    ? "bg-primary-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                <Boxes size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">
+                    {t("settings.business_mode_wholesale", "Grossiste & Demi-gros")}
+                  </span>
+                  {!hasWholesaleTier ? (
+                    <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                      <Lock size={10} />
+                      {t("settings.business_mode_requires_wholesale", "Nécessite Pro Grossiste")}
+                    </span>
+                  ) : selectedMode === "wholesale" ? (
+                    <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {t("settings.business_mode_current_badge", "Actif")}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t("settings.business_mode_wholesale_desc", "Gestion par cartons complets, factures B2B, bons de livraison et gestion des soldes clients.")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mixed option */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (hasWholesaleTier) {
+                setValue("business_mode", "mixed", { shouldDirty: true });
+              }
+            }}
+            className={cn(
+              "p-4 rounded-2xl border text-start transition-all",
+              !hasWholesaleTier && "opacity-60 cursor-not-allowed",
+              hasWholesaleTier && "cursor-pointer",
+              selectedMode === "mixed"
+                ? "border-primary-500 bg-primary-50/40 dark:bg-primary-950/30 ring-2 ring-primary-500/20"
+                : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "p-2.5 rounded-xl shrink-0 transition-colors",
+                  selectedMode === "mixed"
+                    ? "bg-primary-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                <Layers size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">
+                    {t("settings.business_mode_mixed", "Commerce Mixte (Détail + Gros)")}
+                  </span>
+                  {!hasWholesaleTier ? (
+                    <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                      <Lock size={10} />
+                      {t("settings.business_mode_requires_wholesale", "Nécessite Pro Grossiste")}
+                    </span>
+                  ) : selectedMode === "mixed" ? (
+                    <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {t("settings.business_mode_current_badge", "Actif")}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t("settings.business_mode_mixed_desc", "Active à la fois la caisse de vente au détail et la facturation par cartons.")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contrôle Caisse & Code PIN Responsable */}
+      <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <ShieldCheck size={16} className="text-amber-600" />
@@ -1895,23 +2069,23 @@ interface Tab {
   roles?: string[];
 }
 
-const TABS: Tab[] = [
-  { key: "profil", label: t("settings.profile"), icon: User },
-  { key: "boutique", label: t("settings.store"), icon: Building2, roles: ["owner", "manager"] },
-  { key: "securite", label: "Sécurité", icon: Shield },
-  { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
-  { key: "agences", label: "Agences", icon: MapPin, roles: ["owner", "manager"] },
-  { key: "versements", label: "Ventes & Versements", icon: Banknote, roles: ["owner"] },
-  { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
-  { key: "imprimantes", label: "Imprimantes", icon: Printer, roles: ["owner", "manager"] },
-  { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
-  { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner", "manager"] },
-];
-
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("profil");
+
+  const tabs: Tab[] = [
+    { key: "profil", label: t("settings.profile"), icon: User },
+    { key: "boutique", label: t("settings.store"), icon: Building2, roles: ["owner", "manager"] },
+    { key: "securite", label: t("settings.tab_security", "Sécurité"), icon: Shield },
+    { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
+    { key: "agences", label: t("settings.tab_agencies", "Agences"), icon: MapPin, roles: ["owner", "manager"] },
+    { key: "versements", label: t("settings.tab_sales_policies", "Politiques & Mode"), icon: Banknote, roles: ["owner"] },
+    { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
+    { key: "imprimantes", label: t("settings.tab_printers", "Imprimantes"), icon: Printer, roles: ["owner", "manager"] },
+    { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
+    { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner", "manager"] },
+  ];
 
   // Fetch tenant data for boutique tab
   const { data: tenantData } = useQuery<Tenant>({
@@ -1920,8 +2094,8 @@ export default function SettingsPage() {
     enabled: !!user?.tenant?.id && activeTab === "boutique",
   });
 
-  const visibleTabs = TABS.filter(
-    (t) => !t.roles || (user && t.roles.includes(user.role))
+  const visibleTabs = tabs.filter(
+    (tab) => !tab.roles || (user && tab.roles.includes(user.role))
   );
 
   if (!user) return null;
@@ -1932,9 +2106,9 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("nav.settings")}</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Gérez votre profil, vos agences, les comptes utilisateurs et la configuration de votre système
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{t("nav.settings")}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {t("settings.subtitle", "Gérez votre profil, vos agences, les comptes utilisateurs et la configuration de votre système")}
         </p>
       </div>
 

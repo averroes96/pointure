@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan, PLAN_LABELS } from "@/hooks/usePlan";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import type { Plan } from "@/types";
 import i18n from "@/lib/i18n";
 const t = i18n.t.bind(i18n);
@@ -129,10 +130,16 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
+  const { showWholesaleUI } = useBusinessMode();
   const navSections = useNavSections();
   const isCashier = user?.role === "cashier";
   const navRef = useRef<HTMLElement>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  const visibleNavSections = navSections.filter((section) => {
+    if (section.key === "invoicing" && !showWholesaleUI) return false;
+    return true;
+  });
 
   useEffect(() => {
     const handleFocusSidebar = () => {
@@ -237,7 +244,7 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
 
       {/* Nav sections */}
       <div className="flex-1 py-3 overflow-y-auto space-y-1">
-        {navSections.map((section) => (
+        {visibleNavSections.map((section) => (
           <div key={section.key} className="space-y-0.5">
             {section.label && (
               <div className="px-4 pt-3.5 pb-1 text-[11px] uppercase tracking-wider text-slate-500 font-bold select-none">

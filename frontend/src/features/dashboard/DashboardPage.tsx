@@ -15,6 +15,7 @@ import api, { formatDZD, formatDate } from "@/lib/api";
 import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow, Plan } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useSSE } from "@/hooks/useSSE";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -244,6 +245,7 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
+  const { showWholesaleUI } = useBusinessMode();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const isEnterprise = canAccess("enterprise");
@@ -396,6 +398,7 @@ export default function DashboardPage() {
   ];
 
   const visibleActions = quickActions.filter((action) => {
+    if (action.id === "invoices" && !showWholesaleUI) return false;
     if (isCashier) {
       if (action.managerOnly) return false;
       return true;
