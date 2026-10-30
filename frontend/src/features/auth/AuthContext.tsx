@@ -10,6 +10,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (identifier: string, password: string) => Promise<void>;
+  setAuthSession: (access: string, refresh: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -56,6 +57,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     applyDirection(userRes.data.language_preference);
   };
 
+  const setAuthSession = async (access: string, refresh: string) => {
+    setTokens(access, refresh);
+    try {
+      const userRes = await api.get<User>("/core/me/profile/");
+      setUser(userRes.data);
+      storeUser(userRes.data);
+      applyDirection(userRes.data.language_preference);
+    } catch (err) {
+      console.warn("Failed to fetch profile during setAuthSession:", err);
+    }
+  };
+
   const logout = () => {
     clearAuth();
     setUser(null);
@@ -64,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, isLoading, login, logout }}
+      value={{ user, isAuthenticated: !!user, isLoading, login, setAuthSession, logout }}
     >
       {children}
     </AuthContext.Provider>
