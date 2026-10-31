@@ -1808,7 +1808,10 @@ export default function SalesPage() {
                           <div className="flex items-center gap-1.5 mt-2 text-2xs font-bold text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg">
                             <AlertTriangle size={12} className="shrink-0 text-amber-600 dark:text-amber-400" />
                             <span>
-                              Stock insuffisant : {item.variant.stock_qty ?? 0} dispo ({item.quantity - (item.variant.stock_qty ?? 0)} en rupture)
+                              {t("sales.insufficient_stock", "Stock insuffisant : {{avail}} dispo ({{missing}} en rupture)", {
+                                avail: item.variant.stock_qty ?? 0,
+                                missing: item.quantity - (item.variant.stock_qty ?? 0),
+                              })}
                             </span>
                           </div>
                         )}
@@ -1833,7 +1836,7 @@ export default function SalesPage() {
                         <button
                           onClick={() => updateQuantity(item.variant.id, -1)}
                           className="w-7.5 h-7.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
-                          title="Diminuer la quantité"
+                          title={t("sales.decrease_qty", "Diminuer la quantité")}
                         >
                           <Minus size={12} />
                         </button>
@@ -1843,7 +1846,7 @@ export default function SalesPage() {
                         <button
                           onClick={() => updateQuantity(item.variant.id, 1)}
                           className="w-7.5 h-7.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
-                          title="Augmenter la quantité"
+                          title={t("sales.increase_qty", "Augmenter la quantité")}
                         >
                           <Plus size={12} />
                         </button>
@@ -1852,7 +1855,7 @@ export default function SalesPage() {
                       <button
                         onClick={() => removeItem(item.variant.id)}
                         className="text-xs text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 font-semibold cursor-pointer"
-                        title="Supprimer du panier"
+                        title={t("sales.remove_from_cart", "Supprimer du panier")}
                       >
                         <X size={12} />
                         <span>{t("common.delete", "Supprimer")}</span>
@@ -1879,7 +1882,7 @@ export default function SalesPage() {
                       : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   )}
                 >
-                  <span>⚙️ Options de vente</span>
+                  <span>⚙️ {t("sales.sale_options", "Options de vente")}</span>
                   {(cartDiscount > 0 || isFormal || isVersement || isLayaway) && (
                     <span className="w-2 h-2 rounded-full bg-primary-600"></span>
                   )}
