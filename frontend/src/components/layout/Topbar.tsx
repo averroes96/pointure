@@ -133,6 +133,7 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
     i18n.changeLanguage(code);
     applyDirection(code);
     setShowLangMenu(false);
+    api.patch("/core/me/update_profile/", { language_preference: code }).catch(() => {});
   };
 
   const notifications = notifData?.results ?? [];

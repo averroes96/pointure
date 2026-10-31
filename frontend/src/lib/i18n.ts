@@ -21,10 +21,15 @@ i18n
   });
 
 /** Apply RTL direction and lang attribute to <html> */
-export function applyDirection(lang: string) {
-  const isRTL = lang === "ar" || lang?.startsWith?.("ar");
+export function applyDirection(lang?: string) {
+  const effective =
+    lang ||
+    i18n.language ||
+    (typeof localStorage !== "undefined" ? localStorage.getItem("i18nextLng") : null) ||
+    "fr";
+  const isRTL = effective === "ar" || effective.startsWith("ar");
   document.documentElement.dir = isRTL ? "rtl" : "ltr";
-  document.documentElement.lang = isRTL ? "ar" : lang;
+  document.documentElement.lang = isRTL ? "ar" : effective;
 }
 
 // Immediately apply direction for the detected language on module load

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import type { User } from "@/types";
 import { clearAuth, getStoredUser, storeUser, setTokens } from "./authStore";
 import api from "@/lib/api";
-import { applyDirection } from "@/lib/i18n";
+import i18n, { applyDirection } from "@/lib/i18n";
 
 interface AuthContextValue {
   user: User | null;
@@ -15,6 +15,18 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function syncUserLanguage(profileLang?: string) {
+  const localLang = localStorage.getItem("i18nextLng");
+  const activeLang = localLang || profileLang || "fr";
+  applyDirection(activeLang);
+
+  if (localLang && profileLang && profileLang !== localLang) {
+    api.patch("/core/me/update_profile/", { language_preference: localLang }).catch(() => {});
+  } else if (!localLang && profileLang) {
+    i18n.changeLanguage(profileLang);
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -34,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((res) => {
         setUser(res.data);
         storeUser(res.data);
-        applyDirection(res.data.language_preference);
+        syncUserLanguage(res.data.language_preference);
       })
       .catch(() => {
         clearAuth();
@@ -54,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userRes = await api.get<User>("/core/me/profile/");
     setUser(userRes.data);
     storeUser(userRes.data);
-    applyDirection(userRes.data.language_preference);
+    syncUserLanguage(userRes.data.language_preference);
   };
 
   const setAuthSession = async (access: string, refresh: string) => {
@@ -63,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userRes = await api.get<User>("/core/me/profile/");
       setUser(userRes.data);
       storeUser(userRes.data);
-      applyDirection(userRes.data.language_preference);
+      syncUserLanguage(userRes.data.language_preference);
     } catch (err) {
       console.warn("Failed to fetch profile during setAuthSession:", err);
     }
