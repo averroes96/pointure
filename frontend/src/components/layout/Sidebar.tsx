@@ -313,7 +313,7 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             ShoeDZ Desktop
           </span>
-          <span className="text-[10px] font-mono text-slate-500 font-semibold">v1.0.2</span>
+          <span className="text-[10px] font-mono text-slate-500 font-semibold">v1.4.9</span>
         </div>
         <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 mt-2 font-mono">
           <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[10px] shadow-xs">F5</kbd>
