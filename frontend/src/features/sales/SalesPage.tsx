@@ -995,6 +995,23 @@ export default function SalesPage() {
         }
       }
 
+      const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
+
+      if (receipt && isPoint) {
+        e.preventDefault();
+        setReceipt(null);
+        searchRef.current?.focus();
+        return;
+      }
+
+      if (negativeStockAlert && (isPoint || e.key === "Enter")) {
+        e.preventDefault();
+        const qm = negativeStockAlert.quickMode;
+        setNegativeStockAlert(null);
+        executeSaleSubmission(qm);
+        return;
+      }
+
       if (anyDialogOpen) return;
 
       const isSearch = target === searchRef.current;
@@ -1024,35 +1041,17 @@ export default function SalesPage() {
         }
       }
 
-      const isPoint = (e.key === "." || e.code === "NumpadDecimal") && !e.ctrlKey && !e.altKey && !e.metaKey;
-
       if (isPoint) {
         // Allow '.' or NumpadDecimal to confirm sale if:
         // 1. Focus is outside any input field (cart, table, buttons)
         // 2. OR focus is inside the search box and search is empty (common right after barcode scan)
         if (!isOtherInput || (isSearch && search.trim() === "")) {
-          if (cart.length > 0 || receipt) {
+          if (cart.length > 0) {
             e.preventDefault();
-            if (receipt) {
-              setReceipt(null);
-              searchRef.current?.focus();
-              return;
-            }
-            if (negativeStockAlert) {
-              const qm = negativeStockAlert.quickMode;
-              setNegativeStockAlert(null);
-              executeSaleSubmission(qm);
-              return;
-            }
             // Dot (.) triggers quick sale mode directly!
             handleConfirmSale(true);
           }
         }
-      } else if (e.key === "Enter" && negativeStockAlert) {
-        e.preventDefault();
-        const qm = negativeStockAlert.quickMode;
-        setNegativeStockAlert(null);
-        executeSaleSubmission(qm);
       }
     };
 

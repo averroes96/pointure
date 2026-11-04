@@ -120,9 +120,9 @@ export default function ProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
-  const { user, tenant } = useAuth();
+  const { user } = useAuth();
   const { currentBranch } = useBranch();
-  const canUseLocation = tenant?.plan !== "free";
+  const canUseLocation = user?.tenant?.plan !== "free";
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
