@@ -151,6 +151,46 @@ class TestSaleCreation:
         assert resp.status_code == 201, resp.data
         assert len(resp.data["payments"]) == 2
 
+    def test_formal_cash_sale_persists_timbre_fiscal_and_includes_in_total(self):
+        """A formal cash sale stores is_formal=True, timbre_fiscal (1%), and total_amount = items - discounts + timbre."""
+        self._login(self.cashier)
+
+        resp = self.client.post(
+            "/api/v1/sales/",
+            {
+                "items": [{"variant_id": self.variant.pk, "quantity": 2, "unit_price": "8000.00", "discount_amount": "0.00"}],
+                "cart_discount": "1000.00",  # net items = 15000.00 → timbre = 150.00 → total = 15150.00
+                "is_formal": True,
+                "payments": [{"method": "cash", "amount": "15150.00"}],
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert resp.data["is_formal"] is True
+        assert Decimal(resp.data["timbre_fiscal"]) == Decimal("150.00")
+        assert Decimal(resp.data["total_amount"]) == Decimal("15150.00")
+        assert Decimal(resp.data["balance_due"]) == Decimal("0.00")
+
+    def test_formal_card_sale_has_no_timbre_fiscal(self):
+        """A formal sale paid by card (TPE) has timbre_fiscal = 0.00."""
+        self._login(self.cashier)
+
+        resp = self.client.post(
+            "/api/v1/sales/",
+            {
+                "items": [{"variant_id": self.variant.pk, "quantity": 1, "unit_price": "8000.00", "discount_amount": "0.00"}],
+                "cart_discount": "0.00",
+                "is_formal": True,
+                "payments": [{"method": "tpe", "amount": "8000.00"}],
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert resp.data["is_formal"] is True
+        assert Decimal(resp.data["timbre_fiscal"]) == Decimal("0.00")
+        assert Decimal(resp.data["total_amount"]) == Decimal("8000.00")
+
+
 
 @pytest.mark.django_db
 class TestSaleValidation:

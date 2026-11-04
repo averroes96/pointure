@@ -135,3 +135,36 @@ class TestProfitLoss:
         assert len(rows) == 1, f"Expected 1 period row, got {len(rows)}: {rows}"
         assert rows[0]["sale_count"] == 2
         assert Decimal(str(rows[0]["revenue"])) == Decimal("30000.00")
+
+    def test_timbre_fiscal_subtracted_from_revenue(self):
+        """Formal sale with timbre_fiscal has stamp duty excluded from P&L revenue."""
+        from apps.sales.models import Payment, Sale, SaleItem
+
+        sale3 = Sale.objects.create(
+            tenant=self.tenant,
+            cashier=self.manager,
+            status="completed",
+            is_formal=True,
+            timbre_fiscal=Decimal("100.00"),
+            total_amount=Decimal("10100.00"),
+            receipt_number="RC-PL-0003",
+        )
+        SaleItem.objects.create(
+            sale=sale3,
+            variant=self.variant,
+            quantity=1,
+            unit_price=Decimal("10000.00"),
+        )
+        Payment.objects.create(sale=sale3, amount=Decimal("10100.00"), method="cash")
+
+        resp = self.api_manager.get(
+            "/api/v1/reports/profit-loss/",
+            {"period": "month"},
+        )
+        assert resp.status_code == 200, resp.data
+        totals = resp.data["totals"]
+        # 10000 + 20000 + (10100 - 100) = 40000
+        assert Decimal(str(totals["revenue"])) == Decimal("40000.00")
+        assert Decimal(str(totals["cogs"])) == Decimal("24000.00")
+        assert Decimal(str(totals["gross_margin"])) == Decimal("16000.00")
+

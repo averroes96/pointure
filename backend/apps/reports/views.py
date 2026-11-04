@@ -29,11 +29,17 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         today = timezone.localdate()
         from_day = timezone.now().replace(hour=0, minute=0, second=0)
 
-        # Today's revenue
+        # Today's revenue (excluding timbre_fiscal)
         from apps.sales.models import Sale
+        from django.db.models import F, ExpressionWrapper, DecimalField
+        from django.db.models.functions import Coalesce
+        net_sale_expr = ExpressionWrapper(
+            F("total_amount") - Coalesce(F("timbre_fiscal"), Decimal("0.00")),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
         today_sales = Sale.objects.filter(
             tenant=tenant, created_at__date=today, status="completed"
-        ).aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
+        ).aggregate(total=Sum(net_sale_expr))["total"] or Decimal("0")
 
         # Total outstanding debt
         from apps.clients.models import Client
@@ -123,11 +129,18 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         if branch_id:
             qs = qs.filter(branch_id=branch_id)
 
+        from django.db.models import ExpressionWrapper, DecimalField
+        from django.db.models.functions import Coalesce
+        net_sale_expr = ExpressionWrapper(
+            F("total_amount") - Coalesce(F("timbre_fiscal"), Decimal("0.00")),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
+
         # Period rows
         period_rows = (
             qs.annotate(p=trunc_fn("created_at"))
             .values("p")
-            .annotate(revenue=Sum("total_amount"), sale_count=Count("id"))
+            .annotate(revenue=Sum(net_sale_expr), sale_count=Count("id"))
             .order_by("p")
         )
 
@@ -178,7 +191,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 )
                 if branch_id:
                     prev_qs = prev_qs.filter(branch_id=branch_id)
-                prev_total = prev_qs.aggregate(t=Sum("total_amount"))["t"] or Decimal("0")
+                prev_total = prev_qs.aggregate(t=Sum(net_sale_expr))["t"] or Decimal("0")
                 if prev_total > 0:
                     growth_pct = float(
                         ((total_revenue - prev_total) / prev_total * 100)
@@ -291,7 +304,8 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         returns_qs = Return.objects.filter(tenant=tenant, created_at__date=target_date)
         total_refunds = returns_qs.aggregate(t=Sum("refund_amount"))["t"] or Decimal("0")
 
-        total_revenue = totals["total_revenue"] or Decimal("0")
+        total_stamps = totals["total_stamps"] or Decimal("0")
+        total_revenue = (totals["total_revenue"] or Decimal("0")) - total_stamps
         net_revenue = total_revenue - total_refunds
 
         # Payment breakdown by method
@@ -388,11 +402,15 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
         trunc_fn = trunc_map.get(period, TruncMonth)
 
-        # Revenue by period
+        # Revenue by period (excluding timbre_fiscal)
+        net_sale_expr = ExpressionWrapper(
+            F("total_amount") - Coalesce(F("timbre_fiscal"), Decimal("0.00")),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
         revenue_rows = (
             sale_qs.annotate(p=trunc_fn("created_at"))
             .values("p")
-            .annotate(revenue=Sum("total_amount"), sale_count=Count("id"))
+            .annotate(revenue=Sum(net_sale_expr), sale_count=Count("id"))
             .order_by("p")
         )
 

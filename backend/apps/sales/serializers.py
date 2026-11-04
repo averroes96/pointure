@@ -149,6 +149,16 @@ class CreateSaleSerializer(serializers.Serializer):
     layaway_duration_days = serializers.IntegerField(required=False, allow_null=True)
     manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
+    @staticmethod
+    def _compute_timbre_fiscal(net_items_total: Decimal, is_formal: bool, payments: list) -> Decimal:
+        """Compute 1% Algerian stamp duty (timbre fiscal), capped at 2,500 DZD, for formal cash sales."""
+        if not is_formal or net_items_total <= Decimal("0.00"):
+            return Decimal("0.00")
+        if not any(p.get("method") == "cash" for p in payments):
+            return Decimal("0.00")
+        timbre = net_items_total * Decimal("0.01")
+        return min(timbre, Decimal("2500.00")).quantize(Decimal("0.01"))
+
     def validate(self, data):
         from apps.clients.models import Client
 
@@ -234,12 +244,10 @@ class CreateSaleSerializer(serializers.Serializer):
             items_total = items_total - redemption_dzd
 
         payment_total = sum(p["amount"] for p in data["payments"])
-        
+
         is_formal = data.get("is_formal", False)
-        if is_formal and any(p["method"] == "cash" for p in data["payments"]):
-            timbre = items_total * Decimal("0.01")
-            timbre_fiscal = min(timbre, Decimal("2500.00")).quantize(Decimal("0.01"))
-            items_total += timbre_fiscal
+        timbre_fiscal = self._compute_timbre_fiscal(items_total, is_formal, data["payments"])
+        items_total += timbre_fiscal
 
         # Mutual exclusivity: Versement vs Layaway
         is_versement = data.get("is_versement", False)
@@ -398,7 +406,7 @@ class CreateSaleSerializer(serializers.Serializer):
         if validated_data.get("client_id"):
             client = Client.objects.get(pk=validated_data["client_id"], tenant=tenant)
 
-        # Compute total — apply loyalty redemption as an additional cart discount
+        # Compute total — apply loyalty redemption as an additional cart discount, then stamp duty
         items_total = sum(
             (item["unit_price"] * item["quantity"]) - item["discount_amount"]
             for item in validated_data["items"]
@@ -407,7 +415,12 @@ class CreateSaleSerializer(serializers.Serializer):
         if redeem_points > 0 and _loyalty_program:
             redemption_dzd = _loyalty_program.dzd_for_points(redeem_points)
             cart_discount = cart_discount + redemption_dzd
-        total = items_total - cart_discount
+        net_items_total = items_total - cart_discount
+        is_formal = validated_data.get("is_formal", False)
+        timbre_fiscal = self._compute_timbre_fiscal(
+            net_items_total, is_formal, validated_data["payments"]
+        )
+        total = net_items_total + timbre_fiscal
 
         # Generate receipt number
         import datetime
@@ -463,6 +476,8 @@ class CreateSaleSerializer(serializers.Serializer):
             client=client,
             total_amount=total,
             discount_amount=cart_discount,
+            is_formal=is_formal,
+            timbre_fiscal=timbre_fiscal,
             notes=validated_data.get("notes", ""),
             receipt_number=receipt_number,
             status=sale_status,
