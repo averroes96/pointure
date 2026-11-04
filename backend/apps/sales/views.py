@@ -231,6 +231,16 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         resp_data["points_earned"] = loyalty_summary.get("points_earned", 0)
         return Response(resp_data)
 
+    @staticmethod
+    def _parse_bool(val, default: bool) -> bool:
+        if val is None:
+            return default
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.strip().lower() in ("1", "true", "yes", "on")
+        return bool(val)
+
     @action(detail=True, methods=["post"], url_path="cancel-layaway")
     def cancel_layaway(self, request, pk=None):
         """Cancel a layaway sale, releasing locked stock back into shelf inventory."""
@@ -251,8 +261,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        refund_deposit = request.data.get("refund_deposit", True)
-        deposit_forfeited = request.data.get("deposit_forfeited", False)
+        refund_deposit = self._parse_bool(request.data.get("refund_deposit"), True)
+        deposit_forfeited = self._parse_bool(request.data.get("deposit_forfeited"), False)
         notes = request.data.get("notes", "")
 
         with transaction.atomic():
@@ -304,20 +314,95 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        """Cancel a partially_paid sale (manager/owner only)."""
+        """Cancel a partially_paid sale (manager/owner only), restoring stock and handling deposit."""
         if request.user.role not in ("owner", "manager"):
             return Response(
                 {"detail": "Seuls les managers peuvent annuler un versement."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        sale = self.get_object()
-        if sale.status != "partially_paid":
-            return Response(
-                {"detail": "Seules les ventes en cours de versement peuvent etre annulees ici."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        sale.status = "cancelled"
-        sale.save(update_fields=["status"])
+        sale_ref = self.get_object()
+        refund_deposit = self._parse_bool(request.data.get("refund_deposit"), True)
+        deposit_forfeited = self._parse_bool(request.data.get("deposit_forfeited"), False)
+        notes = request.data.get("notes", "")
+
+        with transaction.atomic():
+            sale = Sale.objects.select_for_update().get(pk=sale_ref.pk, tenant=request.tenant)
+            if sale.status != "partially_paid":
+                return Response(
+                    {"detail": "Seules les ventes en cours de versement peuvent etre annulees ici."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 1. Restore stock for each item
+            for item in sale.items.all():
+                StockMovement.objects.create(
+                    tenant=sale.tenant,
+                    variant=item.variant,
+                    branch=sale.branch,
+                    quantity_delta=item.quantity,
+                    reason=MovementReasonChoices.RETURN,
+                    reference_id=sale.receipt_number or str(sale.pk),
+                    reference_type="Sale",
+                    user=request.user,
+                )
+
+            # 2. Handle deposit refund vs forfeit in open cash session
+            if refund_deposit and not deposit_forfeited and sale.amount_paid > Decimal("0.00"):
+                active_session = CashSession.objects.filter(
+                    tenant=request.tenant,
+                    cashier=request.user,
+                    status=CashSessionStatus.OPEN,
+                ).order_by("-opened_at").first()
+                if not active_session and sale.branch:
+                    active_session = CashSession.objects.filter(
+                        tenant=request.tenant,
+                        branch=sale.branch,
+                        status=CashSessionStatus.OPEN,
+                    ).order_by("-opened_at").first()
+                if not active_session:
+                    active_session = CashSession.objects.filter(
+                        tenant=request.tenant,
+                        status=CashSessionStatus.OPEN,
+                    ).order_by("-opened_at").first()
+
+                if active_session:
+                    CashMovement.objects.create(
+                        session=active_session,
+                        type=CashMovementType.OUT,
+                        amount=sale.amount_paid,
+                        category="Remboursement Versement",
+                        notes=f"Remboursement acompte versement {sale.receipt_number}: {notes}".strip(),
+                        created_by=request.user,
+                    )
+
+            # 3. Write matching ClientLedger credit if the sale created a debit entry
+            if sale.client_id:
+                from apps.clients.models import ClientLedger
+                existing_debits = ClientLedger.objects.filter(
+                    client_id=sale.client_id,
+                    reference_type="Sale",
+                    reference_id=str(sale.pk),
+                    entry_type="debit",
+                )
+                debit_sum = sum((d.amount for d in existing_debits), Decimal("0.00"))
+                if debit_sum > Decimal("0.00"):
+                    ClientLedger.objects.create(
+                        client=sale.client,
+                        entry_type="credit",
+                        amount=debit_sum,
+                        description=f"Annulation vente {sale.receipt_number}",
+                        reference_type="Sale",
+                        reference_id=str(sale.pk),
+                        date=timezone.localdate(),
+                    )
+
+            # 4. Update sale status
+            sale.status = "cancelled"
+            sale.layaway_deposit_forfeited = bool(deposit_forfeited)
+            if notes:
+                sale.notes = f"{sale.notes}\n[Annulation Versement] {notes}".strip()
+            sale.save(update_fields=["status", "layaway_deposit_forfeited", "notes"])
+
         return Response(SaleSerializer(sale).data)
 
     @action(detail=True, methods=["post"])

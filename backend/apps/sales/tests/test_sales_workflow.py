@@ -509,3 +509,155 @@ class TestSaleReturns:
 
         self.variant.refresh_from_db()
         assert self.variant.stock_qty == stock_after_sale  # unchanged
+
+
+@pytest.mark.django_db
+class TestCancelPartiallyPaidSale:
+    """Tests for cancelling partially_paid (versement) sales (Task 1.4 / D4)."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db):
+        from apps.clients.models import Client
+        from apps.core.models import PlanChoices, RoleChoices, StoreSettings, Tenant, User
+        from apps.inventory.models import Product, StockMovement, Variant
+        from apps.sales.models import CashSession
+
+        self.tenant = Tenant.objects.create(name="Versement Shop", plan=PlanChoices.PRO_RETAIL)
+        self.settings = StoreSettings.objects.create(
+            tenant=self.tenant,
+            require_manager_pin_for_returns=False,
+            require_manager_pin_for_discounts=False,
+        )
+        self.manager = User.objects.create_user(
+            email="manager4@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier4@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+        self.client_obj = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Versement",
+            phone="0555112233",
+        )
+        self.session = CashSession.objects.create(
+            tenant=self.tenant,
+            cashier=self.cashier,
+            opening_float=Decimal("10000.00"),
+            status="open",
+        )
+        self.product = Product.objects.create(
+            tenant=self.tenant,
+            name="Boots",
+            brand="Timberland",
+            sale_price="4000.00",
+            purchase_price="2500.00",
+        )
+        self.variant = Variant.objects.create(
+            tenant=self.tenant,
+            product=self.product,
+            size_eu=41,
+            colour="Marron",
+        )
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.variant,
+            quantity_delta=10,
+            reason="initial",
+            user=self.manager,
+        )
+        self.variant.refresh_from_db()
+        self.api = APIClient()
+
+    def _login(self, user):
+        self.api.force_authenticate(user=user)
+
+    def _make_versement_sale(self, qty=2, deposit="3000.00"):
+        resp = self.api.post(
+            "/api/v1/sales/",
+            {
+                "client_id": self.client_obj.pk,
+                "is_versement": True,
+                "items": [
+                    {
+                        "variant_id": self.variant.pk,
+                        "quantity": qty,
+                        "unit_price": "4000.00",
+                    }
+                ],
+                "payments": [{"method": "cash", "amount": deposit}],
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert resp.data["status"] == "partially_paid"
+        return resp.data
+
+    def test_cancel_restores_stock_and_records_refund_cash_movement(self):
+        """Cancelling a partially_paid sale restores stock once and logs CashMovement OUT."""
+        from apps.sales.models import CashMovement
+
+        self._login(self.manager)
+        sale = self._make_versement_sale(qty=2, deposit="3000.00")
+
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 8  # 10 - 2
+
+        resp = self.api.post(
+            f"/api/v1/sales/{sale['id']}/cancel/",
+            {"refund_deposit": True, "deposit_forfeited": False, "notes": "Client changed mind"},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.data
+        assert resp.data["status"] == "cancelled"
+
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 10  # restored
+
+        out_movements = CashMovement.objects.filter(
+            session=self.session,
+            type="out",
+            amount=Decimal("3000.00"),
+        )
+        assert out_movements.count() == 1
+
+        # Second cancel call returns 400 and does not restore stock again
+        resp2 = self.api.post(
+            f"/api/v1/sales/{sale['id']}/cancel/",
+            {"refund_deposit": True},
+            format="json",
+        )
+        assert resp2.status_code == 400
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 10
+
+    def test_cancel_with_forfeited_deposit_string_false_refund(self):
+        """refund_deposit='false' and deposit_forfeited=True forfeits deposit without CashMovement."""
+        from apps.sales.models import CashMovement, Sale
+
+        self._login(self.manager)
+        sale = self._make_versement_sale(qty=3, deposit="4000.00")
+
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 7
+
+        resp = self.api.post(
+            f"/api/v1/sales/{sale['id']}/cancel/",
+            {"refund_deposit": "false", "deposit_forfeited": True},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.data
+        assert resp.data["status"] == "cancelled"
+
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 10  # restored
+
+        sale_obj = Sale.objects.get(pk=sale["id"])
+        assert sale_obj.layaway_deposit_forfeited is True
+        assert CashMovement.objects.filter(session=self.session, type="out").count() == 0
+
