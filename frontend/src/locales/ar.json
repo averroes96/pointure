@@ -1704,7 +1704,12 @@
     "negative_stock_requested": "الكمية المطلوبة :",
     "negative_stock_current": "المخزون الحالي :",
     "negative_stock_new": "الجديد :",
-    "confirm_sale": "تأكيد البيع"
+    "confirm_sale": "تأكيد البيع",
+    "on_account_balance": "المبلغ المتبقي على حساب العميل: {{amount}} د.ج",
+    "on_account_client_required": "يرجى اختيار عميل لتسجيل المبلغ المتبقي على الحساب.",
+    "on_account_client_selected": "العميل: {{name}}",
+    "credit_limit_exceeded_reason": "تم تجاوز سقف الائتمان للعميل {{name}} ({{newBalance}} د.ج > {{limit}} د.ج)",
+    "credit_limit_exceeded_desc": "يتطلب تجاوز سقف الائتمان إدخال الرمز السري للمسير."
   },
   "sales_history": {
     "detailed_report_date": "تاريخ التقرير المفصل",

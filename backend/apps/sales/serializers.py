@@ -336,6 +336,32 @@ class CreateSaleSerializer(serializers.Serializer):
                                 "cart_discount": f"La remise totale accordée ({disc_pct:.1f}%) dépasse votre limite autorisée ({allowed_pct}%). Code PIN manager requis."
                             })
 
+        # Underpaid POS sale (neither versement nor layaway): requires client & credit-limit check (D1)
+        if not is_versement and not is_layaway and payment_total < items_total:
+            client_id = data.get("client_id")
+            if not client_id:
+                raise serializers.ValidationError({
+                    "client_id": "Un client doit être sélectionné pour enregistrer un solde sur compte."
+                })
+            client_obj = Client.objects.filter(pk=client_id, tenant=tenant).first()
+            if not client_obj:
+                raise serializers.ValidationError({
+                    "client_id": "Client introuvable."
+                })
+            shortfall = items_total - payment_total
+            new_balance = client_obj.cached_balance + shortfall
+            if client_obj.credit_limit > Decimal("0.00") and new_balance > client_obj.credit_limit:
+                if not authorized_mgr:
+                    authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                if not authorized_mgr:
+                    raise serializers.ValidationError({
+                        "credit_limit": (
+                            f"Plafond de crédit dépassé pour {client_obj.name} "
+                            f"(solde actuel : {client_obj.cached_balance:.2f} DA + reste à payer : {shortfall:.2f} DA "
+                            f"> plafond : {client_obj.credit_limit:.2f} DA). Code PIN manager requis."
+                        )
+                    })
+
         if authorized_mgr:
             data["_authorized_by"] = authorized_mgr
 
@@ -469,14 +495,15 @@ class CreateSaleSerializer(serializers.Serializer):
             )
 
         # Create payments (and auto-record Cheque in Cheque tracker when method == 'cheque')
-        from apps.clients.models import Cheque
+        from apps.clients.models import Cheque, ClientLedger
         for payment_data in validated_data["payments"]:
-            Payment.objects.create(
-                sale=sale,
-                amount=payment_data["amount"],
-                method=payment_data["method"],
-                notes=payment_data.get("notes", ""),
-            )
+            if payment_data["amount"] > Decimal("0.00"):
+                Payment.objects.create(
+                    sale=sale,
+                    amount=payment_data["amount"],
+                    method=payment_data["method"],
+                    notes=payment_data.get("notes", ""),
+                )
             if payment_data["method"] == "cheque" and payment_data["amount"] > Decimal("0.00"):
                 Cheque.objects.create(
                     tenant=tenant,
@@ -488,6 +515,19 @@ class CreateSaleSerializer(serializers.Serializer):
                     due_date=payment_data.get("cheque_due_date") or today,
                     notes=payment_data.get("notes") or f"Vente caisse {receipt_number}",
                 )
+
+        # Record ClientLedger debit for any unpaid balance on regular POS sales (D1)
+        if not is_versement and not is_layaway and client and payment_total < total:
+            shortfall = total - payment_total
+            ClientLedger.objects.create(
+                client=client,
+                entry_type="debit",
+                amount=shortfall,
+                description=f"Solde sur vente {receipt_number}",
+                reference_type="Sale",
+                reference_id=str(sale.pk),
+                date=today,
+            )
 
         # ── Loyalty: redeem then earn ─────────────────────────────────────────
         # Skip loyalty for versement or layaway — points awarded only when sale completes/collected

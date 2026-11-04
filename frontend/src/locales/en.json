@@ -1704,7 +1704,12 @@
     "negative_stock_requested": "Qty requested:",
     "negative_stock_current": "Current stock:",
     "negative_stock_new": "New stock:",
-    "confirm_sale": "Confirm Sale"
+    "confirm_sale": "Confirm Sale",
+    "on_account_balance": "Remaining on client account: {{amount}} DZD",
+    "on_account_client_required": "Please select a client to record a remaining balance on account.",
+    "on_account_client_selected": "Client: {{name}}",
+    "credit_limit_exceeded_reason": "Credit limit exceeded for {{name}} ({{newBalance}} DZD > {{limit}} DZD)",
+    "credit_limit_exceeded_desc": "A manager PIN is required to authorize exceeding the client's credit limit."
   },
   "sales_history": {
     "detailed_report_date": "Detailed report date",

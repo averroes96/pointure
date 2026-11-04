@@ -647,7 +647,9 @@ export default function SalesPage() {
       const effectivePayments = payments.filter((p: PaymentLine) => p.amount > 0);
       const paymentLines: PaymentLine[] = effectivePayments.length > 0
         ? effectivePayments
-        : [{ method: "cash", amount: Math.max(0, total) }];
+        : isQuickModeRef.current
+          ? [{ method: "cash", amount: Math.max(0, total) }]
+          : [{ method: payments[0]?.method ?? "cash", amount: 0 }];
 
       return api.post("/sales/", {
         branch_id: currentBranch?.id ?? null,
@@ -765,6 +767,44 @@ export default function SalesPage() {
           "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres."
         );
         setTimeout(() => setStockWarningToast(null), 4000);
+        return;
+      }
+    }
+
+    // Underpaid POS sale (on account): require client and check credit limit (D1)
+    if (!quickMode && !isVersement && !isLayaway && total > 0 && paymentTotal < total) {
+      if (!selectedClient) {
+        setStockWarningToast(
+          t(
+            "pos.on_account_client_required",
+            "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
+          ),
+        );
+        setTimeout(() => setStockWarningToast(null), 4000);
+        return;
+      }
+      const shortfall = total - paymentTotal;
+      const currentBalance = parseFloat(String(selectedClient.cached_balance || "0")) || 0;
+      const creditLimit = parseFloat(String(selectedClient.credit_limit || "0")) || 0;
+      const newBalance = currentBalance + shortfall;
+      if (creditLimit > 0 && newBalance > creditLimit && !managerPinRef.current) {
+        setManagerPinPrompt({
+          isOpen: true,
+          reason: t(
+            "pos.credit_limit_exceeded_reason",
+            "Plafond de crédit dépassé pour {{name}} ({{newBalance}} DZD > {{limit}} DZD)",
+            {
+              name: selectedClient.name,
+              newBalance: formatDZD(newBalance),
+              limit: formatDZD(creditLimit),
+            },
+          ),
+          actionDescription: t(
+            "pos.credit_limit_exceeded_desc",
+            "Le code PIN d'un responsable est requis pour autoriser un dépassement du plafond de crédit.",
+          ),
+          quickMode,
+        });
         return;
       }
     }
@@ -2320,6 +2360,41 @@ export default function SalesPage() {
               );
             })()}
 
+            {/* Underpaid on-account warning & info (D1) */}
+            {!isVersement && !isLayaway && total > 0 && paymentTotal < total && (
+              <div
+                className={cn(
+                  "text-xs px-3 py-2.5 rounded-xl border font-semibold space-y-1",
+                  !selectedClient
+                    ? "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span>
+                    {t("pos.on_account_balance", "Reste sur compte client : {{amount}} DZD", {
+                      amount: formatDZD(Math.max(0, total - paymentTotal)),
+                    })}
+                  </span>
+                  {selectedClient && (
+                    <span className="font-bold">
+                      {t("pos.on_account_client_selected", "Client : {{name}}", {
+                        name: selectedClient.name,
+                      })}
+                    </span>
+                  )}
+                </div>
+                {!selectedClient && (
+                  <p className="text-2xs font-medium">
+                    {t(
+                      "pos.on_account_client_required",
+                      "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* ── HIGH VISIBILITY GRAND TOTAL DISPLAY ── */}
             <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
@@ -2370,7 +2445,8 @@ export default function SalesPage() {
                 cart.length === 0 ||
                 saleMutation.isPending ||
                 (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100) ||
-                (isLayaway && paymentTotal < total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100)
+                (isLayaway && paymentTotal < total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100) ||
+                (!isVersement && !isLayaway && total > 0 && paymentTotal < total && !selectedClient)
               }
               className={cn(
                 "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",

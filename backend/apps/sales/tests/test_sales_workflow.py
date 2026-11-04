@@ -253,20 +253,103 @@ class TestSaleValidation:
         )
         assert resp.status_code == 400
 
-    def test_underpayment_allowed(self):
-        """Underpayment (account balance) is allowed — creates balance_due."""
+    def test_underpayment_without_client_rejected(self):
+        """Underpayment without a client is rejected (400)."""
         resp = self.client.post(
             "/api/v1/sales/",
             {
                 "items": [{"variant_id": self.variant.pk, "quantity": 1, "unit_price": "12000.00", "discount_amount": "0.00"}],
+                "payments": [{"method": "cash", "amount": "5000.00"}],
+                "cart_discount": "0.00",
+            },
+            format="json",
+        )
+        assert resp.status_code == 400
+
+    def test_underpayment_with_client_records_ledger_debit(self):
+        """Underpayment with a client creates a ClientLedger debit equal to the shortfall."""
+        from apps.clients.models import Client, ClientLedger
+
+        cust = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Compte",
+            phone="0550998877",
+            credit_limit=Decimal("50000.00"),
+        )
+        resp = self.client.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(cust.pk),
+                "items": [{"variant_id": self.variant.pk, "quantity": 1, "unit_price": "12000.00", "discount_amount": "0.00"}],
                 # Pay only 5000 — leaving 7000 on account
-                "payments": [{"method": "account", "amount": "5000.00"}],
+                "payments": [{"method": "cash", "amount": "5000.00"}],
                 "cart_discount": "0.00",
             },
             format="json",
         )
         assert resp.status_code == 201, resp.data
         assert Decimal(resp.data["balance_due"]) == Decimal("7000.00")
+
+        cust.refresh_from_db()
+        assert cust.cached_balance == Decimal("7000.00")
+        ledger_entry = ClientLedger.objects.filter(
+            client=cust, reference_type="Sale", reference_id=str(resp.data["id"])
+        ).first()
+        assert ledger_entry is not None
+        assert ledger_entry.entry_type == "debit"
+        assert ledger_entry.amount == Decimal("7000.00")
+
+    def test_underpayment_over_credit_limit_without_pin_rejected(self):
+        """Underpaid sale exceeding client's credit_limit without manager PIN returns 400."""
+        from apps.clients.models import Client
+
+        cust = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Plafond",
+            phone="0550998878",
+            credit_limit=Decimal("5000.00"),
+        )
+        resp = self.client.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(cust.pk),
+                "items": [{"variant_id": self.variant.pk, "quantity": 1, "unit_price": "12000.00", "discount_amount": "0.00"}],
+                "payments": [{"method": "cash", "amount": "5000.00"}],  # shortfall 7000 > limit 5000
+                "cart_discount": "0.00",
+            },
+            format="json",
+        )
+        assert resp.status_code == 400
+        assert "credit_limit" in str(resp.data)
+
+    def test_underpayment_over_credit_limit_with_valid_pin_succeeds(self):
+        """Underpaid sale exceeding client's credit_limit succeeds when valid manager PIN is supplied."""
+        from apps.clients.models import Client
+
+        self.manager.set_pin("4321")
+        self.manager.save()
+
+        cust = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Plafond PIN",
+            phone="0550998879",
+            credit_limit=Decimal("5000.00"),
+        )
+        resp = self.client.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(cust.pk),
+                "items": [{"variant_id": self.variant.pk, "quantity": 1, "unit_price": "12000.00", "discount_amount": "0.00"}],
+                "payments": [{"method": "cash", "amount": "5000.00"}],  # shortfall 7000 > limit 5000
+                "cart_discount": "0.00",
+                "manager_pin": "4321",
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert str(resp.data["authorized_by"]) == str(self.manager.pk)
+        cust.refresh_from_db()
+        assert cust.cached_balance == Decimal("7000.00")
 
 
 @pytest.mark.django_db

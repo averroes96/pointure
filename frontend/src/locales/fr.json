@@ -1704,7 +1704,12 @@
     "negative_stock_requested": "Qté demandée :",
     "negative_stock_current": "Stock actuel :",
     "negative_stock_new": "Nouveau :",
-    "confirm_sale": "Confirmer la vente"
+    "confirm_sale": "Confirmer la vente",
+    "on_account_balance": "Reste sur compte client : {{amount}} DZD",
+    "on_account_client_required": "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
+    "on_account_client_selected": "Client : {{name}}",
+    "credit_limit_exceeded_reason": "Plafond de crédit dépassé pour {{name}} ({{newBalance}} DZD > {{limit}} DZD)",
+    "credit_limit_exceeded_desc": "Le code PIN d'un responsable est requis pour autoriser un dépassement du plafond de crédit."
   },
   "sales_history": {
     "detailed_report_date": "Date du rapport détaillé",
