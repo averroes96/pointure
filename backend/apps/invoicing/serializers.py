@@ -122,6 +122,7 @@ class CreateDeliveryNoteSerializer(serializers.Serializer):
 
 class RegrouperBLsSerializer(serializers.Serializer):
     client_id = serializers.UUIDField(required=True)
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
     delivery_note_ids = serializers.ListField(
         child=serializers.UUIDField(), min_length=1
     )

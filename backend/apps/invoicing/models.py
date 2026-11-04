@@ -170,8 +170,6 @@ class Invoice(TenantScopedModel):
 
     def _deduct_inventory(self, lines=None, user=None):
         """Deduct stock for all invoice lines. Called on create/confirm for non-draft invoices."""
-        if not self.branch:
-            return
         from apps.inventory.models import StockMovement
         for line in (lines or self.lines.all()):
             if line.variant:
@@ -180,19 +178,18 @@ class Invoice(TenantScopedModel):
                     branch=self.branch,
                     variant=line.variant,
                     reason="sale",
-                    quantity_delta=-line.quantity,
+                    quantity_delta=-int(line.quantity),
                     reference_id=self.number or str(self.pk),
                     reference_type="invoice",
                     user=user or self.created_by,
                     notes=f"Facture {self.number or self.pk}"
                 )
                 line.variant.refresh_stock()
-                line.variant.refresh_stock(branch=self.branch)
+                if self.branch:
+                    line.variant.refresh_stock(branch=self.branch)
 
     def _restore_inventory(self, lines=None, ref_prefix="CANCEL", user=None):
         """Restore stock for all invoice lines. Called on cancel/edit."""
-        if not self.branch:
-            return
         from apps.inventory.models import StockMovement
         for line in (lines or self.lines.all()):
             if line.variant:
@@ -201,14 +198,15 @@ class Invoice(TenantScopedModel):
                     branch=self.branch,
                     variant=line.variant,
                     reason="return",
-                    quantity_delta=line.quantity,
+                    quantity_delta=int(line.quantity),
                     reference_id=self.number or str(self.pk),
                     reference_type="invoice",
                     user=user or self.created_by,
                     notes=f"{ref_prefix} Facture {self.number or self.pk}"
                 )
                 line.variant.refresh_stock()
-                line.variant.refresh_stock(branch=self.branch)
+                if self.branch:
+                    line.variant.refresh_stock(branch=self.branch)
 
     def _update_inventory_delta(self, old_lines, new_lines, user=None):
         """Update stock based on differences between old and new quantities for the same branch."""

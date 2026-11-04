@@ -352,7 +352,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     filterset_fields = ["invoice"]
 
     def get_queryset(self):
-        return DeliveryNote.objects.filter(invoice__tenant=self.request.tenant)
+        return DeliveryNote.objects.filter(tenant=self.request.tenant)
 
     def perform_create(self, serializer):
         self.require_manager()
@@ -428,13 +428,18 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"error": "Some Delivery Notes were not found, don't belong to this client, or are already invoiced."}, status=400)
 
         with transaction.atomic():
+            branch = None
+            if data.get("branch_id"):
+                from apps.core.models import Branch
+                branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant)
+
             # Check credit limit
             estimated_total = sum(
                 line.quantity * line.unit_price * (1 - line.discount_pct / 100)
                 for bl in bls for line in bl.lines.all()
             )
             if data.get("apply_tva"):
-                estimated_total *= (1 + data.get("tva_rate", Decimal("0.19")))
+                estimated_total *= (1 + data.get("tva_rate", Decimal("19.00")) / Decimal("100"))
                 
             if client.credit_limit and client.credit_limit > 0:
                 would_be_balance = client.cached_balance + estimated_total
@@ -445,6 +450,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             invoice = Invoice.objects.create(
                 tenant=request.tenant,
                 client=client,
+                branch=branch,
                 date=data["date"],
                 due_date=data["due_date"],
                 series_prefix=data["series_prefix"],
@@ -470,14 +476,16 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                         quantity=line.quantity,
                         unit_price=line.unit_price,
                         discount_pct=line.discount_pct,
+                        cartons=line.cartons,
                         order=order
                     )
                     order += 1
                     
-            invoice.recalculate_totals()
+            invoice.save()
             if data.get("confirm"):
-                invoice.status = "sent"
-                invoice.save()
+                invoice.confirm(user=request.user)
+
+            transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
                 
         from rest_framework.response import Response
         return Response(InvoiceSerializer(invoice).data, status=201)

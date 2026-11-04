@@ -247,3 +247,107 @@ class TestInvoicePaymentRBAC:
         )
         assert resp.status_code == 201, resp.data
         assert resp.data["amount"] == "5000.00"
+
+
+@pytest.mark.django_db
+class TestRegrouperDeliveryNotes:
+    """Tests for POST /api/v1/invoicing/delivery-notes/regrouper/ (Task 1.8)."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db, monkeypatch):
+        from decimal import Decimal
+        from apps.clients.models import Client
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_invoice_pdf", lambda *a, **kw: b"%PDF-mock")
+
+        self.tenant = Tenant.objects.create(name="Wholesale Regroup Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="mgr@regroup.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.client_obj = Client.objects.create(
+            tenant=self.tenant,
+            name="Grossiste Alger",
+            phone="0555334455",
+        )
+        self.product = Product.objects.create(
+            tenant=self.tenant,
+            name="Derby Cuir",
+            brand="ShoeDZ",
+            sale_price=Decimal("4000.00"),
+            purchase_price=Decimal("2500.00"),
+        )
+        self.variant = Variant.objects.create(
+            tenant=self.tenant,
+            product=self.product,
+            size_eu=42,
+            colour="Noir",
+        )
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.variant,
+            quantity_delta=10,
+            reason=MovementReasonChoices.INITIAL,
+            user=self.manager,
+        )
+        self.variant.refresh_stock()
+        assert self.variant.stock_qty == 10
+
+    def _create_bl(self, number, qty, unit_price="4000.00"):
+        from decimal import Decimal
+        from apps.invoicing.models import DeliveryNote, DeliveryNoteLine
+
+        bl = DeliveryNote.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            number=number,
+            date=_today(),
+        )
+        DeliveryNoteLine.objects.create(
+            delivery_note=bl,
+            variant=self.variant,
+            description="Derby Cuir 42",
+            quantity=Decimal(str(qty)),
+            unit_price=Decimal(unit_price),
+        )
+        return bl
+
+    def test_regrouper_merges_two_delivery_notes_and_confirms(self):
+        """Merging two delivery notes with confirm=True returns 201, computes totals, assigns a number, and deducts stock once."""
+        bl1 = self._create_bl("BL-001", qty=2, unit_price="4000.00")
+        bl2 = self._create_bl("BL-002", qty=3, unit_price="4000.00")
+
+        # Delivery notes themselves do not deduct stock
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 10
+
+        c = _make_client(self.manager)
+        resp = c.post(
+            "/api/v1/invoicing/delivery-notes/regrouper/",
+            {
+                "client_id": str(self.client_obj.pk),
+                "delivery_note_ids": [str(bl1.pk), str(bl2.pk)],
+                "date": _today(),
+                "due_date": _due(),
+                "series_prefix": "FA",
+                "apply_tva": False,
+                "tva_rate": "0.00",
+                "confirm": True,
+            },
+            format="json",
+        )
+        assert resp.status_code == 201, resp.data
+        assert resp.data["total_ht"] == "20000.00"
+        assert resp.data["total_ttc"] == "20000.00"
+        assert resp.data["status"] == "sent"
+        assert resp.data["number"].startswith("FA-")
+        assert len(resp.data["lines"]) == 2
+
+        # Stock is deducted exactly once overall (10 - (2 + 3) = 5)
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 5
+
