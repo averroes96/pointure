@@ -2406,9 +2406,18 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
           expected_qty = counted_qty so the session remains IN_PROGRESS for multi-day / zone-by-zone scanning.
         """
         session = self.get_object()
-        if session.status == StocktakeStatusChoices.COMPLETED:
+        if session.status in (StocktakeStatusChoices.COMPLETED, StocktakeStatusChoices.CANCELLED):
             return Response(
-                {"error": {"code": "already_completed", "message": "Cet inventaire a déjà été appliqué."}},
+                {
+                    "error": {
+                        "code": "already_completed" if session.status == StocktakeStatusChoices.COMPLETED else "session_cancelled",
+                        "message": (
+                            "Cet inventaire a déjà été appliqué."
+                            if session.status == StocktakeStatusChoices.COMPLETED
+                            else "Cet inventaire a été annulé et ne peut pas être appliqué."
+                        ),
+                    }
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -2431,12 +2440,57 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         adjusted_count = 0
         from django.utils import timezone
         with transaction.atomic():
+            session = StocktakeSession.objects.select_for_update().get(
+                pk=session.pk,
+                tenant=request.tenant,
+            )
+            if session.status in (StocktakeStatusChoices.COMPLETED, StocktakeStatusChoices.CANCELLED):
+                return Response(
+                    {
+                        "error": {
+                            "code": "already_completed" if session.status == StocktakeStatusChoices.COMPLETED else "session_cancelled",
+                            "message": (
+                                "Cet inventaire a déjà été appliqué."
+                                if session.status == StocktakeStatusChoices.COMPLETED
+                                else "Cet inventaire a été annulé et ne peut pas être appliqué."
+                            ),
+                        }
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             items_qs = session.items.select_related("variant__product").all()
             if only_scanned:
                 items_qs = items_qs.filter(Q(last_scanned_at__isnull=False) | Q(counted_qty__gt=0))
 
             for item in items_qs:
-                variance = item.counted_qty - item.expected_qty
+                if session.branch_id:
+                    current_stock = (
+                        StockMovement.objects.filter(
+                            variant_id=item.variant_id,
+                            branch_id=session.branch_id,
+                        ).aggregate(total=Sum("quantity_delta"))["total"]
+                        or 0
+                    )
+                else:
+                    current_stock = item.variant.stock_qty
+
+                cutoff = item.last_scanned_at or session.created_at
+                movements_since_qs = StockMovement.objects.filter(
+                    variant_id=item.variant_id,
+                    timestamp__gt=cutoff,
+                )
+                if session.branch_id:
+                    movements_since_qs = movements_since_qs.filter(branch_id=session.branch_id)
+                net_movements_since = movements_since_qs.aggregate(total=Sum("quantity_delta"))["total"] or 0
+
+                stock_at_count = current_stock - net_movements_since
+                variance = item.counted_qty - stock_at_count
+
+                if item.expected_qty != stock_at_count and not keep_open:
+                    item.expected_qty = stock_at_count
+                    item.save(update_fields=["expected_qty"])
+
                 if variance != 0:
                     StockMovement.objects.create(
                         tenant=request.tenant,
@@ -2446,7 +2500,7 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                         reason=MovementReasonChoices.STOCKTAKE,
                         reference_id=str(session.id),
                         reference_type="StocktakeSession",
-                        notes=f"Inventaire physique: {session.title} (Attendu: {item.expected_qty}, Compté: {item.counted_qty})",
+                        notes=f"Inventaire physique: {session.title} (Attendu: {stock_at_count}, Compté: {item.counted_qty})",
                         user=request.user,
                     )
                     item.variant.refresh_stock(branch=session.branch)

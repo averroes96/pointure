@@ -258,3 +258,76 @@ class StocktakeTests(TestCase):
         assert resp_ok.status_code == 200, resp_ok.data
         session.refresh_from_db()
         assert session.status == StocktakeStatusChoices.COMPLETED
+
+    def test_apply_does_not_double_deduct_sales_after_scan(self):
+        """Snapshot 10, scan counts 10, sell 2 after the scan, apply -> no adjustment and final stock 8."""
+        self.client.force_authenticate(user=self.manager)
+        resp_create = self.client.post(
+            "/api/v1/inventory/stocktakes/",
+            {
+                "title": "Inventaire Ventes Concurrentes",
+                "branch": self.branch.id,
+                "auto_populate": True,
+            },
+            format="json",
+        )
+        assert resp_create.status_code == 201, resp_create.data
+        session_id = resp_create.data["id"]
+
+        # Scan var1 -> 10 counted, var2 -> 4 counted
+        resp_scan1 = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session_id}/scan/",
+            {"barcode": self.var1.barcode, "set_qty": 10},
+            format="json",
+        )
+        assert resp_scan1.status_code == 200, resp_scan1.data
+        resp_scan2 = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session_id}/scan/",
+            {"barcode": self.var2.barcode, "set_qty": 4},
+            format="json",
+        )
+        assert resp_scan2.status_code == 200, resp_scan2.data
+
+        # Sell 2 pairs of var1 after the scan
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.var1,
+            branch=self.branch,
+            quantity_delta=-2,
+            reason=MovementReasonChoices.SALE,
+            user=self.cashier,
+        )
+        self.var1.refresh_stock()
+        assert self.var1.stock_qty == 8
+
+        # Apply stocktake -> no adjustment should be made, final stock stays 8
+        resp_apply = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session_id}/apply/",
+            {},
+            format="json",
+        )
+        assert resp_apply.status_code == 200, resp_apply.data
+        assert resp_apply.data["adjusted_variants_count"] == 0
+        assert StockMovement.objects.filter(variant=self.var1, reason=MovementReasonChoices.STOCKTAKE).count() == 0
+
+        self.var1.refresh_from_db()
+        assert self.var1.stock_qty == 8
+
+    def test_apply_cancelled_session_returns_400(self):
+        """Applying a cancelled stocktake session returns 400."""
+        self.client.force_authenticate(user=self.manager)
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Inventaire Annulé",
+            status=StocktakeStatusChoices.CANCELLED,
+            created_by=self.manager,
+        )
+        resp = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session.id}/apply/",
+            {},
+            format="json",
+        )
+        assert resp.status_code == 400
+        assert resp.data["error"]["code"] == "session_cancelled"
+
