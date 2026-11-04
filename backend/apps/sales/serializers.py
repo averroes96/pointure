@@ -451,22 +451,11 @@ class CreateSaleSerializer(serializers.Serializer):
             due_date = None
             layaway_expires_at = None
 
-        active_session = CashSession.objects.filter(
+        active_session = CashSession.get_open_session(
             tenant=tenant,
-            cashier=cashier,
-            status=CashSessionStatus.OPEN,
-        ).order_by("-opened_at").first()
-        if not active_session and branch:
-            active_session = CashSession.objects.filter(
-                tenant=tenant,
-                branch=branch,
-                status=CashSessionStatus.OPEN,
-            ).order_by("-opened_at").first()
-        if not active_session:
-            active_session = CashSession.objects.filter(
-                tenant=tenant,
-                status=CashSessionStatus.OPEN,
-            ).order_by("-opened_at").first()
+            user=cashier,
+            branch=branch,
+        )
 
         sale = Sale.objects.create(
             tenant=tenant,
@@ -515,6 +504,7 @@ class CreateSaleSerializer(serializers.Serializer):
             if payment_data["amount"] > Decimal("0.00"):
                 Payment.objects.create(
                     sale=sale,
+                    session=active_session,
                     amount=payment_data["amount"],
                     method=payment_data["method"],
                     notes=payment_data.get("notes", ""),

@@ -145,6 +145,9 @@ class Payment(models.Model):
     """Payment linked to a sale (can be multiple for split payments)."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
+    session = models.ForeignKey(
+        "sales.CashSession", on_delete=models.SET_NULL, null=True, blank=True, related_name="payments"
+    )
     amount = models.DecimalField(_("Amount"), max_digits=12, decimal_places=2)
     method = models.CharField(
         _("Method"), max_length=20, choices=PaymentMethodChoices.choices
@@ -294,6 +297,41 @@ class CashSession(TenantScopedModel):
             )
             self.session_number = max_num + 1
         super().save(*args, **kwargs)
+
+    @classmethod
+    def get_open_session(cls, tenant, user=None, branch=None):
+        """Return the active open CashSession using the standard lookup order (cashier -> branch -> tenant)."""
+        session = None
+        if user is not None:
+            session = (
+                cls.objects.filter(
+                    tenant=tenant,
+                    cashier=user,
+                    status=CashSessionStatus.OPEN,
+                )
+                .order_by("-opened_at")
+                .first()
+            )
+        if not session and branch is not None:
+            session = (
+                cls.objects.filter(
+                    tenant=tenant,
+                    branch=branch,
+                    status=CashSessionStatus.OPEN,
+                )
+                .order_by("-opened_at")
+                .first()
+            )
+        if not session:
+            session = (
+                cls.objects.filter(
+                    tenant=tenant,
+                    status=CashSessionStatus.OPEN,
+                )
+                .order_by("-opened_at")
+                .first()
+            )
+        return session
 
 
 class CashMovement(models.Model):

@@ -146,8 +146,14 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from django.db.models import Sum as DjSum
 
         with transaction.atomic():
+            active_session = CashSession.get_open_session(
+                tenant=sale.tenant,
+                user=request.user,
+                branch=sale.branch,
+            )
             Payment.objects.create(
                 sale=sale,
+                session=active_session,
                 amount=data["amount"],
                 method=data["method"],
                 notes=data.get("notes", ""),
@@ -205,8 +211,14 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
                 method = request.data.get("method", "cash")
                 notes = request.data.get("notes", "Règlement solde retrait réservation")
+                active_session = CashSession.get_open_session(
+                    tenant=sale.tenant,
+                    user=request.user,
+                    branch=sale.branch,
+                )
                 Payment.objects.create(
                     sale=sale,
+                    session=active_session,
                     amount=amount,
                     method=method,
                     notes=notes,

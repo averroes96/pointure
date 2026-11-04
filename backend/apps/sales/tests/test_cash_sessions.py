@@ -63,12 +63,14 @@ class CashSessionTests(TestCase):
         # Cash payment
         Payment.objects.create(
             sale=sale1,
+            session=session,
             amount=Decimal("10000.00"),
             method=PaymentMethodChoices.CASH,
         )
         # TPE payment
         Payment.objects.create(
             sale=sale1,
+            session=session,
             amount=Decimal("2000.00"),
             method=PaymentMethodChoices.TPE,
         )
@@ -107,3 +109,104 @@ class CashSessionTests(TestCase):
         self.assertIn("Z-0001", html)
         self.assertIn("15 500,00", html)
         self.assertIn("CIB / Edahabia", html)
+
+    def test_installment_recorded_in_later_session_z_report(self):
+        """A sale in session A with a later installment in session B counts the installment in B, not A."""
+        from rest_framework.test import APIClient
+        from apps.clients.models import Client
+        from apps.inventory.models import Product, StockMovement, Variant
+
+        client_obj = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Versement",
+            phone="0555998877",
+        )
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Shoe",
+            brand="Brand",
+            sale_price="8000.00",
+            purchase_price="5000.00",
+        )
+        variant = Variant.objects.create(
+            tenant=self.tenant,
+            product=product,
+            size_eu=42,
+            colour="Noir",
+        )
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            variant=variant,
+            quantity_delta=5,
+            reason="initial",
+            user=self.cashier,
+        )
+
+        session_a = CashSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            cashier=self.cashier,
+            opening_float=Decimal("1000.00"),
+            status=CashSessionStatus.OPEN,
+        )
+
+        api = APIClient()
+        api.force_authenticate(user=self.cashier)
+
+        # Create partially_paid sale in session A with 3000 DZD deposit
+        resp = api.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(client_obj.pk),
+                "branch_id": str(self.branch.pk),
+                "is_versement": True,
+                "items": [{"variant_id": str(variant.pk), "quantity": 1, "unit_price": "8000.00"}],
+                "payments": [{"method": "cash", "amount": "3000.00"}],
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201, resp.data)
+        sale_id = resp.data["id"]
+
+        # Close session A
+        close_resp = api.post(
+            f"/api/v1/sales/sessions/{session_a.pk}/close/",
+            {"actual_cash": "4000.00"},
+            format="json",
+        )
+        self.assertEqual(close_resp.status_code, 200, close_resp.data)
+        session_a.refresh_from_db()
+        self.assertEqual(session_a.system_cash_sales, Decimal("3000.00"))
+
+        # Open session B
+        session_b = CashSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            cashier=self.cashier,
+            opening_float=Decimal("2000.00"),
+            status=CashSessionStatus.OPEN,
+        )
+
+        # Add 5000 DZD installment in session B
+        pay_resp = api.post(
+            f"/api/v1/sales/{sale_id}/add-payment/",
+            {"amount": "5000.00", "method": "cash"},
+            format="json",
+        )
+        self.assertEqual(pay_resp.status_code, 200, pay_resp.data)
+
+        stats_a = compute_session_stats(session_a)
+        stats_b = compute_session_stats(session_b)
+
+        # Session A only has the initial 3000 DZD deposit
+        self.assertEqual(stats_a["sales_count"], 1)
+        self.assertEqual(stats_a["cash_sales"], Decimal("3000.00"))
+        session_a.refresh_from_db()
+        self.assertEqual(session_a.system_cash_sales, Decimal("3000.00"))
+
+        # Session B has the 5000 DZD installment and 0 new sales
+        self.assertEqual(stats_b["sales_count"], 0)
+        self.assertEqual(stats_b["cash_sales"], Decimal("5000.00"))
+        self.assertEqual(stats_b["expected_cash"], Decimal("7000.00"))  # 2000 float + 5000 installment
+

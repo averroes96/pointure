@@ -18,7 +18,7 @@ def compute_session_stats(session):
     sales_count = sales_qs.count()
     total_sales = sales_qs.aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
 
-    payments_qs = Payment.objects.filter(sale__in=sales_qs)
+    payments_qs = Payment.objects.filter(session=session)
     method_aggregates = payments_qs.values("method").annotate(total=Sum("amount"))
     methods_dict = {row["method"]: row["total"] or Decimal("0.00") for row in method_aggregates}
 
