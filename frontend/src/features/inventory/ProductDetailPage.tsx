@@ -242,8 +242,9 @@ export default function ProductDetailPage() {
   }
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteForce, setDeleteForce] = useState(false);
+  const [deleteCanArchive, setDeleteCanArchive] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDeleteProduct() {
@@ -251,22 +252,37 @@ export default function ProductDetailPage() {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
-      await api.delete(`/inventory/products/${id}/`, {
-        params: { force: deleteForce ? "true" : "false" },
-      });
+      await api.delete(`/inventory/products/${id}/`);
       navigate("/inventory/products");
     } catch (err: any) {
       const data = err?.response?.data;
-      if (data?.has_transactions) {
+      if (data?.has_transactions || data?.can_archive) {
+        setDeleteCanArchive(true);
         setDeleteError(
-          data?.detail || "Ce produit possède des historiques de ventes ou factures. Cochez l'option 'Forcer la suppression' pour continuer."
+          data?.detail || data?.message || t("inventory.has_history_archive_hint")
         );
-        setDeleteForce(true);
       } else {
-        setDeleteError(data?.detail || data?.error || getApiError(err));
+        setDeleteError(data?.detail || data?.message || data?.error || getApiError(err));
       }
     } finally {
       setDeleteLoading(false);
+    }
+  }
+
+  async function handleArchiveProduct() {
+    if (!id || archiveLoading) return;
+    setArchiveLoading(true);
+    setDeleteError(null);
+    try {
+      await api.patch(`/inventory/products/${id}/`, { is_active: false });
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setDeleteModalOpen(false);
+      setDeleteCanArchive(false);
+    } catch (err: any) {
+      setDeleteError(getApiError(err));
+    } finally {
+      setArchiveLoading(false);
     }
   }
 
@@ -396,7 +412,7 @@ export default function ProductDetailPage() {
               <button
                 onClick={() => {
                   setDeleteError(null);
-                  setDeleteForce(false);
+                  setDeleteCanArchive(false);
                   setDeleteModalOpen(true);
                 }}
                 className="btn-ghost btn-sm text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -1220,10 +1236,10 @@ export default function ProductDetailPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Supprimer définitivement ce produit ?
+                  {t("inventory.delete_product_title")}
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Le produit <strong className="text-slate-800 dark:text-slate-200">{product.name}</strong> ainsi que toutes ses déclinaisons et mouvements de stock seront supprimés de manière irréversible.
+                  {t("inventory.delete_product_desc", { name: product.name })}
                 </p>
               </div>
             </div>
@@ -1235,48 +1251,51 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-xl space-y-2">
-              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-amber-900 dark:text-amber-300 font-medium">
-                <input
-                  type="checkbox"
-                  checked={deleteForce}
-                  onChange={(e) => setDeleteForce(e.target.checked)}
-                  className="rounded border-amber-400 text-red-600 focus:ring-red-500 mt-0.5"
-                />
-                <span>
-                  <strong>Forcer la suppression</strong> : Supprimer même si ce produit figure dans d'anciennes ventes, retours ou factures archivées.
-                </span>
-              </label>
-            </div>
-
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
                   setDeleteModalOpen(false);
                   setDeleteError(null);
-                  setDeleteForce(false);
+                  setDeleteCanArchive(false);
                 }}
-                disabled={deleteLoading}
+                disabled={deleteLoading || archiveLoading}
                 className="btn-secondary btn-sm"
               >
-                Annuler
+                {t("common.cancel")}
               </button>
+              {deleteCanArchive && (
+                <button
+                  type="button"
+                  onClick={handleArchiveProduct}
+                  disabled={archiveLoading || deleteLoading}
+                  className="btn-sm bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+                >
+                  {archiveLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      {t("inventory.archiving")}
+                    </>
+                  ) : (
+                    t("inventory.archive_product")
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleDeleteProduct}
-                disabled={deleteLoading}
+                disabled={deleteLoading || archiveLoading}
                 className="btn-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
               >
                 {deleteLoading ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Suppression…
+                    {t("inventory.deleting")}
                   </>
                 ) : (
                   <>
                     <Trash2 size={14} />
-                    Supprimer définitivement
+                    {t("inventory.delete_permanently")}
                   </>
                 )}
               </button>

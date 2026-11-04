@@ -88,8 +88,9 @@ export default function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkShelfLoading, setBulkShelfLoading] = useState(false);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
-  const [bulkDeleteForce, setBulkDeleteForce] = useState(false);
+  const [bulkDeleteCanArchive, setBulkDeleteCanArchive] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [bulkArchiveLoading, setBulkArchiveLoading] = useState(false);
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
 
   // Mass Price Update state
@@ -244,26 +245,53 @@ export default function ProductsPage() {
     setBulkDeleteLoading(true);
     setBulkDeleteError(null);
     try {
-      await api.post("/inventory/products/bulk-delete/", {
-        ids: selectedIds,
-        force: bulkDeleteForce,
+      const res = await api.post("/inventory/products/bulk-delete/", {
+        product_ids: selectedIds,
       });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      const blocked = res.data?.blocked_products || [];
+      if (blocked.length > 0) {
+        const blockedIds = blocked.map((b: any) => b.id);
+        setSelectedIds((prev) => prev.filter((id) => blockedIds.includes(String(id))));
+        setBulkDeleteCanArchive(true);
+        setBulkDeleteError(res.data?.detail || res.data?.message || t("inventory.has_history_archive_hint"));
+      } else {
+        setSelectedIds([]);
+        setBulkDeleteCanArchive(false);
+        setBulkDeleteModalOpen(false);
+      }
+    } catch (err: any) {
+      const respData = err?.response?.data;
+      if (respData?.has_transactions || respData?.can_archive) {
+        setBulkDeleteCanArchive(true);
+        setBulkDeleteError(
+          respData?.detail || respData?.message || t("inventory.has_history_archive_hint")
+        );
+      } else {
+        setBulkDeleteError(respData?.detail || respData?.message || respData?.error || "Erreur lors de la suppression groupée.");
+      }
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  }
+
+  async function handleBulkArchive() {
+    if (selectedIds.length === 0 || bulkArchiveLoading) return;
+    setBulkArchiveLoading(true);
+    setBulkDeleteError(null);
+    try {
+      await Promise.all(
+        selectedIds.map((pid) => api.patch(`/inventory/products/${pid}/`, { is_active: false }))
+      );
       setSelectedIds([]);
+      setBulkDeleteCanArchive(false);
       setBulkDeleteModalOpen(false);
       qc.invalidateQueries({ queryKey: ["products"] });
     } catch (err: any) {
       const respData = err?.response?.data;
-      if (respData?.has_transactions) {
-        setBulkDeleteError(
-          respData?.detail ||
-            "Certains produits sélectionnés possèdent des ventes enregistrées. Cochez 'Forcer la suppression' pour continuer."
-        );
-        setBulkDeleteForce(true);
-      } else {
-        setBulkDeleteError(respData?.detail || respData?.error || "Erreur lors de la suppression groupée.");
-      }
+      setBulkDeleteError(respData?.detail || respData?.message || respData?.error || "Erreur lors de l'archivage.");
     } finally {
-      setBulkDeleteLoading(false);
+      setBulkArchiveLoading(false);
     }
   }
 
@@ -608,7 +636,7 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => {
                   setBulkDeleteError(null);
-                  setBulkDeleteForce(false);
+                  setBulkDeleteCanArchive(false);
                   setBulkDeleteModalOpen(true);
                 }}
                 className="btn-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors"
@@ -826,59 +854,62 @@ export default function ProductsPage() {
       {/* Bulk Delete Modal */}
       {bulkDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="card max-w-md w-full p-6 space-y-4 bg-white shadow-xl rounded-2xl border border-red-100">
+          <div className="card max-w-md w-full p-6 space-y-4 bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-red-100 dark:border-rose-900/60">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-rose-950/60 text-red-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
                 <Trash2 size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {t("inventory.bulk_delete_title", { count: selectedIds.length })}
                 </h3>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {t("inventory.bulk_delete_desc")}
                 </p>
               </div>
             </div>
 
             {bulkDeleteError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+              <div className="p-3 bg-red-50 dark:bg-rose-950/40 border border-red-200 dark:border-rose-900/60 rounded-xl text-xs text-red-700 dark:text-rose-300 flex items-start gap-2">
                 <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
                 <span>{bulkDeleteError}</span>
               </div>
             )}
 
-            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl">
-              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-amber-900 font-medium">
-                <input
-                  type="checkbox"
-                  checked={bulkDeleteForce}
-                  onChange={(e) => setBulkDeleteForce(e.target.checked)}
-                  className="rounded border-amber-400 text-red-600 focus:ring-red-500 mt-0.5"
-                />
-                <span>
-                  <strong>{t("inventory.force_delete")}</strong> : {t("inventory.force_delete_desc")}
-                </span>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
                   setBulkDeleteModalOpen(false);
                   setBulkDeleteError(null);
-                  setBulkDeleteForce(false);
+                  setBulkDeleteCanArchive(false);
                 }}
-                disabled={bulkDeleteLoading}
+                disabled={bulkDeleteLoading || bulkArchiveLoading}
                 className="btn-secondary btn-sm"
               >
                 {t("common.cancel")}
               </button>
+              {bulkDeleteCanArchive && (
+                <button
+                  type="button"
+                  onClick={handleBulkArchive}
+                  disabled={bulkArchiveLoading || bulkDeleteLoading}
+                  className="btn-sm bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                >
+                  {bulkArchiveLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      {t("inventory.archiving")}
+                    </>
+                  ) : (
+                    t("inventory.archive_products", { count: selectedIds.length })
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleBulkDelete}
-                disabled={bulkDeleteLoading}
+                disabled={bulkDeleteLoading || bulkArchiveLoading}
                 className="btn-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
               >
                 {bulkDeleteLoading ? (

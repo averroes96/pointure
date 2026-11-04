@@ -908,67 +908,105 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         return _label_response(request, html_string, filename="etiquettes_rayon_selection.pdf")
 
+    @staticmethod
+    def _get_product_history_counts(variants):
+        from apps.sales.models import SaleItem, ReturnItem, ExchangeReturnItem, ExchangeNewItem
+        from apps.invoicing.models import InvoiceLine, DeliveryNoteLine
+        from apps.suppliers.models import POLine
+        from apps.inventory.models import StockMovement, StockTransfer, DefectItem
+
+        sales_count = SaleItem.objects.filter(variant__in=variants).count()
+        returns_count = ReturnItem.objects.filter(variant__in=variants).count()
+        exchanges_count = (
+            ExchangeReturnItem.objects.filter(variant__in=variants).count()
+            + ExchangeNewItem.objects.filter(variant__in=variants).count()
+        )
+        invoices_count = InvoiceLine.objects.filter(variant__in=variants).count()
+        delivery_notes_count = DeliveryNoteLine.objects.filter(variant__in=variants).count()
+        po_count = POLine.objects.filter(variant__in=variants).count()
+        transfers_count = StockTransfer.objects.filter(variant__in=variants).count()
+        defects_count = DefectItem.objects.filter(variant__in=variants).count()
+        movements_count = (
+            StockMovement.objects.filter(variant__in=variants)
+            .exclude(reason=MovementReasonChoices.INITIAL)
+            .count()
+        )
+        total_transactions = (
+            sales_count
+            + returns_count
+            + exchanges_count
+            + invoices_count
+            + delivery_notes_count
+            + po_count
+            + transfers_count
+            + defects_count
+            + movements_count
+        )
+        return {
+            "sales": sales_count,
+            "returns": returns_count,
+            "exchanges": exchanges_count,
+            "invoices": invoices_count,
+            "delivery_notes": delivery_notes_count,
+            "purchase_orders": po_count,
+            "transfers": transfers_count,
+            "defects": defects_count,
+            "movements": movements_count,
+            "total": total_transactions,
+        }
+
     def destroy(self, request, *args, **kwargs):
         """
-        Permanently delete a product (hard delete).
-        Ensures foreign key dependencies with PROTECT are cleanly removed:
-        - Variants and their StockMovements, StockTransfers, Defects, ProductLocations
-        - If the product has sales/invoices, require ?force=true to prevent accidental loss
+        Permanently delete a product only when it has no transaction history (D3).
+        If the product is referenced in sales, invoices, purchase orders, or movements,
+        refuse with HTTP 400 and suggest archiving (is_active=False).
         """
         self.require_manager()
         product = self.get_object()
         variants = list(product.variants.all())
 
-        from apps.sales.models import SaleItem, ReturnItem, ExchangeItem
-        from apps.invoicing.models import InvoiceItem, DeliveryNoteItem
-        from apps.suppliers.models import PurchaseOrderItem
-        from apps.inventory.models import StockMovement, StockTransfer, Defect, ProductLocation
+        from apps.inventory.models import StockMovement, StockTransfer, DefectItem, ProductLocation
 
-        sales_count = SaleItem.objects.filter(variant__in=variants).count()
-        invoices_count = InvoiceItem.objects.filter(variant__in=variants).count()
-        returns_count = ReturnItem.objects.filter(variant__in=variants).count()
-        po_count = PurchaseOrderItem.objects.filter(variant__in=variants).count()
-        total_transactions = sales_count + invoices_count + returns_count + po_count
+        counts = self._get_product_history_counts(variants)
+        total_transactions = counts["total"]
 
-        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
-
-        if total_transactions > 0 and not force:
+        if total_transactions > 0:
             details = []
-            if sales_count > 0:
-                details.append(f"{sales_count} vente(s)")
-            if invoices_count > 0:
-                details.append(f"{invoices_count} ligne(s) de facture")
-            if returns_count > 0:
-                details.append(f"{returns_count} retour(s)")
-            if po_count > 0:
-                details.append(f"{po_count} commande(s) fournisseur")
+            if counts["sales"] > 0:
+                details.append(f"{counts['sales']} vente(s)")
+            if counts["invoices"] > 0:
+                details.append(f"{counts['invoices']} ligne(s) de facture")
+            if counts["delivery_notes"] > 0:
+                details.append(f"{counts['delivery_notes']} bon(s) de livraison")
+            if counts["returns"] > 0 or counts["exchanges"] > 0:
+                details.append(f"{counts['returns'] + counts['exchanges']} retour(s)/échange(s)")
+            if counts["purchase_orders"] > 0:
+                details.append(f"{counts['purchase_orders']} commande(s) fournisseur")
+            if counts["transfers"] > 0 or counts["defects"] > 0 or counts["movements"] > 0:
+                details.append(f"{counts['movements'] + counts['transfers'] + counts['defects']} mouvement(s) de stock")
 
+            summary_str = " et ".join(details) if details else f"{total_transactions} opération(s)"
+            msg = (
+                f"Ce produit possède un historique ({summary_str}) et ne peut pas être supprimé définitivement. "
+                "Veuillez l'archiver (is_active=false) pour le retirer du catalogue actif tout en conservant l'historique."
+            )
             return Response(
                 {
                     "error": "has_transactions",
-                    "can_force": True,
+                    "has_transactions": True,
+                    "can_force": False,
+                    "can_archive": True,
                     "total_transactions": total_transactions,
-                    "message": (
-                        f"Ce produit est référencé dans {' et '.join(details)}. "
-                        "Confirmez la suppression forcée pour supprimer définitivement le produit "
-                        "et purger ces références historiques associées."
-                    ),
+                    "detail": msg,
+                    "message": msg,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         with transaction.atomic():
-            if total_transactions > 0 and force:
-                SaleItem.objects.filter(variant__in=variants).delete()
-                ReturnItem.objects.filter(variant__in=variants).delete()
-                ExchangeItem.objects.filter(variant__in=variants).delete()
-                InvoiceItem.objects.filter(variant__in=variants).delete()
-                DeliveryNoteItem.objects.filter(variant__in=variants).delete()
-                PurchaseOrderItem.objects.filter(variant__in=variants).delete()
-
             StockMovement.objects.filter(variant__in=variants).delete()
             StockTransfer.objects.filter(variant__in=variants).delete()
-            Defect.objects.filter(variant__in=variants).delete()
+            DefectItem.objects.filter(variant__in=variants).delete()
             ProductLocation.objects.filter(product=product).delete()
 
             for v in variants:
@@ -979,10 +1017,14 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        """Bulk permanently delete multiple products."""
+        """
+        Bulk delete products that have no transaction history (D3).
+        Returns a per-item result; products with history are never deleted and are reported as blocked.
+        """
         self.require_manager()
-        product_ids = request.data.get("product_ids", [])
-        force = bool(request.data.get("force", False))
+        product_ids = request.data.get("product_ids")
+        if product_ids is None:
+            product_ids = request.data.get("ids", [])
 
         if not product_ids or not isinstance(product_ids, list):
             return Response({"error": "product_ids list required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -991,52 +1033,91 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if not products:
             return Response({"detail": "Aucun produit trouvé."}, status=status.HTTP_404_NOT_FOUND)
 
-        from apps.sales.models import SaleItem, ReturnItem, ExchangeItem
-        from apps.invoicing.models import InvoiceItem, DeliveryNoteItem
-        from apps.suppliers.models import PurchaseOrderItem
-        from apps.inventory.models import StockMovement, StockTransfer, Defect, ProductLocation
-
-        if not force:
-            blocked = []
-            for p in products:
-                vars_ids = p.variants.values_list("id", flat=True)
-                s_count = SaleItem.objects.filter(variant_id__in=vars_ids).count()
-                if s_count > 0:
-                    blocked.append({"id": p.id, "name": p.name, "sales": s_count})
-            if blocked:
-                return Response(
-                    {
-                        "error": "has_transactions",
-                        "can_force": True,
-                        "blocked_products": blocked,
-                        "message": f"{len(blocked)} produit(s) sélectionné(s) possèdent des ventes enregistrées. Confirmez pour forcer la suppression.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        from apps.inventory.models import StockMovement, StockTransfer, DefectItem, ProductLocation
 
         deleted_count = 0
+        deleted_ids = []
+        blocked = []
+        results = []
+
         with transaction.atomic():
             for p in products:
                 variants = list(p.variants.all())
-                if force:
-                    SaleItem.objects.filter(variant__in=variants).delete()
-                    ReturnItem.objects.filter(variant__in=variants).delete()
-                    ExchangeItem.objects.filter(variant__in=variants).delete()
-                    InvoiceItem.objects.filter(variant__in=variants).delete()
-                    DeliveryNoteItem.objects.filter(variant__in=variants).delete()
-                    PurchaseOrderItem.objects.filter(variant__in=variants).delete()
+                counts = self._get_product_history_counts(variants)
+                if counts["total"] > 0:
+                    blocked_entry = {
+                        "id": str(p.id),
+                        "name": p.name,
+                        "sales": counts["sales"],
+                        "total_transactions": counts["total"],
+                        "reason": "has_transactions",
+                    }
+                    blocked.append(blocked_entry)
+                    results.append({
+                        "id": str(p.id),
+                        "name": p.name,
+                        "deleted": False,
+                        "status": "blocked",
+                        "reason": "has_transactions",
+                        "total_transactions": counts["total"],
+                    })
+                    continue
 
+                pid_str = str(p.id)
+                pname = p.name
                 StockMovement.objects.filter(variant__in=variants).delete()
                 StockTransfer.objects.filter(variant__in=variants).delete()
-                Defect.objects.filter(variant__in=variants).delete()
+                DefectItem.objects.filter(variant__in=variants).delete()
                 ProductLocation.objects.filter(product=p).delete()
 
                 for v in variants:
                     v.delete()
                 p.delete()
                 deleted_count += 1
+                deleted_ids.append(pid_str)
+                results.append({
+                    "id": pid_str,
+                    "name": pname,
+                    "deleted": True,
+                    "status": "deleted",
+                })
 
-        return Response({"deleted": deleted_count, "detail": f"{deleted_count} produit(s) supprimé(s) définitivement."})
+        if blocked and deleted_count == 0:
+            msg = (
+                f"{len(blocked)} produit(s) sélectionné(s) possèdent un historique et ne peuvent pas être supprimés définitivement. "
+                "Archivez-les pour les désactiver."
+            )
+            return Response(
+                {
+                    "error": "has_transactions",
+                    "has_transactions": True,
+                    "can_force": False,
+                    "can_archive": True,
+                    "deleted": 0,
+                    "deleted_ids": [],
+                    "blocked_products": blocked,
+                    "results": results,
+                    "detail": msg,
+                    "message": msg,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        msg = f"{deleted_count} produit(s) supprimé(s) définitivement."
+        if blocked:
+            msg += f" {len(blocked)} produit(s) conservé(s) car liés à un historique (archivage recommandé)."
+        return Response(
+            {
+                "deleted": deleted_count,
+                "deleted_ids": deleted_ids,
+                "blocked_products": blocked,
+                "has_transactions": bool(blocked),
+                "can_archive": bool(blocked),
+                "results": results,
+                "detail": msg,
+                "message": msg,
+            }
+        )
 
     @action(detail=False, methods=["post"], url_path="bulk-price-update")
     def bulk_price_update(self, request):
