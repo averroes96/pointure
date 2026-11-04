@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.models import RoleChoices
 from apps.core.plan_permissions import PlanRequired
+from apps.core.utils.task_runner import run_task
 from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
 from .serializers import (
     CreateDeliveryNoteSerializer,
@@ -135,8 +136,8 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             else:
                 invoice.update_status()
 
-            # Queue PDF generation
-            generate_invoice_pdf.delay(invoice.pk)
+            # Queue PDF generation after transaction commits
+            transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
 
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_201_CREATED)
 
@@ -237,8 +238,8 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     else:
                         invoice._deduct_inventory(lines=new_lines, user=request.user)
 
-            # Re-queue PDF generation
-            generate_invoice_pdf.delay(invoice.pk)
+            # Re-queue PDF generation after transaction commits
+            transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
 
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_200_OK)
 
@@ -253,7 +254,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         invoice.confirm(user=request.user)
-        generate_invoice_pdf.delay(invoice.pk)
+        transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
         return Response(InvoiceSerializer(invoice).data)
 
     @action(detail=True, methods=["post"])
@@ -308,10 +309,16 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             except Exception:
                 pass
 
-        # Generate synchronously as fallback
+        # Generate synchronously on demand and persist if empty
+        from django.core.files.base import ContentFile
         from .pdf import render_invoice_pdf
         lang = request.query_params.get("lang", "fr")
         pdf_bytes = render_invoice_pdf(invoice, language=lang)
+        filename = f"invoices/pdf/invoice-{invoice.number or invoice.pk}.pdf"
+        try:
+            invoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+        except Exception:
+            pass
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = (
             f'inline; filename="invoice-{invoice.number or invoice.pk}.pdf"'
@@ -334,7 +341,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def generate_pdf_async(self, request, pk=None):
         """Queue PDF regeneration."""
         invoice = self.get_object()
-        generate_invoice_pdf.delay(invoice.pk)
+        transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
         return Response({"message": "PDF generation queued."})
 
 
@@ -373,7 +380,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 DeliveryNoteLine.objects.bulk_create(lines_to_create)
 
         from .tasks import generate_delivery_note_pdf
-        generate_delivery_note_pdf.delay(dn.pk)
+        transaction.on_commit(lambda: run_task(generate_delivery_note_pdf, dn.pk))
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
@@ -383,9 +390,15 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 return FileResponse(dn.pdf_file.open("rb"), content_type="application/pdf")
             except Exception:
                 pass
+        from django.core.files.base import ContentFile
         from .pdf import render_delivery_note_pdf
         lang = request.query_params.get("lang", "fr")
         pdf_bytes = render_delivery_note_pdf(dn, language=lang)
+        filename = f"delivery_notes/pdf/bl-{dn.number}.pdf"
+        try:
+            dn.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+        except Exception:
+            pass
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="bl-{dn.number}.pdf"'
         return response

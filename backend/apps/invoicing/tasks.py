@@ -32,6 +32,9 @@ def generate_invoice_pdf(self, invoice_id: int):
 
     except Exception as exc:
         logger.error(f"PDF generation failed for invoice {invoice_id}: {exc}")
+        from django.conf import settings
+        if getattr(settings, "DESKTOP_MODE", False) or getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            return {"status": "error", "invoice_id": invoice_id, "error": str(exc)}
         raise self.retry(exc=exc, countdown=60)
 
 
@@ -55,4 +58,7 @@ def generate_delivery_note_pdf(self, delivery_note_id: int):
 
     except Exception as exc:
         logger.error(f"Delivery note PDF failed {delivery_note_id}: {exc}")
+        from django.conf import settings
+        if getattr(settings, "DESKTOP_MODE", False) or getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            return {"status": "error", "delivery_note_id": delivery_note_id, "error": str(exc)}
         raise self.retry(exc=exc, countdown=60)

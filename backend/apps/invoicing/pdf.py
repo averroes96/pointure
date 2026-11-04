@@ -33,7 +33,7 @@ def render_to_pdf(template_name: str, context: dict, language: str = "fr") -> by
 
     try:
         from weasyprint import HTML
-    except ImportError:
+    except (ImportError, OSError):
         logger.warning("WeasyPrint not installed — returning empty PDF placeholder.")
         return b"%PDF-1.0 placeholder"
 

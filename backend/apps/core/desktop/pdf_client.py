@@ -62,6 +62,6 @@ def render_html_to_pdf(html_string: str, options: dict = None) -> bytes:
     try:
         from weasyprint import HTML
         return HTML(string=html_string, base_url=".").write_pdf()
-    except ImportError:
+    except (ImportError, OSError):
         logger.error("Neither Electron PDF bridge nor WeasyPrint is available.")
         return b"%PDF-1.4\n% Desktop PDF placeholder\n"

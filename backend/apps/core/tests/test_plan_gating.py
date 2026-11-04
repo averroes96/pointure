@@ -50,8 +50,13 @@ class TestPlanGating:
     """Plan-based access control."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, db):
+    def setup(self, db, monkeypatch):
         from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+
+        monkeypatch.setattr(
+            "apps.invoicing.pdf.render_invoice_pdf",
+            lambda invoice, language="fr": b"%PDF-1.4 mock",
+        )
 
         self.free_tenant = Tenant.objects.create(name="Free Shop", plan=PlanChoices.FREE)
         self.pro_tenant = Tenant.objects.create(name="Pro Wholesale Shop", plan=PlanChoices.PRO_WHOLESALE)

@@ -27,9 +27,14 @@ class TestCreditLimitEnforcement:
     """Invoice creation is blocked when a client would exceed their credit limit."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, db):
+    def setup(self, db, monkeypatch):
         from apps.core.models import PlanChoices, RoleChoices, Tenant, User
         from apps.clients.models import Client
+
+        monkeypatch.setattr(
+            "apps.invoicing.pdf.render_invoice_pdf",
+            lambda invoice, language="fr": b"%PDF-1.4 mock",
+        )
 
         self.tenant = Tenant.objects.create(name="Credit Shop", plan=PlanChoices.PRO_WHOLESALE)
         self.manager = User.objects.create_user(

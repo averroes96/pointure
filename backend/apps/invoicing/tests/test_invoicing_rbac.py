@@ -30,8 +30,13 @@ class TestInvoiceCreateRBAC:
     """POST /api/v1/invoicing/invoices/ — only manager+ can create."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, db):
+    def setup(self, db, monkeypatch):
         from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+
+        monkeypatch.setattr(
+            "apps.invoicing.pdf.render_invoice_pdf",
+            lambda invoice, language="fr": b"%PDF-1.4 mock",
+        )
 
         self.tenant = Tenant.objects.create(name="RBAC Shop", plan=PlanChoices.PRO_WHOLESALE)
         self.owner = User.objects.create_user(
@@ -104,15 +109,37 @@ class TestInvoiceCreateRBAC:
         resp = APIClient().post("/api/v1/invoicing/invoices/", self._valid_payload, format="json")
         assert resp.status_code == 401
 
+    def test_pdf_renderer_failure_does_not_rollback_invoice_creation(
+        self, monkeypatch, django_capture_on_commit_callbacks
+    ):
+        """Even if PDF generation raises an exception on commit, POST returns 201 and saves the invoice."""
+        from apps.invoicing.models import Invoice
+
+        def _boom(invoice, language="fr"):
+            raise RuntimeError("PDF renderer crashed")
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_invoice_pdf", _boom)
+        c = _make_client(self.manager)
+        with django_capture_on_commit_callbacks(execute=True):
+            resp = c.post("/api/v1/invoicing/invoices/", self._valid_payload, format="json")
+
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.data}"
+        assert Invoice.objects.filter(pk=resp.data["id"]).exists()
+
 
 @pytest.mark.django_db
 class TestInvoiceConfirmRBAC:
     """POST /api/v1/invoicing/invoices/{id}/confirm/ — manager+ only."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, db):
+    def setup(self, db, monkeypatch):
         from apps.core.models import PlanChoices, RoleChoices, Tenant, User
         from apps.invoicing.models import Invoice
+
+        monkeypatch.setattr(
+            "apps.invoicing.pdf.render_invoice_pdf",
+            lambda invoice, language="fr": b"%PDF-1.4 mock",
+        )
 
         self.tenant = Tenant.objects.create(name="Confirm Shop", plan=PlanChoices.PRO_WHOLESALE)
         self.manager = User.objects.create_user(
