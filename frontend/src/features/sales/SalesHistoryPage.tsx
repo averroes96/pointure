@@ -701,18 +701,17 @@ function CancelLayawayModal({
 
   return (
     <>
-      {showPinModal && (
-        <ManagerPinModal
-          title={t("sales_history.manager_pin_cancel_layaway_title")}
-          message={t("sales_history.manager_pin_cancel_layaway_desc")}
-          onSuccess={(pin) => {
-            setManagerPin(pin);
-            setShowPinModal(false);
-            mutation.mutate(pin);
-          }}
-          onClose={() => setShowPinModal(false)}
-        />
-      )}
+      <ManagerPinModal
+        isOpen={showPinModal}
+        reason={t("sales_history.manager_pin_cancel_layaway_title")}
+        actionDescription={t("sales_history.manager_pin_cancel_layaway_desc")}
+        onSuccess={(pin) => {
+          setManagerPin(pin);
+          setShowPinModal(false);
+          mutation.mutate(pin);
+        }}
+        onCancel={() => setShowPinModal(false)}
+      />
 
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -866,7 +865,7 @@ interface DailySummaryResponse {
 export default function SalesHistoryPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { selectedBranch } = useBranch();
+  const { currentBranch } = useBranch();
   const queryClient = useQueryClient();
   const storeName = user?.tenant?.name ?? "ShoeDZ";
   const isManager = user?.role === "owner" || user?.role === "manager";
@@ -928,10 +927,10 @@ export default function SalesHistoryPage() {
 
   // Today's global KPI summary (independent of current pagination)
   const { data: dailySummary } = useQuery<DailySummaryResponse>({
-    queryKey: ["sales-daily-summary", selectedBranch?.id ?? "all"],
+    queryKey: ["sales-daily-summary", currentBranch?.id ?? "all"],
     queryFn: () => {
       const params = new URLSearchParams();
-      if (selectedBranch?.id) params.set("branch_id", String(selectedBranch.id));
+      if (currentBranch?.id) params.set("branch_id", String(currentBranch.id));
       return api.get(`/sales/daily-summary/?${params.toString()}`).then((r) => r.data);
     },
   });
@@ -965,7 +964,7 @@ export default function SalesHistoryPage() {
         ordering,
         dateFrom,
         dateTo,
-        branchId: selectedBranch?.id ?? "all",
+        branchId: currentBranch?.id ?? "all",
         page,
       },
     ],
@@ -983,7 +982,7 @@ export default function SalesHistoryPage() {
       if (ordering) params.set("ordering", ordering);
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
-      if (selectedBranch?.id) params.set("branch", String(selectedBranch.id));
+      if (currentBranch?.id) params.set("branch", String(currentBranch.id));
       params.set("page", String(page));
       return api.get(`/sales/?${params.toString()}`).then((r) => r.data);
     },
@@ -1021,7 +1020,7 @@ export default function SalesHistoryPage() {
     try {
       const params = new URLSearchParams();
       if (chosenDate) params.set("date", chosenDate);
-      if (selectedBranch?.id) params.set("branch_id", String(selectedBranch.id));
+      if (currentBranch?.id) params.set("branch_id", String(currentBranch.id));
       const res = await api.get(`/sales/daily-detailed-report/?${params.toString()}`);
       setReportPreview({
         title: `Rapport Détaillé du Jour (${chosenDate})`,
