@@ -179,16 +179,6 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 "ccp": "CCP"
             }
             method_label = method_labels.get(data["method"], data["method"].upper())
-            
-            # Create ledger credit entry
-            entry = ClientLedger.objects.create(
-                client=client,
-                entry_type="credit",
-                amount=data["amount"],
-                description=f"Paiement — {method_label}",
-                reference_type="Payment",
-                date=data["date"],
-            )
 
             # If cheque, create Cheque record
             if data["method"] == "cheque" and data.get("cheque_number"):
@@ -221,6 +211,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 open_invoices.remove(target_invoice)
                 open_invoices.insert(0, target_invoice)
 
+            last_entry = None
             for inv in open_invoices:
                 if unallocated <= Decimal("0.00"):
                     break
@@ -228,7 +219,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 if rem <= Decimal("0.00"):
                     continue
                 pay_amt = min(unallocated, rem)
-                InvoicePayment.objects.create(
+                inv_payment = InvoicePayment.objects.create(
                     invoice=inv,
                     amount=pay_amt,
                     method=data["method"] if data["method"] in ["cash", "cheque", "virement"] else "cash",
@@ -236,10 +227,29 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     notes=data.get("notes") or f"Règlement client" + (f" (Facture {inv.number})" if inv == target_invoice else ""),
                     recorded_by=request.user,
                 )
+                last_entry = ClientLedger.objects.filter(
+                    client=client,
+                    reference_type="InvoicePayment",
+                    reference_id=str(inv_payment.pk),
+                ).first()
                 unallocated -= pay_amt
 
+            # Credit only the unallocated remainder at the client level
+            if unallocated > Decimal("0.00"):
+                description = f"Paiement — {method_label}"
+                if data.get("notes"):
+                    description = f"{description} ({data['notes']})"
+                last_entry = ClientLedger.objects.create(
+                    client=client,
+                    entry_type="credit",
+                    amount=unallocated,
+                    description=description,
+                    reference_type="Payment",
+                    date=data["date"],
+                )
+
         return Response(
-            ClientLedgerSerializer(entry).data, status=status.HTTP_201_CREATED
+            ClientLedgerSerializer(last_entry).data, status=status.HTTP_201_CREATED
         )
 
     @action(detail=False, methods=["get"])
