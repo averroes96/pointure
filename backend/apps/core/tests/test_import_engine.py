@@ -100,7 +100,8 @@ class TestTemplateGeneration:
         ws = wb.active
         headers = [cell.value for cell in ws[1]]
         assert "Nom *" in headers
-        assert "Pointure *" in headers
+        assert "Pointure" in headers
+        assert "Prix Vente (DZD) *" in headers
 
     def test_generate_csv_arabic_template(self):
         content, ctype, fname = DataImportEngine.generate_template("clients", "csv", "ar")
