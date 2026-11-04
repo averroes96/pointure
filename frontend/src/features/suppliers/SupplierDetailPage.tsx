@@ -68,7 +68,7 @@ function PaymentModal({
   supplierId,
   onClose,
 }: {
-  supplierId: number;
+  supplierId: number | string;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -287,7 +287,7 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
 
 // ── Tab: Purchase Orders ──────────────────────────────────────────────────────
 
-function OrdersTab({ supplierId }: { supplierId: number }) {
+function OrdersTab({ supplierId }: { supplierId: number | string }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
@@ -363,7 +363,7 @@ function OrdersTab({ supplierId }: { supplierId: number }) {
 
 // ── Tab: Supplier Invoices ────────────────────────────────────────────────────
 
-function InvoicesTab({ supplierId }: { supplierId: number }) {
+function InvoicesTab({ supplierId }: { supplierId: number | string }) {
   const { t } = useTranslation();
   const { data, isLoading } = useQuery<PaginatedResponse<SupplierInvoice>>({
     queryKey: ["supplier-invoices", supplierId],
@@ -432,7 +432,7 @@ function PaymentsTab({
   supplierId,
   onNewPayment,
 }: {
-  supplierId: number;
+  supplierId: number | string;
   onNewPayment: () => void;
 }) {
   const { t } = useTranslation();
@@ -530,7 +530,7 @@ export default function SupplierDetailPage() {
     );
   }
 
-  if (isError || !supplier) {
+  if (isError || !supplier || !supplierId) {
     return (
       <div className="card px-6 py-10 text-center space-y-3">
         <AlertCircle size={32} className="text-danger mx-auto" />

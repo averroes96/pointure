@@ -148,7 +148,7 @@ function ReturnModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
       setShowPinModal(true);
       return;
     }
-    mutation.mutate();
+    mutation.mutate(undefined);
   };
 
   function updateItem(index: number, patch: Partial<ReturnItemState>) {
@@ -816,7 +816,7 @@ function CancelLayawayModal({
                 if (isCashier && !managerPin) {
                   setShowPinModal(true);
                 } else {
-                  mutation.mutate();
+                  mutation.mutate(undefined);
                 }
               }}
               className="btn-danger btn-sm"

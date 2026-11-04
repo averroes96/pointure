@@ -342,7 +342,13 @@ export default function StockTransferPage() {
 
         {/* Status tabs */}
         <div className="flex gap-1 border-b border-border overflow-x-auto">
-          {[{ value: "", label: t("status.all") }, { value: "pending", label: t("status.pending") }, { value: "in_transit", label: t("status.in_transit") }, { value: "received", label: t("status.received") }, { value: "cancelled", label: t("status.cancelled") }].map((tab) => (
+          {([
+            { value: "", label: t("status.all") },
+            { value: "pending", label: t("status.pending") },
+            { value: "in_transit", label: t("status.in_transit") },
+            { value: "received", label: t("status.received") },
+            { value: "cancelled", label: t("status.cancelled") },
+          ] as { value: "" | TransferStatus; label: string }[]).map((tab) => (
             <button
               key={tab.value}
               onClick={() => { setStatusFilter(tab.value); setPage(1); }}

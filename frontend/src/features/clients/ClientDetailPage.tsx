@@ -110,7 +110,7 @@ function PaymentModal({
   clientName,
   onClose,
 }: {
-  clientId: number;
+  clientId: number | string;
   clientName: string;
   onClose: () => void;
 }) {
@@ -454,7 +454,7 @@ function ClientInfoTab({
 
 // ── Tab: Relevé de compte ──────────────────────────────────────────────────
 
-function LedgerTab({ clientId }: { clientId: number }) {
+function LedgerTab({ clientId }: { clientId: number | string }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -668,7 +668,7 @@ function LedgerTab({ clientId }: { clientId: number }) {
 
 // ── Tab: Chèques ───────────────────────────────────────────────────────────
 
-function ChequesTab({ clientId }: { clientId: number }) {
+function ChequesTab({ clientId }: { clientId: number | string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -785,7 +785,7 @@ function ChequesTab({ clientId }: { clientId: number }) {
 
 // ── Tab: Factures ──────────────────────────────────────────────────────────
 
-function InvoicesTab({ clientId }: { clientId: number }) {
+function InvoicesTab({ clientId }: { clientId: number | string }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
@@ -929,7 +929,7 @@ const TX_CONFIG: Record<string, { label: string; colour: string }> = {
   expire: { label: "Expiration",    colour: "text-danger" },
 };
 
-function LoyaltyTab({ clientId }: { clientId: number }) {
+function LoyaltyTab({ clientId }: { clientId: number | string }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -1176,7 +1176,7 @@ export default function ClientDetailPage() {
     );
   }
 
-  if (isError || !client) {
+  if (isError || !client || !clientId) {
     return (
       <div className="card px-6 py-10 text-center space-y-3">
         <AlertCircle size={32} className="text-danger mx-auto" />

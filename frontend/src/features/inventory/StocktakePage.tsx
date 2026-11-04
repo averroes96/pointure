@@ -93,7 +93,7 @@ function playAudioFeedback(type: "success" | "error" | "carton") {
 function printVarianceReport(
   session: StocktakeSession,
   storeName: string,
-  t: (key: string, defaultVal?: string) => string
+  t: (key: string, defaultVal: string) => string
 ) {
   const lang = i18n.language || "fr";
   const isRtl = lang.startsWith("ar");

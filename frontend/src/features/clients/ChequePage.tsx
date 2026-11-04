@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import i18n from "i18next";
+import i18n, { type TFunction } from "i18next";
 import {
   CheckCircle2,
   XCircle,
@@ -41,10 +41,10 @@ export const ALGERIAN_BANKS = [
   "Fransabank El Djazaïr",
 ];
 
-function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: (k: string, fallback?: string) => string) {
+function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunction) {
   const lang = i18n.language || "fr";
   const isRtl = lang.startsWith("ar");
-  const translate = t || ((k: string, fb?: string) => i18n.t(k, fb || k));
+  const translate = (k: string, fb?: string) => (t ? t(k, fb || k) : i18n.t(k, fb || k));
 
   const pendingReceivables = cheques.filter(
     (c) => c.status === "pending" && c.direction === "receivable",

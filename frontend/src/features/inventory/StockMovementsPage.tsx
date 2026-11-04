@@ -19,6 +19,9 @@ const REASON_BADGE_CLASS: Record<MovementReason, string> = {
   transfer_in: "badge-info",
   damaged: "badge-danger",
   initial: "badge-neutral",
+  layaway_lock: "badge-warning",
+  layaway_release: "badge-info",
+  stocktake: "badge-info",
 };
 
 const REASONS = ["sale", "reception", "adjustment", "return", "transfer_out", "transfer_in", "damaged", "initial"];

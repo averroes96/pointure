@@ -227,9 +227,10 @@ function LineResolutionRow({
 
       {mode === "create" && (
         <div className="grid grid-cols-2 gap-2">
-          {((enableVariants
-            ? ["product_name", "brand", "size_eu", "purchase_price", "sale_price"]
-            : ["product_name", "brand", "purchase_price", "sale_price"]) as const).map((field) => (
+          {(enableVariants
+            ? (["product_name", "brand", "size_eu", "purchase_price", "sale_price"] as const)
+            : (["product_name", "brand", "purchase_price", "sale_price"] as const)
+          ).map((field) => (
             <input
               key={field}
               type={field === "size_eu" || field.includes("price") ? "number" : "text"}

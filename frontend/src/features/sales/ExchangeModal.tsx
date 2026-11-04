@@ -192,7 +192,7 @@ export default function ExchangeModal({
       setShowPinModal(true);
       return;
     }
-    mutation.mutate();
+    mutation.mutate(undefined);
   };
 
   // ── Helpers ────────────────────────────────────────────────────────────────

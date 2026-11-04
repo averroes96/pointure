@@ -72,6 +72,14 @@ export interface ElectronAPI {
   isDesktop?: boolean;
 }
 
+import "react";
+
+declare module "react" {
+  interface HTMLAttributes<T> {
+    inert?: string | boolean;
+  }
+}
+
 declare global {
   interface Window {
     electronAPI?: ElectronAPI;
