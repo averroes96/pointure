@@ -120,20 +120,66 @@ api.interceptors.response.use(
       }
     }
 
-    if (
-      error.response?.status === 403 &&
-      (error.response?.data as { error?: string })?.error === "plan_upgrade_required"
-    ) {
-      window.dispatchEvent(
-        new CustomEvent("plan-upgrade-required", {
-          detail: error.response.data,
-        })
-      );
+    if (error.response?.status === 403) {
+      const upgradeDetail = extractPlanUpgradeDetail(error.response?.data);
+      if (upgradeDetail) {
+        window.dispatchEvent(
+          new CustomEvent("plan-upgrade-required", {
+            detail: upgradeDetail,
+          })
+        );
+      }
     }
 
     return Promise.reject(error);
   }
 );
+
+export interface PlanUpgradeDetail {
+  error?: string;
+  required_plan?: string;
+  current_plan?: string;
+  upgrade_url?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Extracts plan upgrade details from an API response body if present.
+ * Detects both the raw shape ({ error: "plan_upgrade_required", ... })
+ * and the wrapped DRF custom_exception_handler shape:
+ * { error: { code: "...", details: { error: "plan_upgrade_required", ... } } }
+ */
+export function extractPlanUpgradeDetail(data: unknown): PlanUpgradeDetail | null {
+  if (!data || typeof data !== "object") return null;
+
+  const record = data as Record<string, unknown>;
+
+  // 1. Wrapped DRF custom_exception_handler shape:
+  if (
+    record.error &&
+    typeof record.error === "object" &&
+    !Array.isArray(record.error)
+  ) {
+    const errorObj = record.error as Record<string, unknown>;
+    const details = errorObj.details;
+    if (
+      details &&
+      typeof details === "object" &&
+      !Array.isArray(details) &&
+      (details as Record<string, unknown>).error === "plan_upgrade_required"
+    ) {
+      return details as PlanUpgradeDetail;
+    }
+  }
+
+  // 2. Direct / legacy shape:
+  if (record.error === "plan_upgrade_required") {
+    return record as PlanUpgradeDetail;
+  }
+
+  return null;
+}
 
 export default api;
 
