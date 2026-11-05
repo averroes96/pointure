@@ -428,6 +428,9 @@ class SyncReceiverView(APIView):
     """
     Endpoint for receiving offline synchronization events from local nodes.
     Uses Last-Write-Wins (LWW) conflict resolution based on updated_at.
+
+    NOTE: Route disabled in apps/core/urls.py pending cloud-backup design (Task 3.2).
+    Also guarded below to strictly reject when NODE_API_KEY is unset or key does not match.
     """
     permission_classes = [AllowAny]
 
@@ -436,7 +439,7 @@ class SyncReceiverView(APIView):
         expected_key = getattr(settings, "NODE_API_KEY", "")
         provided_key = request.headers.get("Authorization", "").replace("Bearer ", "")
         
-        if expected_key and provided_key != expected_key:
+        if not expected_key or provided_key != expected_key:
             return Response({"error": "Unauthorized node"}, status=status.HTTP_401_UNAUTHORIZED)
             
         events = request.data.get("events", [])
