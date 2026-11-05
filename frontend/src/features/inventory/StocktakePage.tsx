@@ -32,7 +32,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
-import { cn, getStatusBadgeClass } from "@/lib/utils";
+import { cn, getStatusBadgeClass, escapeHtml } from "@/lib/utils";
 import type { StocktakeSession, StocktakeItem, Branch } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
@@ -90,27 +90,28 @@ function playAudioFeedback(type: "success" | "error" | "carton") {
 
 // ── Print Variance Sheet Helper ───────────────────────────────────────────────
 
-function printVarianceReport(
+export function generateVarianceReportHtml(
   session: StocktakeSession,
   storeName: string,
   t: (key: string, defaultVal: string) => string
-) {
+): string {
   const lang = i18n.language || "fr";
   const isRtl = lang.startsWith("ar");
   const items = session.items || [];
   const shortages = items.filter((i) => i.counted_qty < i.expected_qty);
   const surpluses = items.filter((i) => i.counted_qty > i.expected_qty);
-  const exacts = items.filter((i) => i.counted_qty === i.expected_qty);
 
-  const win = window.open("", "_blank");
-  if (!win) return;
+  const safeStoreName = escapeHtml(storeName);
+  const safeSessionTitle = escapeHtml(session.title);
+  const safeBranchName = escapeHtml(session.branch_name || t("inventory.all_branches_global", "Toutes succursales"));
+  const safeStatusDisplay = escapeHtml(session.status_display || "");
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="utf-8">
   <meta name="color-scheme" content="light">
-  <title>${t("inventory.stocktake_report_title", "PV d'Inventaire")} — ${session.title}</title>
+  <title>${t("inventory.stocktake_report_title", "PV d'Inventaire")} — ${safeSessionTitle}</title>
   <style>
     :root { color-scheme: light !important; }
     html, body {
@@ -153,17 +154,17 @@ function printVarianceReport(
 </head>
 <body>
   <div class="header">
-    <h1>${storeName} — ${t("inventory.stocktake_pv_heading", "PROCÈS-VERBAL D'INVENTAIRE")}</h1>
-    <p style="margin: 4px 0; color: #64748b;">${session.title}</p>
+    <h1>${safeStoreName} — ${t("inventory.stocktake_pv_heading", "PROCÈS-VERBAL D'INVENTAIRE")}</h1>
+    <p style="margin: 4px 0; color: #64748b;">${safeSessionTitle}</p>
   </div>
 
   <div class="meta">
     <div>
       <strong>${t("common.date", "Date")} :</strong> ${new Date(session.created_at).toLocaleString(lang === "ar" ? "ar-DZ" : lang === "en" ? "en-US" : "fr-DZ")}<br>
-      <strong>${t("inventory.branch", "Succursale")} :</strong> ${session.branch_name || t("inventory.all_branches_global", "Toutes succursales")}
+      <strong>${t("inventory.branch", "Succursale")} :</strong> ${safeBranchName}
     </div>
     <div style="text-align: ${isRtl ? 'left' : 'right'};">
-      <strong>${t("common.status", "Statut")} :</strong> ${session.status_display}<br>
+      <strong>${t("common.status", "Statut")} :</strong> ${safeStatusDisplay}<br>
       <strong>${t("inventory.closed_by", "Clôturé par")} :</strong> ${session.completed_by ? t("inventory.manager", "Responsable") : t("inventory.in_progress", "En cours")}
     </div>
   </div>
@@ -212,14 +213,14 @@ function printVarianceReport(
           const varCost = Number(it.unit_cost) * varQty;
           return `
             <tr>
-              <td><strong>${it.product_name}</strong> ${it.product_reference ? `(${it.product_reference})` : ''}</td>
-              <td>P.${it.size_eu || '-'} / ${it.colour || '-'}</td>
-              <td style="font-family: monospace;">${it.barcode || '-'}</td>
+              <td><strong>${escapeHtml(it.product_name)}</strong> ${it.product_reference ? `(${escapeHtml(it.product_reference)})` : ''}</td>
+              <td>P.${escapeHtml(String(it.size_eu || '-'))} / ${escapeHtml(it.colour || '-')}</td>
+              <td style="font-family: monospace;">${escapeHtml(it.barcode || '-')}</td>
               <td class="num">${it.expected_qty}</td>
               <td class="num" style="font-weight: bold;">${it.counted_qty}</td>
               <td class="num ${varQty < 0 ? 'neg' : 'pos'}">${varQty > 0 ? '+' : ''}${varQty}</td>
               <td class="num ${varCost < 0 ? 'neg' : 'pos'}">${formatDZD(varCost)}</td>
-              <td>${it.notes || '-'}</td>
+              <td>${escapeHtml(it.notes || '-')}</td>
             </tr>
           `;
         })
@@ -238,7 +239,16 @@ function printVarianceReport(
   </script>
 </body>
 </html>`;
+}
 
+function printVarianceReport(
+  session: StocktakeSession,
+  storeName: string,
+  t: (key: string, defaultVal: string) => string
+) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  const html = generateVarianceReportHtml(session, storeName, t);
   win.document.write(html);
   win.document.close();
 }

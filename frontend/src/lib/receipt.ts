@@ -6,6 +6,7 @@
  * UI or configured print language (FR / AR / EN / Bilingual FR+AR).
  */
 import { formatDate } from "@/lib/api";
+import { escapeHtml } from "@/lib/utils";
 import { printTicket, getPrinterConfig } from "@/lib/printerConfig";
 import {
   getEffectivePrintLang,
@@ -105,7 +106,7 @@ const RECEIPT_TEXT = {
 
 type ReceiptSale = Sale & { points_earned?: number; points_redeemed?: number };
 
-export function printReceipt(sale: ReceiptSale, storeName: string): void {
+export function generateReceiptHtml(sale: ReceiptSale, storeName: string): string {
   const printLang = getEffectivePrintLang();
   const L = RECEIPT_TEXT[printLang];
   const isRtl = printLang === "ar";
@@ -116,7 +117,7 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
     .map(
       (item) => `
       <tr>
-        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${item.variant_str}</td>
+        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${escapeHtml(item.variant_str)}</td>
         <td style="text-align:center;padding:2px 4px;font-size:11px;">${item.quantity}</td>
         <td style="text-align:${alignEnd};padding:2px 0;font-size:11px;">
           ${Number(item.unit_price).toLocaleString("fr-DZ")} DZD
@@ -173,7 +174,7 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
       : "";
 
   const clientRow = sale.client_name
-    ? `<p class="center" style="font-size:10px;">${L.client}&nbsp;: <strong>${sale.client_name}</strong></p>`
+    ? `<p class="center" style="font-size:10px;">${L.client}&nbsp;: <strong>${escapeHtml(sale.client_name)}</strong></p>`
     : "";
 
   // Loyalty section — only when the client has an account
@@ -217,12 +218,14 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
       </table>`;
   }
 
+  const receiptNum = sale.receipt_number || `#${sale.id}`;
+
   const html = `<!DOCTYPE html>
 <html lang="${isRtl ? "ar" : printLang === "en" ? "en" : "fr"}" dir="${isRtl ? "rtl" : "ltr"}">
 <head>
   <meta charset="UTF-8"/>
   <meta name="color-scheme" content="light"/>
-  <title>Reçu ${sale.receipt_number}</title>
+  <title>Reçu ${escapeHtml(receiptNum)}</title>
   <style>
     :root { color-scheme: light !important; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -249,7 +252,7 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
   </style>
 </head>
 <body>
-  <h1>${storeName}</h1>
+  <h1>${escapeHtml(storeName)}</h1>
   ${
     sale.is_formal
       ? `
@@ -263,10 +266,10 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
     ${sale.is_formal ? L.formalTitle : L.ticketTitle}
   </p>
   <p class="center" style="font-size:10px;">
-    ${L.receiptNo} <strong>${sale.receipt_number || `#${sale.id}`}</strong>
+    ${L.receiptNo} <strong>${escapeHtml(receiptNum)}</strong>
   </p>
   <p class="center" style="font-size:10px;">${formatDate(sale.created_at)}</p>
-  <p class="center" style="font-size:10px;">${L.cashier}&nbsp;: ${sale.cashier_name || "—"}</p>
+  <p class="center" style="font-size:10px;">${L.cashier}&nbsp;: ${escapeHtml(sale.cashier_name || "—")}</p>
   ${clientRow}
 
   <div class="divider"></div>
@@ -305,6 +308,11 @@ export function printReceipt(sale: ReceiptSale, storeName: string): void {
 </body>
 </html>`;
 
+  return html;
+}
+
+export function printReceipt(sale: ReceiptSale, storeName: string): void {
+  const html = generateReceiptHtml(sale, storeName);
   const cfg = getPrinterConfig();
   printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }

@@ -6,6 +6,7 @@ import type { Sale } from "@/types";
 import { printTicket, getPrinterConfig } from "@/lib/printerConfig";
 import { getEffectivePrintLang, formatPaymentMethodLabel } from "@/lib/enumLabels";
 import { formatDate } from "@/lib/api";
+import { escapeHtml } from "@/lib/utils";
 
 const VERSEMENT_TEXT = {
   fr: {
@@ -129,7 +130,7 @@ const VERSEMENT_TEXT = {
   },
 } as const;
 
-export function printBonVersement(sale: Sale, storeName: string): void {
+export function generateBonVersementHtml(sale: Sale, storeName: string): string {
   const printLang = getEffectivePrintLang();
   const L = VERSEMENT_TEXT[printLang];
   const isRtl = printLang === "ar";
@@ -144,7 +145,7 @@ export function printBonVersement(sale: Sale, storeName: string): void {
     .map(
       (item) => `
       <tr>
-        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${item.variant_str}</td>
+        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${escapeHtml(item.variant_str)}</td>
         <td style="text-align:center;padding:2px 4px;font-size:11px;">${item.quantity}</td>
         <td style="text-align:${alignEnd};padding:2px 0;font-size:11px;">
           ${Number(item.unit_price).toLocaleString("fr-DZ")} DZD
@@ -166,13 +167,14 @@ export function printBonVersement(sale: Sale, storeName: string): void {
     .join("");
 
   const dueDateStr = sale.due_date ? sale.due_date : "—";
+  const receiptNum = sale.receipt_number || `#${sale.id}`;
 
   const html = `<!DOCTYPE html>
 <html lang="${isRtl ? "ar" : printLang === "en" ? "en" : "fr"}" dir="${isRtl ? "rtl" : "ltr"}">
 <head>
   <meta charset="UTF-8"/>
   <meta name="color-scheme" content="light"/>
-  <title>${L.versementTitle} ${sale.receipt_number}</title>
+  <title>${L.versementTitle} ${escapeHtml(receiptNum)}</title>
   <style>
     :root { color-scheme: light !important; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -208,7 +210,7 @@ export function printBonVersement(sale: Sale, storeName: string): void {
   </style>
 </head>
 <body>
-  <h1>${storeName}</h1>
+  <h1>${escapeHtml(storeName)}</h1>
   <div class="divider"></div>
 
   <h2>${L.versementTitle}</h2>
@@ -216,11 +218,11 @@ export function printBonVersement(sale: Sale, storeName: string): void {
   <div class="divider"></div>
 
   <p class="center" style="font-size:10px;">
-    ${L.receiptNo} <strong>${sale.receipt_number || `#${sale.id}`}</strong>
+    ${L.receiptNo} <strong>${escapeHtml(receiptNum)}</strong>
   </p>
   <p class="center" style="font-size:10px;">${formatDate(sale.created_at)}</p>
-  <p class="center" style="font-size:10px;">${L.cashier}&nbsp;: ${sale.cashier_name || "—"}</p>
-  ${sale.client_name ? `<p class="center" style="font-size:10px;">${L.client}&nbsp;: <strong>${sale.client_name}</strong></p>` : ""}
+  <p class="center" style="font-size:10px;">${L.cashier}&nbsp;: ${escapeHtml(sale.cashier_name || "—")}</p>
+  ${sale.client_name ? `<p class="center" style="font-size:10px;">${L.client}&nbsp;: <strong>${escapeHtml(sale.client_name)}</strong></p>` : ""}
 
   <div class="divider"></div>
 
@@ -291,11 +293,16 @@ export function printBonVersement(sale: Sale, storeName: string): void {
 </body>
 </html>`;
 
+  return html;
+}
+
+export function printBonVersement(sale: Sale, storeName: string): void {
+  const html = generateBonVersementHtml(sale, storeName);
   const cfg = getPrinterConfig();
   printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }
 
-export function printBonReservation(sale: Sale, storeName: string): void {
+export function generateBonReservationHtml(sale: Sale, storeName: string): string {
   const printLang = getEffectivePrintLang();
   const L = VERSEMENT_TEXT[printLang];
   const isRtl = printLang === "ar";
@@ -310,7 +317,7 @@ export function printBonReservation(sale: Sale, storeName: string): void {
     .map(
       (item) => `
       <tr>
-        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${item.variant_str}</td>
+        <td style="padding:2px 0;font-size:11px;text-align:${alignStart};">${escapeHtml(item.variant_str)}</td>
         <td style="text-align:center;padding:2px 4px;font-size:11px;">${item.quantity}</td>
         <td style="text-align:${alignEnd};padding:2px 0;font-size:11px;">
           ${Number(item.unit_price).toLocaleString("fr-DZ")} DZD
@@ -336,13 +343,14 @@ export function printBonReservation(sale: Sale, storeName: string): void {
     : sale.due_date
       ? sale.due_date
       : "—";
+  const receiptNum = sale.receipt_number || `#${sale.id}`;
 
   const html = `<!DOCTYPE html>
 <html lang="${isRtl ? "ar" : printLang === "en" ? "en" : "fr"}" dir="${isRtl ? "rtl" : "ltr"}">
 <head>
   <meta charset="UTF-8"/>
   <meta name="color-scheme" content="light"/>
-  <title>${L.reservationTitle} ${sale.receipt_number}</title>
+  <title>${L.reservationTitle} ${escapeHtml(receiptNum)}</title>
   <style>
     :root { color-scheme: light !important; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -394,7 +402,7 @@ export function printBonReservation(sale: Sale, storeName: string): void {
   </style>
 </head>
 <body>
-  <h1>${storeName}</h1>
+  <h1>${escapeHtml(storeName)}</h1>
   <div class="divider"></div>
 
   <h2>${L.reservationTitle}</h2>
@@ -403,12 +411,12 @@ export function printBonReservation(sale: Sale, storeName: string): void {
   <div class="divider"></div>
 
   <p class="center" style="font-size:10px;">
-    ${L.refNo} <strong>${sale.receipt_number || `#${sale.id}`}</strong>
+    ${L.refNo} <strong>${escapeHtml(receiptNum)}</strong>
   </p>
   <p class="center" style="font-size:10px;">${L.date} : ${formatDate(sale.created_at)}</p>
-  <p class="center" style="font-size:10px;">${L.cashier} : ${sale.cashier_name || "—"}</p>
-  ${sale.client_name ? `<p class="center" style="font-size:10px;">${L.client} : <strong>${sale.client_name}</strong></p>` : ""}
-  ${sale.notes ? `<p class="center" style="font-size:10px;">${L.note} : <em>${sale.notes}</em></p>` : ""}
+  <p class="center" style="font-size:10px;">${L.cashier} : ${escapeHtml(sale.cashier_name || "—")}</p>
+  ${sale.client_name ? `<p class="center" style="font-size:10px;">${L.client} : <strong>${escapeHtml(sale.client_name)}</strong></p>` : ""}
+  ${sale.notes ? `<p class="center" style="font-size:10px;">${L.note} : <em>${escapeHtml(sale.notes)}</em></p>` : ""}
 
   <div class="divider"></div>
 
@@ -479,6 +487,11 @@ export function printBonReservation(sale: Sale, storeName: string): void {
 </body>
 </html>`;
 
+  return html;
+}
+
+export function printBonReservation(sale: Sale, storeName: string): void {
+  const html = generateBonReservationHtml(sale, storeName);
   const cfg = getPrinterConfig();
   printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }

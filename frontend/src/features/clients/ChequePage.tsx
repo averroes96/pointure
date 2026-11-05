@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Cheque, Client, Supplier } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, escapeHtml } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 
 export const ALGERIAN_BANKS = [
@@ -41,7 +41,7 @@ export const ALGERIAN_BANKS = [
   "Fransabank El Djazaïr",
 ];
 
-function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunction) {
+export function generateChequeDepositSlipHtml(cheques: Cheque[], storeName: string, t?: TFunction): string {
   const lang = i18n.language || "fr";
   const isRtl = lang.startsWith("ar");
   const translate = (k: string, fb?: string) => (t ? t(k, fb || k) : i18n.t(k, fb || k));
@@ -52,17 +52,18 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunct
   const list = pendingReceivables.length > 0 ? pendingReceivables : cheques;
   const totalAmount = list.reduce((s, c) => s + parseFloat(c.amount || "0"), 0);
 
-  const win = window.open("", "_blank");
-  if (!win) return;
+  const safeStoreName = escapeHtml(storeName);
+  const slipTitle = translate("cheque.schedule_slip", "Bordereau d'Échéancier Chèques");
+  const safeSlipTitle = escapeHtml(slipTitle);
 
   const rowsHtml = list
     .map(
       (c, i) => `
       <tr>
         <td style="text-align:center;">${i + 1}</td>
-        <td style="font-family:monospace;font-weight:bold;">${c.number}</td>
-        <td>${c.bank || "—"}</td>
-        <td>${c.client_name || c.supplier_name || "—"}</td>
+        <td style="font-family:monospace;font-weight:bold;">${escapeHtml(c.number)}</td>
+        <td>${escapeHtml(c.bank || "—")}</td>
+        <td>${escapeHtml(c.client_name || c.supplier_name || "—")}</td>
         <td>${c.direction === "payable" ? translate("cheque.supplier_outgoing", "Fournisseur (Sortant)") : translate("cheque.client_incoming", "Client (Entrant)")}</td>
         <td style="font-family:monospace;">${formatDate(c.due_date)}</td>
         <td style="text-align:${isRtl ? 'left' : 'right'};font-family:monospace;font-weight:bold;">${formatDZD(c.amount)} ${translate("common.dzd", "DZD")}</td>
@@ -70,13 +71,12 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunct
     )
     .join("");
 
-  const slipTitle = translate("cheque.schedule_slip", "Bordereau d'Échéancier Chèques");
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="color-scheme" content="light" />
-  <title>${slipTitle} — ${storeName}</title>
+  <title>${safeSlipTitle} — ${safeStoreName}</title>
   <style>
     :root { color-scheme: light !important; }
     html, body {
@@ -107,7 +107,7 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunct
 <body>
   <div class="header">
     <div>
-      <h1>${storeName} — ${translate("cheque.deposit_slip_heading", "BORDEREAU & ÉCHÉANCIER DES CHÈQUES")}</h1>
+      <h1>${safeStoreName} — ${translate("cheque.deposit_slip_heading", "BORDEREAU & ÉCHÉANCIER DES CHÈQUES")}</h1>
       <p style="margin:4px 0;color:#64748b;">${translate("cheque.generated_on", "Édité le")} ${new Date().toLocaleString(lang === "ar" ? "ar-DZ" : lang === "en" ? "en-US" : "fr-DZ")}</p>
     </div>
     <div style="text-align:${isRtl ? 'left' : 'right'};">
@@ -137,7 +137,12 @@ function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunct
   <script>window.onload = function() { window.print(); };</script>
 </body>
 </html>`;
+}
 
+function printChequeDepositSlip(cheques: Cheque[], storeName: string, t?: TFunction) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  const html = generateChequeDepositSlipHtml(cheques, storeName, t);
   win.document.write(html);
   win.document.close();
 }

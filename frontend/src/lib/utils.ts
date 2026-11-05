@@ -6,6 +6,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Escapes characters with special meaning in HTML (&, <, >, ", ')
+ * to prevent XSS / markup injection in dynamically printed HTML.
+ */
+export function escapeHtml(str: unknown): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /** Generate a WhatsApp link with pre-filled message */
 export function whatsappLink(phone: string, message: string): string {
   const cleaned = phone.replace(/\D/g, "");

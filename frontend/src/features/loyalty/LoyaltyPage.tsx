@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import api, { formatDate, formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { LoyaltyAccount, LoyaltyAccountSummary, LoyaltyProgram, Client } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, escapeHtml } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthContext";
 
 // ── Tier helpers ──────────────────────────────────────────────────────────
@@ -85,14 +85,11 @@ function TierBadge({ tier }: { tier: "bronze" | "silver" | "gold" }) {
 
 // ── Printable Client Loyalty Card ─────────────────────────────────────────
 
-function printLoyaltyCard(
+export function generateLoyaltyCardHtml(
   acc: LoyaltyAccountSummary,
   program: LoyaltyProgram | null,
   storeName: string,
-) {
-  const win = window.open("", "_blank", "width=460,height=620");
-  if (!win) return;
-
+): string {
   const lang = i18n.language || "fr";
   const isRtl = lang.startsWith("ar");
   const tierCfg = TIER_CONFIG[acc.tier] ?? TIER_CONFIG.bronze;
@@ -101,6 +98,11 @@ function printLoyaltyCard(
     ? Math.floor((acc.points_balance / (program.redemption_value || 100)) * 100)
     : acc.points_balance;
   const codeText = (acc.client_phone || `CL-${acc.client}`).replace(/\s+/g, "");
+
+  const safeStoreName = escapeHtml(storeName);
+  const safeClientName = escapeHtml(acc.client_name);
+  const safeClientPhone = escapeHtml(acc.client_phone || "—");
+  const safeCodeText = escapeHtml(codeText);
 
   // Generate a clean visual barcode pattern from codeText characters
   const barsHtml = Array.from(codeText + storeName.slice(0, 3))
@@ -111,12 +113,12 @@ function printLoyaltyCard(
     })
     .join("");
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="color-scheme" content="light" />
-  <title>${i18n.t("loyalty.card_title", "Carte Fidélité")} — ${acc.client_name}</title>
+  <title>${i18n.t("loyalty.card_title", "Carte Fidélité")} — ${safeClientName}</title>
   <style>
     :root { color-scheme: light !important; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -182,13 +184,13 @@ function printLoyaltyCard(
   <div class="card">
     <div class="header">
       <div>
-        <div class="store">${storeName}</div>
+        <div class="store">${safeStoreName}</div>
         <div style="font-size:10px;color:#64748b;font-weight:600;">${i18n.t("loyalty.vip_loyalty_card")}</div>
       </div>
       <div class="tier">${tierCfg.emoji} ${tierName.toUpperCase()}</div>
     </div>
-    <div class="client-name">${acc.client_name}</div>
-    <div class="client-phone">${i18n.t("common.phone", "Tél")} : ${acc.client_phone || "—"}</div>
+    <div class="client-name">${safeClientName}</div>
+    <div class="client-phone">${i18n.t("common.phone", "Tél")} : ${safeClientPhone}</div>
     <div class="points-box">
       <div>
         <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">${i18n.t("loyalty.points_balance_card")}</div>
@@ -201,13 +203,22 @@ function printLoyaltyCard(
     </div>
     <div class="barcode-wrap">
       <div>${barsHtml}</div>
-      <div class="barcode-code">${codeText}</div>
+      <div class="barcode-code">${safeCodeText}</div>
     </div>
   </div>
   <script>window.onload = function() { window.print(); };</script>
 </body>
 </html>`;
+}
 
+function printLoyaltyCard(
+  acc: LoyaltyAccountSummary,
+  program: LoyaltyProgram | null,
+  storeName: string,
+) {
+  const win = window.open("", "_blank", "width=460,height=620");
+  if (!win) return;
+  const html = generateLoyaltyCardHtml(acc, program, storeName);
   win.document.write(html);
   win.document.close();
 }
