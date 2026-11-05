@@ -431,7 +431,7 @@ export default function ProductsPage() {
       )}
 
       {/* Search & Filters Panel */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
         {/* Row 1: Search Input + Quick Stock Status Pills */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -441,16 +441,16 @@ export default function ProductsPage() {
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="form-input ps-9 pe-12 py-2 text-xs bg-white border-slate-200/90 shadow-2xs rounded-xl focus:ring-primary-500/20"
+              className="form-input ps-9 pe-12 py-2 text-xs bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs rounded-xl focus:ring-primary-500/20"
               placeholder={t("inventory.search_placeholder")}
             />
-            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
+            <kbd className="absolute end-3 top-1/2 -translate-y-1/2 text-2xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none">
               F2
             </kbd>
           </div>
 
           {/* Quick Stock Status Pills */}
-          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
+          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl gap-1 flex-wrap">
             {(
               [
                 { id: "", label: t("inventory.all_stock") },
@@ -473,8 +473,8 @@ export default function ProductsPage() {
                       ? "bg-red-600 text-white shadow-2xs"
                       : pill.id === "low_stock"
                         ? "bg-amber-500 text-white shadow-2xs"
-                        : "bg-white text-slate-900 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
+                        : "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                 )}
               >
                 {pill.label}
@@ -484,7 +484,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Row 2: Detailed Dropdown Filters */}
-        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100">
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 pe-1">
             <Filter size={13} />
             <span>{t("inventory.filters")}</span>
@@ -621,12 +621,12 @@ export default function ProductsPage() {
               type="button"
               onClick={handleBulkShelfLabels}
               disabled={bulkShelfLoading}
-              className="btn-sm bg-white text-slate-900 hover:bg-slate-100 font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors"
+              className="btn-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors"
             >
               {bulkShelfLoading ? (
-                <Loader2 size={14} className="animate-spin text-slate-600" />
+                <Loader2 size={14} className="animate-spin text-slate-600 dark:text-slate-400" />
               ) : (
-                <Printer size={14} className="text-amber-600" />
+                <Printer size={14} className="text-amber-600 dark:text-amber-400" />
               )}
               {t("inventory.print_shelf_labels", "Imprimer étiquettes rayon")} ({selectedIds.length})
             </button>
@@ -658,11 +658,11 @@ export default function ProductsPage() {
       )}
 
       {/* Table Card */}
-      <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+      <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/70">
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
                 <th className="py-3.5 px-3 w-10 text-center">
                   <input
                     type="checkbox"
@@ -671,21 +671,21 @@ export default function ProductsPage() {
                       if (el) el.indeterminate = someCurrentPageSelected;
                     }}
                     onChange={toggleSelectAll}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    className="rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
                     title={t("inventory.select_all_page")}
                   />
                 </th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.product")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.brand")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("inventory.category")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.sale_price")}</th>
-                {user?.can_see_costs && <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.purchase_price")}</th>}
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("inventory.stock")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.status")}</th>
-                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.product")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.brand")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.category")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.sale_price")}</th>
+                {user?.can_see_costs && <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.purchase_price")}</th>}
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("inventory.stock")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("common.status")}</th>
+                <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && (
                 <tr>
                   <td colSpan={user?.can_see_costs ? 10 : 9} className="text-center py-12 text-slate-400">
@@ -826,10 +826,10 @@ export default function ProductsPage() {
 
         {/* Pagination */}
         {data && data.total_pages > 1 && (
-          <div className="px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/40 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">
-              {t("common.page")} <span className="font-mono font-semibold text-slate-700">{data.current_page}</span> {t("common.from", "sur")}{" "}
-              <span className="font-mono font-semibold text-slate-700">{data.total_pages}</span>
+          <div className="px-5 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("common.page")} <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data.current_page}</span> {t("common.from", "sur")}{" "}
+              <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data.total_pages}</span>
             </span>
             <div className="flex gap-2">
               <button

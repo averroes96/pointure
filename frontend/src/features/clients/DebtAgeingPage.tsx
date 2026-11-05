@@ -66,7 +66,7 @@ function AmountCell({
 }) {
   const num = parseFloat(value);
   if (!num || num === 0) {
-    return <td className="py-3 px-4 text-end font-mono text-slate-300 text-xs">—</td>;
+    return <td className="py-3 px-4 text-end font-mono text-slate-300 dark:text-slate-600 text-xs">—</td>;
   }
   return (
     <td className="py-3 px-4 text-end">
@@ -91,7 +91,7 @@ function SkeletonRow() {
     <tr className="animate-pulse">
       {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="py-3.5 px-4">
-          <div className="h-4 bg-slate-100 rounded-md" style={{ width: i === 0 ? "80%" : "60%" }} />
+          <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-md" style={{ width: i === 0 ? "80%" : "60%" }} />
         </td>
       ))}
     </tr>
@@ -176,13 +176,13 @@ export default function DebtAgeingPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-slate-100">
             Tableau de vieillissement des créances
           </h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
             {isLoading ? "Chargement de la balance âgée..." : (
               <>
-                <span className="font-mono font-semibold text-slate-700">{filtered.length}</span> clients avec solde dû
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{filtered.length}</span> clients avec solde dû
               </>
             )}
           </p>
@@ -195,34 +195,34 @@ export default function DebtAgeingPage() {
 
       {/* Top Bucket KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="card p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-          <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wider block">{t("client.total_receivables")}</span>
-          <p className="text-base font-bold font-mono text-slate-900 mt-1 tabular-nums">
+        <div className="card p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+          <span className="text-2xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">{t("client.total_receivables")}</span>
+          <p className="text-base font-bold font-mono text-slate-900 dark:text-slate-100 mt-1 tabular-nums">
             {formatDZD(totals.total)} <span className="text-2xs font-normal text-slate-400">DZD</span>
           </p>
         </div>
-        <div className="card p-3.5 rounded-xl border border-blue-200/60 bg-blue-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-blue-700 uppercase tracking-wider block">{t("client.current_interval")}</span>
-          <p className="text-base font-bold font-mono text-blue-800 mt-1 tabular-nums">
-            {formatDZD(totals.current)} <span className="text-2xs font-normal text-blue-500">DZD</span>
+        <div className="card p-3.5 rounded-xl border border-blue-200/60 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/30 shadow-2xs">
+          <span className="text-2xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider block">{t("client.current_interval")}</span>
+          <p className="text-base font-bold font-mono text-blue-800 dark:text-blue-300 mt-1 tabular-nums">
+            {formatDZD(totals.current)} <span className="text-2xs font-normal text-blue-500 dark:text-blue-400">DZD</span>
           </p>
         </div>
-        <div className="card p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-amber-700 uppercase tracking-wider block">31–60j</span>
-          <p className="text-base font-bold font-mono text-amber-800 mt-1 tabular-nums">
-            {formatDZD(totals.days_30)} <span className="text-2xs font-normal text-amber-500">DZD</span>
+        <div className="card p-3.5 rounded-xl border border-amber-200/60 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/30 shadow-2xs">
+          <span className="text-2xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">31–60j</span>
+          <p className="text-base font-bold font-mono text-amber-800 dark:text-amber-300 mt-1 tabular-nums">
+            {formatDZD(totals.days_30)} <span className="text-2xs font-normal text-amber-500 dark:text-amber-400">DZD</span>
           </p>
         </div>
-        <div className="card p-3.5 rounded-xl border border-orange-200/60 bg-orange-50/40 shadow-2xs">
-          <span className="text-2xs font-semibold text-orange-700 uppercase tracking-wider block">61–90j</span>
-          <p className="text-base font-bold font-mono text-orange-800 mt-1 tabular-nums">
-            {formatDZD(totals.days_60)} <span className="text-2xs font-normal text-orange-500">DZD</span>
+        <div className="card p-3.5 rounded-xl border border-orange-200/60 dark:border-orange-900/50 bg-orange-50/40 dark:bg-orange-950/30 shadow-2xs">
+          <span className="text-2xs font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wider block">61–90j</span>
+          <p className="text-base font-bold font-mono text-orange-800 dark:text-orange-300 mt-1 tabular-nums">
+            {formatDZD(totals.days_60)} <span className="text-2xs font-normal text-orange-500 dark:text-orange-400">DZD</span>
           </p>
         </div>
-        <div className="card p-3.5 rounded-xl border border-rose-200/60 bg-rose-50/40 shadow-2xs col-span-2 md:col-span-1">
-          <span className="text-2xs font-semibold text-rose-700 uppercase tracking-wider block">{t("client.days_90_plus")}</span>
-          <p className="text-base font-bold font-mono text-rose-800 mt-1 tabular-nums">
-            {formatDZD(totals.days_90_plus)} <span className="text-2xs font-normal text-rose-500">DZD</span>
+        <div className="card p-3.5 rounded-xl border border-rose-200/60 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/30 shadow-2xs col-span-2 md:col-span-1">
+          <span className="text-2xs font-semibold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">{t("client.days_90_plus")}</span>
+          <p className="text-base font-bold font-mono text-rose-800 dark:text-rose-300 mt-1 tabular-nums">
+            {formatDZD(totals.days_90_plus)} <span className="text-2xs font-normal text-rose-500 dark:text-rose-400">DZD</span>
           </p>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function DebtAgeingPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("client.search_debt_placeholder")}
-              className="form-input ps-9 pe-3 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 w-56"
+              className="form-input ps-9 pe-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs focus:ring-primary-500/20 w-56"
             />
           </div>
           <div className="relative">
@@ -245,7 +245,7 @@ export default function DebtAgeingPage() {
             <select
               value={wilayaFilter}
               onChange={(e) => setWilayaFilter(e.target.value)}
-              className="form-input ps-9 pe-8 py-2 text-xs rounded-xl bg-white border-slate-200/90 shadow-2xs focus:ring-primary-500/20 max-w-[220px]"
+              className="form-input ps-9 pe-8 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs focus:ring-primary-500/20 max-w-[220px]"
             >
               <option value="">{t("client.wilaya")}</option>
               {wilayas.map((w) => (
@@ -260,7 +260,7 @@ export default function DebtAgeingPage() {
                 setWilayaFilter("");
                 setSearchQuery("");
               }}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               {t("client.reset_filter")}
             </button>
@@ -268,7 +268,7 @@ export default function DebtAgeingPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
             <span>{t("client.days_30")}</span>
@@ -301,31 +301,31 @@ export default function DebtAgeingPage() {
 
       {/* Table Card */}
       {!isError && (
-        <div className="card rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+        <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900">
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/70">
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("invoice.client")}</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("client.wilaya")}</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-blue-700">{t("client.current_interval")}</span>
+                <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("invoice.client")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("client.wilaya")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
+                    <span className="text-blue-700 dark:text-blue-400">{t("client.current_interval")}</span>
                   </th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-amber-700">{t("client.days_60")}</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
+                    <span className="text-amber-700 dark:text-amber-400">{t("client.days_60")}</span>
                   </th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-orange-700">{t("client.days_90")}</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
+                    <span className="text-orange-700 dark:text-orange-400">{t("client.days_90")}</span>
                   </th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">
-                    <span className="text-rose-700">{t("client.days_90_plus")}</span>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">
+                    <span className="text-rose-700 dark:text-rose-400">{t("client.days_90_plus")}</span>
                   </th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("client.total_due")}</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-end">{t("common.actions")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("client.total_due")}</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end">{t("common.actions")}</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {/* Loading skeletons */}
                 {isLoading &&
                   Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
@@ -342,51 +342,51 @@ export default function DebtAgeingPage() {
 
                 {/* Data rows */}
                 {filtered.map((row) => (
-                  <tr key={row.client_id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={row.client_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="py-3 px-4">
                       <button
                         onClick={() => navigate(`/clients/${row.client_id}`)}
-                        className="font-semibold text-slate-900 hover:text-primary-600 transition-colors text-start font-sans"
+                        className="font-semibold text-slate-900 dark:text-slate-100 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-start font-sans"
                       >
                         {row.client_name}
                       </button>
                       {row.phone && (
-                        <div className="text-xs text-slate-500 font-mono mt-0.5">{row.phone}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{row.phone}</div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 text-xs">
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300 text-xs">
                       {row.wilaya ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                           {wilayaName(row.wilaya) || row.wilaya}
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
                       )}
                     </td>
 
                     <AmountCell
                       value={row.current}
-                      colorClass="text-blue-700"
-                      bgClass={parseFloat(row.current) > 0 ? "bg-blue-50/80" : undefined}
+                      colorClass="text-blue-700 dark:text-blue-400"
+                      bgClass={parseFloat(row.current) > 0 ? "bg-blue-50/80 dark:bg-blue-950/40" : undefined}
                     />
                     <AmountCell
                       value={row.days_30}
-                      colorClass="text-amber-800"
-                      bgClass={parseFloat(row.days_30) > 0 ? "bg-amber-50/80" : undefined}
+                      colorClass="text-amber-800 dark:text-amber-300"
+                      bgClass={parseFloat(row.days_30) > 0 ? "bg-amber-50/80 dark:bg-amber-950/40" : undefined}
                     />
                     <AmountCell
                       value={row.days_60}
-                      colorClass="text-orange-800"
-                      bgClass={parseFloat(row.days_60) > 0 ? "bg-orange-50/80" : undefined}
+                      colorClass="text-orange-800 dark:text-orange-300"
+                      bgClass={parseFloat(row.days_60) > 0 ? "bg-orange-50/80 dark:bg-orange-950/40" : undefined}
                     />
                     <AmountCell
                       value={row.days_90_plus}
-                      colorClass="text-rose-700"
-                      bgClass={parseFloat(row.days_90_plus) > 0 ? "bg-rose-50/80" : undefined}
+                      colorClass="text-rose-700 dark:text-rose-400"
+                      bgClass={parseFloat(row.days_90_plus) > 0 ? "bg-rose-50/80 dark:bg-rose-950/40" : undefined}
                     />
 
                     <td className="py-3 px-4 text-end">
-                      <span className="font-mono font-bold text-sm text-slate-900 tabular-nums">
+                      <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100 tabular-nums">
                         {formatDZD(row.total)}{" "}
                         <span className="text-2xs text-slate-400 font-normal">DZD</span>
                       </span>
@@ -396,7 +396,7 @@ export default function DebtAgeingPage() {
                         <button
                           type="button"
                           onClick={() => sendDebtReminderWhatsApp(row)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/60 transition-colors"
                           title={t("v14.whatsapp_reminder")}
                         >
                           <MessageCircle size={13} />
@@ -405,7 +405,7 @@ export default function DebtAgeingPage() {
                         <button
                           type="button"
                           onClick={() => navigate(`/clients/${row.client_id}`)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-slate-100 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           title="Voir la fiche client"
                         >
                           <ExternalLink size={14} />
@@ -419,25 +419,25 @@ export default function DebtAgeingPage() {
               {/* Summary / Totals row */}
               {!isLoading && filtered.length > 0 && (
                 <tfoot>
-                  <tr className="bg-slate-50/90 border-t-2 border-slate-200 font-bold">
-                    <td colSpan={2} className="py-3.5 px-4 text-slate-800 text-xs font-sans uppercase tracking-wider">
+                  <tr className="bg-slate-50/90 dark:bg-slate-800/60 border-t-2 border-slate-200 dark:border-slate-700 font-bold">
+                    <td colSpan={2} className="py-3.5 px-4 text-slate-800 dark:text-slate-200 text-xs font-sans uppercase tracking-wider">
                       {t("client.total_clients_count", { count: filtered.length })}
                     </td>
-                    <td className="py-3.5 px-4 text-end font-mono text-sm text-blue-700 tabular-nums">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-blue-700 dark:text-blue-400 tabular-nums">
                       {formatDZD(totals.current)}
                     </td>
-                    <td className="py-3.5 px-4 text-end font-mono text-sm text-amber-800 tabular-nums">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-amber-800 dark:text-amber-400 tabular-nums">
                       {formatDZD(totals.days_30)}
                     </td>
-                    <td className="py-3.5 px-4 text-end font-mono text-sm text-orange-800 tabular-nums">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-orange-800 dark:text-orange-400 tabular-nums">
                       {formatDZD(totals.days_60)}
                     </td>
-                    <td className="py-3.5 px-4 text-end font-mono text-sm text-rose-700 tabular-nums">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-rose-700 dark:text-rose-400 tabular-nums">
                       {formatDZD(totals.days_90_plus)}
                     </td>
-                    <td className="py-3.5 px-4 text-end font-mono text-sm text-slate-900 font-extrabold tabular-nums">
+                    <td className="py-3.5 px-4 text-end font-mono text-sm text-slate-900 dark:text-slate-100 font-extrabold tabular-nums">
                       {formatDZD(totals.total)}{" "}
-                      <span className="text-2xs text-slate-500 font-normal">DZD</span>
+                      <span className="text-2xs text-slate-500 dark:text-slate-400 font-normal">DZD</span>
                     </td>
                     <td />
                   </tr>

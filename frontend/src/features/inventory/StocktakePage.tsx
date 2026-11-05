@@ -725,9 +725,9 @@ export default function StocktakePage() {
             className={cn(
               "rounded-3xl p-5 sm:p-6 border transition-all duration-300 shadow-md",
               scanFlash === "success"
-                ? "bg-emerald-50/70 border-emerald-400 ring-4 ring-emerald-500/20"
+                ? "bg-emerald-50/70 dark:bg-emerald-950/70 border-emerald-400 dark:border-emerald-600 ring-4 ring-emerald-500/20"
                 : scanFlash === "error"
-                ? "bg-rose-50/70 border-rose-400 ring-4 ring-rose-500/20"
+                ? "bg-rose-50/70 dark:bg-rose-950/70 border-rose-400 dark:border-rose-600 ring-4 ring-rose-500/20"
                 : "bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-slate-800"
             )}
           >
@@ -829,7 +829,7 @@ export default function StocktakePage() {
                     ? t("inventory.scan_prompt_qty_placeholder", "Mode Pile/Lot actif : scannez un article pour saisir directement sa quantité...")
                     : t("inventory.scan_default_placeholder", "Scannez ici ou tapez le code-barres / référence / nom puis Entrée (+{{multiplier}})...", { multiplier })
                 }
-                className="w-full h-14 pl-12 pr-32 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 font-mono text-base sm:text-lg font-bold border-2 border-transparent focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/30 transition-all shadow-inner"
+                className="w-full h-14 pl-12 pr-32 rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 font-mono text-base sm:text-lg font-bold border-2 border-transparent dark:border-slate-700 focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/30 transition-all shadow-inner"
               />
               <ScanBarcode className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
 
@@ -915,7 +915,7 @@ export default function StocktakePage() {
                     min={0}
                     value={promptQtyModal.inputQty}
                     onChange={(e) => setPromptQtyModal({ ...promptQtyModal, inputQty: e.target.value })}
-                    className="w-24 h-10 rounded-xl bg-white text-slate-900 font-mono font-black text-base text-center border-2 border-amber-400 focus:outline-none"
+                    className="w-24 h-10 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-black text-base text-center border-2 border-amber-400 focus:outline-none"
                   />
 
                   <button
@@ -972,7 +972,7 @@ export default function StocktakePage() {
                         value={bindSearch}
                         onChange={(e) => setBindSearch(e.target.value)}
                         placeholder={t("inventory.bind_search_placeholder", "Rechercher l'article par référence ou nom (ex: 1457, BL-HS10)...")}
-                        className="w-full h-9 pl-8 pr-3 rounded-lg bg-white text-slate-900 text-xs font-medium focus:outline-none"
+                        className="w-full h-9 pl-8 pr-3 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none border border-transparent dark:border-slate-700"
                       />
                     </div>
                     {bindCandidates && bindCandidates.length > 0 && (
@@ -1207,7 +1207,7 @@ export default function StocktakePage() {
                                   countedQty: Math.max(0, item.counted_qty - 1),
                                 })
                               }
-                              className="w-7 h-7 rounded-lg hover:bg-white text-text-muted hover:text-text-primary font-bold flex items-center justify-center transition-all cursor-pointer"
+                              className="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-text-muted hover:text-text-primary font-bold flex items-center justify-center transition-all cursor-pointer"
                             >
                               -
                             </button>
@@ -1231,7 +1231,7 @@ export default function StocktakePage() {
                                   countedQty: item.counted_qty + 1,
                                 })
                               }
-                              className="w-7 h-7 rounded-lg hover:bg-white text-text-muted hover:text-text-primary font-bold flex items-center justify-center transition-all cursor-pointer"
+                              className="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-text-muted hover:text-text-primary font-bold flex items-center justify-center transition-all cursor-pointer"
                             >
                               +
                             </button>
@@ -1276,7 +1276,7 @@ export default function StocktakePage() {
                               }
                             }}
                             placeholder={t("inventory.add_note_placeholder", "Ajouter une note...")}
-                            className="w-full bg-transparent text-2xs text-text-primary placeholder:text-text-muted focus:bg-white focus:outline-none px-2 py-1 rounded border border-transparent focus:border-border transition-all"
+                            className="w-full bg-transparent text-2xs text-text-primary placeholder:text-text-muted focus:bg-white dark:focus:bg-slate-800 focus:outline-none px-2 py-1 rounded border border-transparent focus:border-border transition-all"
                           />
                         )}
                       </td>
@@ -1317,7 +1317,7 @@ export default function StocktakePage() {
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="h-7 px-2 rounded-lg border border-border bg-white text-2xs font-bold text-text-primary"
+                  className="h-7 px-2 rounded-lg border border-border bg-white dark:bg-slate-800 text-2xs font-bold text-text-primary"
                 >
                   <option value={50}>{t("inventory.per_page_count", "{{count}} / page", { count: 50 })}</option>
                   <option value={100}>{t("inventory.per_page_count", "{{count}} / page", { count: 100 })}</option>
@@ -1335,7 +1335,7 @@ export default function StocktakePage() {
                   >
                     {t("common.previous", "Précédent")}
                   </button>
-                  <span className="px-2.5 py-1 rounded-lg bg-white border border-border font-mono font-bold text-text-primary">
+                  <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-border font-mono font-bold text-text-primary">
                     {t("common.page_of", "Page {{current}} / {{total}}", { current: currentPage, total: totalPages })}
                   </span>
                   <button
