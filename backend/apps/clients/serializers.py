@@ -1,7 +1,9 @@
 from decimal import Decimal
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
+from apps.core.permissions import MANAGER_OR_OWNER
 from .models import Cheque, Client, ClientLedger
 
 
@@ -16,6 +18,30 @@ class ClientSerializer(serializers.ModelSerializer):
             "is_over_credit_limit", "is_active", "notes", "created_at",
         ]
         read_only_fields = ["id", "cached_balance", "is_over_credit_limit", "created_at"]
+
+    def _is_manager_or_owner(self) -> bool:
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+        return bool(user.is_superuser or getattr(user, "role", None) in MANAGER_OR_OWNER)
+
+    def create(self, validated_data):
+        new_limit = validated_data.get("credit_limit")
+        if new_limit is not None and Decimal(str(new_limit)) != Decimal("0.00"):
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut définir le plafond de crédit d'un client."
+                )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "credit_limit" in validated_data and validated_data["credit_limit"] != instance.credit_limit:
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut modifier le plafond de crédit d'un client."
+                )
+        return super().update(instance, validated_data)
 
 
 class ClientLedgerSerializer(serializers.ModelSerializer):

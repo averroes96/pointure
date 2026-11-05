@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from .models import Cheque, Client, ClientLedger
 from .serializers import (
     ChequeSerializer,
@@ -22,6 +23,15 @@ from .serializers import (
 class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "destroy": MANAGER_OR_OWNER,
+        "import_clients": MANAGER_OR_OWNER,
+        "record_payment": MANAGER_OR_OWNER,
+        "ageing": MANAGER_OR_OWNER,
+        "ageing_csv": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["wilaya", "is_active", "client_type"]
     search_fields = ["name", "phone", "nif", "rc"]
     ordering_fields = ["name", "cached_balance", "created_at"]
@@ -496,6 +506,17 @@ class ClientLedgerViewSet(viewsets.ReadOnlyModelViewSet):
 class ChequeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Cheque.objects.select_related("client", "supplier")
     serializer_class = ChequeSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "mark_deposited": MANAGER_OR_OWNER,
+        "mark_bounced": MANAGER_OR_OWNER,
+        "mark_pending": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["status", "direction", "client", "supplier"]
     ordering_fields = ["due_date", "amount", "created_at"]
     ordering = ["due_date"]

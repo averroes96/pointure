@@ -209,3 +209,99 @@ class TestClientRecordPaymentLedger:
         assert "=== Audit Client Ledger (Read-Only) ===" in output
         assert "No data was modified." in output
 
+
+@pytest.mark.django_db
+class TestClientCreditLimitAndChequeRBAC:
+    """Tests for Task 2.3d: credit_limit field-level RBAC and cheque status actions RBAC."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db):
+        from apps.clients.models import Cheque, Client
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+
+        self.tenant = Tenant.objects.create(name="Clients RBAC Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="mgr-cli@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier-cli@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+        self.client_obj = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Test",
+            phone="0552223344",
+            credit_limit=Decimal("10000.00"),
+        )
+        self.cheque = Cheque.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            direction="receivable",
+            number="CHQ-001",
+            bank="CPA",
+            amount=Decimal("5000.00"),
+            due_date=datetime.date.today(),
+            status="pending",
+        )
+
+    def test_cashier_can_edit_contact_fields_but_gets_403_on_credit_limit_change(self):
+        c_cashier = _make_api_client(self.cashier)
+
+        # Updating contact info succeeds (200)
+        res_contact = c_cashier.patch(
+            f"/api/v1/clients/{self.client_obj.pk}/",
+            {"name": "Client Updated", "address": "Alger"},
+            format="json",
+        )
+        assert res_contact.status_code == 200, res_contact.data
+
+        # Changing credit_limit fails with 403
+        res_limit = c_cashier.patch(
+            f"/api/v1/clients/{self.client_obj.pk}/",
+            {"credit_limit": "50000.00"},
+            format="json",
+        )
+        assert res_limit.status_code == 403
+        self.client_obj.refresh_from_db()
+        assert self.client_obj.credit_limit == Decimal("10000.00")
+
+        # Manager can change credit_limit (200)
+        c_mgr = _make_api_client(self.manager)
+        res_mgr = c_mgr.patch(
+            f"/api/v1/clients/{self.client_obj.pk}/",
+            {"credit_limit": "50000.00"},
+            format="json",
+        )
+        assert res_mgr.status_code == 200
+        self.client_obj.refresh_from_db()
+        assert self.client_obj.credit_limit == Decimal("50000.00")
+
+    def test_cashier_gets_403_on_cheque_status_actions(self):
+        c_cashier = _make_api_client(self.cashier)
+
+        for action_slug in ("mark-deposited", "mark-bounced", "mark-pending"):
+            res = c_cashier.post(f"/api/v1/clients/cheques/{self.cheque.pk}/{action_slug}/")
+            assert res.status_code == 403
+
+        assert (
+            c_cashier.patch(
+                f"/api/v1/clients/cheques/{self.cheque.pk}/",
+                {"status": "deposited"},
+                format="json",
+            ).status_code
+            == 403
+        )
+
+        # Manager can mark cheque deposited
+        c_mgr = _make_api_client(self.manager)
+        res_dep = c_mgr.post(f"/api/v1/clients/cheques/{self.cheque.pk}/mark-deposited/")
+        assert res_dep.status_code == 200
+        self.cheque.refresh_from_db()
+        assert self.cheque.status == "deposited"
+
+
