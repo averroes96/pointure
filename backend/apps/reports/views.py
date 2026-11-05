@@ -8,12 +8,26 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
 
 
 class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     """Dashboard and report endpoints."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "profit_loss": MANAGER_OR_OWNER,
+        "stock_valuation": MANAGER_OR_OWNER,
+        "stock": MANAGER_OR_OWNER,
+        "stock_pdf": MANAGER_OR_OWNER,
+        "daily": MANAGER_OR_OWNER,
+        "builder_fields": MANAGER_OR_OWNER,
+        "builder_preview": MANAGER_OR_OWNER,
+        "builder_export": MANAGER_OR_OWNER,
+        "templates_list": MANAGER_OR_OWNER,
+        "template_detail": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     queryset_class = None  # No model queryset; tenant resolved via initial()
 
     def get_queryset_class(self):
@@ -744,7 +758,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(
         detail=False, methods=["get"], url_path="builder/fields",
-        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise"), RolePermission],
     )
     def builder_fields(self, request):
         """Return available fields per source for the report builder UI."""
@@ -769,7 +783,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(
         detail=False, methods=["post"], url_path="builder/preview",
-        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise"), RolePermission],
     )
     def builder_preview(self, request):
         """Run a report config and return up to 200 rows."""
@@ -784,7 +798,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(
         detail=False, methods=["get"], url_path="builder/export",
-        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise"), RolePermission],
     )
     def builder_export(self, request):
         """Export a report as CSV (full dataset, no row limit)."""
@@ -819,7 +833,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(
         detail=False, methods=["get", "post"], url_path="templates",
-        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise"), RolePermission],
     )
     def templates_list(self, request):
         """List or create saved report templates (max 15 per tenant)."""
@@ -846,7 +860,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     @action(
         detail=False, methods=["get", "patch", "delete"],
         url_path=r"templates/(?P<tpl_id>\d+)",
-        permission_classes=[IsAuthenticated, PlanRequired("enterprise")],
+        permission_classes=[IsAuthenticated, PlanRequired("enterprise"), RolePermission],
     )
     def template_detail(self, request, tpl_id=None):
         """Retrieve, update, or delete a single saved template."""

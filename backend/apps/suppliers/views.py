@@ -3,9 +3,11 @@ from django.db import transaction
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import IsManagerOrOwner
 from .models import (
     ClaimStatusChoices,
     POLine,
@@ -119,6 +121,7 @@ def _resolve_variant(tenant, product, size_eu: int, colour: str):
 class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
     search_fields = ["name", "contact_name", "phone", "email", "origin_country"]
     ordering_fields = ["name", "outstanding_balance", "created_at"]
     ordering = ["name"]
@@ -572,6 +575,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
 class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.select_related("supplier").prefetch_related("lines__variant__product")
     serializer_class = PurchaseOrderSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
     filterset_fields = ["status", "supplier"]
     search_fields = ["reference", "supplier__name"]
     ordering_fields = ["created_at", "expected_date", "total_amount"]
@@ -882,6 +886,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = SupplierInvoice.objects.select_related("supplier", "purchase_order")
     serializer_class = SupplierInvoiceSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
     filterset_fields = ["supplier", "purchase_order"]
     ordering_fields = ["date", "due_date", "total_amount"]
     ordering = ["-date"]
@@ -906,6 +911,7 @@ class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = SupplierPayment.objects.select_related("supplier", "supplier_invoice")
     serializer_class = SupplierPaymentSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
     filterset_fields = ["supplier", "supplier_invoice", "method"]
     ordering_fields = ["date", "amount"]
     ordering = ["-date"]
@@ -917,6 +923,7 @@ class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = SupplierReturnClaim.objects.select_related("supplier", "created_by").prefetch_related("items__variant__product")
     serializer_class = SupplierReturnClaimSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
     filterset_fields = ["supplier", "status", "credit_note_applied"]
     search_fields = ["claim_number", "supplier__name", "notes"]
     ordering_fields = ["created_at", "total_amount", "status"]

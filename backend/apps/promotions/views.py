@@ -5,9 +5,11 @@ from django.db import models as django_models
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from .models import Promotion
 from .serializers import PromotionSerializer
 
@@ -17,6 +19,14 @@ class PromotionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     queryset = Promotion.objects.select_related("product")
     serializer_class = PromotionSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["is_active", "category", "product"]
     ordering_fields = ["priority", "start_date", "created_at"]
     ordering = ["-priority", "start_date"]

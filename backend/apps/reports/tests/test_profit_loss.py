@@ -108,17 +108,20 @@ class TestProfitLoss:
         assert Decimal(str(totals["gross_margin"])) == Decimal("12000.00")
 
     def test_cashier_cannot_see_cogs(self):
-        """Cashier role: response rows should NOT contain 'cogs' key."""
+        """Cashier role receives 403 Forbidden on reports with margins or purchase prices (Task 2.3e / D6)."""
         resp = self.api_cashier.get(
             "/api/v1/reports/profit-loss/",
             {"period": "month"},
         )
-        assert resp.status_code == 200, f"Got {resp.status_code}: {resp.data}"
-        totals = resp.data["totals"]
-        assert "cogs" not in totals, "Cashier should not see COGS"
-        assert "gross_margin" not in totals, "Cashier should not see gross_margin"
-        # Revenue should still be present
-        assert "revenue" in totals
+        assert resp.status_code == 403, f"Got {resp.status_code}: {resp.data}"
+
+        for endpoint in (
+            "/api/v1/reports/stock-valuation/",
+            "/api/v1/reports/stock/",
+            "/api/v1/reports/daily/",
+        ):
+            r = self.api_cashier.get(endpoint)
+            assert r.status_code == 403, f"Expected 403 on {endpoint}, got {r.status_code}"
 
     def test_period_grouping(self):
         """

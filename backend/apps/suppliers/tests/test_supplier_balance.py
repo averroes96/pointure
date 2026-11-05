@@ -94,3 +94,87 @@ class TestSupplierBalance:
 
         self.supplier.refresh_from_db()
         assert self.supplier.outstanding_balance == Decimal("0")
+
+
+@pytest.mark.django_db
+class TestSuppliersAndPromotionsRBAC:
+    """Tests for Task 2.3e: cashier gets 403 on promotions mutations and suppliers endpoints."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db):
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.promotions.models import Promotion
+        from apps.suppliers.models import Supplier
+
+        self.tenant = Tenant.objects.create(name="RBAC 23e Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="mgr-23e@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier-23e@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+        self.supplier = Supplier.objects.create(
+            tenant=self.tenant,
+            name="Supplier 23e",
+        )
+        self.promo = Promotion.objects.create(
+            tenant=self.tenant,
+            name="Soldes Hiver",
+            discount_pct=Decimal("10.00"),
+            start_date=datetime.date.today(),
+            is_active=True,
+        )
+
+    def test_cashier_gets_403_on_promotions_mutations(self):
+        from rest_framework.test import APIClient
+
+        api = APIClient()
+        api.force_authenticate(user=self.cashier)
+
+        # Create -> 403
+        assert (
+            api.post(
+                "/api/v1/promotions/",
+                {
+                    "name": "Hacked Promo",
+                    "discount_pct": "50.00",
+                    "start_date": str(datetime.date.today()),
+                },
+                format="json",
+            ).status_code
+            == 403
+        )
+        # Update -> 403
+        assert (
+            api.patch(
+                f"/api/v1/promotions/{self.promo.pk}/",
+                {"discount_pct": "90.00"},
+                format="json",
+            ).status_code
+            == 403
+        )
+        # Delete -> 403
+        assert api.delete(f"/api/v1/promotions/{self.promo.pk}/").status_code == 403
+
+    def test_cashier_gets_403_on_suppliers_endpoints(self):
+        from rest_framework.test import APIClient
+
+        api = APIClient()
+        api.force_authenticate(user=self.cashier)
+
+        assert api.get("/api/v1/suppliers/").status_code == 403
+        assert (
+            api.post("/api/v1/suppliers/", {"name": "New Sup"}, format="json").status_code
+            == 403
+        )
+        assert api.get("/api/v1/suppliers/purchase-orders/").status_code == 403
+        assert api.get("/api/v1/suppliers/invoices/").status_code == 403
+        assert api.get("/api/v1/suppliers/payments/").status_code == 403
+        assert api.get("/api/v1/suppliers/return-claims/").status_code == 403
+
