@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { canAccessPath } from "@/lib/roleAccess";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan, PLAN_LABELS } from "@/hooks/usePlan";
 import { useBusinessMode } from "@/hooks/useBusinessMode";
@@ -132,7 +133,6 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
   const { canAccess } = usePlan();
   const { showWholesaleUI } = useBusinessMode();
   const navSections = useNavSections();
-  const isCashier = user?.role === "cashier";
   const navRef = useRef<HTMLElement>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
 
@@ -252,7 +252,7 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
               </div>
             )}
             {section.items
-              .filter((item) => !isCashier || !item.managerOnly)
+              .filter((item) => canAccessPath(user?.role, item.to))
               .map((item) => {
                 const locked = !!item.minPlan && !canAccess(item.minPlan);
 

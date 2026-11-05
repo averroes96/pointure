@@ -81,7 +81,8 @@
     "choose_new_password": "Choisissez un nouveau mot de passe pour votre compte.",
     "confirm_password": "Confirmer le mot de passe",
     "resetting": "Réinitialisation…",
-    "reset_password": "Réinitialiser le mot de passe"
+    "reset_password": "Réinitialiser le mot de passe",
+    "access_denied": "Vous n'avez pas la permission d'accéder à cette page."
   },
   "dashboard": {
     "today_revenue": "Chiffre du jour",

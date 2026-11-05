@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import LabelPrintDialog from "@/features/inventory/components/LabelPrintDialog";
 import api from "@/lib/api";
+import RequireRole, { AccessDeniedNotice } from "@/components/auth/RequireRole";
 
 // ── Setup redirect: checks once per session whether setup is needed ──────────
 const _setupChecked = { done: false };
@@ -128,7 +129,9 @@ function AppRoutes() {
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <RequireRole>
+                <DashboardLayout />
+              </RequireRole>
             </ProtectedRoute>
           }
         >
@@ -239,6 +242,7 @@ export default function App() {
         <AuthProvider>
           <BranchProvider>
             <AppRoutes />
+            <AccessDeniedNotice />
             <LabelPrintDialog />
           </BranchProvider>
         </AuthProvider>

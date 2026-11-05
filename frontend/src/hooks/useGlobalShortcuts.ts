@@ -1,9 +1,26 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/features/auth/AuthContext";
+import { canAccessPath } from "@/lib/roleAccess";
+import { ACCESS_DENIED_EVENT } from "@/components/auth/RequireRole";
 
 export function useGlobalShortcuts() {
-  const navigate = useNavigate();
+  const rawNavigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const role = user?.role;
+
+  // Navigate only to pages the current role may open; otherwise show the access-denied notice.
+  const navigate = useCallback(
+    (path: string) => {
+      if (canAccessPath(role, path)) {
+        rawNavigate(path);
+      } else {
+        window.dispatchEvent(new CustomEvent(ACCESS_DENIED_EVENT));
+      }
+    },
+    [rawNavigate, role]
+  );
   const lastTriggerRef = useRef<{ key: string; time: number }>({ key: "", time: 0 });
 
   const executeShortcut = useCallback(

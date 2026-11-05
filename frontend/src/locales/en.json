@@ -81,7 +81,8 @@
     "reset_password": "Reset password",
     "resetting": "Resetting…",
     "send_link": "Send link",
-    "sending": "Sending…"
+    "sending": "Sending…",
+    "access_denied": "You don't have permission to access this page."
   },
   "dashboard": {
     "today_revenue": "Today's Revenue",
