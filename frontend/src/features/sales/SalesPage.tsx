@@ -150,7 +150,7 @@ function CreateClientModal({
           {existingClients && existingClients.results.length > 0 && (
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2 space-y-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
-                Clients existants (cliquer pour sélectionner)
+                {t("sales.existing_clients_click_select", "Clients existants (cliquer pour sélectionner)")}
               </div>
               <div className="max-h-28 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800">
                 {existingClients.results.map((c) => (
@@ -170,7 +170,7 @@ function CreateClientModal({
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
-              Annuler
+              {t("common.cancel", "Annuler")}
             </button>
             <button type="submit" className="btn-primary flex-1" disabled={mutation.isPending}>
               {mutation.isPending ? t("sales.client_creating") : t("sales.client_create_select")}
@@ -641,7 +641,7 @@ export default function SalesPage() {
     mutationFn: () => {
       const currentCart = cartRef.current;
       if (!currentCart || currentCart.length === 0) {
-        throw new Error("Le panier est vide.");
+        throw new Error(t("sales.empty_cart_error", "Le panier est vide."));
       }
 
       const effectivePayments = payments.filter((p: PaymentLine) => p.amount > 0);
@@ -764,7 +764,10 @@ export default function SalesPage() {
         return;
       } else {
         setStockWarningToast(
-          "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres."
+          t(
+            "sales.negative_stock_blocked_toast",
+            "Impossible de valider : certains articles dépassent le stock disponible. Vous pouvez autoriser le stock négatif dans les Paramètres."
+          )
         );
         setTimeout(() => setStockWarningToast(null), 4000);
         return;
@@ -820,8 +823,15 @@ export default function SalesPage() {
       if (requirePinForDiscounts && discountPct > maxAllowed) {
         setManagerPinPrompt({
           isOpen: true,
-          reason: `Remise totale (${discountPct.toFixed(1)}%) supérieure à votre plafond autorisé (${maxAllowed}%)`,
-          actionDescription: "La validation d'un responsable par code PIN est nécessaire pour accorder cette remise.",
+          reason: t(
+            "pos.discount_limit_exceeded_reason",
+            "Remise totale ({{discount}}%) supérieure à votre plafond autorisé ({{max}}%)",
+            { discount: discountPct.toFixed(1), max: maxAllowed }
+          ),
+          actionDescription: t(
+            "pos.discount_limit_exceeded_desc",
+            "La validation d'un responsable par code PIN est nécessaire pour accorder cette remise."
+          ),
           quickMode,
         });
         return;
@@ -834,8 +844,19 @@ export default function SalesPage() {
         if (altered) {
           setManagerPinPrompt({
             isOpen: true,
-            reason: `Prix unitaire modifié pour "${altered.product.name}" (${Number(altered.unit_price).toFixed(2)} DA vs ${parseFloat(altered.product.sale_price).toFixed(2)} DA)`,
-            actionDescription: "La modification des prix du catalogue nécessite l'approbation d'un responsable.",
+            reason: t(
+              "pos.price_modified_reason",
+              "Prix unitaire modifié pour « {{product}} » ({{price}} DA vs {{originalPrice}} DA)",
+              {
+                product: altered.product.name,
+                price: Number(altered.unit_price).toFixed(2),
+                originalPrice: parseFloat(altered.product.sale_price).toFixed(2),
+              }
+            ),
+            actionDescription: t(
+              "pos.price_modified_desc",
+              "La modification des prix du catalogue nécessite l'approbation d'un responsable."
+            ),
             quickMode,
           });
           return;
@@ -1214,39 +1235,43 @@ export default function SalesPage() {
           <div className="w-16 h-16 bg-indigo-50 border border-indigo-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookmarkCheck size={32} className="text-indigo-600" />
           </div>
-          <h2 className="text-xl font-bold text-text-primary mb-2">Réservation Enregistrée</h2>
+          <h2 className="text-xl font-bold text-text-primary mb-2">
+            {t("sales.layaway_recorded", "Réservation enregistrée")}
+          </h2>
           <p className="text-text-muted text-sm mb-1">{t('sales.receipt')}: <strong>{receipt.receipt_number}</strong></p>
           {receipt.client_name ? (
             <p className="text-text-muted text-sm mb-1">{t('sales.client')}: <strong>{receipt.client_name}</strong></p>
           ) : receipt.notes ? (
-            <p className="text-text-muted text-sm mb-1">Réf / Note: <strong>{receipt.notes}</strong></p>
+            <p className="text-text-muted text-sm mb-1">
+              {t("sales.ref_note", "Réf / Note")} : <strong>{receipt.notes}</strong>
+            </p>
           ) : null}
           <div className="mb-4 mt-3 rounded-xl bg-indigo-50/80 border border-indigo-200 p-3 text-sm space-y-1.5">
             <div className="inline-block px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-2xs font-bold uppercase tracking-wider">
-              Stock consigné &amp; mis de côté
+              {t("sales.stock_consigned_badge", "Stock consigné & mis de côté")}
             </div>
             <p className="text-text-primary text-xs">
-              Acompte versé: <strong className="font-mono text-sm">{formatDZD(receipt.amount_paid)} DZD</strong>
+              {t("sales.deposit_paid", "Acompte versé")} : <strong className="font-mono text-sm">{formatDZD(receipt.amount_paid)} DZD</strong>
             </p>
             <p className="text-indigo-700 font-semibold text-xs">
-              Solde au retrait: <span className="font-mono text-sm">{formatDZD(receipt.balance_due)} DZD</span>
+              {t("sales.balance_at_pickup", "Solde au retrait")} : <span className="font-mono text-sm">{formatDZD(receipt.balance_due)} DZD</span>
             </p>
             {receipt.layaway_expires_at && (
               <p className="text-indigo-900 text-xs font-medium pt-1 border-t border-indigo-200/60">
-                Date limite de retrait: <strong>{receipt.layaway_expires_at}</strong>
+                {t("sales.pickup_deadline", "Date limite de retrait")} : <strong>{receipt.layaway_expires_at}</strong>
               </p>
             )}
           </div>
           <div className="flex gap-3 justify-center flex-wrap">
             <button className="btn-secondary" onClick={() => setReceipt(null)}>
-              Nouvelle vente
+              {t("sales.new_sale", "Nouvelle vente")}
             </button>
             <button
               className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
               onClick={() => printBonReservation(receipt, user?.tenant?.name ?? "ShoeDZ")}
             >
               <Printer size={16} />
-              Bon de réservation
+              {t("sales.layaway_slip", "Bon de réservation")}
             </button>
           </div>
         </div>
@@ -1266,25 +1291,27 @@ export default function SalesPage() {
           )}
           <div className="mb-4 mt-3 rounded-xl bg-warning-light border border-warning/30 p-3 text-sm space-y-1">
             <p className="text-text-primary">
-              Acompte verse: <strong className="font-mono">{formatDZD(receipt.amount_paid)} DZD</strong>
+              {t("sales.deposit_paid", "Acompte versé")} : <strong className="font-mono">{formatDZD(receipt.amount_paid)} DZD</strong>
             </p>
             <p className="text-danger font-semibold">
-              Solde restant: <span className="font-mono">{formatDZD(receipt.balance_due)} DZD</span>
+              {t("sales.remaining_balance", "Solde restant")} : <span className="font-mono">{formatDZD(receipt.balance_due)} DZD</span>
             </p>
             {receipt.due_date && (
-              <p className="text-text-muted text-xs">Echeance: {receipt.due_date}</p>
+              <p className="text-text-muted text-xs">
+                {t("sales.due_date_label", "Échéance")} : {receipt.due_date}
+              </p>
             )}
           </div>
           <div className="flex gap-3 justify-center flex-wrap">
             <button className="btn-secondary" onClick={() => setReceipt(null)}>
-              Nouvelle vente
+              {t("sales.new_sale", "Nouvelle vente")}
             </button>
             <button
               className="btn-primary flex items-center gap-2"
               onClick={() => printBonVersement(receipt, user?.tenant?.name ?? "ShoeDZ")}
             >
               <Printer size={16} />
-              Bon de versement
+              {t("sales.versement_slip", "Bon de versement")}
             </button>
           </div>
         </div>
@@ -1317,14 +1344,14 @@ export default function SalesPage() {
 
         <div className="flex gap-3 justify-center flex-wrap">
           <button className="btn-secondary" onClick={() => setReceipt(null)}>
-            Nouvelle vente
+            {t("sales.new_sale", "Nouvelle vente")}
           </button>
           <button
             className="btn-primary flex items-center gap-2"
             onClick={() => printReceipt(receipt, user?.tenant?.name ?? "ShoeDZ")}
           >
             <Printer size={16} />
-            Imprimer
+            {t("common.print", "Imprimer")}
           </button>
           <button
             className="btn-secondary flex items-center gap-2"
@@ -1376,7 +1403,7 @@ export default function SalesPage() {
           <button
             onClick={() => setQuickSaleToast(null)}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Fermer"
+            title={t("common.close", "Fermer")}
           >
             <X size={16} />
           </button>
@@ -1417,7 +1444,7 @@ export default function SalesPage() {
                     ? "bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
                     : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
-                title="Raccourci Alt+V : Créer / sélectionner un client et activer le mode Versement"
+                title={t("pos.shortcut_versement_title", "Raccourci Alt+V : Créer / sélectionner un client et activer le mode Versement")}
               >
                 <kbd className={cn(
                   "px-1.5 py-0.5 text-[10px] font-mono font-bold border rounded",
@@ -1431,7 +1458,7 @@ export default function SalesPage() {
                 type="button"
                 onClick={handleMovementShortcut}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Raccourci Alt+M (ou Ctrl+M) : Ouvrir le popup rapide des mouvements d'espèces"
+                title={t("pos.shortcut_movement_title", "Raccourci Alt+M (ou Ctrl+M) : Ouvrir le popup rapide des mouvements d'espèces")}
               >
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300">Alt+M</kbd>
                 <span>{t("pos.movements", "Mouvements")}</span>
@@ -1440,7 +1467,7 @@ export default function SalesPage() {
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("app-toggle-pos-coachmark"))}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary-50/70 dark:bg-primary-950/50 border border-primary-200/80 dark:border-primary-800 shadow-2xs text-xs font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors cursor-pointer"
-                title="F12 : Guide des raccourcis essentiels de caisse"
+                title={t("pos.shortcut_f12_title", "F12 : Guide des raccourcis essentiels de caisse")}
               >
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 border border-primary-200 dark:border-primary-800 rounded text-primary-700 dark:text-primary-300">F12</kbd>
                 <span>{t("sales.coachmark.pill_btn", "Raccourcis Caisse (F12)")}</span>
@@ -1462,7 +1489,7 @@ export default function SalesPage() {
                   type="button"
                   onClick={() => setShowMovementModal(true)}
                   className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Ajouter ou retirer des espèces (Raccourci : Alt+M)"
+                  title={t("pos.add_remove_cash_title", "Ajouter ou retirer des espèces (Raccourci : Alt+M)")}
                 >
                   <ArrowDownUp size={12} />
                   <span>{t("pos.movement", "Mouvement")}</span>
@@ -1472,7 +1499,7 @@ export default function SalesPage() {
                   type="button"
                   onClick={() => navigate("/sales/reconciliation")}
                   className="px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1 transition-colors"
-                  title="Voir la caisse, lecture X et clôture Z"
+                  title={t("pos.view_cash_z_title", "Voir la caisse, lecture X et clôture Z")}
                 >
                   <Receipt size={12} />
                   <span>{t("pos.cash_and_z", "Caisse & Z")}</span>
@@ -1492,7 +1519,7 @@ export default function SalesPage() {
                   type="button"
                   onClick={() => navigate("/sales/reconciliation")}
                   className="px-2 py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs font-medium transition-colors"
-                  title="Historique des caisses"
+                  title={t("pos.cash_history_title", "Historique des caisses")}
                 >
                   <Receipt size={14} />
                 </button>
@@ -1936,7 +1963,7 @@ export default function SalesPage() {
                       ? "bg-amber-500 border-amber-600 text-white shadow-xs"
                       : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   )}
-                  title="Raccourci Alt+V : Nouveau client + activer Versement"
+                  title={t("pos.shortcut_new_client_versement", "Raccourci Alt+V : Nouveau client + activer Versement")}
                 >
                   <span>{t("pos.versement", "Versement")}</span>
                   <kbd className={cn(
@@ -2164,7 +2191,7 @@ export default function SalesPage() {
                             ? "bg-blue-600 text-white border-blue-600 font-bold shadow-2xs"
                             : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
-                        title="TPE (CIB / Edahabia)"
+                        title={t("payment_method.tpe", "Carte CIB / Edahabia (TPE)")}
                       >
                         <CreditCard size={11} />
                         TPE
@@ -2178,7 +2205,7 @@ export default function SalesPage() {
                             ? "bg-amber-600 text-white border-amber-600 font-bold shadow-2xs"
                             : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         )}
-                        title="BaridiMob"
+                        title={t("payment_method.baridimob", "BaridiMob")}
                       >
                         <Smartphone size={11} />
                         BaridiMob
@@ -2328,8 +2355,8 @@ export default function SalesPage() {
                   "text-xs px-3 py-2 rounded-xl border font-semibold flex items-center justify-between",
                   belowMin ? "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                 )}>
-                  <span>Acompte minimum ({minPct}%): {formatDZD(Math.ceil(minAmt))} DZD</span>
-                  <span>Solde: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
+                  <span>{t("sales.min_versement_amount", "Acompte minimum ({{pct}}%) : {{amount}} DZD", { pct: minPct, amount: formatDZD(Math.ceil(minAmt)) })}</span>
+                  <span>{t("sales.balance_due_amount", "Solde : {{amount}} DZD", { amount: formatDZD(Math.max(0, total - paymentTotal)) })}</span>
                 </div>
               );
             })()}
@@ -2348,13 +2375,13 @@ export default function SalesPage() {
                   <div className="flex items-center justify-between font-bold">
                     <span className="flex items-center gap-1.5">
                       <Bookmark size={13} className="text-indigo-600 dark:text-indigo-400" />
-                      Mise de côté ({minPct}% min): {formatDZD(Math.ceil(minAmt))} DZD
+                      {t("sales.layaway_min_deposit_badge", "Mise de côté ({{pct}}% min) : {{amount}} DZD", { pct: minPct, amount: formatDZD(Math.ceil(minAmt)) })}
                     </span>
-                    <span>Solde au retrait: {formatDZD(Math.max(0, total - paymentTotal))} DZD</span>
+                    <span>{t("sales.balance_at_pickup_amount", "Solde au retrait : {{amount}} DZD", { amount: formatDZD(Math.max(0, total - paymentTotal)) })}</span>
                   </div>
                   <div className="flex items-center justify-between text-2xs opacity-80">
                     <span>{t("pos.layaway_hint", "Conserve le stock en réserve sans le vendre")}</span>
-                    <span>Expiration : J+{duration}</span>
+                    <span>{t("sales.layaway_expiration_days", "Expiration : J+{{days}}", { days: duration })}</span>
                   </div>
                 </div>
               );
@@ -2419,13 +2446,19 @@ export default function SalesPage() {
               {(cartDiscount > 0 || redemptionDzd > 0 || timbreFiscal > 0) && (
                 <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-wrap gap-x-4 gap-y-1 text-2xs font-mono text-slate-300 font-medium">
                   {cartDiscount > 0 && (
-                    <span className="text-emerald-400">Remise: −{formatDZD(cartDiscount)} DZD</span>
+                    <span className="text-emerald-400">
+                      {t("sales.discount_badge", "Remise : −{{amount}} DZD", { amount: formatDZD(cartDiscount) })}
+                    </span>
                   )}
                   {redemptionDzd > 0 && (
-                    <span className="text-sky-400">Fidélité: −{formatDZD(redemptionDzd)} DZD</span>
+                    <span className="text-sky-400">
+                      {t("sales.loyalty_badge", "Fidélité : −{{amount}} DZD", { amount: formatDZD(redemptionDzd) })}
+                    </span>
                   )}
                   {timbreFiscal > 0 && (
-                    <span className="text-amber-300">Timbre (+1%): +{formatDZD(timbreFiscal)} DZD</span>
+                    <span className="text-amber-300">
+                      {t("sales.stamp_badge", "Timbre (+1%) : +{{amount}} DZD", { amount: formatDZD(timbreFiscal) })}
+                    </span>
                   )}
                 </div>
               )}
@@ -2460,7 +2493,7 @@ export default function SalesPage() {
               ) : isLayaway ? (
                 <>
                   <BookmarkCheck size={20} className="stroke-[2.5]" />
-                  <span>Valider la réservation ({formatDZD(paymentTotal)} DZD)</span>
+                  <span>{t("sales.confirm_layaway_with_amount", "Valider la réservation ({{amount}} DZD)", { amount: formatDZD(paymentTotal) })}</span>
                   <kbd className="ms-2 px-2 py-0.5 text-xs font-mono font-bold rounded-lg bg-white/20 text-white border border-white/30">
                     F10
                   </kbd>
@@ -2498,10 +2531,10 @@ export default function SalesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-text-primary dark:text-slate-100 text-base">
-                  Vente en stock négatif
+                  {t("sales.negative_stock_title", "Vente en stock négatif")}
                 </h3>
                 <p className="text-xs text-amber-900 dark:text-amber-300">
-                  Certains articles dépassent le stock actuellement disponible en rayon.
+                  {t("sales.negative_stock_desc", "Certains articles dépassent le stock actuellement disponible en rayon.")}
                 </p>
               </div>
               <button
@@ -2574,7 +2607,7 @@ export default function SalesPage() {
                 >
                   <Check size={15} className="stroke-[2.5]" />
                   <span>{t("pos.confirm_sale", "Confirmer la vente")}</span>
-                  <span className="opacity-80 text-2xs font-mono">(Entrée / .)</span>
+                  <span className="opacity-80 text-2xs font-mono">{t("pos.enter_or_dot", "(Entrée / .)")}</span>
                 </button>
               </div>
             </div>
@@ -2719,7 +2752,7 @@ export default function SalesPage() {
       {showVersementClientModal && (
         <CreateClientModal
           prefillName=""
-          subtitle="Créez ou sélectionnez un client pour activer le Versement"
+          subtitle={t("pos.versement_client_subtitle", "Créez ou sélectionnez un client pour activer le Versement")}
           onCreated={activateVersementWithClient}
           onClose={() => setShowVersementClientModal(false)}
         />
