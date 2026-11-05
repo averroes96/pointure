@@ -1371,7 +1371,11 @@
     "policy_layaway_min_deposit": "Acompte minimum obligatoire (%)",
     "policy_layaway_min_deposit_hint": "Ex : 20% minimum pour sécuriser la mise de côté.",
     "policy_layaway_duration": "Durée de validité par défaut (jours)",
-    "policy_layaway_duration_hint": "Délai après lequel la réservation est marquée comme expirée."
+    "policy_layaway_duration_hint": "Délai après lequel la réservation est marquée comme expirée.",
+    "policy_delivery_title": "Intégrations de livraison",
+    "policy_delivery_desc": "Active les transporteurs dzship, les commandes brouillons et les automatisations Meta.",
+    "policy_delivery_enable": "Activer les intégrations de livraison",
+    "policy_delivery_enable_desc": "Permet de configurer les clés API dzship, de recevoir des commandes externes et de synchroniser les messages Meta."
   },
   "user": {
     "first_name": "Prénom",

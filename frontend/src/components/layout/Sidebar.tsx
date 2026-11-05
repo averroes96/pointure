@@ -131,15 +131,23 @@ export default function Sidebar({ onItemClick, isOpen }: SidebarProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { canAccess } = usePlan();
-  const { showWholesaleUI } = useBusinessMode();
+  const { showWholesaleUI, enableDeliveryIntegrations } = useBusinessMode();
   const navSections = useNavSections();
   const navRef = useRef<HTMLElement>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
 
-  const visibleNavSections = navSections.filter((section) => {
-    if (section.key === "invoicing" && !showWholesaleUI) return false;
-    return true;
-  });
+  const visibleNavSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.to.startsWith("/deliveries") && !enableDeliveryIntegrations) return false;
+        return true;
+      }),
+    }))
+    .filter((section) => {
+      if (section.key === "invoicing" && !showWholesaleUI) return false;
+      return section.items.length > 0;
+    });
 
   useEffect(() => {
     const handleFocusSidebar = () => {

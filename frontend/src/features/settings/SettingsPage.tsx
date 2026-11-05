@@ -41,6 +41,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useWilayas } from "@/hooks/useLocationData";
 import { useTheme } from "@/hooks/useTheme";
 import { usePlan } from "@/hooks/usePlan";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import i18n from "@/lib/i18n";
 import {
   isValidAlgerianPhone,
@@ -1566,6 +1567,7 @@ interface VersementsFormData {
   enable_layaway: boolean;
   min_layaway_deposit_pct: number;
   layaway_duration_days: number;
+  enable_delivery_integrations: boolean;
 }
 
 function VersementsTab() {
@@ -1600,6 +1602,7 @@ function VersementsTab() {
           enable_layaway: settings.enable_layaway ?? true,
           min_layaway_deposit_pct: settings.min_layaway_deposit_pct ?? 20,
           layaway_duration_days: settings.layaway_duration_days ?? 14,
+          enable_delivery_integrations: settings.enable_delivery_integrations ?? false,
         }
       : {
           business_mode: "retail",
@@ -1613,6 +1616,7 @@ function VersementsTab() {
           enable_layaway: true,
           min_layaway_deposit_pct: 20,
           layaway_duration_days: 14,
+          enable_delivery_integrations: false,
         },
   });
 
@@ -2035,6 +2039,39 @@ function VersementsTab() {
         </div>
       </div>
 
+      {/* Delivery Integrations Policy */}
+      <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Truck size={16} className="text-primary-600 dark:text-primary-400" />
+            {t("settings.policy_delivery_title")}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {t("settings.policy_delivery_desc")}
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="enable_delivery_integrations"
+            {...register("enable_delivery_integrations")}
+            className="w-4 h-4 mt-0.5 accent-primary-600 rounded border-slate-300"
+          />
+          <div>
+            <label
+              htmlFor="enable_delivery_integrations"
+              className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
+            >
+              {t("settings.policy_delivery_enable")}
+            </label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              {t("settings.policy_delivery_enable_desc")}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="submit"
@@ -2072,6 +2109,7 @@ interface Tab {
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { enableDeliveryIntegrations } = useBusinessMode();
   const [activeTab, setActiveTab] = useState<TabKey>("profil");
 
   const tabs: Tab[] = [
@@ -2081,7 +2119,9 @@ export default function SettingsPage() {
     { key: "utilisateurs", label: t("settings.users"), icon: Users, roles: ["owner", "manager"] },
     { key: "agences", label: t("settings.tab_agencies", "Agences"), icon: MapPin, roles: ["owner", "manager"] },
     { key: "versements", label: t("settings.tab_sales_policies", "Politiques & Mode"), icon: Banknote, roles: ["owner"] },
-    { key: "deliveries", label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] },
+    ...(enableDeliveryIntegrations
+      ? [{ key: "deliveries" as TabKey, label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] }]
+      : []),
     { key: "imprimantes", label: t("settings.tab_printers", "Imprimantes"), icon: Printer, roles: ["owner", "manager"] },
     { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
     { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner", "manager"] },

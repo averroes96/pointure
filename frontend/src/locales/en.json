@@ -1371,7 +1371,11 @@
     "policy_layaway_min_deposit": "Mandatory minimum deposit (%)",
     "policy_layaway_min_deposit_hint": "E.g. 20% minimum to secure the layaway hold.",
     "policy_layaway_duration": "Default validity duration (days)",
-    "policy_layaway_duration_hint": "Period after which the layaway reservation is marked as expired."
+    "policy_layaway_duration_hint": "Period after which the layaway reservation is marked as expired.",
+    "policy_delivery_title": "Delivery Integrations",
+    "policy_delivery_desc": "Enables dzship couriers, draft orders, and Meta social media automations.",
+    "policy_delivery_enable": "Enable delivery integrations",
+    "policy_delivery_enable_desc": "Allow configuring dzship API credentials, receiving external orders, and syncing Meta messages."
   },
   "user": {
     "first_name": "First Name",

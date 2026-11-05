@@ -409,6 +409,11 @@ class StoreSettings(TenantScopedModel):
         default=14,
         help_text="Nombre de jours accordés avant expiration de la mise de côté.",
     )
+    enable_delivery_integrations = models.BooleanField(
+        _("Activer les intégrations de livraison"),
+        default=False,
+        help_text="Active les transporteurs dzship, les commandes brouillons et les webhooks Meta.",
+    )
 
     class Meta:
         verbose_name = _("Store Settings")

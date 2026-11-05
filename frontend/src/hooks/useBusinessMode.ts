@@ -10,6 +10,7 @@ export interface UseBusinessModeReturn {
   isMixed: boolean;
   showWholesaleUI: boolean;
   showRetailPOS: boolean;
+  enableDeliveryIntegrations: boolean;
   settings?: StoreSettings;
   isLoading: boolean;
 }
@@ -42,6 +43,7 @@ export function useBusinessMode(): UseBusinessModeReturn {
     isMixed,
     showWholesaleUI: hasWholesaleTier && effectiveMode !== "retail",
     showRetailPOS: effectiveMode !== "wholesale",
+    enableDeliveryIntegrations: settings?.enable_delivery_integrations ?? false,
     settings,
     isLoading,
   };

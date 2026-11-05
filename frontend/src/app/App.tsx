@@ -8,6 +8,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import LabelPrintDialog from "@/features/inventory/components/LabelPrintDialog";
 import api from "@/lib/api";
 import RequireRole, { AccessDeniedNotice } from "@/components/auth/RequireRole";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 
 // ── Setup redirect: checks once per session whether setup is needed ──────────
 const _setupChecked = { done: false };
@@ -115,6 +116,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  const { enableDeliveryIntegrations } = useBusinessMode();
   return (
     <Suspense fallback={<PageFallback />}>
       <Suspense fallback={null}><UpgradePromptModal /></Suspense>
@@ -204,9 +206,11 @@ function AppRoutes() {
           </Route>
 
           {/* Deliveries & External Orders */}
-          <Route path="deliveries">
-            <Route path="drafts" element={<DraftOrdersPage />} />
-          </Route>
+          {enableDeliveryIntegrations && (
+            <Route path="deliveries">
+              <Route path="drafts" element={<DraftOrdersPage />} />
+            </Route>
+          )}
 
           {/* Reports */}
           <Route path="reports">

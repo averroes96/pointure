@@ -1371,7 +1371,11 @@
     "policy_layaway_min_deposit": "الحد الأدنى الإلزامي للعربون (%)",
     "policy_layaway_min_deposit_hint": "مثال: 20% كحد أدنى لتأكيد الحجز.",
     "policy_layaway_duration": "مدة الصلاحية الافتراضية (بالأيام)",
-    "policy_layaway_duration_hint": "المهلة التي بعدها يُعتبر الحجز منتهي الصلاحية."
+    "policy_layaway_duration_hint": "المهلة التي بعدها يُعتبر الحجز منتهي الصلاحية.",
+    "policy_delivery_title": "تكاملات التوصيل",
+    "policy_delivery_desc": "تفعيل شركات التوصيل dzship والطلبات المسودة وتكاملات ميتا.",
+    "policy_delivery_enable": "تفعيل تكاملات التوصيل",
+    "policy_delivery_enable_desc": "يتيح إعداد بيانات الربط مع شركات التوصيل واستقبال الطلبات الخارجية ومزامنة رسائل ميتا."
   },
   "user": {
     "first_name": "الاسم الأول",

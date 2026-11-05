@@ -5,10 +5,10 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from decouple import config
 
-from apps.core.models import Tenant
+from apps.core.models import StoreSettings, Tenant
 from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import Variant
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices
@@ -28,7 +28,28 @@ from apps.core.mixins import TenantScopedViewSetMixin
 logger = logging.getLogger(__name__)
 
 
-class ProviderConfigViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+class DeliveryIntegrationsGuardMixin:
+    """
+    Enforces that StoreSettings.enable_delivery_integrations is True.
+    Returns 404 whenever the feature is disabled (D5).
+    """
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        user = getattr(request, "user", None)
+        tenant = getattr(request, "tenant", None) or (
+            getattr(user, "tenant", None) if user and user.is_authenticated else None
+        )
+        if tenant:
+            settings = StoreSettings.objects.filter(tenant=tenant).first()
+            if not settings or not settings.enable_delivery_integrations:
+                raise Http404("Delivery integrations are disabled for this store.")
+        else:
+            if not StoreSettings.objects.filter(enable_delivery_integrations=True).exists():
+                raise Http404("Delivery integrations are disabled.")
+
+
+class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage delivery API credentials (dzship configs)."""
     serializer_class = ProviderConfigSerializer
     ordering = ["provider"]
@@ -38,7 +59,7 @@ class ProviderConfigViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return ProviderConfig.objects.filter(tenant=self.request.user.tenant)
 
 
-class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage Draft/External Orders and Dispatch them."""
     serializer_class = CustomerOrderSerializer
     permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
@@ -141,7 +162,7 @@ class CustomerOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class ExternalOrderIngestionView(views.APIView):
+class ExternalOrderIngestionView(DeliveryIntegrationsGuardMixin, views.APIView):
     """
     Publicly accessible endpoint for WhatsApp chatbots / landing pages.
     Requires Tenant API Key in headers: X-API-KEY.
@@ -175,7 +196,7 @@ class ExternalOrderIngestionView(views.APIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class WebhookReceiverView(views.APIView):
+class WebhookReceiverView(DeliveryIntegrationsGuardMixin, views.APIView):
     """
     Receives Webhooks from dzship about status changes.
     URL should be registered in dzship / merchant portal.
@@ -222,7 +243,7 @@ class WebhookReceiverView(views.APIView):
 # Social Integrations (Facebook Messenger / Instagram)
 # ─────────────────────────────────────────────
 
-class SocialIntegrationViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+class SocialIntegrationViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage social media integrations (Facebook Messenger, Instagram DM)."""
     serializer_class = SocialIntegrationSerializer
     ordering = ["platform", "-created_at"]
@@ -236,7 +257,7 @@ import urllib.parse
 import requests
 from django.shortcuts import redirect
 
-class MetaOAuthURLView(views.APIView):
+class MetaOAuthURLView(DeliveryIntegrationsGuardMixin, views.APIView):
     """
     Returns the official Facebook OAuth URL for the store owner to log in.
     """
@@ -266,7 +287,7 @@ class MetaOAuthURLView(views.APIView):
         return Response({"url": url})
 
 
-class MetaOAuthCallbackView(views.APIView):
+class MetaOAuthCallbackView(DeliveryIntegrationsGuardMixin, views.APIView):
     """
     Handles the redirect from Facebook after the store owner logs in.
     Exchanges the code for a token, fetches their pages, and creates SocialIntegrations.
@@ -356,7 +377,7 @@ class MetaOAuthCallbackView(views.APIView):
         return redirect(f"{frontend_redirect}?success=oauth_complete")
 
 
-class MetaWebhookView(views.APIView):
+class MetaWebhookView(DeliveryIntegrationsGuardMixin, views.APIView):
     """
     Receives incoming messages from Meta (Facebook Messenger & Instagram DM)
     via the Meta Webhooks API.
