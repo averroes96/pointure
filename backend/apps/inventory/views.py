@@ -17,10 +17,12 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.models import Branch, RoleChoices
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.inventory.models import (
     DefectItem,
     DefectReasonChoices,
@@ -54,6 +56,20 @@ from apps.inventory.serializers import (
 
 class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Product.objects.all()
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "bulk_delete": MANAGER_OR_OWNER,
+        "bulk_price_update": MANAGER_OR_OWNER,
+        "generate_variants": MANAGER_OR_OWNER,
+        "import_products": MANAGER_OR_OWNER,
+        "seed_demo_catalog": MANAGER_OR_OWNER,
+        "clear_demo_catalog": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["category", "gender", "season", "is_active", "brand"]
     search_fields = []
     ordering_fields = ["name", "sale_price", "purchase_price", "created_at", "total_stock_qty"]
@@ -1906,6 +1922,17 @@ class StockTransferViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "from_branch", "to_branch", "variant__product", "created_by", "received_by"
     )
     serializer_class = StockTransferSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "dispatch_transfer": MANAGER_OR_OWNER,
+        "receive": MANAGER_OR_OWNER,
+        "cancel": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["status", "from_branch", "to_branch"]
     search_fields = ["variant__product__name", "from_branch__name", "to_branch__name"]
 
@@ -1930,6 +1957,8 @@ class StockTransferViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="receive")
     def receive(self, request, pk=None):
         """Confirm receipt: create stock movements and mark transfer as received."""
+        from django.core.exceptions import ValidationError
+
         self.require_manager()
         transfer = self.get_object()
         if transfer.status not in ("pending", "in_transit"):
@@ -1937,7 +1966,11 @@ class StockTransferViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"detail": "Seul un transfert en attente ou en transit peut être réceptionné."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        transfer.mark_received(request.user)
+        try:
+            transfer.mark_received(request.user)
+        except ValidationError as exc:
+            msg = exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
         return Response(StockTransferSerializer(transfer).data)
 
     @action(detail=True, methods=["post"], url_path="cancel")
@@ -1974,6 +2007,16 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "variant__product", "branch", "supplier", "purchase_order", "return_claim", "logged_by", "resolved_by"
     )
     serializer_class = DefectItemSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "resolve_write_off": MANAGER_OR_OWNER,
+        "resolve_discount_sale": MANAGER_OR_OWNER,
+        "create_supplier_claim": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["status", "defect_reason", "branch", "supplier", "return_claim"]
     search_fields = ["variant__product__name", "variant__product__reference", "variant__barcode", "notes"]
     ordering_fields = ["created_at", "cost_price", "quantity", "status"]
@@ -2052,26 +2095,42 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def resolve_write_off(self, request, pk=None):
         """Mark quarantined defect as total written-off loss."""
         from django.utils import timezone
+
         defect = self.get_object()
-        defect.status = DefectStatusChoices.WRITTEN_OFF
-        defect.resolved_by = request.user
-        defect.resolved_at = timezone.now()
-        if request.data.get("notes"):
-            defect.notes = f"{defect.notes}\n[Rebut] {request.data.get('notes')}".strip()
-        defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
+        with transaction.atomic():
+            defect = DefectItem.objects.select_for_update().get(pk=defect.pk, tenant=request.tenant)
+            if defect.status != DefectStatusChoices.QUARANTINED or defect.return_claim_id is not None:
+                return Response(
+                    {"detail": "Cet article défectueux a déjà été traité ou réclamé."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            defect.status = DefectStatusChoices.WRITTEN_OFF
+            defect.resolved_by = request.user
+            defect.resolved_at = timezone.now()
+            if request.data.get("notes"):
+                defect.notes = f"{defect.notes}\n[Rebut] {request.data.get('notes')}".strip()
+            defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
         return Response(DefectItemSerializer(defect).data)
 
     @action(detail=True, methods=["post"], url_path="resolve-discount-sale")
     def resolve_discount_sale(self, request, pk=None):
         """Mark defect as sold at discount (2ème choix)."""
         from django.utils import timezone
+
         defect = self.get_object()
-        defect.status = DefectStatusChoices.SOLD_DISCOUNT
-        defect.resolved_by = request.user
-        defect.resolved_at = timezone.now()
-        if request.data.get("notes"):
-            defect.notes = f"{defect.notes}\n[2ème choix] {request.data.get('notes')}".strip()
-        defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
+        with transaction.atomic():
+            defect = DefectItem.objects.select_for_update().get(pk=defect.pk, tenant=request.tenant)
+            if defect.status != DefectStatusChoices.QUARANTINED or defect.return_claim_id is not None:
+                return Response(
+                    {"detail": "Cet article défectueux a déjà été traité ou réclamé."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            defect.status = DefectStatusChoices.SOLD_DISCOUNT
+            defect.resolved_by = request.user
+            defect.resolved_at = timezone.now()
+            if request.data.get("notes"):
+                defect.notes = f"{defect.notes}\n[2ème choix] {request.data.get('notes')}".strip()
+            defect.save(update_fields=["status", "resolved_by", "resolved_at", "notes"])
         return Response(DefectItemSerializer(defect).data)
 
     @action(detail=False, methods=["post"], url_path="create-supplier-claim")
@@ -2104,9 +2163,25 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if not supplier:
                 return Response({"detail": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        total_amount = sum(item.cost_price * item.quantity for item in items)
-
         with transaction.atomic():
+            locked_items = list(
+                DefectItem.objects.select_for_update().filter(tenant=request.tenant, id__in=item_ids)
+            )
+            if not locked_items:
+                return Response({"detail": "Articles introuvables."}, status=status.HTTP_404_NOT_FOUND)
+
+            already_processed = [
+                item for item in locked_items
+                if item.status != DefectStatusChoices.QUARANTINED or item.return_claim_id is not None
+            ]
+            if already_processed:
+                return Response(
+                    {"detail": "Certains articles ont déjà été traités ou inclus dans une réclamation fournisseur."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            total_amount = sum(item.cost_price * item.quantity for item in locked_items)
+
             claim = SupplierReturnClaim.objects.create(
                 tenant=request.tenant,
                 supplier=supplier,
@@ -2119,7 +2194,7 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Update items
             new_status = DefectStatusChoices.RETURNED if apply_credit else DefectStatusChoices.CLAIM_PENDING
-            items.update(
+            DefectItem.objects.filter(id__in=[it.id for it in locked_items]).update(
                 supplier=supplier,
                 return_claim=claim,
                 status=new_status,
@@ -2133,7 +2208,7 @@ class DefectItemViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from apps.suppliers.serializers import SupplierReturnClaimSerializer
         return Response({
             "claim": SupplierReturnClaimSerializer(claim).data,
-            "items_updated": items.count(),
+            "items_updated": len(locked_items),
         }, status=status.HTTP_201_CREATED)
 
 

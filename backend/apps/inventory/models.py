@@ -373,38 +373,50 @@ class StockTransfer(TenantScopedModel):
     def mark_received(self, received_by_user):
         """
         Confirm receipt: create StockMovements for both branches and update status.
-        This is an atomic operation.
+        This is an atomic operation. Locks the transfer row and refuses a second receive.
         """
+        from django.core.exceptions import ValidationError
         from django.db import transaction
         from django.utils import timezone
 
         with transaction.atomic():
+            locked = StockTransfer.objects.select_for_update().get(pk=self.pk)
+            if locked.status not in (TransferStatusChoices.PENDING, TransferStatusChoices.IN_TRANSIT):
+                raise ValidationError(
+                    "Seul un transfert en attente ou en transit peut être réceptionné."
+                )
+
             # Deduct from source branch
             StockMovement.objects.create(
-                tenant=self.tenant,
-                variant=self.variant,
-                branch=self.from_branch,
-                quantity_delta=-self.quantity,
+                tenant=locked.tenant,
+                variant=locked.variant,
+                branch=locked.from_branch,
+                quantity_delta=-locked.quantity,
                 reason=MovementReasonChoices.TRANSFER_OUT,
-                reference_id=str(self.pk),
+                reference_id=str(locked.pk),
                 reference_type="StockTransfer",
                 user=received_by_user,
             )
             # Add to destination branch
             StockMovement.objects.create(
-                tenant=self.tenant,
-                variant=self.variant,
-                branch=self.to_branch,
-                quantity_delta=self.quantity,
+                tenant=locked.tenant,
+                variant=locked.variant,
+                branch=locked.to_branch,
+                quantity_delta=locked.quantity,
                 reason=MovementReasonChoices.TRANSFER_IN,
-                reference_id=str(self.pk),
+                reference_id=str(locked.pk),
                 reference_type="StockTransfer",
                 user=received_by_user,
             )
-            self.status = TransferStatusChoices.RECEIVED
-            self.received_by = received_by_user
-            self.received_at = timezone.now()
-            self.save(update_fields=["status", "received_by", "received_at"])
+            now = timezone.now()
+            locked.status = TransferStatusChoices.RECEIVED
+            locked.received_by = received_by_user
+            locked.received_at = now
+            locked.save(update_fields=["status", "received_by", "received_at"])
+
+            self.status = locked.status
+            self.received_by = locked.received_by
+            self.received_at = locked.received_at
 
 
 # ─────────────────────────────────────────────
