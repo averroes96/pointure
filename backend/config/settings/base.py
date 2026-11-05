@@ -219,6 +219,7 @@ REST_FRAMEWORK = {
         "login": "5/minute",
         "password_reset": "3/hour",
         "mobile": "500/hour",
+        "pin": "5/minute",
     },
 }
 

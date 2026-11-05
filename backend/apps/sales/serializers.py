@@ -92,11 +92,33 @@ class SaleSerializer(serializers.ModelSerializer):
         ]
 
 
-def verify_manager_pin_helper(tenant, raw_pin):
-    """Verify if raw_pin matches any active owner or manager in tenant. Returns matching User or None."""
+def verify_manager_pin_helper(tenant, raw_pin, user=None):
+    """
+    Verify if raw_pin matches any active owner or manager in tenant.
+    Returns matching User or None.
+    Counts failures in cache keyed per user and raises Throttled (HTTP 429)
+    after 5 failed attempts within 1 minute.
+    """
     if not raw_pin or not str(raw_pin).strip():
         return None
+    from django.core.cache import cache
+    from rest_framework.exceptions import Throttled
     from apps.core.models import RoleChoices, User
+    from apps.core.signals import get_current_user
+
+    resolved_user = user or get_current_user()
+    if resolved_user and getattr(resolved_user, "pk", None):
+        ident = str(resolved_user.pk)
+    else:
+        ident = f"tenant:{getattr(tenant, 'pk', 'anon')}"
+
+    cache_key = f"pin_failures:{ident}"
+    failures = cache.get(cache_key, 0)
+    if failures >= 5:
+        raise Throttled(
+            detail="Trop de tentatives de code PIN erronées. Veuillez réessayer dans une minute."
+        )
+
     managers = User.objects.filter(
         tenant=tenant,
         role__in=[RoleChoices.OWNER, RoleChoices.MANAGER],
@@ -106,6 +128,8 @@ def verify_manager_pin_helper(tenant, raw_pin):
     for mgr in managers:
         if mgr.check_pin(clean_pin):
             return mgr
+
+    cache.set(cache_key, failures + 1, timeout=60)
     return None
 
 

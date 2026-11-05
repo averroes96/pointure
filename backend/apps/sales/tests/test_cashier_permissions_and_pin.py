@@ -250,3 +250,53 @@ class CashierPermissionsAndPinTests(TestCase):
         self.assertEqual(res_ok.status_code, 201)
         ret = Return.objects.get(pk=res_ok.data["id"])
         self.assertEqual(ret.authorized_by, self.manager)
+
+    def test_verify_manager_pin_endpoint_rate_limited_after_5_attempts(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.force_authenticate(user=self.cashier)
+
+        for _ in range(5):
+            res = self.client.post(
+                "/api/v1/core/users/verify-manager-pin/",
+                {"pin": "9999"},
+                format="json",
+            )
+            self.assertEqual(res.status_code, 400)
+
+        # 6th attempt within 1 minute must be throttled with HTTP 429
+        res_6 = self.client.post(
+            "/api/v1/core/users/verify-manager-pin/",
+            {"pin": "9999"},
+            format="json",
+        )
+        self.assertEqual(res_6.status_code, 429)
+
+    def test_in_serializer_manager_pin_rate_limited_after_5_wrong_pins(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.force_authenticate(user=self.cashier)
+
+        payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "10000.00", "method": "cash"}],
+            "cart_discount": "2000.00",
+            "manager_pin": "9999",
+        }
+
+        for _ in range(5):
+            res = self.client.post("/api/v1/sales/", payload, format="json")
+            self.assertEqual(res.status_code, 400)
+
+        # 6th wrong PIN within a minute -> HTTP 429
+        res_6 = self.client.post("/api/v1/sales/", payload, format="json")
+        self.assertEqual(res_6.status_code, 429)

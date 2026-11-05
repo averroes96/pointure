@@ -37,3 +37,16 @@ class MobileRateThrottle(SimpleRateThrottle):
         else:
             ident = self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class ManagerPinRateThrottle(SimpleRateThrottle):
+    """5 manager PIN verification attempts per minute per user (or IP)."""
+    scope = "pin"
+
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            ident = request.user.pk
+        else:
+            ident = self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}
+

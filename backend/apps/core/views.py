@@ -11,6 +11,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.core.models import AuditLog, Branch, RoleChoices, StoreSettings, Tenant, User, Wilaya, Commune
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.throttling import ManagerPinRateThrottle
 from apps.core.serializers import (
     AuditLogSerializer,
     BranchSerializer,
@@ -128,7 +129,12 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         self.require_owner()
         instance.delete()
 
-    @action(detail=False, methods=["post"], url_path="verify-manager-pin")
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="verify-manager-pin",
+        throttle_classes=[ManagerPinRateThrottle],
+    )
     def verify_manager_pin(self, request):
         """
         Verify manager PIN code for authorizing POS actions (returns, excess discounts, voids).
