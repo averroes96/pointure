@@ -369,7 +369,8 @@
     "client_not_found_desc": "الزبون المطلوب غير موجود أو حدث خطأ.",
     "back_to_list": "العودة إلى القائمة",
     "retail_loyalty_hint": "زبون تجزئة — مؤهل لبرنامج الوفاء.",
-    "wholesale_loyalty_hint": "شريك جملة — مستثنى من برنامج الوفاء."
+    "wholesale_loyalty_hint": "شريك جملة — مستثنى من برنامج الوفاء.",
+    "commune": "البلدية"
   },
   "inventory": {
     "product": "المنتج",
@@ -678,7 +679,31 @@
     "manager": "المسؤول",
     "in_progress": "قيد التنفيذ",
     "items_with_variance": "أصناف بها فروقات",
-    "references_count": "مراجع"
+    "references_count": "مراجع",
+    "no_claim_slips": "لم يتم إصدار أي وصل إرجاع حتى الآن.",
+    "validate_credit": "تأكيد سند الإرجاع (أفوار)",
+    "pairs": "أزواج",
+    "sku": "الرمز المرجعي / SKU",
+    "barcode_hint": "يُقرأ بالباركود أو يتم توليده تلقائياً إذا تُرك فارغاً",
+    "initial_stock": "المخزون الأولي",
+    "initial_stock_hint": "الكمية المتوفرة فوراً في المتجر",
+    "storage_location_hint": "مكان التخزين للفرع الحالي",
+    "pro_plan_hint": "متاح انطلاقاً من اشتراك PRO",
+    "validate_scanned_batch": "تأكيد الدفعة الممسوحة",
+    "close_and_adjust": "إغلاق وتعديل المخزون",
+    "theoretical_colon": "النظري :",
+    "no_sessions_hint": "ابدأ أول جلسة جرد فعلي للمخزون (جزئي عبر المسح السريع، حسب الماركة/القسم، أو جرد شامل).",
+    "start_stocktake": "بدء عملية جرد",
+    "exclude_out_of_stock": "استبعاد المنتجات المنتهية (تحميل فقط ما مخزونه النظري > 0)",
+    "exclude_out_of_stock_hint": "يتفادى إثقال القائمة بمنتجات قديمة نفدت (يمكن مسحها في أي وقت إذا وُجدت).",
+    "start_stocktake_session": "بدء الجرد",
+    "retail_price_desc": "السعر المعروض في المحل والمطبوع على ملصق الرف",
+    "wholesale_price_desc": "السعر المطبق على طلبيات الصناديق وزبائن الجملة",
+    "retail_rounding": "تقريب سعر البيع (حسب السوق الجزائري)",
+    "no_preview_available": "لا يوجد معاينة متاحة",
+    "create_variant": "إنشاء المقاس/النموذج",
+    "linked_catalog": "الكتالوج المرتبط",
+    "auto_distribute": "توزيع تلقائي"
   },
   "sales": {
     "search_product": "ابحث عن منتج أو امسح باركود...",
@@ -863,7 +888,10 @@
       "pill_btn": "اختصارات الكاشير (F12)",
       "minimize": "تصغير",
       "expand": "توسيع"
-    }
+    },
+    "date": "التاريخ",
+    "new_sale": "بيع جديد",
+    "recent_sales": "مبيعات اليوم"
   },
   "cheque": {
     "number": "رقم الشيك",
@@ -1130,7 +1158,24 @@
     "pairs": "أزواج",
     "required_min_1": "مطلوب (الحد الأدنى 1)",
     "unknown": "غير معروف",
-    "phone": "الهاتف"
+    "phone": "الهاتف",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "last_7_days": "آخر 7 أيام",
+    "this_month": "هذا الشهر",
+    "type": "النوع",
+    "name": "الاسم",
+    "create": "إنشاء",
+    "import_csv": "استيراد CSV",
+    "expand": "توسيع",
+    "collapse": "طي",
+    "done": "تم",
+    "value": "القيمة",
+    "select_placeholder": "اختر",
+    "clear": "مسح",
+    "walk_in_customer": "زبون عابر",
+    "refresh": "تحديث",
+    "days": "أيام"
   },
   "status": {
     "completed": "مكتمل",
@@ -1170,7 +1215,10 @@
     "transfer_out": "تحويل صادر",
     "transfer_in": "تحويل وارد",
     "damaged": "تالف",
-    "initial": "مخزون أولي"
+    "initial": "مخزون أولي",
+    "layaway_lock": "حجز في المحل (تسبيق)",
+    "layaway_release": "إلغاء الحجز (تحرير المخزون)",
+    "stocktake": "تسوية الجرد الفعلي"
   },
   "payment": {
     "record": "تسجيل دفعة",
@@ -1183,7 +1231,8 @@
     "account": "على الحساب (دين)",
     "virement": "تحويل بنكي",
     "all_open_invoices": "جميع الفواتير غير المسددة (حسب الأقدمية)",
-    "target_invoice": "الفاتورة المعنية (اختياري)"
+    "target_invoice": "الفاتورة المعنية (اختياري)",
+    "tpe": "جهاز الدفع الإلكتروني TPE (CIB/الذهبية)"
   },
   "report": {
     "amount": "المبلغ",
@@ -1436,7 +1485,9 @@
     "no_phone": "لا يوجد رقم هاتف",
     "delete_draft": "حذف المسودة",
     "edit_customer_details": "تعديل بيانات العميل",
-    "connect_facebook": "تسجيل الدخول عبر فيسبوك"
+    "connect_facebook": "تسجيل الدخول عبر فيسبوك",
+    "total_price": "السعر الإجمالي (الدفع عند الاستلام)",
+    "total_price_hint": "المبلغ الذي يدفعه الزبون عند الاستلام. يتم احتساب رسوم التوصيل عبر شركة التوصيل."
   },
   "defects": {
     "title": "إدارة السلع المعيبة وإرجاع الموردين",
@@ -1931,7 +1982,8 @@
       "StocktakeSession": "جرد",
       "SupplierPayment": "دفعة مورّد",
       "PurchaseOrder": "أمر شراء"
-    }
+    },
+    "fields_count": "{{count}} حقول"
   },
   "printers": {
     "test_details": "تفاصيل الاختبار:",
@@ -1961,7 +2013,8 @@
     "assigned_printer": "الطابعة المخصصة",
     "format_a4_portrait": "التنسيق: A4 عمودي",
     "date_label": "التاريخ",
-    "test_a4_sent": "تم إرسال مستند A4 التجريبي!"
+    "test_a4_sent": "تم إرسال مستند A4 التجريبي!",
+    "ticket_format": "المقاس :"
   },
   "desktop": {
     "refresh_list": "تحديث القائمة",
@@ -2037,7 +2090,8 @@
     "redirecting_in_plural": "جارٍ التحويل إلى لوحة التحكم خلال {{count}} ثوانٍ...",
     "go_to_dashboard": "الانتقال إلى لوحة التحكم",
     "next": "التالي",
-    "back": "رجوع"
+    "back": "رجوع",
+    "error_phone_invalid": "رقم هاتف جزائري غير صالح"
   },
   "hardware": {
     "modal_title": "مساعد فحص أجهزة نقاط البيع",
@@ -2087,5 +2141,12 @@
     "open_assistant_btn": "مساعد الأجهزة (القارئ والطابعة)",
     "assistant_quick_tip": "تلميح: صل قارئ الباركود عبر USB ووجّه شعاع الليزر نحو أي ملصق حذاء.",
     "sound_enabled": "التنبيه الصوتي مفعّل (Beep POS)"
+  },
+  "login": {
+    "password": "كلمة المرور"
+  },
+  "roles": {
+    "cashier": "بائع / كاشير",
+    "manager": "مسير / مدير"
   }
 }

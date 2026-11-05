@@ -369,7 +369,8 @@
     "client_not_found_desc": "The requested client does not exist or an error occurred.",
     "back_to_list": "Back to list",
     "retail_loyalty_hint": "Retail customer — eligible for loyalty program.",
-    "wholesale_loyalty_hint": "Wholesale partner — excluded from loyalty program."
+    "wholesale_loyalty_hint": "Wholesale partner — excluded from loyalty program.",
+    "commune": "Commune"
   },
   "inventory": {
     "product": "Product",
@@ -678,7 +679,31 @@
     "manager": "Manager",
     "in_progress": "In progress",
     "items_with_variance": "Items with discrepancies",
-    "references_count": "references"
+    "references_count": "references",
+    "no_claim_slips": "No return slips issued yet.",
+    "validate_credit": "Validate Credit Note",
+    "pairs": "pairs",
+    "sku": "Reference / SKU",
+    "barcode_hint": "Scannable by barcode reader or auto-generated if empty",
+    "initial_stock": "Initial Stock",
+    "initial_stock_hint": "In-store quantity immediately available",
+    "storage_location_hint": "Storage location for current branch",
+    "pro_plan_hint": "Available starting from PRO plan",
+    "validate_scanned_batch": "Validate Scanned Batch",
+    "close_and_adjust": "Close & Adjust Stock",
+    "theoretical_colon": "Theoretical:",
+    "no_sessions_hint": "Create your first physical stocktake session (partial quick scan, by brand/category, or full).",
+    "start_stocktake": "Start Stocktake",
+    "exclude_out_of_stock": "Exclude out of stock items (Pre-load only if theoretical stock > 0)",
+    "exclude_out_of_stock_hint": "Avoids cluttering the list with exhausted items (you can still scan them if found).",
+    "start_stocktake_session": "Start Stocktake",
+    "retail_price_desc": "Price displayed in store and printed on shelf label",
+    "wholesale_price_desc": "Price applied for carton orders / wholesale customers",
+    "retail_rounding": "Retail price rounding (Algerian retail practice)",
+    "no_preview_available": "No preview available",
+    "create_variant": "Create Variant",
+    "linked_catalog": "Linked Catalog",
+    "auto_distribute": "Auto-distribute"
   },
   "sales": {
     "search_product": "Search product or scan barcode...",
@@ -863,7 +888,10 @@
       "pill_btn": "POS Shortcuts (F12)",
       "minimize": "Minimize",
       "expand": "Expand"
-    }
+    },
+    "date": "Date",
+    "new_sale": "New Sale",
+    "recent_sales": "Today's Sales"
   },
   "cheque": {
     "number": "Cheque #",
@@ -1130,7 +1158,24 @@
     "pairs": "pairs",
     "required_min_1": "Required (min 1)",
     "unknown": "Unknown",
-    "phone": "Phone"
+    "phone": "Phone",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last_7_days": "Last 7 days",
+    "this_month": "This month",
+    "type": "Type",
+    "name": "Name",
+    "create": "Create",
+    "import_csv": "Import CSV",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "done": "Done",
+    "value": "Value",
+    "select_placeholder": "Select",
+    "clear": "Clear",
+    "walk_in_customer": "Walk-in customer",
+    "refresh": "Refresh",
+    "days": "days"
   },
   "status": {
     "completed": "Completed",
@@ -1170,7 +1215,10 @@
     "transfer_out": "Transfer Out",
     "transfer_in": "Transfer In",
     "damaged": "Damaged",
-    "initial": "Initial Stock"
+    "initial": "Initial Stock",
+    "layaway_lock": "Layaway / Reserved",
+    "layaway_release": "Layaway Cancelled (Released)",
+    "stocktake": "Stocktake Adjustment"
   },
   "payment": {
     "record": "Record a Payment",
@@ -1183,7 +1231,8 @@
     "account": "Client Account (Credit)",
     "virement": "Bank Transfer",
     "all_open_invoices": "All open invoices (by antiquity)",
-    "target_invoice": "Target invoice (optional)"
+    "target_invoice": "Target invoice (optional)",
+    "tpe": "POS Terminal (CIB/Edahabia)"
   },
   "report": {
     "amount": "Amount",
@@ -1436,7 +1485,9 @@
     "no_phone": "No Phone Number",
     "delete_draft": "Delete Draft",
     "edit_customer_details": "Edit Customer Details",
-    "connect_facebook": "Connect with Facebook"
+    "connect_facebook": "Connect with Facebook",
+    "total_price": "Total Price (COD)",
+    "total_price_hint": "The amount the customer pays on delivery. Delivery fees are calculated by the delivery service."
   },
   "product": {
     "pairs_per_carton": "Pairs / Carton",
@@ -1931,7 +1982,8 @@
       "StocktakeSession": "Stocktake",
       "SupplierPayment": "Supplier payment",
       "PurchaseOrder": "Purchase order"
-    }
+    },
+    "fields_count": "{{count}} field(s)"
   },
   "printers": {
     "test_details": "Test details:",
@@ -1961,7 +2013,8 @@
     "assigned_printer": "Assigned printer",
     "format_a4_portrait": "Format: A4 Portrait",
     "date_label": "Date",
-    "test_a4_sent": "A4 test document sent!"
+    "test_a4_sent": "A4 test document sent!",
+    "ticket_format": "Format:"
   },
   "desktop": {
     "refresh_list": "Refresh list",
@@ -2037,7 +2090,8 @@
     "redirecting_in_plural": "Redirecting to dashboard in {{count}} seconds...",
     "go_to_dashboard": "Go to Dashboard",
     "next": "Next",
-    "back": "Back"
+    "back": "Back",
+    "error_phone_invalid": "Invalid Algerian phone number"
   },
   "hardware": {
     "modal_title": "POS Hardware Quick-Check",
@@ -2087,5 +2141,12 @@
     "open_assistant_btn": "Hardware Assistant (Scanner & Printer)",
     "assistant_quick_tip": "Tip: Plug your handheld scanner into USB and point the beam at any shoe box barcode.",
     "sound_enabled": "Sound feedback active (POS Beep)"
+  },
+  "login": {
+    "password": "Password"
+  },
+  "roles": {
+    "cashier": "Cashier",
+    "manager": "Manager"
   }
 }

@@ -369,7 +369,8 @@
     "client_not_found_desc": "Le client demandé n'existe pas ou une erreur est survenue.",
     "back_to_list": "Retour à la liste",
     "retail_loyalty_hint": "Client particulier — éligible au programme fidélité.",
-    "wholesale_loyalty_hint": "Partenaire grossiste — exclu du programme fidélité."
+    "wholesale_loyalty_hint": "Partenaire grossiste — exclu du programme fidélité.",
+    "commune": "Commune"
   },
   "inventory": {
     "product": "Article",
@@ -678,7 +679,31 @@
     "manager": "Responsable",
     "in_progress": "En cours",
     "items_with_variance": "Articles avec écarts",
-    "references_count": "références"
+    "references_count": "références",
+    "no_claim_slips": "Aucun bon de retour émis pour l'instant.",
+    "validate_credit": "Valider Avoir",
+    "pairs": "paires",
+    "sku": "Référence / SKU",
+    "barcode_hint": "Scannable par douchette ou généré automatiquement si vide",
+    "initial_stock": "Stock initial",
+    "initial_stock_hint": "Quantité en magasin disponible immédiatement",
+    "storage_location_hint": "Lieu de stockage pour l'agence actuelle",
+    "pro_plan_hint": "Disponible à partir du plan PRO",
+    "validate_scanned_batch": "Valider le lot scanné",
+    "close_and_adjust": "Clôturer & Ajuster le Stock",
+    "theoretical_colon": "Théorique :",
+    "no_sessions_hint": "Créez votre première session d'inventaire physique (partiel par scan libre, par rayon/marque, ou général).",
+    "start_stocktake": "Démarrer un Inventaire",
+    "exclude_out_of_stock": "Exclure les articles déjà en rupture (Pré-charger uniquement si stock théorique > 0)",
+    "exclude_out_of_stock_hint": "Évite d'encombrer la liste avec d'anciennes références épuisées (vous pourrez toujours les scanner si vous en retrouvez une boîte).",
+    "start_stocktake_session": "Démarrer l'inventaire",
+    "retail_price_desc": "Prix affiché au magasin et imprimé sur l'étiquette de rayon",
+    "wholesale_price_desc": "Prix appliqué pour les commandes par cartons / clients gros",
+    "retail_rounding": "Arrondi de vente (Pratique retail algérienne)",
+    "no_preview_available": "Aucun aperçu disponible",
+    "create_variant": "Créer la variante",
+    "linked_catalog": "Catalogue lié",
+    "auto_distribute": "Auto-répartir"
   },
   "sales": {
     "search_product": "Rechercher article ou scanner...",
@@ -863,7 +888,10 @@
       "pill_btn": "Raccourcis Caisse (F12)",
       "minimize": "Réduire",
       "expand": "Agrandir"
-    }
+    },
+    "date": "Date",
+    "new_sale": "Nouvelle vente",
+    "recent_sales": "VENTES DU JOUR"
   },
   "cheque": {
     "number": "N° chèque",
@@ -1130,7 +1158,24 @@
     "pairs": "paires",
     "required_min_1": "Requis (min 1)",
     "unknown": "Inconnu",
-    "phone": "Téléphone"
+    "phone": "Téléphone",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "last_7_days": "7 derniers jours",
+    "this_month": "Ce mois",
+    "type": "Type",
+    "name": "Nom",
+    "create": "Créer",
+    "import_csv": "Importer CSV",
+    "expand": "Agrandir",
+    "collapse": "Réduire",
+    "done": "Terminé",
+    "value": "Valeur",
+    "select_placeholder": "Sélectionner",
+    "clear": "Effacer",
+    "walk_in_customer": "Client de passage",
+    "refresh": "Actualiser",
+    "days": "jours"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -1150,7 +1195,8 @@
     "method": "Mode de paiement *",
     "transfer": "Virement",
     "all_open_invoices": "Toutes les factures en cours (par ancienneté)",
-    "target_invoice": "Facture concernée (optionnel)"
+    "target_invoice": "Facture concernée (optionnel)",
+    "tpe": "TPE (CIB/Edahabia)"
   },
   "status": {
     "completed": "Complete",
@@ -1183,7 +1229,10 @@
     "transfer_out": "Transfert sortant",
     "transfer_in": "Transfert entrant",
     "damaged": "Endommagé",
-    "initial": "Stock initial"
+    "initial": "Stock initial",
+    "layaway_lock": "Mise de côté (Réservation)",
+    "layaway_release": "Annulation réservation (Libération)",
+    "stocktake": "Ajustement inventaire"
   },
   "report": {
     "amount": "Montant",
@@ -1436,7 +1485,9 @@
     "no_phone": "Aucun téléphone",
     "delete_draft": "Supprimer le brouillon",
     "edit_customer_details": "Modifier les coordonnées client",
-    "connect_facebook": "Se connecter avec Facebook"
+    "connect_facebook": "Se connecter avec Facebook",
+    "total_price": "Prix total (Contre remboursement)",
+    "total_price_hint": "Montant que le client paie à la livraison. Les frais de livraison sont calculés par le service de livraison."
   },
   "product": {
     "pairs_per_carton": "Paires / Carton",
@@ -1931,7 +1982,8 @@
       "StocktakeSession": "Inventaire",
       "SupplierPayment": "Paiement fournisseur",
       "PurchaseOrder": "Bon de commande"
-    }
+    },
+    "fields_count": "{{count}} champ(s)"
   },
   "printers": {
     "test_details": "Détails du test :",
@@ -1961,7 +2013,8 @@
     "assigned_printer": "Imprimante assignée",
     "format_a4_portrait": "Format : A4 Portrait",
     "date_label": "Date",
-    "test_a4_sent": "Document A4 de test envoyé !"
+    "test_a4_sent": "Document A4 de test envoyé !",
+    "ticket_format": "Format :"
   },
   "desktop": {
     "refresh_list": "Rafraîchir la liste",
@@ -2037,7 +2090,8 @@
     "redirecting_in_plural": "Redirection vers le tableau de bord dans {{count}} secondes...",
     "go_to_dashboard": "Accéder au tableau de bord",
     "next": "Suivant",
-    "back": "Retour"
+    "back": "Retour",
+    "error_phone_invalid": "Numéro de téléphone algérien invalide"
   },
   "hardware": {
     "modal_title": "Assistant Matériel POS",
@@ -2087,5 +2141,12 @@
     "open_assistant_btn": "Assistant Matériel (Douchette & Imprimante)",
     "assistant_quick_tip": "Astuce : Branchez votre douchette en USB et pointez le faisceau laser sur une étiquette de chaussure.",
     "sound_enabled": "Signal sonore actif (Beep POS)"
+  },
+  "login": {
+    "password": "Mot de passe"
+  },
+  "roles": {
+    "cashier": "Caissier",
+    "manager": "Gérant"
   }
 }
