@@ -351,3 +351,113 @@ class TestRegrouperDeliveryNotes:
         self.variant.refresh_from_db()
         assert self.variant.stock_qty == 5
 
+
+@pytest.mark.django_db
+class TestInvoiceUpdateDestroyAndDeliveryNoteRBAC:
+    """Tests for Task 2.3c: Invoice update/destroy (drafts only) and DeliveryNote update/delete RBAC."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db, monkeypatch):
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.invoicing.models import DeliveryNote, Invoice
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_invoice_pdf", lambda *a, **kw: b"%PDF-mock")
+        monkeypatch.setattr("apps.invoicing.pdf.render_delivery_note_pdf", lambda *a, **kw: b"%PDF-mock")
+
+        self.tenant = Tenant.objects.create(name="Invoicing RBAC 23c", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="mgr-23c@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier-23c@test.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+
+        self.draft_invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            status="draft",
+        )
+        self.sent_invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            status="sent",
+            number="FA-2026-00999",
+        )
+        self.delivery_note = DeliveryNote.objects.create(
+            tenant=self.tenant,
+            number="BL-2026-0001",
+            date=datetime.date.today(),
+        )
+
+    def test_cashier_cannot_update_or_delete_invoice(self):
+        c = _make_client(self.cashier)
+        payload = {
+            "client_id": None,
+            "date": _today(),
+            "due_date": _due(),
+            "series_prefix": "FA",
+            "apply_tva": False,
+            "tva_rate": "0.00",
+            "lines": [{"description": "Item", "quantity": "1", "unit_price": "5000.00"}],
+        }
+        assert c.put(f"/api/v1/invoicing/invoices/{self.draft_invoice.pk}/", payload, format="json").status_code == 403
+        assert c.patch(f"/api/v1/invoicing/invoices/{self.draft_invoice.pk}/", {"notes": "x"}, format="json").status_code == 403
+        assert c.delete(f"/api/v1/invoicing/invoices/{self.draft_invoice.pk}/").status_code == 403
+
+    def test_manager_can_delete_draft_invoice_only(self):
+        from apps.invoicing.models import Invoice
+
+        c = _make_client(self.manager)
+        # Non-draft invoice cannot be deleted (400)
+        res_sent = c.delete(f"/api/v1/invoicing/invoices/{self.sent_invoice.pk}/")
+        assert res_sent.status_code == 400
+        assert Invoice.objects.filter(pk=self.sent_invoice.pk).exists()
+
+        # Draft invoice can be deleted (204)
+        res_draft = c.delete(f"/api/v1/invoicing/invoices/{self.draft_invoice.pk}/")
+        assert res_draft.status_code == 204
+        assert not Invoice.objects.filter(pk=self.draft_invoice.pk).exists()
+
+    def test_cashier_cannot_update_or_delete_delivery_note(self):
+        from apps.invoicing.models import DeliveryNote
+
+        c_cashier = _make_client(self.cashier)
+        assert (
+            c_cashier.patch(
+                f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/",
+                {"notes": "Cashier edit"},
+                format="json",
+            ).status_code
+            == 403
+        )
+        assert (
+            c_cashier.put(
+                f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/",
+                {"date": _today(), "notes": "Cashier put"},
+                format="json",
+            ).status_code
+            == 403
+        )
+        assert c_cashier.delete(f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/").status_code == 403
+
+        # Manager can update and delete
+        c_mgr = _make_client(self.manager)
+        res_patch = c_mgr.patch(
+            f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/",
+            {"notes": "Manager note"},
+            format="json",
+        )
+        assert res_patch.status_code == 200
+        res_del = c_mgr.delete(f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/")
+        assert res_del.status_code == 204
+        assert not DeliveryNote.objects.filter(pk=self.delivery_note.pk).exists()
+
+

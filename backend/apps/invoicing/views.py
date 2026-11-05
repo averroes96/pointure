@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.models import RoleChoices
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.core.utils.task_runner import run_task
 from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
@@ -29,7 +30,17 @@ from .tasks import generate_invoice_pdf
 
 class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Invoice.objects.select_related("client", "branch").prefetch_related("lines", "payments")
-    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale"), RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "confirm": MANAGER_OR_OWNER,
+        "cancel": MANAGER_OR_OWNER,
+        "record_payment": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["status", "client", "branch"]
     search_fields = ["number", "client__name"]
     ordering_fields = ["date", "due_date", "total_ttc", "number", "created_at"]
@@ -143,6 +154,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """Update an invoice as long as no payment is registered."""
+        self.require_manager()
         invoice = self.get_object()
         
         if invoice.payments.exists():
@@ -242,6 +254,17 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
 
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete an invoice only if user is manager+ and the invoice is still a draft."""
+        self.require_manager()
+        invoice = self.get_object()
+        if invoice.status != InvoiceStatusChoices.DRAFT:
+            return Response(
+                {"detail": "Seule une facture brouillon peut être supprimée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=["post"])
     def confirm(self, request, pk=None):
@@ -347,7 +370,15 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
 class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = DeliveryNote.objects.select_related("invoice__client", "invoice__tenant")
-    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale"), RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "regrouper": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     serializer_class = DeliveryNoteSerializer
     filterset_fields = ["invoice"]
 
@@ -493,7 +524,11 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
 class CreditNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = CreditNote.objects.select_related("original_invoice__client")
-    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale")]
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale"), RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     serializer_class = CreditNoteSerializer
     http_method_names = ["get", "post", "head", "options"]
 

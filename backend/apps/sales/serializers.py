@@ -1001,8 +1001,16 @@ class CashSessionSerializer(serializers.ModelSerializer):
             "movements", "stats",
         ]
         read_only_fields = [
-            "id", "session_number", "session_code", "opened_at", "closed_at",
-            "closed_by", "approved_by", "approved_at",
+            "id", "session_number", "session_code", "status",
+            "opened_at", "closed_at", "closed_by", "approved_by", "approved_at",
+            "system_sales_count", "system_total_sales",
+            "system_cash_sales", "system_tpe_sales", "system_baridimob_sales",
+            "system_cheque_sales", "system_ccp_sales", "system_virement_sales",
+            "system_account_sales", "system_refunds_amount", "system_refunds_count",
+            "total_cash_in", "total_cash_out", "expected_cash",
+            "actual_cash", "actual_tpe", "actual_baridimob",
+            "actual_cheque", "actual_ccp", "actual_virement",
+            "cash_gap",
         ]
 
     def get_session_code(self, obj):

@@ -210,3 +210,143 @@ class CashSessionTests(TestCase):
         self.assertEqual(stats_b["cash_sales"], Decimal("5000.00"))
         self.assertEqual(stats_b["expected_cash"], Decimal("7000.00"))  # 2000 float + 5000 installment
 
+    def test_cash_session_rbac_and_readonly_fields(self):
+        from rest_framework.test import APIClient
+
+        manager = User.objects.create_user(
+            email="mgr-sess@shoedz.dz",
+            password="password123",
+            role=RoleChoices.MANAGER,
+            tenant=self.tenant,
+        )
+        owner = User.objects.create_user(
+            email="owner-sess@shoedz.dz",
+            password="password123",
+            role=RoleChoices.OWNER,
+            tenant=self.tenant,
+        )
+
+        session = CashSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            cashier=self.cashier,
+            opening_float=Decimal("1000.00"),
+            status=CashSessionStatus.OPEN,
+        )
+
+        api = APIClient()
+
+        # Cashier gets 403 on PATCH, PUT, DELETE
+        api.force_authenticate(user=self.cashier)
+        self.assertEqual(
+            api.patch(
+                f"/api/v1/sales/sessions/{session.pk}/",
+                {"closing_notes": "Cashier edit"},
+                format="json",
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            api.put(
+                f"/api/v1/sales/sessions/{session.pk}/",
+                {"cashier": str(self.cashier.pk), "opening_float": "1000.00"},
+                format="json",
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            api.delete(f"/api/v1/sales/sessions/{session.pk}/").status_code,
+            403,
+        )
+
+        # Manager gets 403 on DELETE
+        api.force_authenticate(user=manager)
+        self.assertEqual(
+            api.delete(f"/api/v1/sales/sessions/{session.pk}/").status_code,
+            403,
+        )
+
+        # Manager PATCH ignores read-only fields (status, actual_cash, cash_gap, system_*)
+        patch_resp = api.patch(
+            f"/api/v1/sales/sessions/{session.pk}/",
+            {
+                "status": "closed",
+                "actual_cash": "99999.00",
+                "cash_gap": "88888.00",
+                "system_cash_sales": "77777.00",
+                "closing_notes": "Manager note",
+            },
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, 200, patch_resp.data)
+        session.refresh_from_db()
+        self.assertEqual(session.status, CashSessionStatus.OPEN)
+        self.assertEqual(session.actual_cash, Decimal("0.00"))
+        self.assertEqual(session.cash_gap, Decimal("0.00"))
+        self.assertEqual(session.system_cash_sales, Decimal("0.00"))
+        self.assertEqual(session.closing_notes, "Manager note")
+
+        # Owner cannot DELETE a session that has sales (400)
+        sale = Sale.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            session=session,
+            cashier=self.cashier,
+            total_amount=Decimal("2000.00"),
+            status="completed",
+            receipt_number="RC-SESS-DEL-1",
+        )
+        api.force_authenticate(user=owner)
+        del_with_sale = api.delete(f"/api/v1/sales/sessions/{session.pk}/")
+        self.assertEqual(del_with_sale.status_code, 400)
+        self.assertTrue(CashSession.objects.filter(pk=session.pk).exists())
+
+        # Owner can DELETE a session with no sales (204)
+        sale.delete()
+        del_empty = api.delete(f"/api/v1/sales/sessions/{session.pk}/")
+        self.assertEqual(del_empty.status_code, 204)
+        self.assertFalse(CashSession.objects.filter(pk=session.pk).exists())
+
+    def test_cash_session_close_restricted_to_session_cashier_or_manager(self):
+        from rest_framework.test import APIClient
+
+        other_cashier = User.objects.create_user(
+            email="other-cashier@shoedz.dz",
+            password="password123",
+            role=RoleChoices.CASHIER,
+            tenant=self.tenant,
+        )
+
+        session = CashSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            cashier=self.cashier,
+            opening_float=Decimal("1000.00"),
+            status=CashSessionStatus.OPEN,
+        )
+
+        api = APIClient()
+
+        # Another cashier gets 403 when trying to close this session
+        api.force_authenticate(user=other_cashier)
+        res_other = api.post(
+            f"/api/v1/sales/sessions/{session.pk}/close/",
+            {"actual_cash": "1000.00"},
+            format="json",
+        )
+        self.assertEqual(res_other.status_code, 403)
+        session.refresh_from_db()
+        self.assertEqual(session.status, CashSessionStatus.OPEN)
+
+        # Session's own cashier can close it (200)
+        api.force_authenticate(user=self.cashier)
+        res_own = api.post(
+            f"/api/v1/sales/sessions/{session.pk}/close/",
+            {"actual_cash": "1000.00"},
+            format="json",
+        )
+        self.assertEqual(res_own.status_code, 200)
+        session.refresh_from_db()
+        self.assertEqual(session.status, CashSessionStatus.CLOSED)
+
+

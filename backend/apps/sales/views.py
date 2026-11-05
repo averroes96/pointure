@@ -8,9 +8,11 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, OWNER_ONLY, RolePermission
 from apps.inventory.models import MovementReasonChoices, StockMovement
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
@@ -723,7 +725,24 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """
     queryset = CashSession.objects.all()
     serializer_class = CashSessionSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": OWNER_ONLY,
+        "approve": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     ordering = ["-opened_at"]
+
+    def destroy(self, request, *args, **kwargs):
+        session = self.get_object()
+        if session.sales.exists() or session.payments.exists():
+            return Response(
+                {"detail": "Impossible de supprimer une session de caisse contenant des ventes."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = CashSession.objects.filter(
@@ -847,6 +866,13 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         compute cash gap, and generate closing Z-Report.
         """
         session = self.get_object()
+        is_manager = request.user.is_superuser or getattr(request.user, "role", None) in MANAGER_OR_OWNER
+        if not is_manager and session.cashier_id != request.user.id:
+            return Response(
+                {"detail": "Seul le caissier titulaire de la session ou un manager peut fermer cette caisse."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         if session.status == CashSessionStatus.CLOSED:
             return Response(
                 {"detail": "Cette session est déjà fermée."},
@@ -857,49 +883,60 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        stats = compute_session_stats(session)
+        with transaction.atomic():
+            session = CashSession.objects.select_for_update().get(
+                pk=session.pk,
+                tenant=request.tenant,
+            )
+            if session.status == CashSessionStatus.CLOSED:
+                return Response(
+                    {"detail": "Cette session est déjà fermée."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        actual_cash = data["actual_cash"]
-        actual_tpe = data.get("actual_tpe", Decimal("0.00"))
-        actual_baridimob = data.get("actual_baridimob", Decimal("0.00"))
-        actual_cheque = data.get("actual_cheque", Decimal("0.00"))
-        actual_ccp = data.get("actual_ccp", Decimal("0.00"))
-        actual_virement = data.get("actual_virement", Decimal("0.00"))
-        closing_notes = data.get("closing_notes", "")
+            stats = compute_session_stats(session)
 
-        expected_cash = stats["expected_cash"]
-        cash_gap = actual_cash - expected_cash
+            actual_cash = data["actual_cash"]
+            actual_tpe = data.get("actual_tpe", Decimal("0.00"))
+            actual_baridimob = data.get("actual_baridimob", Decimal("0.00"))
+            actual_cheque = data.get("actual_cheque", Decimal("0.00"))
+            actual_ccp = data.get("actual_ccp", Decimal("0.00"))
+            actual_virement = data.get("actual_virement", Decimal("0.00"))
+            closing_notes = data.get("closing_notes", "")
 
-        session.status = CashSessionStatus.CLOSED
-        session.closed_at = timezone.now()
-        session.closed_by = request.user
+            expected_cash = stats["expected_cash"]
+            cash_gap = actual_cash - expected_cash
 
-        session.system_sales_count = stats["sales_count"]
-        session.system_total_sales = stats["total_sales"]
-        session.system_cash_sales = stats["cash_sales"]
-        session.system_tpe_sales = stats["tpe_sales"]
-        session.system_baridimob_sales = stats["baridimob_sales"]
-        session.system_cheque_sales = stats["cheque_sales"]
-        session.system_ccp_sales = stats["ccp_sales"]
-        session.system_virement_sales = stats["virement_sales"]
-        session.system_account_sales = stats["account_sales"]
-        session.system_refunds_amount = stats["refunds_amount"]
-        session.system_refunds_count = stats["refunds_count"]
+            session.status = CashSessionStatus.CLOSED
+            session.closed_at = timezone.now()
+            session.closed_by = request.user
 
-        session.total_cash_in = stats["total_cash_in"]
-        session.total_cash_out = stats["total_cash_out"]
-        session.expected_cash = expected_cash
+            session.system_sales_count = stats["sales_count"]
+            session.system_total_sales = stats["total_sales"]
+            session.system_cash_sales = stats["cash_sales"]
+            session.system_tpe_sales = stats["tpe_sales"]
+            session.system_baridimob_sales = stats["baridimob_sales"]
+            session.system_cheque_sales = stats["cheque_sales"]
+            session.system_ccp_sales = stats["ccp_sales"]
+            session.system_virement_sales = stats["virement_sales"]
+            session.system_account_sales = stats["account_sales"]
+            session.system_refunds_amount = stats["refunds_amount"]
+            session.system_refunds_count = stats["refunds_count"]
 
-        session.actual_cash = actual_cash
-        session.actual_tpe = actual_tpe
-        session.actual_baridimob = actual_baridimob
-        session.actual_cheque = actual_cheque
-        session.actual_ccp = actual_ccp
-        session.actual_virement = actual_virement
-        session.cash_gap = cash_gap
-        session.closing_notes = closing_notes
+            session.total_cash_in = stats["total_cash_in"]
+            session.total_cash_out = stats["total_cash_out"]
+            session.expected_cash = expected_cash
 
-        session.save()
+            session.actual_cash = actual_cash
+            session.actual_tpe = actual_tpe
+            session.actual_baridimob = actual_baridimob
+            session.actual_cheque = actual_cheque
+            session.actual_ccp = actual_ccp
+            session.actual_virement = actual_virement
+            session.cash_gap = cash_gap
+            session.closing_notes = closing_notes
+
+            session.save()
 
         store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
         lang = request.data.get("lang") or request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]
