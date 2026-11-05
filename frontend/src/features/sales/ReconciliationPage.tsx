@@ -25,6 +25,7 @@ import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { CashSession, CashMovement, CashReconciliation } from "@/types";
 
 function todayISO(): string {
@@ -64,7 +65,7 @@ function GapPill({ gap }: { gap: number }) {
 
 // ── Legacy Print Template (CashReconciliation) ───────────────────────────────
 
-function buildLegacyPrintHtml(rec: CashReconciliation): string {
+function buildLegacyPrintHtml(rec: CashReconciliation, t: TFunction): string {
   const opening = parseFloat(rec.opening_float || "0");
   const exp = parseFloat(rec.expenses || "0");
   const drops = parseFloat(rec.cash_drops || "0");
@@ -79,7 +80,7 @@ function buildLegacyPrintHtml(rec: CashReconciliation): string {
     const gapStr = gap === 0 ? "—" : `${gap > 0 ? "+" : ""}${gap.toLocaleString("fr-DZ")}`;
     const color = gap < 0 ? "color:#c0392b;" : gap > 0 ? "color:#e67e22;" : "color:#27ae60;";
     return `<tr>
-      <td>${m === "cash" ? "Espèces (Caisse Théorique)" : m.toUpperCase()}</td>
+      <td>${m === "cash" ? t("reconciliation.legacy_print_cash_label", "Espèces (Caisse Théorique)") : m.toUpperCase()}</td>
       <td style="text-align:right;">${sys.toLocaleString("fr-DZ")} DZD</td>
       <td style="text-align:right;">${act.toLocaleString("fr-DZ")} DZD</td>
       <td style="text-align:right;font-weight:600;${color}">${gapStr} DZD</td>
@@ -90,7 +91,7 @@ function buildLegacyPrintHtml(rec: CashReconciliation): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <title>Fermeture de caisse ${rec.date}</title>
+  <title>${t("reconciliation.legacy_print_title", "Fermeture de caisse {{date}}", { date: rec.date })}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:12mm;}
@@ -106,30 +107,30 @@ function buildLegacyPrintHtml(rec: CashReconciliation): string {
   </style>
 </head>
 <body>
-  <h1>Fermeture de caisse (Journalier)</h1>
+  <h1>${t("reconciliation.legacy_print_heading", "Fermeture de caisse (Journalier)")}</h1>
   <div class="meta">
-    Date : ${rec.date}${rec.branch_name ? ` · Caisse : ${rec.branch_name}` : ""}
-    · Soumis par : ${rec.submitted_by_name ?? "—"}
+    ${t("reconciliation.legacy_print_date", "Date")} : ${rec.date}${rec.branch_name ? ` · ${t("reconciliation.legacy_print_register", "Caisse")} : ${rec.branch_name}` : ""}
+    · ${t("reconciliation.legacy_print_submitted_by", "Soumis par")} : ${rec.submitted_by_name ?? "—"}
   </div>
   <div class="grid">
-    <div class="grid-item">Fond de caisse initial<strong>+ ${opening.toLocaleString("fr-DZ")} DZD</strong></div>
-    <div class="grid-item">Ventes Espèces<strong>+ ${parseFloat(rec.system_cash).toLocaleString("fr-DZ")} DZD</strong></div>
-    <div class="grid-item">Dépenses & Retraits<strong>- ${(exp + drops).toLocaleString("fr-DZ")} DZD</strong></div>
-    <div class="grid-item">Caisse Théorique<strong>= ${expectedCash.toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">${t("reconciliation.legacy_print_initial_float", "Fond de caisse initial")}<strong>+ ${opening.toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">${t("reconciliation.legacy_print_cash_sales", "Ventes Espèces")}<strong>+ ${parseFloat(rec.system_cash).toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">${t("reconciliation.legacy_print_expenses_drops", "Dépenses & Retraits")}<strong>- ${(exp + drops).toLocaleString("fr-DZ")} DZD</strong></div>
+    <div class="grid-item">${t("reconciliation.legacy_print_expected_cash", "Caisse Théorique")}<strong>= ${expectedCash.toLocaleString("fr-DZ")} DZD</strong></div>
   </div>
   <table>
     <thead>
       <tr>
-        <th>Mode</th>
-        <th style="text-align:right;">Théorique / Système</th>
-        <th style="text-align:right;">Compté</th>
-        <th style="text-align:right;">Écart</th>
+        <th>${t("reconciliation.legacy_print_mode", "Mode")}</th>
+        <th style="text-align:right;">${t("reconciliation.legacy_print_system_expected", "Théorique / Système")}</th>
+        <th style="text-align:right;">${t("reconciliation.legacy_print_counted", "Compté")}</th>
+        <th style="text-align:right;">${t("reconciliation.legacy_print_gap", "Écart")}</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td>TOTAL</td>
+        <td>${t("reconciliation.legacy_print_total", "TOTAL")}</td>
         <td style="text-align:right;">${parseFloat(rec.total_system).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;">${parseFloat(rec.total_actual).toLocaleString("fr-DZ")} DZD</td>
         <td style="text-align:right;${gapColor}">
@@ -138,7 +139,7 @@ function buildLegacyPrintHtml(rec: CashReconciliation): string {
       </tr>
     </tfoot>
   </table>
-  ${rec.notes ? `<p style="margin-top:12px;font-size:11px;"><strong>Notes :</strong> ${rec.notes}</p>` : ""}
+  ${rec.notes ? `<p style="margin-top:12px;font-size:11px;"><strong>${t("reconciliation.legacy_print_notes", "Notes")} :</strong> ${rec.notes}</p>` : ""}
 </body>
 </html>`;
 }
@@ -464,7 +465,7 @@ export default function ReconciliationPage() {
                 {/* 4. BaridiMob */}
                 <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800">
                   <p className="text-2xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                    <Smartphone size={11} /> BaridiMob
+                    <Smartphone size={11} /> {t("payment_method.baridimob", "BaridiMob")}
                   </p>
                   <p className="text-base font-black font-mono text-amber-950 dark:text-amber-200 mt-1">
                     {formatDZD(currentSession.stats?.baridimob_sales ?? 0)} <span className="text-2xs text-amber-600 dark:text-amber-400 font-sans">DZD</span>
@@ -791,7 +792,7 @@ export default function ReconciliationPage() {
                         <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{rec.submitted_by_name ?? "—"}</td>
                         <td className="py-2.5 px-3 text-end">
                           <button
-                            onClick={() => openPrintPopup(buildLegacyPrintHtml(rec), "210mm", 10)}
+                            onClick={() => openPrintPopup(buildLegacyPrintHtml(rec, t), "210mm", 10)}
                             className="btn-ghost btn-sm text-slate-500 hover:text-slate-900 dark:hover:text-white"
                             title={t("common.print")}
                           >
@@ -1114,10 +1115,13 @@ export default function ReconciliationPage() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
-                    Clôture de Caisse · Rapport Z
+                    {t("reconciliation.close_modal_title", "Clôture de Caisse · Rapport Z")}
                   </h3>
                   <p className="text-2xs text-slate-500 dark:text-slate-400">
-                    Session {currentSession.session_code} · {currentSession.cashier_name}
+                    {t("reconciliation.close_modal_subtitle", "Session {{code}} · {{cashier}}", {
+                      code: currentSession.session_code,
+                      cashier: currentSession.cashier_name,
+                    })}
                   </p>
                 </div>
               </div>
