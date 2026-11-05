@@ -289,5 +289,6 @@ desktop/python-*.zip
 !desktop/installer.nsh
 !desktop/build/
 !desktop/build/**
+RELEASE_CHANGELOG.md
 
 AGENTS.md
