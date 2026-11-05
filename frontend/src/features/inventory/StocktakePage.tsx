@@ -702,17 +702,19 @@ export default function StocktakePage() {
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-surface text-text-muted border-border"
                 )}
-                title={soundEnabled ? "Bip sonore actif" : "Silencieux"}
+                title={soundEnabled ? t("inventory.sound_active", "Bip sonore actif") : t("inventory.sound_silent", "Silencieux")}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
             </div>
             <div className="mt-2 text-2xs text-text-muted leading-relaxed">
-              {soundEnabled ? "Bip aigu au scan, double tonalité sur les cartons." : "Mode muet activé."}
+              {soundEnabled
+                ? t("inventory.sound_desc_active", "Bip aigu au scan, double tonalité sur les cartons.")
+                : t("inventory.sound_desc_silent", "Mode muet activé.")}
             </div>
             <div className="mt-2 border-t border-border/60 pt-1.5 text-2xs text-text-muted flex items-center gap-1 font-mono">
               <Sparkles size={11} className="text-amber-500" />
-              Scan sans clic actif
+              {t("inventory.continuous_scan_active", "Scan sans clic actif")}
             </div>
           </div>
         </div>
@@ -824,8 +826,8 @@ export default function StocktakePage() {
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 placeholder={
                   scanMode === "prompt_qty"
-                    ? "Mode Pile/Lot actif : scannez un article pour saisir directement sa quantité..."
-                    : `Scannez ici ou tapez le code-barres / référence / nom puis Entrée (+${multiplier})...`
+                    ? t("inventory.scan_prompt_qty_placeholder", "Mode Pile/Lot actif : scannez un article pour saisir directement sa quantité...")
+                    : t("inventory.scan_default_placeholder", "Scannez ici ou tapez le code-barres / référence / nom puis Entrée (+{{multiplier}})...", { multiplier })
                 }
                 className="w-full h-14 pl-12 pr-32 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 font-mono text-base sm:text-lg font-bold border-2 border-transparent focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/30 transition-all shadow-inner"
               />
@@ -836,7 +838,11 @@ export default function StocktakePage() {
                 disabled={!barcodeInput.trim() || scanMutation.isPending}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 px-5 h-9 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
-                {scanMutation.isPending ? "Comptage..." : scanMode === "prompt_qty" ? "Identifier" : `Compter +${multiplier}`}
+                {scanMutation.isPending
+                  ? t("inventory.counting", "Comptage...")
+                  : scanMode === "prompt_qty"
+                  ? t("inventory.identify_btn", "Identifier")
+                  : t("inventory.count_plus_n", "Compter +{{multiplier}}", { multiplier })}
               </button>
             </form>
 
@@ -858,7 +864,7 @@ export default function StocktakePage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-2xs font-black uppercase">
-                      Saisie Quantité Pile / Lot
+                      {t("inventory.prompt_qty_badge", "Saisie Quantité Pile / Lot")}
                     </span>
                     <span className="text-sm font-black text-white">{promptQtyModal.item.product_name}</span>
                     {promptQtyModal.item.product_reference && (
@@ -866,8 +872,10 @@ export default function StocktakePage() {
                     )}
                   </div>
                   <p className="text-xs text-slate-200 mt-1">
-                    Déjà compté : <strong className="font-mono text-emerald-300">{promptQtyModal.item.counted_qty}</strong> paires · Stock théorique :{" "}
-                    <strong className="font-mono">{promptQtyModal.item.expected_qty}</strong> paires
+                    {t("inventory.already_counted_label", "Déjà compté :")}{" "}
+                    <strong className="font-mono text-emerald-300">{promptQtyModal.item.counted_qty}</strong> {t("inventory.pairs", "paires")} ·{" "}
+                    {t("inventory.theoretical_stock_label", "Stock théorique :")}{" "}
+                    <strong className="font-mono">{promptQtyModal.item.expected_qty}</strong> {t("inventory.pairs", "paires")}
                   </p>
                 </div>
 
@@ -881,7 +889,7 @@ export default function StocktakePage() {
                         promptQtyModal.mode === "add" ? "bg-amber-400 text-slate-950" : "text-slate-300"
                       )}
                     >
-                      + Ajouter
+                      + {t("inventory.add_btn", "Ajouter")}
                     </button>
                     <button
                       type="button"
@@ -897,7 +905,7 @@ export default function StocktakePage() {
                         promptQtyModal.mode === "set" ? "bg-amber-400 text-slate-950" : "text-slate-300"
                       )}
                     >
-                      = Fixer total
+                      = {t("inventory.set_total_btn", "Fixer total")}
                     </button>
                   </div>
 
@@ -914,7 +922,7 @@ export default function StocktakePage() {
                     type="submit"
                     className="h-10 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs cursor-pointer"
                   >
-                    Valider (Entrée)
+                    {t("inventory.validate_enter", "Valider (Entrée)")}
                   </button>
                   <button
                     type="button"
@@ -951,7 +959,10 @@ export default function StocktakePage() {
                   <div className="p-3 rounded-xl bg-slate-900/90 border border-white/15 space-y-2.5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <span className="text-2xs font-bold text-amber-300 uppercase tracking-wider">
-                        Associer le code « {unknownBarcode} » à un article existant & compter (+{multiplier}) :
+                        {t("inventory.bind_barcode_prompt", "Associer le code « {{barcode}} » à un article existant & compter (+{{multiplier}}) :", {
+                          barcode: unknownBarcode,
+                          multiplier,
+                        })}
                       </span>
                     </div>
                     <div className="relative">
@@ -960,7 +971,7 @@ export default function StocktakePage() {
                         type="text"
                         value={bindSearch}
                         onChange={(e) => setBindSearch(e.target.value)}
-                        placeholder="Rechercher l'article par référence ou nom (ex: 1457, BL-HS10)..."
+                        placeholder={t("inventory.bind_search_placeholder", "Rechercher l'article par référence ou nom (ex: 1457, BL-HS10)...")}
                         className="w-full h-9 pl-8 pr-3 rounded-lg bg-white text-slate-900 text-xs font-medium focus:outline-none"
                       />
                     </div>
@@ -990,7 +1001,7 @@ export default function StocktakePage() {
                               </div>
                             </div>
                             <span className="px-2 py-1 rounded bg-emerald-500 text-white text-2xs font-bold shrink-0">
-                              Associer & +{multiplier}
+                              {t("inventory.bind_and_count_btn", "Associer & +{{multiplier}}", { multiplier })}
                             </span>
                           </button>
                         ))}
@@ -1030,11 +1041,11 @@ export default function StocktakePage() {
                     <div className="flex items-center gap-2 text-2xs text-slate-300 mt-1">
                       {lastScannedItem.item.size_eu > 0 && (
                         <span className="font-bold text-white bg-primary-500/30 px-2 py-0.5 rounded border border-primary-400/30">
-                          Pointure {lastScannedItem.item.size_eu}
+                          {t("inventory.size_label", "Pointure")} {lastScannedItem.item.size_eu}
                         </span>
                       )}
                       {lastScannedItem.item.colour && lastScannedItem.item.colour !== "Standard" && (
-                        <span>Couleur : {lastScannedItem.item.colour}</span>
+                        <span>{t("inventory.colour_label", "Couleur")} : {lastScannedItem.item.colour}</span>
                       )}
                       <span className="font-mono text-slate-400">({lastScannedItem.item.barcode})</span>
                     </div>
@@ -1043,14 +1054,14 @@ export default function StocktakePage() {
 
                 <div className="flex items-center gap-4 self-end sm:self-center">
                   <div className="text-right">
-                    <span className="text-2xs text-slate-400 block uppercase font-bold">Total Compté</span>
+                    <span className="text-2xs text-slate-400 block uppercase font-bold">{t("inventory.total_counted", "Total Compté")}</span>
                     <span className="text-lg font-black font-mono text-emerald-400">
-                      {lastScannedItem.item.counted_qty} paires
+                      {lastScannedItem.item.counted_qty} {t("inventory.pairs", "paires")}
                     </span>
                   </div>
 
                   <div className="text-right pl-3 border-l border-white/10">
-                    <span className="text-2xs text-slate-400 block uppercase font-bold">Écart</span>
+                    <span className="text-2xs text-slate-400 block uppercase font-bold">{t("inventory.variance_short", "Écart")}</span>
                     <span
                       className={cn(
                         "text-lg font-black font-mono",
@@ -1077,13 +1088,13 @@ export default function StocktakePage() {
             {/* Triage Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               {[
-                { key: "all", label: `Tous (${stats.totalRefs})` },
-                { key: "scanned", label: `Scannés (${stats.scannedRefs})`, color: "text-indigo-600" },
-                { key: "variance", label: `Écarts (${stats.shortagesCount + stats.surplusesCount})`, alert: stats.shortagesCount + stats.surplusesCount > 0 },
-                { key: "shortage", label: `Manquants (${stats.shortagesCount})`, color: "text-rose-600" },
-                { key: "surplus", label: `Excédents (${stats.surplusesCount})`, color: "text-emerald-600" },
-                { key: "uncounted", label: `Non scannés (${stats.totalRefs - stats.scannedRefs})` },
-                { key: "exact", label: `Conformes (${stats.exactCount})` },
+                { key: "all", label: t("inventory.triage_all", "Tous ({{count}})", { count: stats.totalRefs }) },
+                { key: "scanned", label: t("inventory.triage_scanned", "Scannés ({{count}})", { count: stats.scannedRefs }), color: "text-indigo-600" },
+                { key: "variance", label: t("inventory.triage_variances", "Écarts ({{count}})", { count: stats.shortagesCount + stats.surplusesCount }), alert: stats.shortagesCount + stats.surplusesCount > 0 },
+                { key: "shortage", label: t("inventory.triage_shortages", "Manquants ({{count}})", { count: stats.shortagesCount }), color: "text-rose-600" },
+                { key: "surplus", label: t("inventory.triage_surpluses", "Excédents ({{count}})", { count: stats.surplusesCount }), color: "text-emerald-600" },
+                { key: "uncounted", label: t("inventory.triage_uncounted", "Non scannés ({{count}})", { count: stats.totalRefs - stats.scannedRefs }) },
+                { key: "exact", label: t("inventory.triage_exact", "Conformes ({{count}})", { count: stats.exactCount }) },
               ].map((pill) => (
                 <button
                   key={pill.key}
@@ -1107,7 +1118,7 @@ export default function StocktakePage() {
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Filtrer par nom, réf, code-barres..."
+                placeholder={t("inventory.filter_placeholder", "Filtrer par nom, réf, code-barres...")}
                 className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-surface border border-border text-xs text-text-primary focus:border-primary-500 focus:outline-none"
               />
               {searchFilter && (
@@ -1264,7 +1275,7 @@ export default function StocktakePage() {
                                 updateItemMutation.mutate({ itemId: item.id, notes: e.target.value });
                               }
                             }}
-                            placeholder="Ajouter une note..."
+                            placeholder={t("inventory.add_note_placeholder", "Ajouter une note...")}
                             className="w-full bg-transparent text-2xs text-text-primary placeholder:text-text-muted focus:bg-white focus:outline-none px-2 py-1 rounded border border-transparent focus:border-border transition-all"
                           />
                         )}
@@ -1279,8 +1290,8 @@ export default function StocktakePage() {
                       <ClipboardList size={32} className="mx-auto text-slate-300 mb-2" />
                       <p className="font-medium text-xs">
                         {stats.totalRefs === 0
-                          ? "Mode Scan Libre actif : scannez votre premier code-barres ci-dessus pour ajouter et compter les articles au fur et à mesure."
-                          : "Aucun article ne correspond aux filtres sélectionnés."}
+                          ? t("inventory.free_scan_empty_hint", "Mode Scan Libre actif : scannez votre premier code-barres ci-dessus pour ajouter et compter les articles au fur et à mesure.")
+                          : t("inventory.no_matching_items", "Aucun article ne correspond aux filtres sélectionnés.")}
                       </p>
                     </td>
                   </tr>
@@ -1294,12 +1305,11 @@ export default function StocktakePage() {
             <div className="px-4 py-3 border-t border-border bg-surface/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-text-muted">
               <div className="flex items-center gap-2">
                 <span>
-                  Affichage de{" "}
-                  <strong className="text-text-primary">{(currentPage - 1) * pageSize + 1}</strong> à{" "}
-                  <strong className="text-text-primary">
-                    {Math.min(currentPage * pageSize, filteredItems.length)}
-                  </strong>{" "}
-                  sur <strong className="text-text-primary">{filteredItems.length}</strong> articles
+                  {t("inventory.pagination_showing", "Affichage de {{from}} à {{to}} sur {{total}} articles", {
+                    from: (currentPage - 1) * pageSize + 1,
+                    to: Math.min(currentPage * pageSize, filteredItems.length),
+                    total: filteredItems.length,
+                  })}
                 </span>
                 <select
                   value={pageSize}
@@ -1309,9 +1319,9 @@ export default function StocktakePage() {
                   }}
                   className="h-7 px-2 rounded-lg border border-border bg-white text-2xs font-bold text-text-primary"
                 >
-                  <option value={50}>50 / page</option>
-                  <option value={100}>100 / page</option>
-                  <option value={250}>250 / page</option>
+                  <option value={50}>{t("inventory.per_page_count", "{{count}} / page", { count: 50 })}</option>
+                  <option value={100}>{t("inventory.per_page_count", "{{count}} / page", { count: 100 })}</option>
+                  <option value={250}>{t("inventory.per_page_count", "{{count}} / page", { count: 250 })}</option>
                 </select>
               </div>
 
@@ -1323,10 +1333,10 @@ export default function StocktakePage() {
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     className="btn-secondary btn-xs disabled:opacity-40"
                   >
-                    Précédent
+                    {t("common.previous", "Précédent")}
                   </button>
                   <span className="px-2.5 py-1 rounded-lg bg-white border border-border font-mono font-bold text-text-primary">
-                    Page {currentPage} / {totalPages}
+                    {t("common.page_of", "Page {{current}} / {{total}}", { current: currentPage, total: totalPages })}
                   </span>
                   <button
                     type="button"
@@ -1334,7 +1344,7 @@ export default function StocktakePage() {
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     className="btn-secondary btn-xs disabled:opacity-40"
                   >
-                    Suivant
+                    {t("common.next", "Suivant")}
                   </button>
                 </div>
               )}
@@ -1353,12 +1363,14 @@ export default function StocktakePage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-base text-text-primary">
-                      {applyKeepOpen ? "Valider le lot scanné & Continuer" : "Clôturer & Ajuster le Stock"}
+                      {applyKeepOpen
+                        ? t("inventory.validate_lot_and_continue", "Valider le lot scanné & Continuer")
+                        : t("inventory.close_and_adjust_stock", "Clôturer & Ajuster le Stock")}
                     </h3>
                     <p className="text-xs text-text-muted">
                       {applyKeepOpen
-                        ? "Applique immédiatement les écarts des articles scannés et garde la session ouverte"
-                        : "Synchronisation des stocks physiques"}
+                        ? t("inventory.apply_keep_open_sub", "Applique immédiatement les écarts des articles scannés et garde la session ouverte")
+                        : t("inventory.sync_physical_stocks_sub", "Synchronisation des stocks physiques")}
                     </p>
                   </div>
                 </div>
@@ -1371,7 +1383,7 @@ export default function StocktakePage() {
                 {/* Reconciliation Scope Selector */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-text-primary block">
-                    Mode d'ajustement du stock :
+                    {t("inventory.adjust_mode_label", "Mode d'ajustement du stock :")}
                   </label>
                   <label
                     className={cn(
@@ -1390,10 +1402,10 @@ export default function StocktakePage() {
                     />
                     <div className="text-xs">
                       <div className="font-bold text-text-primary">
-                        Ajuster uniquement les articles scannés / comptés ({stats.scannedRefs} réf.) — Recommandé
+                        {t("inventory.adjust_only_scanned_label", "Ajuster uniquement les articles scannés / comptés ({{count}} réf.) — Recommandé", { count: stats.scannedRefs })}
                       </div>
                       <p className="text-2xs text-text-muted mt-0.5">
-                        Idéal pour un inventaire partiel ou sur plusieurs jours : seuls les articles que vous avez scannés ou modifiés seront ajustés ({stats.scannedWithVarianceCount} avec écart). Les articles non scannés restent intacts.
+                        {t("inventory.adjust_only_scanned_desc", "Idéal pour un inventaire partiel ou sur plusieurs jours : seuls les articles que vous avez scannés ou modifiés seront ajustés ({{count}} avec écart). Les articles non scannés restent intacts.", { count: stats.scannedWithVarianceCount })}
                       </p>
                     </div>
                   </label>
@@ -1416,10 +1428,10 @@ export default function StocktakePage() {
                       />
                       <div className="text-xs">
                         <div className="font-bold text-text-primary">
-                          Inventaire complet strict — Mettre à 0 les {stats.totalRefs - stats.scannedRefs} articles non scannés
+                          {t("inventory.adjust_full_strict_label", "Inventaire complet strict — Mettre à 0 les {{count}} articles non scannés", { count: stats.totalRefs - stats.scannedRefs })}
                         </div>
                         <p className="text-2xs text-rose-700 mt-0.5">
-                          Attention : tous les articles pré-chargés non scannés dans cette session verront leur stock passer à 0.
+                          {t("inventory.adjust_full_strict_desc", "Attention : tous les articles pré-chargés non scannés dans cette session verront leur stock passer à 0.")}
                         </p>
                       </div>
                     </label>
@@ -1439,31 +1451,31 @@ export default function StocktakePage() {
                   />
                   <div className="text-2xs">
                     <span className="font-bold text-indigo-950 block">
-                      Garder la session ouverte après validation de ce lot (Inventaire sur plusieurs jours / rayons)
+                      {t("inventory.keep_open_label", "Garder la session ouverte après validation de ce lot (Inventaire sur plusieurs jours / rayons)")}
                     </span>
                     <span className="text-indigo-700">
-                      Les articles déjà scannés sont mis à jour en stock dès maintenant et vous pourrez continuer à scanner le reste du magasin plus tard.
+                      {t("inventory.keep_open_desc", "Les articles déjà scannés sont mis à jour en stock dès maintenant et vous pourrez continuer à scanner le reste du magasin plus tard.")}
                     </span>
                   </div>
                 </label>
 
                 <div className="p-4 rounded-2xl bg-surface border border-border space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-text-muted">Session :</span>
+                    <span className="text-text-muted">{t("inventory.session_label", "Session :")}</span>
                     <span className="font-bold text-text-primary">{activeSession.title}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-muted">Articles audités (scannés) :</span>
+                    <span className="text-text-muted">{t("inventory.audited_articles_label", "Articles audités (scannés) :")}</span>
                     <span className="font-mono font-bold text-indigo-700">
-                      {stats.scannedRefs} réf. ({activeSession.total_counted} paires)
+                      {t("inventory.refs_with_pairs", "{{refs}} réf. ({{pairs}} paires)", { refs: stats.scannedRefs, pairs: activeSession.total_counted })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-muted">Références qui seront ajustées :</span>
+                    <span className="text-text-muted">{t("inventory.refs_to_adjust_label", "Références qui seront ajustées :")}</span>
                     <span className="font-mono font-extrabold text-emerald-700">
                       {applyOnlyScanned
-                        ? `${stats.scannedWithVarianceCount} réf.`
-                        : `${stats.shortagesCount + stats.surplusesCount} réf.`}
+                        ? t("inventory.refs_count", "{{count}} réf.", { count: stats.scannedWithVarianceCount })
+                        : t("inventory.refs_count", "{{count}} réf.", { count: stats.shortagesCount + stats.surplusesCount })}
                     </span>
                   </div>
                 </div>
@@ -1476,7 +1488,7 @@ export default function StocktakePage() {
                   className="btn-secondary btn-sm"
                   disabled={applyMutation.isPending}
                 >
-                  Annuler
+                  {t("common.cancel", "Annuler")}
                 </button>
                 <button
                   type="button"
@@ -1490,10 +1502,10 @@ export default function StocktakePage() {
                   disabled={applyMutation.isPending}
                 >
                   {applyMutation.isPending
-                    ? "Ajustement en cours..."
+                    ? t("inventory.adjusting_progress", "Ajustement en cours...")
                     : applyKeepOpen
-                    ? "Valider ce lot & Continuer"
-                    : "Confirmer & Clôturer"}
+                    ? t("inventory.validate_lot_btn", "Valider ce lot & Continuer")
+                    : t("inventory.confirm_close_btn", "Confirmer & Clôturer")}
                 </button>
               </div>
             </div>
@@ -1504,9 +1516,9 @@ export default function StocktakePage() {
         {showPinModal && (
           <ManagerPinModal
             isOpen={showPinModal}
-            title="Validation d'inventaire requise"
-            reason="Le code PIN d'un responsable est obligatoire pour valider et appliquer les écarts d'inventaire."
-            actionDescription="Clôture de l'inventaire et ajustement automatique des stocks"
+            title={t("inventory.manager_pin_title", "Validation d'inventaire requise")}
+            reason={t("inventory.manager_pin_reason", "Le code PIN d'un responsable est obligatoire pour valider et appliquer les écarts d'inventaire.")}
+            actionDescription={t("inventory.manager_pin_desc", "Clôture de l'inventaire et ajustement automatique des stocks")}
             onCancel={() => setShowPinModal(false)}
             onSuccess={(pin) => {
               setShowPinModal(false);
@@ -1530,10 +1542,10 @@ export default function StocktakePage() {
         <div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight flex items-center gap-2.5">
             <ClipboardList className="text-primary-600" size={26} />
-            Inventaire Physique & Scan Rapide
+            {t("inventory.page_heading", "Inventaire Physique & Scan Rapide")}
           </h1>
           <p className="text-xs text-text-muted mt-1">
-            Inventaire tournant par scan libre, par rayon/étagère ou général — conçu pour les catalogues de plusieurs milliers d'articles.
+            {t("inventory.page_subheading", "Inventaire tournant par scan libre, par rayon/étagère ou général — conçu pour les catalogues de plusieurs milliers d'articles.")}
           </p>
         </div>
 
@@ -1542,7 +1554,7 @@ export default function StocktakePage() {
           className="btn-primary flex items-center gap-2 shadow-xs cursor-pointer"
         >
           <Plus size={16} />
-          Nouvel Inventaire
+          {t("inventory.new_stocktake_btn", "Nouvel Inventaire")}
         </button>
       </div>
 
@@ -1574,7 +1586,7 @@ export default function StocktakePage() {
                 </h3>
                 <p className="text-2xs text-text-muted mt-0.5 flex items-center gap-1">
                   <Building2 size={12} />
-                  {sess.branch_name || "Toutes les succursales"}
+                  {sess.branch_name || t("inventory.all_branches", "Toutes les succursales")}
                 </p>
 
                 {/* Scope if any */}
@@ -1582,12 +1594,12 @@ export default function StocktakePage() {
                   <div className="flex flex-wrap gap-1 mt-2">
                     {sess.scope_brand && (
                       <span className="text-3xs font-semibold px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
-                        Marque: {sess.scope_brand}
+                        {t("inventory.brand_label", "Marque")} : {sess.scope_brand}
                       </span>
                     )}
                     {sess.scope_category && (
                       <span className="text-3xs font-semibold px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
-                        Catégorie: {sess.scope_category}
+                        {t("inventory.category_label", "Catégorie")} : {sess.scope_category}
                       </span>
                     )}
                     {sess.notes && (
@@ -1601,15 +1613,15 @@ export default function StocktakePage() {
                 {/* Metrics */}
                 <div className="grid grid-cols-3 gap-2 bg-surface dark:bg-slate-800/60 p-3 rounded-2xl border border-border dark:border-slate-700/60 mt-4 text-center">
                   <div>
-                    <span className="text-3xs uppercase font-bold text-text-muted block">Compté</span>
+                    <span className="text-3xs uppercase font-bold text-text-muted block">{t("inventory.counted_short", "Compté")}</span>
                     <span className="text-sm font-black font-mono text-indigo-700 dark:text-indigo-400">{sess.total_counted}</span>
                   </div>
                   <div>
-                    <span className="text-3xs uppercase font-bold text-text-muted block">Théorique</span>
+                    <span className="text-3xs uppercase font-bold text-text-muted block">{t("inventory.theoretical_short", "Théorique")}</span>
                     <span className="text-sm font-black font-mono text-text-secondary">{sess.total_expected}</span>
                   </div>
                   <div>
-                    <span className="text-3xs uppercase font-bold text-text-muted block">Écart</span>
+                    <span className="text-3xs uppercase font-bold text-text-muted block">{t("inventory.variance_short", "Écart")}</span>
                     <span
                       className={cn(
                         "text-sm font-black font-mono",
@@ -1652,11 +1664,11 @@ export default function StocktakePage() {
                   )}
                 >
                   {isDone ? (
-                    <>Consulter <ChevronRight size={14} /></>
+                    <>{t("inventory.view_btn", "Consulter")} <ChevronRight size={14} /></>
                   ) : (
                     <>
                       <ScanBarcode size={15} />
-                      Reprendre le scan
+                      {t("inventory.resume_scan_btn", "Reprendre le scan")}
                     </>
                   )}
                 </button>
@@ -1711,7 +1723,11 @@ function CreateStocktakeModal({
 }) {
   const { t } = useTranslation();
   const [inventoryMode, setInventoryMode] = useState<"scan_only" | "scoped" | "full">("scan_only");
-  const [title, setTitle] = useState(`Inventaire du ${new Date().toLocaleDateString("fr-DZ")}`);
+  const [title, setTitle] = useState(
+    t("inventory.default_session_title", "Inventaire du {{date}}", {
+      date: new Date().toLocaleDateString("fr-DZ"),
+    })
+  );
   const [branchId, setBranchId] = useState<string>("");
   const [scopeLocation, setScopeLocation] = useState("");
   const [scopeBrand, setScopeBrand] = useState("");
@@ -1801,9 +1817,11 @@ function CreateStocktakeModal({
                 type="button"
                 onClick={() => {
                   setInventoryMode("scan_only");
-                  if (title.startsWith("Inventaire")) {
-                    setTitle(`Inventaire Tournant du ${new Date().toLocaleDateString("fr-DZ")}`);
-                  }
+                  setTitle(
+                    t("inventory.rolling_session_title", "Inventaire Tournant du {{date}}", {
+                      date: new Date().toLocaleDateString("fr-DZ"),
+                    })
+                  );
                 }}
                 className={cn(
                   "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
@@ -1829,9 +1847,11 @@ function CreateStocktakeModal({
                 type="button"
                 onClick={() => {
                   setInventoryMode("scoped");
-                  if (title.startsWith("Inventaire")) {
-                    setTitle(`Inventaire Ciblé du ${new Date().toLocaleDateString("fr-DZ")}`);
-                  }
+                  setTitle(
+                    t("inventory.targeted_session_title", "Inventaire Ciblé du {{date}}", {
+                      date: new Date().toLocaleDateString("fr-DZ"),
+                    })
+                  );
                 }}
                 className={cn(
                   "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
@@ -1852,9 +1872,11 @@ function CreateStocktakeModal({
                 type="button"
                 onClick={() => {
                   setInventoryMode("full");
-                  if (title.startsWith("Inventaire")) {
-                    setTitle(`Inventaire Général du ${new Date().toLocaleDateString("fr-DZ")}`);
-                  }
+                  setTitle(
+                    t("inventory.full_session_title", "Inventaire Général du {{date}}", {
+                      date: new Date().toLocaleDateString("fr-DZ"),
+                    })
+                  );
                 }}
                 className={cn(
                   "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
@@ -1935,14 +1957,14 @@ function CreateStocktakeModal({
                     className="form-input text-xs"
                   >
                     <option value="">{t("inventory.all_categories_stocktake")}</option>
-                    <option value="sneakers">Baskets / Sneakers</option>
-                    <option value="boots">Bottes / Bottines</option>
-                    <option value="sandals">Sandales</option>
-                    <option value="formal">Classique / Ville</option>
-                    <option value="sport">Sport</option>
-                    <option value="kids">Chaussures Enfants</option>
-                    <option value="slippers">Pantoufles / Claquettes</option>
-                    <option value="other">Autre</option>
+                    <option value="sneakers">{t("category.sneakers", "Baskets / Sneakers")}</option>
+                    <option value="boots">{t("category.boots", "Bottes / Bottines")}</option>
+                    <option value="sandals">{t("category.sandals", "Sandales")}</option>
+                    <option value="formal">{t("category.formal", "Classique / Ville")}</option>
+                    <option value="sport">{t("category.sport", "Sport")}</option>
+                    <option value="kids">{t("category.kids", "Chaussures Enfants")}</option>
+                    <option value="slippers">{t("category.slippers", "Pantoufles / Claquettes")}</option>
+                    <option value="other">{t("category.other", "Autre")}</option>
                   </select>
                 </div>
 
