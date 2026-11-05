@@ -243,7 +243,14 @@ class AuditLogViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         self.require_owner()
-        return AuditLog.objects.filter(tenant=self.request.tenant).select_related("user")
+        qs = AuditLog.objects.filter(tenant=self.request.tenant).select_related("user")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        if date_from:
+            qs = qs.filter(timestamp__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(timestamp__date__lte=date_to)
+        return qs
 
     @action(detail=False, methods=["get"])
     def summary(self, request):

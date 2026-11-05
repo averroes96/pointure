@@ -25,7 +25,12 @@ AUDITED_MODELS = [
     "Client", "Cheque",
     
     # Configuration & Security
-    "StoreSettings", "User", "Branch"
+    "StoreSettings", "User", "Branch",
+
+    # Cash, Promotions, Loyalty, Stock & Supplier operations
+    "CashSession", "CashMovement", "Promotion", "LoyaltyAccount",
+    "StockTransfer", "DefectItem", "StocktakeSession",
+    "SupplierPayment", "PurchaseOrder",
 ]
 
 # Current request user (set by middleware)
@@ -41,7 +46,12 @@ def get_current_user():
 
 
 def _get_tenant_from_instance(instance):
-    return getattr(instance, "tenant", None)
+    tenant = getattr(instance, "tenant", None)
+    if tenant is None:
+        # Child rows without their own tenant FK (e.g. CashMovement) inherit it from the session.
+        session = getattr(instance, "session", None)
+        tenant = getattr(session, "tenant", None)
+    return tenant
 
 
 def _json_safe(value):
@@ -81,6 +91,15 @@ def _write_audit(instance, action, diff=None):
     if user and getattr(user, "tenant_id", None) != getattr(tenant, "id", None):
         user = None
 
+    diff = dict(diff or {})
+    # Record the manager who authorized the action with their PIN, if any.
+    authorizer = getattr(instance, "authorized_by", None)
+    if authorizer is not None:
+        diff["_authorized_by"] = {
+            "id": str(authorizer.pk),
+            "name": authorizer.get_full_name() or authorizer.email,
+        }
+
     AuditLog.objects.create(
         tenant=tenant,
         user=user,
@@ -88,7 +107,7 @@ def _write_audit(instance, action, diff=None):
         model_name=instance.__class__.__name__,
         object_id=str(instance.pk),
         object_repr=str(instance)[:300],
-        diff=diff or {},
+        diff=diff,
     )
 
 
