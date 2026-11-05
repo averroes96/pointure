@@ -43,7 +43,7 @@ class VariantSerializer(serializers.ModelSerializer):
             "purchase_price", "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "stock_qty"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

@@ -117,3 +117,33 @@ class TestProductDelete:
         assert not Product.objects.filter(pk=clean_prod.pk).exists()
         assert Product.objects.filter(pk=sold_prod.pk).exists()
 
+    def test_patch_variant_stock_qty_is_ignored_for_all_roles(self):
+        """PATCH /api/v1/inventory/variants/{id}/ with {"stock_qty": 999} leaves stock_qty unchanged for all roles."""
+        _, variant = self._create_product_with_variant(name="ReadOnly Stock", initial_stock=5)
+        assert variant.stock_qty == 5
+
+        owner = User.objects.create_user(
+            email="owner-ro@test.com",
+            password="password123",
+            tenant=self.tenant,
+            role=RoleChoices.OWNER,
+        )
+        cashier = User.objects.create_user(
+            email="cashier-ro@test.com",
+            password="password123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+
+        for user in (owner, self.manager, cashier):
+            self.api.force_authenticate(user=user)
+            resp = self.api.patch(
+                f"/api/v1/inventory/variants/{variant.pk}/",
+                {"stock_qty": 999},
+                format="json",
+            )
+            assert resp.status_code in (200, 403), resp.data
+            variant.refresh_from_db()
+            assert variant.stock_qty == 5
+
+
