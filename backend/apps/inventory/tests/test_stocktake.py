@@ -457,5 +457,25 @@ class StocktakeTests(TestCase):
         assert res.status_code == 400
         assert StocktakeSession.objects.filter(id=session.id).exists()
 
+    def test_in_progress_stocktake_status_cannot_be_changed_via_patch(self):
+        """Status is read-only on StocktakeSessionListSerializer and cannot be set directly."""
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Session En Cours",
+            status=StocktakeStatusChoices.IN_PROGRESS,
+            created_by=self.manager,
+        )
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.patch(
+            f"/api/v1/inventory/stocktakes/{session.id}/",
+            {"status": StocktakeStatusChoices.COMPLETED, "title": "Updated Title"},
+            format="json",
+        )
+        assert res.status_code == 200, res.data
+        session.refresh_from_db()
+        assert session.title == "Updated Title"
+        assert session.status == StocktakeStatusChoices.IN_PROGRESS
+
 
 
