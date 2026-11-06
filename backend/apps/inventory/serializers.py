@@ -7,6 +7,18 @@ from apps.core.models import Branch, RoleChoices
 from .models import DefectItem, Product, StockMovement, StockTransfer, Variant, StocktakeSession, StocktakeItem
 
 
+def _can_see_costs(request) -> bool:
+    """Return True if the requesting user is allowed to view cost and purchase prices."""
+    if not request:
+        return True
+    user = getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    return bool(getattr(user, "can_see_costs", False))
+
+
 class VariantSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_brand = serializers.CharField(source="product.brand", read_only=True, default="")
@@ -43,6 +55,13 @@ class VariantSerializer(serializers.ModelSerializer):
         if request and getattr(request, "tenant", None) and value.tenant_id != request.tenant.id:
             raise serializers.ValidationError("Produit introuvable.")
         return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if not _can_see_costs(request):
+            data.pop("purchase_price", None)
+        return data
 
     class Meta:
         model = Variant
@@ -88,7 +107,8 @@ class ProductSerializer(serializers.ModelSerializer):
         if not request:
             return ""
         
-        branch_id = request.query_params.get("branch_id")
+        query_params = getattr(request, "query_params", getattr(request, "GET", {}))
+        branch_id = query_params.get("branch_id")
         if not branch_id and hasattr(request, "data"):
             branch_id = request.data.get("branch_id")
             
@@ -102,7 +122,7 @@ class ProductSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get("request")
         # Hide purchase price and margin from cashiers
-        if request and not request.user.can_see_costs:
+        if not _can_see_costs(request):
             data.pop("purchase_price", None)
             data.pop("pamp", None)
             data.pop("margin_pct", None)
@@ -137,7 +157,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         if not request:
             return ""
 
-        target_branch_id = request.query_params.get("branch_id")
+        query_params = getattr(request, "query_params", getattr(request, "GET", {}))
+        target_branch_id = query_params.get("branch_id")
         if not target_branch_id and getattr(request, "branch", None):
             target_branch_id = str(request.branch.id)
 
@@ -191,7 +212,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
-        if request and not request.user.can_see_costs:
+        if not _can_see_costs(request):
             data.pop("purchase_price", None)
             data.pop("pamp", None)
         return data
@@ -351,6 +372,13 @@ class DefectItemSerializer(serializers.ModelSerializer):
             "id", "created_at", "updated_at", "logged_by", "resolved_by", "resolved_at", "return_claim",
         ]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if not _can_see_costs(request):
+            data.pop("cost_price", None)
+        return data
+
     def get_sale_receipt_number(self, obj) -> str:
         if obj.sale_return and obj.sale_return.original_sale:
             return obj.sale_return.original_sale.receipt_number or f"#{obj.sale_return.original_sale.id}"
@@ -392,6 +420,14 @@ class StocktakeItemSerializer(serializers.ModelSerializer):
             "last_scanned_at", "notes",
         ]
         read_only_fields = ["id", "session", "variant", "expected_qty", "unit_cost", "unit_price"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if not _can_see_costs(request):
+            data.pop("unit_cost", None)
+            data.pop("variance_cost", None)
+        return data
 
     def get_product_image(self, obj) -> str:
         if obj.variant and obj.variant.product and obj.variant.product.image:
@@ -435,6 +471,13 @@ class StocktakeSessionListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if not _can_see_costs(request):
+            data.pop("total_variance_cost", None)
+        return data
 
 
 class StocktakeSessionDetailSerializer(StocktakeSessionListSerializer):
