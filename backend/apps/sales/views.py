@@ -269,7 +269,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         # Cashier check: requires manager PIN or permission
         if request.user.role == "cashier":
             pin = request.data.get("manager_pin", "")
-            mgr = verify_manager_pin_helper(request.tenant, pin)
+            mgr = verify_manager_pin_helper(request.tenant, pin, user=request.user)
             if not mgr and not getattr(request.user, "can_process_returns", False):
                 return Response(
                     {"detail": "Code PIN manager requis pour autoriser l'annulation d'une réservation."},

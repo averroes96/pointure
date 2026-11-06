@@ -127,6 +127,7 @@ def verify_manager_pin_helper(tenant, raw_pin, user=None):
     clean_pin = str(raw_pin).strip()
     for mgr in managers:
         if mgr.check_pin(clean_pin):
+            cache.delete(cache_key)
             return mgr
 
     cache.set(cache_key, failures + 1, timeout=60)
@@ -344,7 +345,7 @@ class CreateSaleSerializer(serializers.Serializer):
                     catalog_price = variant.product.sale_price
                     if item_data["unit_price"] != catalog_price:
                         if not authorized_mgr:
-                            authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                            authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)
                         if not authorized_mgr:
                             raise serializers.ValidationError({
                                 "items": f"Modification du prix de '{variant.product.name}' ({item_data['unit_price']} DA vs {catalog_price} DA) non autorisée. Code PIN manager requis."
@@ -362,7 +363,7 @@ class CreateSaleSerializer(serializers.Serializer):
                     disc_pct = (total_disc / gross_items_total) * Decimal("100")
                     if disc_pct > allowed_pct:
                         if not authorized_mgr:
-                            authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                            authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)
                         if not authorized_mgr:
                             raise serializers.ValidationError({
                                 "cart_discount": f"La remise totale accordée ({disc_pct:.1f}%) dépasse votre limite autorisée ({allowed_pct}%). Code PIN manager requis."
@@ -384,7 +385,7 @@ class CreateSaleSerializer(serializers.Serializer):
             new_balance = client_obj.cached_balance + shortfall
             if client_obj.credit_limit > Decimal("0.00") and new_balance > client_obj.credit_limit:
                 if not authorized_mgr:
-                    authorized_mgr = verify_manager_pin_helper(tenant, pin)
+                    authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)
                 if not authorized_mgr:
                     raise serializers.ValidationError({
                         "credit_limit": (
@@ -698,7 +699,7 @@ class CreateReturnSerializer(serializers.Serializer):
 
         if processed_by and getattr(processed_by, "role", None) == "cashier" and (require_pin or not getattr(processed_by, "can_process_returns", False)):
             pin = data.get("manager_pin", "")
-            mgr = verify_manager_pin_helper(sale.tenant, pin)
+            mgr = verify_manager_pin_helper(sale.tenant, pin, user=processed_by)
             if not mgr:
                 raise serializers.ValidationError({
                     "manager_pin": "Un code PIN manager valide est requis pour autoriser un retour ou remboursement."
@@ -1134,7 +1135,7 @@ class CreateExchangeSerializer(serializers.Serializer):
 
         if current_user and getattr(current_user, "role", None) == "cashier" and (require_pin or not getattr(current_user, "can_process_returns", False)):
             pin = data.get("manager_pin", "")
-            mgr = verify_manager_pin_helper(tenant, pin)
+            mgr = verify_manager_pin_helper(tenant, pin, user=current_user)
             if not mgr:
                 raise serializers.ValidationError({
                     "manager_pin": "Un code PIN manager valide est requis pour autoriser un échange."

@@ -300,3 +300,90 @@ class CashierPermissionsAndPinTests(TestCase):
         # 6th wrong PIN within a minute -> HTTP 429
         res_6 = self.client.post("/api/v1/sales/", payload, format="json")
         self.assertEqual(res_6.status_code, 429)
+
+    def test_in_serializer_manager_pin_rate_limiting_is_isolated_per_user(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        other_cashier = User.objects.create_user(
+            email="cashier2@algerianshoes.dz",
+            password="password123",
+            role=RoleChoices.CASHIER,
+            tenant=self.tenant,
+            max_discount_pct=10,
+        )
+
+        payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "10000.00", "method": "cash"}],
+            "cart_discount": "2000.00",
+            "manager_pin": "9999",
+        }
+
+        # Cashier 1 fails 5 times and gets throttled on 6th
+        self.client.force_authenticate(user=self.cashier)
+        for _ in range(5):
+            res = self.client.post("/api/v1/sales/", payload, format="json")
+            self.assertEqual(res.status_code, 400)
+        res_throttled = self.client.post("/api/v1/sales/", payload, format="json")
+        self.assertEqual(res_throttled.status_code, 429)
+
+        # Cashier 2 is NOT throttled by Cashier 1's failures
+        self.client.force_authenticate(user=other_cashier)
+        res_cashier2 = self.client.post("/api/v1/sales/", payload, format="json")
+        self.assertEqual(res_cashier2.status_code, 400)
+
+    def test_in_serializer_correct_pin_resets_failure_count(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.force_authenticate(user=self.cashier)
+
+        wrong_payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "10000.00", "method": "cash"}],
+            "cart_discount": "2000.00",
+            "manager_pin": "9999",
+        }
+        correct_payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "10000.00", "method": "cash"}],
+            "cart_discount": "2000.00",
+            "manager_pin": "1234",
+        }
+
+        # 3 failures
+        for _ in range(3):
+            res = self.client.post("/api/v1/sales/", wrong_payload, format="json")
+            self.assertEqual(res.status_code, 400)
+
+        # 1 success with correct PIN
+        res_ok = self.client.post("/api/v1/sales/", correct_payload, format="json")
+        self.assertEqual(res_ok.status_code, 201)
+
+        # Counter should be reset: 3 more failures should not trigger 429 (would have been 6 total without reset)
+        for _ in range(3):
+            res = self.client.post("/api/v1/sales/", wrong_payload, format="json")
+            self.assertEqual(res.status_code, 400)
+

@@ -2669,7 +2669,7 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if request.user.role == RoleChoices.CASHIER:
             manager_pin = request.data.get("manager_pin")
             from apps.sales.serializers import verify_manager_pin_helper
-            mgr = verify_manager_pin_helper(request.tenant, manager_pin)
+            mgr = verify_manager_pin_helper(request.tenant, manager_pin, user=request.user)
             if not mgr:
                 return Response(
                     {"error": {"code": "invalid_pin", "message": "Un code PIN manager valide est requis pour valider l'inventaire."}},
