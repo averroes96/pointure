@@ -80,7 +80,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     for line_data in data["lines"]
                 )
                 if data.get("apply_tva"):
-                    estimated_total *= (1 + data.get("tva_rate", Decimal("0.19")))
+                    estimated_total *= (1 + data.get("tva_rate", Decimal("19.00")) / Decimal("100"))
 
                 would_be_balance = client.cached_balance + estimated_total
                 if would_be_balance > client.credit_limit:

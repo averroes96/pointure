@@ -120,6 +120,27 @@ class TestCreditLimitEnforcement:
         )
         assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.data}"
 
+    def test_invoice_creation_tva_multiplier_does_not_multiply_by_20(self):
+        """Invoice of 10000 with 19% TVA is 11900, should pass under 15000 credit limit (not 200000)."""
+        from apps.clients.models import Client
+        client_15k = Client.objects.create(
+            tenant=self.tenant,
+            name="Client 15K Limit",
+            phone="0550000003",
+            credit_limit=Decimal("15000.00"),
+            cached_balance=Decimal("0.00"),
+        )
+        c = _make_client(self.manager)
+        payload = self._invoice_payload(client_15k, "10000.00")
+        payload["apply_tva"] = True
+        payload["tva_rate"] = "19.00"
+        resp = c.post(
+            "/api/v1/invoicing/invoices/",
+            payload,
+            format="json",
+        )
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.data}"
+
     def test_cashier_cannot_force(self):
         """Cashier is blocked even with ?force=true → 403 (cashier cannot create invoices)."""
         c = _make_client(self.cashier)
