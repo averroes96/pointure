@@ -320,3 +320,85 @@ class TestAccountantExportPack:
         assert resp_ar.status_code == 200
         wb_ar = openpyxl.load_workbook(io.BytesIO(resp_ar.content))
         assert len(wb_ar.sheetnames) == 9
+
+    def test_checklist_action_returns_warnings_and_blocking_status(self):
+        """GET /api/v1/closing/years/{id}/checklist/ returns structured checklist."""
+        from apps.sales.models import CashSession, CashSessionStatus
+
+        self.client.force_authenticate(user=self.manager)
+        resp = self.client.get(f"/api/v1/closing/years/{self.fy.id}/checklist/")
+        assert resp.status_code == 200
+        data = resp.data
+        assert "can_close" in data
+        assert "items" in data
+        assert len(data["items"]) == 5
+        assert data["can_close"] is True
+
+        # Create an open cash session started in 2026 -> should become blocking!
+        cs = CashSession.objects.create(
+            tenant=self.tenant,
+            cashier=self.cashier,
+            status=CashSessionStatus.OPEN,
+            session_number=1,
+        )
+        CashSession.objects.filter(pk=cs.pk).update(
+            opened_at=datetime.datetime(2026, 8, 1, 9, 0, tzinfo=self.algiers_tz)
+        )
+
+        resp2 = self.client.get(f"/api/v1/closing/years/{self.fy.id}/checklist/")
+        assert resp2.data["can_close"] is False
+        assert resp2.data["has_blocking"] is True
+        open_session_item = [i for i in resp2.data["items"] if i["key"] == "open_cash_sessions"][0]
+        assert open_session_item["is_blocking"] is True
+        assert open_session_item["count"] >= 1
+
+    def test_close_and_reopen_workflow_permissions(self):
+        """Only owner can close and reopen fiscal years."""
+        # Manager cannot close
+        self.client.force_authenticate(user=self.manager)
+        resp_mgr = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/close/",
+            {"confirm_year": 2026},
+            format="json",
+        )
+        assert resp_mgr.status_code == 403
+
+        # Owner with wrong year receives 400
+        self.client.force_authenticate(user=self.owner)
+        resp_bad_yr = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/close/",
+            {"confirm_year": 1999},
+            format="json",
+        )
+        assert resp_bad_yr.status_code == 400
+        assert resp_bad_yr.data["error"]["code"] == "invalid_confirmation"
+
+        # Owner closes successfully
+        resp_close = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/close/",
+            {"confirm_year": 2026},
+            format="json",
+        )
+        assert resp_close.status_code == 200
+        assert resp_close.data["status"] == "closed"
+        assert resp_close.data["closed_by"] == self.owner.id
+
+        # Reopen without reason fails
+        resp_no_reason = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/reopen/",
+            {"reason": ""},
+            format="json",
+        )
+        assert resp_no_reason.status_code == 400
+        assert resp_no_reason.data["error"]["code"] == "reason_required"
+
+        # Reopen with reason succeeds
+        resp_reopen = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/reopen/",
+            {"reason": "Audit fiscal complémentaire demandé par l'expert"},
+            format="json",
+        )
+        assert resp_reopen.status_code == 200
+        assert resp_reopen.data["status"] == "open"
+        assert resp_reopen.data["reopened_reason"] == "Audit fiscal complémentaire demandé par l'expert"
+

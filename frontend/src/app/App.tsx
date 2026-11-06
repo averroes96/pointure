@@ -97,6 +97,9 @@ const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
 // Promotions
 const PromotionsPage = lazy(() => import("@/features/promotions/PromotionsPage"));
 
+// Fiscal Year Closing
+const FiscalYearPage = lazy(() => import("@/features/closing/FiscalYearPage"));
+
 // UI
 const UpgradePromptModal = lazy(() => import("@/components/ui/UpgradePromptModal"));
 
@@ -220,6 +223,9 @@ function AppRoutes() {
             <Route path="stock" element={<StockReportPage />} />
             <Route path="builder" element={<ReportBuilderPage />} />
           </Route>
+
+          {/* Fiscal Year Closing */}
+          <Route path="closing" element={<FiscalYearPage />} />
 
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
