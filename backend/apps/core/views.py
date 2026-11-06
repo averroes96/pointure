@@ -1,6 +1,7 @@
 """Core API views: profile, users, branches, tenant settings."""
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -110,6 +111,10 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self.require_manager()
+        actor = self.request.user
+        is_owner_or_super = actor.role == RoleChoices.OWNER or actor.is_superuser
+        if serializer.validated_data.get("role") == RoleChoices.OWNER and not is_owner_or_super:
+            raise PermissionDenied("Seul le propriétaire peut créer un compte propriétaire.")
         from apps.core.plan_permissions import check_quota
         check_quota(self.request, "users", User.objects.filter(tenant=self.request.tenant).count())
         # Capture the plain-text password before the serializer hashes it
@@ -123,6 +128,23 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         self.require_manager()
+        actor = self.request.user
+        target = serializer.instance
+        is_owner_or_super = actor.role == RoleChoices.OWNER or actor.is_superuser
+
+        # Non-owners cannot modify an owner account
+        if target.role == RoleChoices.OWNER and not is_owner_or_super:
+            raise PermissionDenied("Seul le propriétaire peut modifier le compte du propriétaire.")
+
+        # Non-owners cannot assign the owner role to anyone (including themselves)
+        new_role = serializer.validated_data.get("role")
+        if new_role == RoleChoices.OWNER and not is_owner_or_super:
+            raise PermissionDenied("Seul le propriétaire peut attribuer le rôle de propriétaire.")
+
+        # Non-owners cannot change their own role
+        if target.pk == actor.pk and "role" in serializer.validated_data and serializer.validated_data["role"] != target.role and not is_owner_or_super:
+            raise PermissionDenied("Vous ne pouvez pas modifier votre propre rôle.")
+
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -171,7 +193,14 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Can be done by the user themselves or by a manager/owner.
         """
         target_user = self.get_object()
-        if request.user.role not in (RoleChoices.OWNER, RoleChoices.MANAGER) and request.user.id != target_user.id:
+        actor = request.user
+        is_owner_or_super = actor.role == RoleChoices.OWNER or actor.is_superuser
+
+        if actor.role not in (RoleChoices.OWNER, RoleChoices.MANAGER) and actor.id != target_user.id:
+            return Response({"error": "Action non autorisée."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Non-owners cannot modify an owner's PIN (unless the owner is modifying their own PIN)
+        if target_user.role == RoleChoices.OWNER and not is_owner_or_super and actor.id != target_user.id:
             return Response({"error": "Action non autorisée."}, status=status.HTTP_403_FORBIDDEN)
 
         pin = request.data.get("pin", "")
@@ -194,6 +223,13 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         self.require_manager()
         target_user = self.get_object()
+        actor = request.user
+        is_owner_or_super = actor.role == RoleChoices.OWNER or actor.is_superuser
+
+        # Non-owners cannot reset an owner's password
+        if target_user.role == RoleChoices.OWNER and not is_owner_or_super:
+            raise PermissionDenied("Seul le propriétaire peut réinitialiser le mot de passe du propriétaire.")
+
         new_password = request.data.get("new_password", "").strip()
         if len(new_password) < 8:
             return Response(

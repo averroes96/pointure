@@ -172,3 +172,128 @@ class TestMeProfilePrivilegeEscalation:
         assert cashier.role == RoleChoices.CASHIER
 
 
+@pytest.mark.django_db
+class TestUserManagementPrivilegeEscalation:
+    """Verifies that a manager cannot reset an owner's password or escalate role to owner via UserViewSet."""
+
+    def setup_method(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.tenant = Tenant.objects.create(name="Escalation Store")
+        self.owner = User.objects.create_user(
+            email="owner@store.com",
+            phone="0550111111",
+            password="ownerpass123",
+            tenant=self.tenant,
+            role=RoleChoices.OWNER,
+        )
+        self.manager = User.objects.create_user(
+            email="manager@store.com",
+            phone="0550222222",
+            password="managerpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier@store.com",
+            phone="0550333333",
+            password="cashierpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+
+    def test_manager_cannot_reset_owner_password(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.post(
+            f"/api/v1/core/users/{self.owner.id}/reset-password/",
+            {"new_password": "hijackedpassword123"},
+            format="json",
+        )
+        assert res.status_code == 403
+        self.owner.refresh_from_db()
+        assert self.owner.check_password("ownerpass123")
+        assert not self.owner.check_password("hijackedpassword123")
+
+    def test_manager_cannot_patch_own_role_to_owner(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.patch(
+            f"/api/v1/core/users/{self.manager.id}/",
+            {"role": RoleChoices.OWNER},
+            format="json",
+        )
+        assert res.status_code == 403
+        self.manager.refresh_from_db()
+        assert self.manager.role == RoleChoices.MANAGER
+
+    def test_manager_cannot_modify_owner_account(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.patch(
+            f"/api/v1/core/users/{self.owner.id}/",
+            {"first_name": "Tampered", "is_active": False},
+            format="json",
+        )
+        assert res.status_code == 403
+        self.owner.refresh_from_db()
+        assert self.owner.first_name != "Tampered"
+        assert self.owner.is_active is True
+
+    def test_manager_cannot_create_owner_user(self):
+        self.client.force_authenticate(user=self.manager)
+        payload = {
+            "phone": "0550444444",
+            "first_name": "Second",
+            "last_name": "Owner",
+            "password": "newpassword123",
+            "confirm_password": "newpassword123",
+            "role": RoleChoices.OWNER,
+        }
+        res = self.client.post("/api/v1/core/users/", payload, format="json")
+        assert res.status_code == 403
+        assert not User.objects.filter(phone="+213550444444").exists()
+
+    def test_manager_cannot_set_owner_pin(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.post(
+            f"/api/v1/core/users/{self.owner.id}/set-pin/",
+            {"pin": "9999"},
+            format="json",
+        )
+        assert res.status_code == 403
+        self.owner.refresh_from_db()
+        assert not self.owner.check_pin("9999")
+
+    def test_manager_cannot_change_own_role(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.patch(
+            f"/api/v1/core/users/{self.manager.id}/",
+            {"role": RoleChoices.CASHIER},
+            format="json",
+        )
+        assert res.status_code == 403
+        self.manager.refresh_from_db()
+        assert self.manager.role == RoleChoices.MANAGER
+
+    def test_owner_can_reset_manager_and_cashier_password(self):
+        self.client.force_authenticate(user=self.owner)
+        res = self.client.post(
+            f"/api/v1/core/users/{self.manager.id}/reset-password/",
+            {"new_password": "newmanagerpass123"},
+            format="json",
+        )
+        assert res.status_code == 200
+        self.manager.refresh_from_db()
+        assert self.manager.check_password("newmanagerpass123")
+
+    def test_manager_can_reset_cashier_password(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.post(
+            f"/api/v1/core/users/{self.cashier.id}/reset-password/",
+            {"new_password": "newcashierpass123"},
+            format="json",
+        )
+        assert res.status_code == 200
+        self.cashier.refresh_from_db()
+        assert self.cashier.check_password("newcashierpass123")
+
+
+
