@@ -13,6 +13,37 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+PLACEHOLDER_PDF_SIGNATURE = b"% Desktop PDF placeholder"
+PLACEHOLDER_PDF_BYTES = b"%PDF-1.4\n% Desktop PDF placeholder\n"
+
+
+def is_placeholder_pdf(content) -> bool:
+    """
+    Check if the provided PDF bytes or file-like object represent a placeholder or empty content.
+    Returns True if content is empty or contains known placeholder signatures.
+    """
+    if not content:
+        return True
+    if hasattr(content, "read"):
+        try:
+            pos = content.tell() if hasattr(content, "tell") else 0
+            header = content.read(512)
+            if hasattr(content, "seek"):
+                content.seek(pos)
+            content = header
+        except Exception:
+            return True
+    if isinstance(content, memoryview):
+        content = content.tobytes()
+    elif isinstance(content, str):
+        content = content.encode("utf-8", errors="ignore")
+    return (
+        PLACEHOLDER_PDF_SIGNATURE in content
+        or b"%PDF-1.0 placeholder" in content
+        or b"% Desktop PDF placeholder" in content
+        or b"placeholder" in content[:200].lower()
+    )
+
 
 def render_html_to_pdf(html_string: str, options: dict = None) -> bytes:
     """
@@ -64,4 +95,4 @@ def render_html_to_pdf(html_string: str, options: dict = None) -> bytes:
         return HTML(string=html_string, base_url=".").write_pdf()
     except (ImportError, OSError):
         logger.error("Neither Electron PDF bridge nor WeasyPrint is available.")
-        return b"%PDF-1.4\n% Desktop PDF placeholder\n"
+        return PLACEHOLDER_PDF_BYTES

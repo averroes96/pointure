@@ -1,5 +1,8 @@
 """Invoicing API views."""
+import logging
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 from django.db import transaction
 from django.http import FileResponse, HttpResponse
@@ -321,27 +324,41 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def pdf(self, request, pk=None):
         """Download or stream the invoice PDF."""
         invoice = self.get_object()
+        from apps.core.desktop.pdf_client import is_placeholder_pdf
         if invoice.pdf_file:
             try:
-                return FileResponse(
-                    invoice.pdf_file.open("rb"),
-                    content_type="application/pdf",
-                    as_attachment=False,
-                    filename=f"invoice-{invoice.number or invoice.pk}.pdf",
-                )
+                f = invoice.pdf_file.open("rb")
+                header = f.read(512)
+                f.seek(0)
+                if not is_placeholder_pdf(header):
+                    return FileResponse(
+                        f,
+                        content_type="application/pdf",
+                        as_attachment=False,
+                        filename=f"invoice-{invoice.number or invoice.pk}.pdf",
+                    )
+                logger.info("Cached PDF for invoice %s is a placeholder; regenerating.", invoice.pk)
+                try:
+                    invoice.pdf_file.delete(save=False)
+                except Exception:
+                    pass
+                Invoice.objects.filter(pk=invoice.pk).update(pdf_file=None)
+                invoice.pdf_file = None
             except Exception:
                 pass
 
-        # Generate synchronously on demand and persist if empty
+        # Generate synchronously on demand and persist if valid (not placeholder)
         from django.core.files.base import ContentFile
         from .pdf import render_invoice_pdf
         lang = request.query_params.get("lang", "fr")
         pdf_bytes = render_invoice_pdf(invoice, language=lang)
-        filename = f"invoices/pdf/invoice-{invoice.number or invoice.pk}.pdf"
-        try:
-            invoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
-        except Exception:
-            pass
+        if not is_placeholder_pdf(pdf_bytes):
+            filename = f"invoices/pdf/invoice-{invoice.number or invoice.pk}.pdf"
+            try:
+                invoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+                Invoice.objects.filter(pk=invoice.pk).update(pdf_file=invoice.pdf_file.name)
+            except Exception:
+                pass
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = (
             f'inline; filename="invoice-{invoice.number or invoice.pk}.pdf"'
@@ -416,20 +433,34 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
         dn = self.get_object()
+        from apps.core.desktop.pdf_client import is_placeholder_pdf
         if dn.pdf_file:
             try:
-                return FileResponse(dn.pdf_file.open("rb"), content_type="application/pdf")
+                f = dn.pdf_file.open("rb")
+                header = f.read(512)
+                f.seek(0)
+                if not is_placeholder_pdf(header):
+                    return FileResponse(f, content_type="application/pdf")
+                logger.info("Cached PDF for delivery note %s is a placeholder; regenerating.", dn.pk)
+                try:
+                    dn.pdf_file.delete(save=False)
+                except Exception:
+                    pass
+                DeliveryNote.objects.filter(pk=dn.pk).update(pdf_file=None)
+                dn.pdf_file = None
             except Exception:
                 pass
         from django.core.files.base import ContentFile
         from .pdf import render_delivery_note_pdf
         lang = request.query_params.get("lang", "fr")
         pdf_bytes = render_delivery_note_pdf(dn, language=lang)
-        filename = f"delivery_notes/pdf/bl-{dn.number}.pdf"
-        try:
-            dn.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
-        except Exception:
-            pass
+        if not is_placeholder_pdf(pdf_bytes):
+            filename = f"delivery_notes/pdf/bl-{dn.number}.pdf"
+            try:
+                dn.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+                DeliveryNote.objects.filter(pk=dn.pk).update(pdf_file=dn.pdf_file.name)
+            except Exception:
+                pass
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="bl-{dn.number}.pdf"'
         return response
