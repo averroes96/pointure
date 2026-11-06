@@ -46,7 +46,9 @@ class BulkPriceUpdateTests(TestCase):
 
     def tearDown(self):
         from apps.core.signals import set_current_user
+        from apps.core.managers import clear_current_tenant
         set_current_user(None)
+        clear_current_tenant()
 
     def test_percentage_increase_with_rounding_nearest_100(self):
         view = ProductViewSet.as_view({"post": "bulk_price_update"})

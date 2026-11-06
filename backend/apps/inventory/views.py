@@ -1701,8 +1701,71 @@ def _shelf_labels_page(
 class VariantViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Variant.objects.select_related("product")
     serializer_class = VariantSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "list": ALL_ROLES,
+        "retrieve": ALL_ROLES,
+        "barcode_label": ALL_ROLES,
+        "batch_barcode_labels": ALL_ROLES,
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "default": MANAGER_OR_OWNER,
+    }
     filterset_fields = ["product", "size_eu", "colour", "is_active"]
     search_fields = ["barcode", "colour", "product__name", "product__brand", "product__reference"]
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a variant only when it has no transaction history.
+        Refuse with HTTP 400 and advise deactivating (is_active=False) if referenced in
+        stock movements, sales, returns, transfers, defects, invoices, or POs.
+        """
+        self.require_manager()
+        variant = self.get_object()
+
+        from django.db.models import ProtectedError
+        from apps.invoicing.models import InvoiceLine
+        from apps.suppliers.models import POLine
+
+        has_movements = variant.movements.exists()
+        has_sales = variant.sale_items.exists()
+        has_returns = variant.return_items.exists()
+        has_transfers = variant.transfers.exists()
+        has_defects = variant.defects.exists()
+        has_invoices = InvoiceLine.objects.filter(variant=variant).exists()
+        has_pos = POLine.objects.filter(variant=variant).exists()
+
+        if has_movements or has_sales or has_returns or has_transfers or has_defects or has_invoices or has_pos:
+            return Response(
+                {
+                    "error": {
+                        "code": "has_history",
+                        "message": (
+                            "Cette variante possède un historique de transactions et ne peut pas être "
+                            "supprimée. Veuillez la désactiver (is_active=False) pour la retirer de la vente."
+                        ),
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {
+                    "error": {
+                        "code": "has_history",
+                        "message": (
+                            "Cette variante est liée à d'autres enregistrements et ne peut pas être "
+                            "supprimée. Veuillez la désactiver (is_active=False)."
+                        ),
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def get_queryset(self):
         from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value

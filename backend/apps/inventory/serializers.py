@@ -36,6 +36,14 @@ class VariantSerializer(serializers.ModelSerializer):
     def get_is_out_of_stock(self, obj):
         return self._effective_stock(obj) <= 0
 
+    def validate_product(self, value):
+        if self.instance and value != self.instance.product:
+            raise serializers.ValidationError("Le produit d'une variante ne peut pas être modifié.")
+        request = self.context.get("request")
+        if request and getattr(request, "tenant", None) and value.tenant_id != request.tenant.id:
+            raise serializers.ValidationError("Produit introuvable.")
+        return value
+
     class Meta:
         model = Variant
         fields = [

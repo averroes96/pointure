@@ -288,3 +288,107 @@ class TestInventoryRBACAndGuards:
         res_d2_wo = self.api.post(f"/api/v1/inventory/defects/{d2.pk}/resolve-write-off/")
         assert res_d2_wo.status_code == 400
 
+    # ── VariantViewSet RBAC & Repointing / Deletion Guards ──────────
+
+    def test_cashier_gets_403_on_variant_write_actions(self):
+        self.api.force_authenticate(user=self.cashier)
+
+        # List is allowed
+        res_list = self.api.get("/api/v1/inventory/variants/")
+        assert res_list.status_code == 200
+
+        # Create -> 403
+        res_create = self.api.post(
+            "/api/v1/inventory/variants/",
+            {
+                "product": str(self.product.pk),
+                "size_eu": 43,
+                "colour": "Bleu",
+            },
+            format="json",
+        )
+        assert res_create.status_code == 403
+
+        # Update (PUT) -> 403
+        res_put = self.api.put(
+            f"/api/v1/inventory/variants/{self.variant.pk}/",
+            {
+                "product": str(self.product.pk),
+                "size_eu": 42,
+                "colour": "Noir",
+                "barcode": "HACKED123",
+            },
+            format="json",
+        )
+        assert res_put.status_code == 403
+
+        # Partial update (PATCH) -> 403
+        res_patch = self.api.patch(
+            f"/api/v1/inventory/variants/{self.variant.pk}/",
+            {"barcode": "HACKED123"},
+            format="json",
+        )
+        assert res_patch.status_code == 403
+
+        # Destroy (DELETE) -> 403
+        res_del = self.api.delete(f"/api/v1/inventory/variants/{self.variant.pk}/")
+        assert res_del.status_code == 403
+
+    def test_cannot_repoint_variant_to_different_product(self):
+        cheaper_product = Product.objects.create(
+            tenant=self.tenant,
+            name="Cheap Slipper",
+            brand="Generic",
+            category=CategoryChoices.SLIPPERS,
+            sale_price=Decimal("500.00"),
+            purchase_price=Decimal("200.00"),
+        )
+        self.api.force_authenticate(user=self.manager)
+
+        # Attempt to repoint variant to cheaper_product via PATCH
+        res_patch = self.api.patch(
+            f"/api/v1/inventory/variants/{self.variant.pk}/",
+            {"product": str(cheaper_product.pk)},
+            format="json",
+        )
+        assert res_patch.status_code == 400
+        self.variant.refresh_from_db()
+        assert self.variant.product == self.product
+
+        # Attempt to repoint variant to cheaper_product via PUT
+        res_put = self.api.put(
+            f"/api/v1/inventory/variants/{self.variant.pk}/",
+            {
+                "product": str(cheaper_product.pk),
+                "size_eu": 42,
+                "colour": "Noir",
+            },
+            format="json",
+        )
+        assert res_put.status_code == 400
+        self.variant.refresh_from_db()
+        assert self.variant.product == self.product
+
+    def test_cannot_delete_variant_with_transaction_history(self):
+        self.api.force_authenticate(user=self.manager)
+
+        # self.variant has a StockMovement in setup()
+        assert self.variant.movements.exists()
+
+        res_del = self.api.delete(f"/api/v1/inventory/variants/{self.variant.pk}/")
+        assert res_del.status_code == 400
+        assert res_del.data["error"]["code"] == "has_history"
+        assert Variant.objects.filter(pk=self.variant.pk).exists()
+
+        # An unused variant with 0 movements can be deleted
+        clean_variant = Variant.objects.create(
+            tenant=self.tenant,
+            product=self.product,
+            size_eu=45,
+            colour="Blanc",
+        )
+        res_del_clean = self.api.delete(f"/api/v1/inventory/variants/{clean_variant.pk}/")
+        assert res_del_clean.status_code == 204
+        assert not Variant.objects.filter(pk=clean_variant.pk).exists()
+
+
