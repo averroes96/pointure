@@ -1,0 +1,243 @@
+{% extends "pdf/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Fiscal Year Summary" %} {{ fiscal_year.year }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="company-name">{{ tenant.name }}</div>
+    <div class="company-details">
+      {% if tenant.address %}{{ tenant.address }}<br>{% endif %}
+      {% if tenant.wilaya %}Wilaya {{ tenant.wilaya }}<br>{% endif %}
+      {% if tenant.phone %}{% trans "Phone" %}: {{ tenant.phone }}<br>{% endif %}
+      {% if tenant.nif %}NIF: {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC: {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI: {{ tenant.ai }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.nis %}NIS: {{ tenant.nis }}{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="doc-title">{% trans "EXERCICE FISCAL" %} {{ fiscal_year.year }}</div>
+    <div class="doc-meta">
+      <strong>{% trans "Synthèse de Clôture Annuelle" %}</strong><br>
+      {% trans "Du" %} {{ fiscal_year.start_date|date:"d/m/Y" }} {% trans "au" %} {{ fiscal_year.end_date|date:"d/m/Y" }}<br>
+      <span class="status-badge {% if fiscal_year.is_closed %}status-paid{% else %}status-sent{% endif %}">
+        {{ fiscal_year.get_status_display }}
+      </span>
+      {% if fiscal_year.is_closed and fiscal_year.closed_at %}
+        <br><small>{% trans "Clôturé le" %}: {{ fiscal_year.closed_at|date:"d/m/Y H:i" }}</small>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .section-heading {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1A4A8A;
+    border-bottom: 1.5px solid #1A4A8A;
+    padding-bottom: 1.5mm;
+    margin-top: 4mm;
+    margin-bottom: 2.5mm;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .grid-2 {
+    display: flex;
+    justify-content: space-between;
+    gap: 6mm;
+    margin-bottom: 3mm;
+  }
+  .grid-col {
+    flex: 1;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2mm;
+    font-size: 8.5pt;
+  }
+  .summary-table td {
+    padding: 1.5mm 2mm;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .summary-table tr:nth-child(even) {
+    background-color: #F8F9FC;
+  }
+  .summary-table td.label-cell {
+    font-weight: 600;
+    color: #334155;
+    width: 60%;
+  }
+  .summary-table td.val-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .summary-table tr.highlight-row {
+    background-color: #EEF2F6;
+    font-weight: 700;
+  }
+  .summary-table tr.highlight-row td {
+    font-weight: 700;
+    color: #0F172A;
+    border-top: 1px solid #CBD5E1;
+  }
+  .signature-box {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8mm;
+    padding-top: 4mm;
+    border-top: 1px dashed #CBD5E1;
+    font-size: 8.5pt;
+  }
+  .sig-col {
+    width: 45%;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    padding: 3mm 4mm;
+    height: 24mm;
+  }
+  .sig-title {
+    font-weight: 700;
+    color: #1A4A8A;
+    margin-bottom: 1mm;
+  }
+</style>
+
+<!-- Grid Section 1: Financial & Sales Summary -->
+<div class="grid-2">
+  <div class="grid-col">
+    <div class="section-heading">{% trans "1. Activité Commerciale & Ventes" %}</div>
+    <table class="summary-table">
+      <tbody>
+        <tr>
+          <td class="label-cell">{% trans "Ventes Caisse (TTC)" %} ({{ sales.count|default:0 }})</td>
+          <td class="val-cell">{{ sales.revenue|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Timbre fiscal Ventes" %}</td>
+          <td class="val-cell">{{ sales.timbre_fiscal|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Factures Gros (HT)" %} ({{ invoices.count|default:0 }})</td>
+          <td class="val-cell">{{ invoices.total_ht|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "TVA sur factures" %}</td>
+          <td class="val-cell">{{ invoices.tva_amount|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Avoirs déduits (HT)" %} ({{ credit_notes.count|default:0 }})</td>
+          <td class="val-cell">-{{ credit_notes.total_ht|default:"0.00" }} DZD</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Chiffre d'Affaires Net (HT)" %}</td>
+          <td class="val-cell">{{ financial_summary.net_revenue_ht|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Coût des Marchandises (COGS)" %}</td>
+          <td class="val-cell">{{ financial_summary.cogs|default:"0.00" }} DZD</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Marge Brute Réalisée" %} ({{ financial_summary.gross_margin_pct|default:"0.0" }}%)</td>
+          <td class="val-cell">{{ financial_summary.gross_margin|default:"0.00" }} DZD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-col">
+    <div class="section-heading">{% trans "2. Stocks & Inventaire (au 31/12)" %}</div>
+    <table class="summary-table">
+      <tbody>
+        <tr>
+          <td class="label-cell">{% trans "Références distinctes (SKU)" %}</td>
+          <td class="val-cell">{{ stock_summary.sku_count|default:0 }}</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Unités totales en stock" %}</td>
+          <td class="val-cell">{{ stock_summary.total_units|default:0 }} {% trans "paires" %}</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Valeur d'Achat Totale (PAMP)" %}</td>
+          <td class="val-cell">{{ stock_summary.total_cost_value|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Valeur Vente Détail (TTC)" %}</td>
+          <td class="val-cell">{{ stock_summary.total_retail_value|default:"0.00" }} DZD</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-heading" style="margin-top: 3.5mm;">{% trans "3. Fiscalité Collectée" %}</div>
+    <table class="summary-table">
+      <tbody>
+        <tr>
+          <td class="label-cell">{% trans "TVA Nette Facturée" %}</td>
+          <td class="val-cell">{{ financial_summary.tva_amount|default:"0.00" }} DZD</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Timbre Fiscal Global" %}</td>
+          <td class="val-cell">{{ financial_summary.timbre_fiscal|default:"0.00" }} DZD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Grid Section 2: Balances & Cheques -->
+<div class="grid-2">
+  <div class="grid-col">
+    <div class="section-heading">{% trans "4. Créances & Dettes" %}</div>
+    <table class="summary-table">
+      <tbody>
+        <tr>
+          <td class="label-cell">{% trans "Créances Clients (Solde Dû)" %}</td>
+          <td class="val-cell">{{ balance_summary.client_debt_total|default:"0.00" }} DZD</td>
+        </tr>
+        <tr>
+          <td class="label-cell">{% trans "Avances Clients (Crédits)" %}</td>
+          <td class="val-cell">{{ balance_summary.client_credit_total|default:"0.00" }} DZD</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Dettes Fournisseurs Restantes" %}</td>
+          <td class="val-cell">{{ balance_summary.supplier_debt_total|default:"0.00" }} DZD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-col">
+    <div class="section-heading">{% trans "5. Chèques en Circulation" %}</div>
+    <table class="summary-table">
+      <tbody>
+        <tr>
+          <td class="label-cell">{% trans "Chèques Clients à Encaisser" %}</td>
+          <td class="val-cell">{{ pending_cheques.receivable_total|default:"0.00" }} DZD</td>
+        </tr>
+        <tr class="highlight-row">
+          <td class="label-cell">{% trans "Chèques Fournisseurs Émis" %}</td>
+          <td class="val-cell">{{ pending_cheques.payable_total|default:"0.00" }} DZD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Signatures -->
+<div class="signature-box">
+  <div class="sig-col">
+    <div class="sig-title">{% trans "Visa du Gérant / Propriétaire" %}</div>
+    <small style="color: #64748B;">{% trans "Date & Signature" %}:</small>
+  </div>
+  <div class="sig-col">
+    <div class="sig-title">{% trans "Visa de l'Expert-Comptable" %}</div>
+    <small style="color: #64748B;">{% trans "Date, Cachet & Signature" %}:</small>
+  </div>
+</div>
+{% endblock %}
+
