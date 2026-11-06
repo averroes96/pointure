@@ -136,6 +136,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def add_payment(self, request, pk=None):
         """Add a payment to a partially_paid or layaway sale."""
         sale = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
         if sale.status not in ("partially_paid", "layaway"):
             return Response(
                 {"detail": "Seules les ventes en cours de versement ou réservation acceptent des paiements supplémentaires."},
@@ -184,6 +186,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def collect_layaway(self, request, pk=None):
         """Complete and collect a layaway sale (customer pays balance and picks up items)."""
         sale = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
         if not sale.is_layaway or sale.status != "layaway":
             return Response(
                 {"detail": "Cette vente n'est pas une réservation en attente de retrait."},
@@ -259,6 +263,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def cancel_layaway(self, request, pk=None):
         """Cancel a layaway sale, releasing locked stock back into shelf inventory."""
         sale = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
         if not sale.is_layaway or sale.status != "layaway":
             return Response(
                 {"detail": "Seule une réservation en cours peut être annulée ici."},
@@ -335,6 +341,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         sale_ref = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale_ref.tenant, timezone.localdate())
         refund_deposit = self._parse_bool(request.data.get("refund_deposit"), True)
         deposit_forfeited = self._parse_bool(request.data.get("deposit_forfeited"), False)
         notes = request.data.get("notes", "")
@@ -423,6 +431,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def returns(self, request, pk=None):
         """Process a return for this sale."""
         sale = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
         if sale.status == "refunded":
             return Response(
                 {"detail": "Cette vente a déjà été entièrement remboursée."},
@@ -448,6 +458,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def exchange(self, request, pk=None):
         """Process a return-as-exchange for this sale."""
         sale = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
         if sale.status == "refunded":
             return Response(
                 {"detail": "Cette vente a déjà été entièrement remboursée."},

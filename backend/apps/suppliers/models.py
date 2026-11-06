@@ -134,6 +134,12 @@ class SupplierInvoice(TenantScopedModel):
     def __str__(self):
         return f"Supplier Invoice {self.invoice_number} — {self.supplier}"
 
+    def save(self, *args, **kwargs):
+        if self.date:
+            from apps.closing.services.lock import assert_period_open
+            assert_period_open(self.tenant, self.date)
+        super().save(*args, **kwargs)
+
 
 class SupplierPayment(TenantScopedModel):
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="payments")
@@ -149,3 +155,9 @@ class SupplierPayment(TenantScopedModel):
     notes = models.TextField(blank=True)
     recorded_by = models.ForeignKey("core.User", on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.date:
+            from apps.closing.services.lock import assert_period_open
+            assert_period_open(self.tenant, self.date)
+        super().save(*args, **kwargs)

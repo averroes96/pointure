@@ -1897,6 +1897,8 @@ class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewS
     def adjust(self, request):
         """Manual stock adjustment (manager+ only)."""
         self.require_manager()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant)
 
         serializer = StockAdjustmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1936,6 +1938,8 @@ class StockMovementViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewS
         }
         """
         self.require_manager()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant)
 
         serializer = BulkStockAdjustmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2650,6 +2654,8 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
           expected_qty = counted_qty so the session remains IN_PROGRESS for multi-day / zone-by-zone scanning.
         """
         session = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant)
         if session.status in (StocktakeStatusChoices.COMPLETED, StocktakeStatusChoices.CANCELLED):
             return Response(
                 {

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX,
+  Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Calendar,
   Menu, Keyboard, Download, ArrowRight, Trash2, Sun, Moon, Monitor, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -36,6 +36,7 @@ const NOTIF_ICON: Record<string, LucideIcon> = {
   cheque_due: CreditCard,
   low_stock: AlertTriangle,
   invoice_overdue: FileX,
+  closing_reminder: Calendar,
   general: Bell,
 };
 
@@ -43,6 +44,7 @@ const NOTIF_ACCENT: Record<string, string> = {
   cheque_due: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
   low_stock: "text-orange-500 bg-orange-50 dark:bg-orange-950/40",
   invoice_overdue: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
+  closing_reminder: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40",
   general: "text-blue-500 bg-blue-50 dark:bg-blue-950/40",
 };
 
@@ -111,6 +113,8 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
       navigate("/inventory/low-stock");
     } else if (notif.type === "cheque_due") {
       navigate("/cheques");
+    } else if (notif.type === "closing_reminder") {
+      navigate("/closing");
     } else if (notif.type === "invoice_overdue") {
       if (notif.related_object_id) {
         navigate(`/invoices/${notif.related_object_id}/edit`);

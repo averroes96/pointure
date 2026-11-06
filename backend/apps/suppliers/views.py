@@ -825,6 +825,9 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from apps.core.models import Branch
 
         po = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant)
+
         if po.status == POStatusChoices.CANCELLED:
             return Response(
                 {"detail": "Impossible de réceptionner une commande annulée."},
@@ -892,7 +895,17 @@ class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering = ["-date"]
 
     def perform_create(self, serializer):
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
         serializer.save(tenant=self.request.tenant)
+
+    def perform_update(self, serializer):
+        from apps.closing.services.lock import assert_period_open
+        if self.get_object().date:
+            assert_period_open(self.request.tenant, self.get_object().date)
+        if serializer.validated_data.get("date"):
+            assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
+        serializer.save()
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
@@ -917,7 +930,17 @@ class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     ordering = ["-date"]
 
     def perform_create(self, serializer):
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
         serializer.save(tenant=self.request.tenant, recorded_by=self.request.user)
+
+    def perform_update(self, serializer):
+        from apps.closing.services.lock import assert_period_open
+        if self.get_object().date:
+            assert_period_open(self.request.tenant, self.get_object().date)
+        if serializer.validated_data.get("date"):
+            assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
+        serializer.save()
 
 
 class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
