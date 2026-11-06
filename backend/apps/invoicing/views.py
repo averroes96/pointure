@@ -463,6 +463,14 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if data.get("branch_id"):
                 from apps.core.models import Branch
                 branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant)
+            elif getattr(request.user, "default_branch", None):
+                branch = request.user.default_branch
+            else:
+                from apps.core.models import Branch
+                branch = (
+                    Branch.objects.filter(tenant=request.tenant, is_headquarters=True).first()
+                    or Branch.objects.filter(tenant=request.tenant).first()
+                )
 
             # Check credit limit
             estimated_total = sum(

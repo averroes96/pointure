@@ -170,6 +170,8 @@ class Invoice(TenantScopedModel):
 
     def _deduct_inventory(self, lines=None, user=None):
         """Deduct stock for all invoice lines. Called on create/confirm for non-draft invoices."""
+        if not self.branch:
+            return
         from apps.inventory.models import StockMovement
         for line in (lines or self.lines.all()):
             if line.variant:
@@ -190,7 +192,18 @@ class Invoice(TenantScopedModel):
 
     def _restore_inventory(self, lines=None, ref_prefix="CANCEL", user=None):
         """Restore stock for all invoice lines. Called on cancel/edit."""
+        if not self.branch:
+            return
         from apps.inventory.models import StockMovement
+        # Guard against phantom stock: only restore if stock was actually deducted for this invoice
+        has_deductions = StockMovement.objects.filter(
+            reference_id=self.number or str(self.pk),
+            reference_type="invoice",
+            reason="sale",
+        ).exists()
+        if not has_deductions:
+            return
+
         for line in (lines or self.lines.all()):
             if line.variant:
                 StockMovement.objects.create(

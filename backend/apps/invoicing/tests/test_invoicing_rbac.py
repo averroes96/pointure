@@ -257,12 +257,18 @@ class TestRegrouperDeliveryNotes:
     def setup(self, db, monkeypatch):
         from decimal import Decimal
         from apps.clients.models import Client
-        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.core.models import Branch, PlanChoices, RoleChoices, Tenant, User
         from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
 
         monkeypatch.setattr("apps.invoicing.pdf.render_invoice_pdf", lambda *a, **kw: b"%PDF-mock")
 
         self.tenant = Tenant.objects.create(name="Wholesale Regroup Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.branch = Branch.objects.create(
+            tenant=self.tenant,
+            name="Siège Principal",
+            is_headquarters=True,
+            is_active=True,
+        )
         self.manager = User.objects.create_user(
             email="mgr@regroup.com",
             password="testpass123",
@@ -289,6 +295,7 @@ class TestRegrouperDeliveryNotes:
         )
         StockMovement.objects.create(
             tenant=self.tenant,
+            branch=self.branch,
             variant=self.variant,
             quantity_delta=10,
             reason=MovementReasonChoices.INITIAL,
@@ -459,5 +466,120 @@ class TestInvoiceUpdateDestroyAndDeliveryNoteRBAC:
         res_del = c_mgr.delete(f"/api/v1/invoicing/delivery-notes/{self.delivery_note.pk}/")
         assert res_del.status_code == 204
         assert not DeliveryNote.objects.filter(pk=self.delivery_note.pk).exists()
+
+
+@pytest.mark.django_db
+class TestInvoiceBranchInventoryGuards:
+    """Verifies that invoices without a branch do not deduct or restore phantom stock."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db, monkeypatch):
+        from decimal import Decimal
+        from apps.clients.models import Client
+        from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+        from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
+        from apps.invoicing.models import Invoice, InvoiceLine
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_invoice_pdf", lambda *a, **kw: b"%PDF-mock")
+
+        self.tenant = Tenant.objects.create(name="Branch Guard Test Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="mgr@guard.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.client_obj = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Guard",
+            phone="0555998877",
+        )
+        self.product = Product.objects.create(
+            tenant=self.tenant,
+            name="Bottine Cuir",
+            sale_price=Decimal("5000.00"),
+            purchase_price=Decimal("3000.00"),
+        )
+        self.variant = Variant.objects.create(
+            tenant=self.tenant,
+            product=self.product,
+            size_eu=40,
+            colour="Noir",
+        )
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.variant,
+            quantity_delta=10,
+            reason=MovementReasonChoices.INITIAL,
+            user=self.manager,
+        )
+        self.variant.refresh_stock()
+        assert self.variant.stock_qty == 10
+
+    def test_cancelling_old_branchless_invoice_does_not_restore_phantom_stock(self):
+        """Cancelling an old branchless invoice (which never deducted stock) must not create phantom return movements."""
+        from decimal import Decimal
+        from apps.invoicing.models import Invoice, InvoiceLine
+        from apps.inventory.models import StockMovement
+
+        # An old branchless invoice in SENT status created before Task 1.8 with NO StockMovement records
+        invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            branch=None,
+            number="FA-OLD-001",
+            date=_today(),
+            due_date=_due(),
+            status="sent",
+        )
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            variant=self.variant,
+            description="Bottine Cuir 40",
+            quantity=Decimal("4"),
+            unit_price=Decimal("5000.00"),
+        )
+        assert self.variant.stock_qty == 10
+        assert not StockMovement.objects.filter(reference_id=invoice.number).exists()
+
+        # Cancel the invoice
+        c = _make_client(self.manager)
+        resp = c.post(f"/api/v1/invoicing/invoices/{invoice.pk}/cancel/", {}, format="json")
+        assert resp.status_code == 200, resp.data
+
+        # Stock must STILL be 10, NOT 14!
+        self.variant.refresh_from_db()
+        assert self.variant.stock_qty == 10
+        assert not StockMovement.objects.filter(reference_id=invoice.number, reason="return").exists()
+
+    def test_branchless_invoice_does_not_deduct_inventory_on_confirm(self):
+        """Invoices without a branch must not deduct inventory on confirm."""
+        from decimal import Decimal
+        from apps.invoicing.models import Invoice, InvoiceLine
+        from apps.inventory.models import StockMovement
+
+        invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            branch=None,
+            date=_today(),
+            due_date=_due(),
+            status="draft",
+        )
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            variant=self.variant,
+            description="Bottine Cuir 40",
+            quantity=Decimal("3"),
+            unit_price=Decimal("5000.00"),
+        )
+        assert self.variant.stock_qty == 10
+
+        invoice.confirm(user=self.manager)
+        self.variant.refresh_from_db()
+        # Without a branch, stock must NOT be deducted
+        assert self.variant.stock_qty == 10
+        assert not StockMovement.objects.filter(reference_id=invoice.number, reason="sale").exists()
+
 
 
