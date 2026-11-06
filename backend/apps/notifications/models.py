@@ -9,6 +9,7 @@ class Notification(TenantScopedModel):
         CHEQUE_DUE = "cheque_due", "Cheque Due"
         LOW_STOCK = "low_stock", "Low Stock"
         INVOICE_OVERDUE = "invoice_overdue", "Invoice Overdue"
+        CLOSING_REMINDER = "closing_reminder", "Closing Reminder"
         GENERAL = "general", "General"
 
     user = models.ForeignKey("core.User", on_delete=models.CASCADE, related_name="notifications")

@@ -129,3 +129,12 @@ def check_low_stock():
                 created_count += 1
 
     logger.info(f"Low stock check complete. {created_count} new notifications created.")
+
+
+@shared_task(queue="notifications")
+def check_closing_reminders_task():
+    """Daily task to trigger fiscal year closing reminders for owners."""
+    from apps.closing.services.reminder import check_closing_reminders
+    notifications = check_closing_reminders()
+    logger.info(f"Closing reminders check complete. {len(notifications)} notifications created.")
+
