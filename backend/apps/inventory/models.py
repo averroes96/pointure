@@ -317,6 +317,11 @@ class StockMovement(TenantScopedModel):
         return f"{self.variant} {sign}{self.quantity_delta} ({self.reason})"
 
     def save(self, *args, **kwargs):
+        if self._state.adding:
+            from apps.closing.services.lock import assert_period_open
+            dt = getattr(self, "created_at", None) or getattr(self, "timestamp", None)
+            movement_date = timezone.localdate(dt) if dt else timezone.localdate()
+            assert_period_open(self.tenant, movement_date)
         super().save(*args, **kwargs)
         # Refresh the cached stock_qty on the variant after every movement
         self.variant.refresh_stock()
