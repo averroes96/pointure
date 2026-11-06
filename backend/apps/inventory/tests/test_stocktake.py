@@ -406,4 +406,56 @@ class StocktakeTests(TestCase):
         session.refresh_from_db()
         assert session.status == StocktakeStatusChoices.COMPLETED
 
+    def test_cashier_cannot_patch_stocktake_session(self):
+        """Cashier must not be able to update/patch a stocktake session."""
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Session Ouverte",
+            status=StocktakeStatusChoices.IN_PROGRESS,
+            created_by=self.manager,
+        )
+        self.client.force_authenticate(user=self.cashier)
+        res = self.client.patch(
+            f"/api/v1/inventory/stocktakes/{session.id}/",
+            {"title": "Hacked Title"},
+            format="json",
+        )
+        assert res.status_code == 403
+
+    def test_completed_stocktake_cannot_be_reopened_or_modified(self):
+        """Once completed, a stocktake cannot be modified or reopened via PATCH."""
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Session Clôturée",
+            status=StocktakeStatusChoices.COMPLETED,
+            created_by=self.manager,
+        )
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.patch(
+            f"/api/v1/inventory/stocktakes/{session.id}/",
+            {"status": StocktakeStatusChoices.IN_PROGRESS, "title": "Reopened"},
+            format="json",
+        )
+        assert res.status_code == 400
+        session.refresh_from_db()
+        assert session.status == StocktakeStatusChoices.COMPLETED
+        assert session.title == "Session Clôturée"
+
+    def test_completed_stocktake_cannot_be_deleted(self):
+        """Completed stocktake sessions cannot be deleted."""
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Session Protégée",
+            status=StocktakeStatusChoices.COMPLETED,
+            created_by=self.manager,
+        )
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.delete(f"/api/v1/inventory/stocktakes/{session.id}/")
+        assert res.status_code == 400
+        assert StocktakeSession.objects.filter(id=session.id).exists()
+
+
 

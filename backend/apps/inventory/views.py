@@ -2223,6 +2223,15 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     for stores with thousands of SKUs.
     """
     queryset = StocktakeSession.objects.select_related("branch", "created_by", "completed_by")
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "cancel_inventory": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
     filterset_fields = ["status", "branch"]
     search_fields = ["title", "notes"]
     ordering_fields = ["created_at", "total_variance", "total_counted"]
@@ -2249,6 +2258,7 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         return StocktakeSessionListSerializer
 
     def perform_create(self, serializer):
+        self.require_manager()
         auto_populate = serializer.validated_data.pop("auto_populate", True)
         scope_location = (serializer.validated_data.pop("scope_location", "") or "").strip()
         scope_reference = (serializer.validated_data.pop("scope_reference", "") or "").strip()
@@ -2340,6 +2350,21 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if items_to_create:
                 StocktakeItem.objects.bulk_create(items_to_create, batch_size=500)
                 session.recalculate_totals()
+
+    def perform_update(self, serializer):
+        self.require_manager()
+        session = serializer.instance
+        if session.status in (StocktakeStatusChoices.COMPLETED, StocktakeStatusChoices.CANCELLED):
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError({"detail": "Impossible de modifier une session d'inventaire clôturée ou annulée."})
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.require_manager()
+        if instance.status == StocktakeStatusChoices.COMPLETED:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError({"detail": "Impossible de supprimer un inventaire clôturé."})
+        instance.delete()
 
     @action(detail=True, methods=["post"], url_path="scan")
     def scan(self, request, pk=None):

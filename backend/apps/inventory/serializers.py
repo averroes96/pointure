@@ -409,7 +409,24 @@ class StocktakeSessionListSerializer(serializers.ModelSerializer):
             "item_count", "created_by", "created_by_name", "completed_by", "completed_at",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "completed_at"]
+        read_only_fields = [
+            "id",
+            "status",
+            "status_display",
+            "branch",
+            "branch_name",
+            "total_expected",
+            "total_counted",
+            "total_variance",
+            "total_variance_cost",
+            "item_count",
+            "created_by",
+            "created_by_name",
+            "completed_by",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class StocktakeSessionDetailSerializer(StocktakeSessionListSerializer):
