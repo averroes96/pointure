@@ -93,12 +93,15 @@ def _write_audit(instance, action, diff=None):
 
     diff = dict(diff or {})
     # Record the manager who authorized the action with their PIN, if any.
-    authorizer = getattr(instance, "authorized_by", None)
+    authorizer = getattr(instance, "authorized_by", None) or getattr(instance, "_authorized_by", None)
     if authorizer is not None:
-        diff["_authorized_by"] = {
-            "id": str(authorizer.pk),
-            "name": authorizer.get_full_name() or authorizer.email,
-        }
+        if isinstance(authorizer, dict):
+            diff["_authorized_by"] = authorizer
+        else:
+            diff["_authorized_by"] = {
+                "id": str(getattr(authorizer, "pk", authorizer)),
+                "name": (getattr(authorizer, "get_full_name", lambda: "")() or getattr(authorizer, "email", str(authorizer))),
+            }
 
     AuditLog.objects.create(
         tenant=tenant,

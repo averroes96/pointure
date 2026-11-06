@@ -72,3 +72,92 @@ def test_newly_audited_models_and_authorizer_are_recorded(setup):
     log = AuditLog.objects.filter(tenant=tenant, model_name="Return", action="create").latest("timestamp")
     assert log.diff["_authorized_by"]["id"] == str(manager.pk)
 
+
+def test_authorizer_recorded_via_dynamic_attribute(setup):
+    tenant, owner, client_obj = setup
+    manager = User.objects.create_user(
+        email="mgr-dyn@test.com", password="testpass123",
+        tenant=tenant, role=RoleChoices.MANAGER,
+    )
+    client_obj.credit_limit = Decimal("50000.00")
+    client_obj._authorized_by = manager
+    client_obj.save()
+
+    log = AuditLog.objects.filter(
+        tenant=tenant, model_name="Client", object_id=str(client_obj.pk), action="update"
+    ).latest("timestamp")
+    assert log.diff["_authorized_by"]["id"] == str(manager.pk)
+    assert log.diff["_authorized_by"]["name"] == (manager.get_full_name() or manager.email)
+
+
+def test_audit_log_endpoint_filtering_and_permissions(setup):
+    tenant, owner, client_obj = setup
+    cashier = User.objects.create_user(
+        email="cashier-audit@test.com", password="testpass123",
+        tenant=tenant, role=RoleChoices.CASHIER,
+    )
+    api = APIClient()
+
+    # Cashier cannot access audit logs (403)
+    api.force_authenticate(user=cashier)
+    res_cashier = api.get("/api/v1/core/audit-logs/")
+    assert res_cashier.status_code == 403
+
+    # Owner can access and filter
+    api.force_authenticate(user=owner)
+    res_all = api.get("/api/v1/core/audit-logs/")
+    assert res_all.status_code == 200
+
+    # Filter by model_name
+    res_client = api.get("/api/v1/core/audit-logs/?model_name=Client")
+    assert res_client.status_code == 200
+    for entry in res_client.data["results"]:
+        assert entry["model_name"] == "Client"
+
+    # Filter by action
+    res_create = api.get("/api/v1/core/audit-logs/?action=create")
+    assert res_create.status_code == 200
+    for entry in res_create.data["results"]:
+        assert entry["action"] == "create"
+
+    # Filter by date
+    from django.utils import timezone
+    today = timezone.localdate().isoformat()
+    res_today = api.get(f"/api/v1/core/audit-logs/?date_from={today}&date_to={today}")
+    assert res_today.status_code == 200
+
+
+def test_additional_models_audit_logging(setup):
+    from apps.promotions.models import Promotion
+    from apps.inventory.models import Product, Variant, StockTransfer, CategoryChoices
+    from apps.core.models import Branch
+
+    tenant, owner, _ = setup
+    branch_a = Branch.objects.create(tenant=tenant, name="Branch 1")
+    branch_b = Branch.objects.create(tenant=tenant, name="Branch 2")
+
+    product = Product.objects.create(
+        tenant=tenant, name="Audit Sneaker", category=CategoryChoices.SNEAKERS, sale_price=Decimal("1000")
+    )
+    variant = Variant.objects.create(tenant=tenant, product=product, size_eu=42)
+
+    promo = Promotion.objects.create(
+        tenant=tenant,
+        name="Summer Sale",
+        discount_pct=Decimal("15"),
+        start_date="2026-06-01",
+        end_date="2026-06-30",
+    )
+    assert AuditLog.objects.filter(tenant=tenant, model_name="Promotion", object_id=str(promo.pk)).exists()
+
+    transfer = StockTransfer.objects.create(
+        tenant=tenant,
+        from_branch=branch_a,
+        to_branch=branch_b,
+        variant=variant,
+        quantity=5,
+        created_by=owner,
+    )
+    assert AuditLog.objects.filter(tenant=tenant, model_name="StockTransfer", object_id=str(transfer.pk)).exists()
+
+
