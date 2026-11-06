@@ -789,7 +789,7 @@ export interface PayableAgeingRow {
 // Notifications
 // ─────────────────────────────────────────────
 
-export type NotificationType = "cheque_due" | "low_stock" | "invoice_overdue" | "general";
+export type NotificationType = "cheque_due" | "low_stock" | "invoice_overdue" | "general" | "closing_reminder";
 
 export interface Notification {
   id: number;
