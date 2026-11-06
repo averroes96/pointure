@@ -161,7 +161,19 @@ class MeSerializer(serializers.ModelSerializer):
             "max_discount_pct", "can_modify_price", "can_process_returns", "can_cancel_sale",
             "has_pin",
         ]
-        read_only_fields = ["id", "tenant", "can_see_costs", "has_pin"]
+        read_only_fields = [
+            "id",
+            "email",
+            "role",
+            "is_active",
+            "tenant",
+            "can_see_costs",
+            "has_pin",
+            "max_discount_pct",
+            "can_modify_price",
+            "can_process_returns",
+            "can_cancel_sale",
+        ]
 
     def get_has_pin(self, obj):
         return bool(obj.pin_code)
