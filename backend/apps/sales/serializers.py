@@ -437,6 +437,10 @@ class CreateSaleSerializer(serializers.Serializer):
     @transaction.atomic
     def create_sale(self, validated_data, tenant, cashier):
         """Create the sale, items, payments, and stock movements atomically."""
+        from django.utils import timezone
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(tenant, timezone.localdate())
+
         from apps.clients.models import Client
 
         # Pop loyalty data (not model fields)
@@ -782,6 +786,10 @@ class CreateReturnSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create_return(self, sale, processed_by):
+        from django.utils import timezone
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
+
         from apps.inventory.models import DefectItem, DefectStatusChoices, DefectReasonChoices
         tenant = sale.tenant
         data = self.validated_data
@@ -1309,6 +1317,10 @@ class CreateExchangeSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create_exchange(self, sale, processed_by):
+        from django.utils import timezone
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(sale.tenant, timezone.localdate())
+
         from apps.inventory.models import DefectItem, DefectStatusChoices, DefectReasonChoices
         tenant = sale.tenant
         data = self.validated_data

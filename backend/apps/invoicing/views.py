@@ -63,6 +63,11 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, data["date"])
+        if data.get("payment") and data["payment"].get("date"):
+            assert_period_open(request.tenant, data["payment"]["date"])
+
         with transaction.atomic():
             # Resolve FKs
             client = None
@@ -185,6 +190,12 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, invoice.date)
+        assert_period_open(request.tenant, data["date"])
+        if data.get("payment") and data["payment"].get("date"):
+            assert_period_open(request.tenant, data["payment"]["date"])
+
         with transaction.atomic():
             old_branch_id = str(invoice.branch_id) if invoice.branch_id else None
             new_branch_id = str(data.get("branch_id")) if data.get("branch_id") else None
@@ -295,6 +306,10 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """Cancel an invoice if no payments have been made."""
         self.require_manager()
         invoice = self.get_object()
+
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, invoice.date)
+        assert_period_open(request.tenant, timezone.localdate())
         
         if invoice.status == InvoiceStatusChoices.CANCELLED:
             return Response(
@@ -380,6 +395,9 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         serializer = InvoicePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, serializer.validated_data["date"])
 
         payment = serializer.save(invoice=invoice, recorded_by=request.user)
         return Response(InvoicePaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
@@ -481,6 +499,9 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer = RegrouperBLsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, data["date"])
 
         from apps.clients.models import Client
         client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
