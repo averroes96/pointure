@@ -101,6 +101,29 @@ class TestCentralRolePermissions:
         assert perm.has_permission(self._req(self.manager), custom_view) is True
         assert perm.has_permission(self._req(self.anon), custom_view) is False
 
+    def test_role_permission_fails_closed_when_default_unspecified(self):
+        """When a view has no 'default' specified in role_permissions, unmapped actions default to MANAGER_OR_OWNER."""
+        perm = RolePermission()
+        view_map = {
+            "list": ALL_ROLES,
+            # Note: No 'default' key here!
+        }
+        # Explicitly mapped action allows cashier
+        list_view = SimpleNamespace(action="list", role_permissions=view_map)
+        assert perm.has_permission(self._req(self.cashier), list_view) is True
+
+        # Unmapped actions fail closed: cashier denied, manager and owner allowed
+        unmapped_create = SimpleNamespace(action="create", role_permissions=view_map)
+        assert perm.has_permission(self._req(self.cashier), unmapped_create) is False
+        assert perm.has_permission(self._req(self.manager), unmapped_create) is True
+        assert perm.has_permission(self._req(self.owner), unmapped_create) is True
+
+        unmapped_destroy = SimpleNamespace(action="destroy", role_permissions=view_map)
+        assert perm.has_permission(self._req(self.cashier), unmapped_destroy) is False
+        assert perm.has_permission(self._req(self.manager), unmapped_destroy) is True
+        assert perm.has_permission(self._req(self.owner), unmapped_destroy) is True
+
+
 
 @pytest.mark.django_db
 class TestMeProfilePrivilegeEscalation:

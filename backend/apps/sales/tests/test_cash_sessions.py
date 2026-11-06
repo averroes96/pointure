@@ -349,4 +349,97 @@ class CashSessionTests(TestCase):
         session.refresh_from_db()
         self.assertEqual(session.status, CashSessionStatus.CLOSED)
 
+    def test_cashier_cannot_create_cash_session_for_another_cashier(self):
+        from rest_framework.test import APIClient
+
+        other_cashier = User.objects.create_user(
+            email="other-sess-cashier@shoedz.dz",
+            password="password123",
+            role=RoleChoices.CASHIER,
+            tenant=self.tenant,
+        )
+
+        api = APIClient()
+        api.force_authenticate(user=self.cashier)
+
+        # Cashier tries to create a session for another cashier -> 403 PermissionDenied
+        res = api.post(
+            "/api/v1/sales/sessions/",
+            {
+                "cashier": str(other_cashier.pk),
+                "opening_float": "15000.00",
+                "branch": str(self.branch.pk),
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+        self.assertFalse(CashSession.objects.filter(cashier=other_cashier).exists())
+
+    def test_cashier_can_create_cash_session_for_themselves(self):
+        from rest_framework.test import APIClient
+
+        api = APIClient()
+        api.force_authenticate(user=self.cashier)
+
+        # Cashier creates a session for themselves -> 201 Created
+        res = api.post(
+            "/api/v1/sales/sessions/",
+            {
+                "cashier": str(self.cashier.pk),
+                "opening_float": "3000.00",
+                "branch": str(self.branch.pk),
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+        session = CashSession.objects.get(pk=res.data["id"])
+        self.assertEqual(session.cashier, self.cashier)
+        self.assertEqual(session.opening_float, Decimal("3000.00"))
+        self.assertEqual(session.status, CashSessionStatus.OPEN)
+
+        # Attempting to open a second concurrent session fails -> 400 Bad Request
+        res_dup = api.post(
+            "/api/v1/sales/sessions/",
+            {
+                "opening_float": "5000.00",
+                "branch": str(self.branch.pk),
+            },
+            format="json",
+        )
+        self.assertEqual(res_dup.status_code, 400)
+
+    def test_manager_can_create_cash_session_for_another_cashier(self):
+        from rest_framework.test import APIClient
+
+        manager = User.objects.create_user(
+            email="mgr-opener@shoedz.dz",
+            password="password123",
+            role=RoleChoices.MANAGER,
+            tenant=self.tenant,
+        )
+        target_cashier = User.objects.create_user(
+            email="target-cashier@shoedz.dz",
+            password="password123",
+            role=RoleChoices.CASHIER,
+            tenant=self.tenant,
+        )
+
+        api = APIClient()
+        api.force_authenticate(user=manager)
+
+        res = api.post(
+            "/api/v1/sales/sessions/",
+            {
+                "cashier": str(target_cashier.pk),
+                "opening_float": "4500.00",
+                "branch": str(self.branch.pk),
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+        session = CashSession.objects.get(pk=res.data["id"])
+        self.assertEqual(session.cashier, target_cashier)
+        self.assertEqual(session.opening_float, Decimal("4500.00"))
+
+
 

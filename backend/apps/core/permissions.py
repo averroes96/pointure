@@ -66,7 +66,7 @@ class RolePermission(BasePermission):
 
         allowed_roles = role_map.get(action)
         if allowed_roles is None:
-            allowed_roles = role_map.get("default", ALL_ROLES)
+            allowed_roles = role_map.get("default", MANAGER_OR_OWNER)
 
         return getattr(user, "role", None) in allowed_roles
 

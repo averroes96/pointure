@@ -8,6 +8,7 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -727,13 +728,50 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = CashSessionSerializer
     permission_classes = [IsAuthenticated, RolePermission]
     role_permissions = {
+        "list": ALL_ROLES,
+        "retrieve": ALL_ROLES,
+        "current": ALL_ROLES,
+        "open_session": ALL_ROLES,
+        "create": ALL_ROLES,
+        "movement": ALL_ROLES,
+        "close": ALL_ROLES,
+        "x_report": ALL_ROLES,
+        "z_report": ALL_ROLES,
         "update": MANAGER_OR_OWNER,
         "partial_update": MANAGER_OR_OWNER,
         "destroy": OWNER_ONLY,
         "approve": MANAGER_OR_OWNER,
-        "default": ALL_ROLES,
+        "default": MANAGER_OR_OWNER,
     }
     ordering = ["-opened_at"]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        requested_cashier = serializer.validated_data.get("cashier")
+        if getattr(user, "role", None) not in MANAGER_OR_OWNER:
+            if requested_cashier and requested_cashier != user:
+                raise PermissionDenied(
+                    "Les caissiers ne peuvent ouvrir une session de caisse que pour eux-mêmes."
+                )
+            cashier = user
+        else:
+            cashier = requested_cashier or user
+
+        existing = CashSession.objects.filter(
+            tenant=self.request.tenant,
+            cashier=cashier,
+            status=CashSessionStatus.OPEN,
+        ).first()
+        if existing:
+            raise ValidationError(
+                {"detail": f"Une session est déjà ouverte (#{existing.session_number}) pour ce caissier. Fermez-la avant d'en ouvrir une nouvelle."}
+            )
+
+        serializer.save(
+            tenant=self.request.tenant,
+            cashier=cashier,
+            status=CashSessionStatus.OPEN,
+        )
 
     def destroy(self, request, *args, **kwargs):
         session = self.get_object()
