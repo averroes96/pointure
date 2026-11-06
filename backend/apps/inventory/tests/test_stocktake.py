@@ -331,3 +331,79 @@ class StocktakeTests(TestCase):
         assert resp.status_code == 400
         assert resp.data["error"]["code"] == "session_cancelled"
 
+    def test_apply_keep_open_does_not_repeat_adjustment_on_subsequent_apply(self):
+        """
+        Stock 10, counted 8 (-2 adjustment).
+        Apply with keep_open=True -> stock becomes 8.
+        Apply again (with or without keep_open) -> stock must REMAIN 8, not 6.
+        """
+        self.client.force_authenticate(user=self.manager)
+        session = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            branch=self.branch,
+            title="Inventaire Keep Open Test",
+            created_by=self.manager,
+        )
+        StocktakeItem.objects.create(
+            tenant=self.tenant,
+            session=session,
+            variant=self.var1,
+            expected_qty=10,
+            counted_qty=8,
+            unit_cost=self.var1.product.purchase_price,
+            unit_price=self.var1.product.sale_price,
+        )
+        assert self.var1.stock_qty == 10
+
+        # First apply with keep_open=True
+        resp1 = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session.id}/apply/",
+            {"keep_open": True},
+            format="json",
+        )
+        assert resp1.status_code == 200, resp1.data
+        assert resp1.data["adjusted_variants_count"] == 1
+        self.var1.refresh_from_db()
+        assert self.var1.stock_qty == 8
+        session.refresh_from_db()
+        assert session.status == StocktakeStatusChoices.IN_PROGRESS
+
+        # Second apply with keep_open=True again -> stock must still be 8, no new adjustment
+        resp2 = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session.id}/apply/",
+            {"keep_open": True},
+            format="json",
+        )
+        assert resp2.status_code == 200, resp2.data
+        assert resp2.data["adjusted_variants_count"] == 0
+        self.var1.refresh_from_db()
+        assert self.var1.stock_qty == 8
+        session.refresh_from_db()
+        assert session.status == StocktakeStatusChoices.IN_PROGRESS
+
+        # An external sale of 1 pair happens while the session is still open
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.var1,
+            branch=self.branch,
+            quantity_delta=-1,
+            reason=MovementReasonChoices.SALE,
+            user=self.cashier,
+        )
+        self.var1.refresh_stock()
+        assert self.var1.stock_qty == 7
+
+        # Third apply finalizing session (keep_open=False) -> stock should remain 7
+        resp3 = self.client.post(
+            f"/api/v1/inventory/stocktakes/{session.id}/apply/",
+            {"keep_open": False},
+            format="json",
+        )
+        assert resp3.status_code == 200, resp3.data
+        assert resp3.data["adjusted_variants_count"] == 0
+        self.var1.refresh_from_db()
+        assert self.var1.stock_qty == 7
+        session.refresh_from_db()
+        assert session.status == StocktakeStatusChoices.COMPLETED
+
+

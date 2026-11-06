@@ -2635,6 +2635,9 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 movements_since_qs = StockMovement.objects.filter(
                     variant_id=item.variant_id,
                     timestamp__gt=cutoff,
+                ).exclude(
+                    reference_type="StocktakeSession",
+                    reference_id=str(session.id),
                 )
                 if session.branch_id:
                     movements_since_qs = movements_since_qs.filter(branch_id=session.branch_id)
@@ -2662,11 +2665,13 @@ class StocktakeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     item.variant.refresh_stock(branch=session.branch)
                     adjusted_count += 1
 
-                if keep_open and variance != 0:
+                if keep_open:
+                    now = timezone.now()
                     item.expected_qty = item.counted_qty
-                    if "[Lot validé]" not in (item.notes or ""):
+                    item.last_scanned_at = now
+                    if variance != 0 and "[Lot validé]" not in (item.notes or ""):
                         item.notes = f"{item.notes} [Lot validé]".strip()
-                    item.save(update_fields=["expected_qty", "notes"])
+                    item.save(update_fields=["expected_qty", "last_scanned_at", "notes"])
 
             if keep_open:
                 session.recalculate_totals()
