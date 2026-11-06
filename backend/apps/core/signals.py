@@ -31,6 +31,9 @@ AUDITED_MODELS = [
     "CashSession", "CashMovement", "Promotion", "LoyaltyAccount",
     "StockTransfer", "DefectItem", "StocktakeSession",
     "SupplierPayment", "PurchaseOrder",
+
+    # Fiscal Year Closing
+    "FiscalYear",
 ]
 
 # Current request user (set by middleware)
