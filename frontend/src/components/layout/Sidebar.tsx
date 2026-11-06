@@ -5,7 +5,7 @@ import {
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart, BookOpen,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
-  ShieldAlert, ClipboardList,
+  ShieldAlert, ClipboardList, CalendarCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -114,6 +114,7 @@ function useNavSections(): NavSection[] {
       key: "settings",
       label: "",
       items: [
+        { to: "/closing", labelKey: "nav.fiscal_closing", icon: CalendarCheck, managerOnly: true },
         { to: "/settings", labelKey: "nav.settings", icon: Settings, managerOnly: true },
         { to: "/settings/audit-log", labelKey: "nav.audit_log", icon: Shield, managerOnly: true },
         { to: "/settings/webhooks", labelKey: "nav.webhooks", icon: Webhook, managerOnly: true, minPlan: "pro_retail" },
