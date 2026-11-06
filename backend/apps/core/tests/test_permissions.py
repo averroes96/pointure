@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from apps.core.models import RoleChoices, Tenant, User
+from apps.core.models import Branch, RoleChoices, Tenant, User
 from apps.core.permissions import (
     ALL_ROLES,
     MANAGER_OR_OWNER,
@@ -317,6 +317,117 @@ class TestUserManagementPrivilegeEscalation:
         assert res.status_code == 200
         self.cashier.refresh_from_db()
         assert self.cashier.check_password("newcashierpass123")
+
+
+@pytest.mark.django_db
+class TestBranchManagementPermissions:
+    """Verifies RBAC rules on BranchViewSet (Task 2.2)."""
+
+    def setup_method(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.tenant = Tenant.objects.create(name="Branch Perms Store", plan="enterprise")
+        self.owner = User.objects.create_user(
+            email="owner_branch@store.com",
+            phone="0550111199",
+            password="ownerpass123",
+            tenant=self.tenant,
+            role=RoleChoices.OWNER,
+        )
+        self.manager = User.objects.create_user(
+            email="manager_branch@store.com",
+            phone="0550222299",
+            password="managerpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.cashier = User.objects.create_user(
+            email="cashier_branch@store.com",
+            phone="0550333399",
+            password="cashierpass123",
+            tenant=self.tenant,
+            role=RoleChoices.CASHIER,
+        )
+        self.branch = Branch.objects.create(
+            name="Main Branch",
+            tenant=self.tenant,
+            is_headquarters=False,
+        )
+
+    def test_cashier_can_list_and_retrieve_branches(self):
+        self.client.force_authenticate(user=self.cashier)
+        res_list = self.client.get("/api/v1/core/branches/")
+        assert res_list.status_code == 200
+        res_detail = self.client.get(f"/api/v1/core/branches/{self.branch.id}/")
+        assert res_detail.status_code == 200
+
+    def test_cashier_cannot_create_update_or_delete_branch(self):
+        self.client.force_authenticate(user=self.cashier)
+
+        # Create -> 403
+        res_create = self.client.post(
+            "/api/v1/core/branches/",
+            {"name": "Cashier Branch", "wilaya": "16"},
+            format="json",
+        )
+        assert res_create.status_code == 403
+
+        # Patch -> 403
+        res_patch = self.client.patch(
+            f"/api/v1/core/branches/{self.branch.id}/",
+            {"name": "Renamed By Cashier"},
+            format="json",
+        )
+        assert res_patch.status_code == 403
+
+        # Put -> 403
+        res_put = self.client.put(
+            f"/api/v1/core/branches/{self.branch.id}/",
+            {"name": "Put By Cashier", "wilaya": "16"},
+            format="json",
+        )
+        assert res_put.status_code == 403
+
+        # Delete -> 403
+        res_del = self.client.delete(f"/api/v1/core/branches/{self.branch.id}/")
+        assert res_del.status_code == 403
+
+        # Verify branch unaffected
+        self.branch.refresh_from_db()
+        assert self.branch.name == "Main Branch"
+
+    def test_manager_can_create_and_update_but_cannot_delete_branch(self):
+        self.client.force_authenticate(user=self.manager)
+
+        # Create -> 201
+        res_create = self.client.post(
+            "/api/v1/core/branches/",
+            {"name": "Manager Branch", "wilaya": "16"},
+            format="json",
+        )
+        assert res_create.status_code == 201
+
+        # Patch -> 200
+        res_patch = self.client.patch(
+            f"/api/v1/core/branches/{self.branch.id}/",
+            {"name": "Renamed By Manager"},
+            format="json",
+        )
+        assert res_patch.status_code == 200
+        self.branch.refresh_from_db()
+        assert self.branch.name == "Renamed By Manager"
+
+        # Delete -> 403
+        res_del = self.client.delete(f"/api/v1/core/branches/{self.branch.id}/")
+        assert res_del.status_code == 403
+        assert Branch.objects.filter(id=self.branch.id).exists()
+
+    def test_owner_can_delete_branch(self):
+        self.client.force_authenticate(user=self.owner)
+        res_del = self.client.delete(f"/api/v1/core/branches/{self.branch.id}/")
+        assert res_del.status_code == 204
+        assert not Branch.objects.filter(id=self.branch.id).exists()
+
 
 
 

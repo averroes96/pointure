@@ -12,6 +12,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.core.models import AuditLog, Branch, RoleChoices, StoreSettings, Tenant, User, Wilaya, Commune
 from apps.core.mixins import TenantScopedViewSetMixin
+from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, OWNER_ONLY, RolePermission
 from apps.core.throttling import ManagerPinRateThrottle
 from apps.core.serializers import (
     AuditLogSerializer,
@@ -245,6 +246,16 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Branch management."""
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
+    permission_classes = [IsAuthenticated, RolePermission]
+    role_permissions = {
+        "list": ALL_ROLES,
+        "retrieve": ALL_ROLES,
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": OWNER_ONLY,
+        "default": MANAGER_OR_OWNER,
+    }
     ordering = ["name"]
 
     def get_queryset(self):
@@ -268,6 +279,14 @@ class BranchViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from apps.core.plan_permissions import check_quota
         check_quota(self.request, "branches", Branch.objects.filter(tenant=self.request.tenant).count())
         serializer.save(tenant=self.request.tenant)
+
+    def perform_update(self, serializer):
+        self.require_manager()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.require_owner()
+        instance.delete()
 
 
 class AuditLogViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
