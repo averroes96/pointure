@@ -318,6 +318,12 @@ class InvoiceLine(models.Model):
     )
     cartons = models.PositiveIntegerField(_("Cartons"), default=0)
     order = models.PositiveSmallIntegerField(_("Order"), default=0)
+    unit_cost = models.DecimalField(
+        _("Unit Cost HT"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         ordering = ["order", "pk"]

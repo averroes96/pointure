@@ -18,8 +18,9 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
         fields = [
             "id", "variant", "product_id", "product_name", "colour", "size_eu",
             "description", "quantity", "unit_price", "discount_pct", "cartons", "line_total", "order",
+            "unit_cost", "unit_cost_estimated",
         ]
-        read_only_fields = ["id", "line_total"]
+        read_only_fields = ["id", "line_total", "unit_cost", "unit_cost_estimated"]
 
 
 class InvoicePaymentSerializer(serializers.ModelSerializer):

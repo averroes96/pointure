@@ -13,6 +13,7 @@ from apps.core.models import RoleChoices
 from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.core.utils.task_runner import run_task
+from apps.inventory.services.costing import current_unit_cost
 from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
 from .serializers import (
     CreateDeliveryNoteSerializer,
@@ -113,15 +114,18 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Create lines
             for i, line_data in enumerate(data["lines"]):
+                variant = line_data.get("variant")
                 InvoiceLine.objects.create(
                     invoice=invoice,
-                    variant=line_data.get("variant"),
+                    variant=variant,
                     description=line_data["description"],
                     quantity=line_data["quantity"],
                     unit_price=line_data["unit_price"],
                     discount_pct=line_data.get("discount_pct", Decimal("0")),
                     cartons=line_data.get("cartons", 0),
                     order=i,
+                    unit_cost=current_unit_cost(variant),
+                    unit_cost_estimated=False,
                 )
 
             # Compute totals after lines are created
@@ -209,15 +213,18 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             invoice.lines.all().delete()
             new_lines = []
             for i, line_data in enumerate(data["lines"]):
+                variant = line_data.get("variant")
                 l = InvoiceLine.objects.create(
                     invoice=invoice,
-                    variant=line_data.get("variant"),
+                    variant=variant,
                     description=line_data["description"],
                     quantity=line_data["quantity"],
                     unit_price=line_data["unit_price"],
                     discount_pct=line_data.get("discount_pct", Decimal("0")),
                     cartons=line_data.get("cartons", 0),
                     order=i,
+                    unit_cost=current_unit_cost(variant),
+                    unit_cost_estimated=False,
                 )
                 new_lines.append(l)
 
@@ -508,7 +515,9 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                         unit_price=line.unit_price,
                         discount_pct=line.discount_pct,
                         cartons=line.cartons,
-                        order=order
+                        order=order,
+                        unit_cost=current_unit_cost(line.variant),
+                        unit_cost_estimated=False,
                     )
                     order += 1
                     

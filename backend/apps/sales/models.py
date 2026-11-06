@@ -129,6 +129,12 @@ class SaleItem(models.Model):
     discount_amount = models.DecimalField(
         _("Line Discount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    unit_cost = models.DecimalField(
+        _("Unit Cost (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         verbose_name = _("Sale Item")
@@ -470,6 +476,12 @@ class ExchangeNewItem(models.Model):
     )
     quantity = models.PositiveIntegerField(_("Quantity"))
     unit_price = models.DecimalField(_("Unit Price"), max_digits=12, decimal_places=2)
+    unit_cost = models.DecimalField(
+        _("Unit Cost (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         verbose_name = _("Exchange New Item")
