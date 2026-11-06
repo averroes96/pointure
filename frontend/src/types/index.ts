@@ -276,6 +276,8 @@ export interface SaleItem {
   unit_price: string;
   discount_amount: string;
   subtotal: string;
+  unit_cost?: string | null;
+  unit_cost_estimated?: boolean;
 }
 
 export interface Payment {
@@ -591,6 +593,8 @@ export interface InvoiceLine {
   discount_pct: string;
   line_total: string;
   order: number;
+  unit_cost?: string | null;
+  unit_cost_estimated?: boolean;
 }
 
 export interface InvoicePayment {

@@ -6,6 +6,7 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
+from apps.inventory.services.costing import current_unit_cost
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
     CashSessionStatus, Exchange, ExchangeNewItem, ExchangeReturnItem,
@@ -26,8 +27,18 @@ class SaleItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SaleItem
-        fields = ["id", "variant", "variant_str", "quantity", "unit_price", "discount_amount", "subtotal"]
-        read_only_fields = ["id", "subtotal"]
+        fields = [
+            "id",
+            "variant",
+            "variant_str",
+            "quantity",
+            "unit_price",
+            "discount_amount",
+            "subtotal",
+            "unit_cost",
+            "unit_cost_estimated",
+        ]
+        read_only_fields = ["id", "subtotal", "unit_cost", "unit_cost_estimated"]
 
 
 class SaleSerializer(serializers.ModelSerializer):
@@ -528,6 +539,8 @@ class CreateSaleSerializer(serializers.Serializer):
                 quantity=item_data["quantity"],
                 unit_price=item_data["unit_price"],
                 discount_amount=item_data["discount_amount"],
+                unit_cost=current_unit_cost(variant),
+                unit_cost_estimated=False,
             )
             StockMovement.objects.create(
                 tenant=tenant,
@@ -1367,6 +1380,8 @@ class CreateExchangeSerializer(serializers.Serializer):
                 variant=variant,
                 quantity=item_data["quantity"],
                 unit_price=item_data["unit_price"],
+                unit_cost=current_unit_cost(variant),
+                unit_cost_estimated=False,
             )
             StockMovement.objects.create(
                 tenant=tenant,
@@ -1389,6 +1404,8 @@ class CreateExchangeSerializer(serializers.Serializer):
                 variant=new["_variant"],
                 unit_price=new["unit_price"],
                 discount_amount=Decimal("0.00"),
+                unit_cost=current_unit_cost(new["_variant"]),
+                unit_cost_estimated=False,
             )
 
         # Award loyalty points only on extra payment (customer pays more)
