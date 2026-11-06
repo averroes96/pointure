@@ -200,6 +200,85 @@ class TestClientRecordPaymentLedger:
         assert self.client_obj.cached_balance == balance_before
         assert ClientLedger.objects.count() == count_before
 
+    def test_audit_client_ledger_no_false_positive_on_distinct_same_day_payments(self):
+        """
+        Distinct legitimate payments on the same date (e.g. 5,000 on invoice + 3,000 advance)
+        must NOT be flagged as duplicates by audit_client_ledger.
+        """
+        from apps.clients.models import ClientLedger
+
+        today = datetime.date.today()
+        # Legitimate invoice payment of 5000 DZD
+        ClientLedger.objects.create(
+            client=self.client_obj,
+            entry_type="credit",
+            amount=Decimal("5000.00"),
+            description="Paiement sur facture FA-2026-00020",
+            reference_type="InvoicePayment",
+            reference_id="ip-distinct-1",
+            date=today,
+        )
+        # Distinct legitimate on-account deposit of 3000 DZD on the same day
+        ClientLedger.objects.create(
+            client=self.client_obj,
+            entry_type="credit",
+            amount=Decimal("3000.00"),
+            description="Acompte client — ESPÈCES",
+            reference_type="Payment",
+            date=today,
+        )
+
+        out = StringIO()
+        call_command("audit_client_ledger", stdout=out)
+        output = out.getvalue()
+
+        assert "Affected clients: 0" in output
+        assert "Overlapping client-date groups: 0" in output
+        assert "Total suspected duplicate credit: 0.00 DZD" in output
+        assert "[OVERLAP]" not in output
+
+    def test_audit_client_ledger_detects_multi_invoice_split_duplicate(self):
+        """
+        A pre-v1.6 payment of 8,000 DZD recorded as Payment(8000) alongside
+        InvoicePayment(5000) and InvoicePayment(3000) should be detected as an 8,000 duplicate.
+        """
+        from apps.clients.models import ClientLedger
+
+        today = datetime.date.today()
+        ClientLedger.objects.create(
+            client=self.client_obj,
+            entry_type="credit",
+            amount=Decimal("8000.00"),
+            description="Paiement — ESPÈCES",
+            reference_type="Payment",
+            date=today,
+        )
+        ClientLedger.objects.create(
+            client=self.client_obj,
+            entry_type="credit",
+            amount=Decimal("5000.00"),
+            description="Paiement sur facture FA-2026-00001",
+            reference_type="InvoicePayment",
+            reference_id="ip-split-1",
+            date=today,
+        )
+        ClientLedger.objects.create(
+            client=self.client_obj,
+            entry_type="credit",
+            amount=Decimal("3000.00"),
+            description="Paiement sur facture FA-2026-00002",
+            reference_type="InvoicePayment",
+            reference_id="ip-split-2",
+            date=today,
+        )
+
+        out = StringIO()
+        call_command("audit_client_ledger", stdout=out)
+        output = out.getvalue()
+
+        assert "Affected clients: 1" in output
+        assert "8000.00 DZD" in output
+
     def test_audit_client_ledger_runs_on_seeded_demo_db(self):
         """audit_client_ledger runs cleanly after seed_demo without errors."""
         out = StringIO()
