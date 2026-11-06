@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from rest_framework.test import APIClient
+from apps.clients.models import Client, ClientLedger
 from apps.core.models import RoleChoices, StoreSettings, Tenant, User
 from apps.inventory.models import Product, Variant
 from apps.sales.models import Sale, SaleItem, Payment, PaymentMethodChoices, Return
@@ -386,4 +387,181 @@ class CashierPermissionsAndPinTests(TestCase):
         for _ in range(3):
             res = self.client.post("/api/v1/sales/", wrong_payload, format="json")
             self.assertEqual(res.status_code, 400)
+
+    def test_cashier_discount_hard_limit_when_pin_disabled(self):
+        """When require_manager_pin_for_discounts is False, discounts exceeding limit are strictly rejected."""
+        self.settings.require_manager_pin_for_discounts = False
+        self.settings.save()
+
+        self.client.force_authenticate(user=self.cashier)
+
+        # 2000 DZD discount on 12000 DZD is ~16.6% > 10% limit
+        payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "10000.00", "method": "cash"}],
+            "cart_discount": "2000.00",
+            "manager_pin": "1234",  # Even with manager PIN, hard limit is enforced
+        }
+        res = self.client.post("/api/v1/sales/", payload, format="json")
+        self.assertEqual(res.status_code, 400)
+        details = res.data.get("error", {}).get("details", res.data)
+        self.assertIn("cart_discount", details)
+
+    def test_on_account_payment_requires_client_and_validates_credit_limit(self):
+        """Paying with method='account' must require client and enforce credit limits (Task 2.5)."""
+        client = Client.objects.create(
+            tenant=self.tenant,
+            name="Credited Customer",
+            phone="0550998877",
+            credit_limit=Decimal("5000.00"),
+        )
+        self.client.force_authenticate(user=self.cashier)
+
+        # 1. On-account payment without client -> 400
+        res_no_client = self.client.post(
+            "/api/v1/sales/",
+            {
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "12000.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "12000.00", "method": "account"}],
+            },
+            format="json",
+        )
+        self.assertEqual(res_no_client.status_code, 400)
+        details = res_no_client.data.get("error", {}).get("details", res_no_client.data)
+        self.assertIn("client_id", details)
+
+        # 2. On-account payment exceeding credit limit without PIN -> 400
+        res_exceed = self.client.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(client.id),
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "12000.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "12000.00", "method": "account"}],
+            },
+            format="json",
+        )
+        self.assertEqual(res_exceed.status_code, 400)
+        details_exceed = res_exceed.data.get("error", {}).get("details", res_exceed.data)
+        self.assertIn("credit_limit", details_exceed)
+
+        # 3. On-account payment with manager PIN -> 201 & creates ClientLedger debit
+        res_ok = self.client.post(
+            "/api/v1/sales/",
+            {
+                "client_id": str(client.id),
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "12000.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "12000.00", "method": "account"}],
+                "manager_pin": "1234",
+            },
+            format="json",
+        )
+        self.assertEqual(res_ok.status_code, 201)
+        created_sale = Sale.objects.get(pk=res_ok.data["id"])
+
+        # Check ClientLedger debit entry
+        debit = ClientLedger.objects.filter(
+            client=client, reference_type="Sale", reference_id=str(created_sale.pk)
+        ).first()
+        self.assertIsNotNone(debit)
+        self.assertEqual(debit.entry_type, "debit")
+        self.assertEqual(debit.amount, Decimal("12000.00"))
+        client.refresh_from_db()
+        self.assertEqual(client.cached_balance, Decimal("12000.00"))
+
+    def test_return_of_on_account_sale_creates_ledger_reversal(self):
+        """Returning an on-account sale creates a reversing credit in ClientLedger (Task 2.5)."""
+        client = Client.objects.create(
+            tenant=self.tenant,
+            name="Return Account Customer",
+            phone="0550112233",
+            credit_limit=Decimal("20000.00"),
+        )
+        # Create sale directly with client debit
+        sale = Sale.objects.create(
+            tenant=self.tenant,
+            cashier=self.cashier,
+            client=client,
+            total_amount=Decimal("12000.00"),
+            status="completed",
+            receipt_number="TICK-ACCT-01",
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            variant=self.variant,
+            quantity=1,
+            unit_price=Decimal("12000.00"),
+        )
+        Payment.objects.create(
+            sale=sale,
+            amount=Decimal("12000.00"),
+            method=PaymentMethodChoices.ACCOUNT,
+        )
+        ClientLedger.objects.create(
+            client=client,
+            entry_type="debit",
+            amount=Decimal("12000.00"),
+            description=f"Solde sur vente {sale.receipt_number}",
+            reference_type="Sale",
+            reference_id=str(sale.pk),
+            date=sale.created_at.date(),
+        )
+        client.refresh_from_db()
+        self.assertEqual(client.cached_balance, Decimal("12000.00"))
+
+        # Process return with manager PIN
+        self.client.force_authenticate(user=self.cashier)
+        res_ret = self.client.post(
+            f"/api/v1/sales/{sale.id}/returns/",
+            {
+                "items": [{"variant_id": str(self.variant.id), "quantity": 1, "restock": True}],
+                "reason": "Défaut d'aspect",
+                "refund_amount": "12000.00",
+                "refund_method": "account",
+                "manager_pin": "1234",
+            },
+            format="json",
+        )
+        self.assertEqual(res_ret.status_code, 201)
+
+        # Verify ClientLedger credit reversal was written
+        credit_entry = ClientLedger.objects.filter(
+            client=client,
+            reference_type="Sale",
+            reference_id=str(sale.pk),
+            entry_type="credit",
+        ).first()
+        self.assertIsNotNone(credit_entry)
+        self.assertEqual(credit_entry.amount, Decimal("12000.00"))
+
+        client.refresh_from_db()
+        self.assertEqual(client.cached_balance, Decimal("0.00"))
+
 

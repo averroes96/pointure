@@ -166,16 +166,8 @@ class UserViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if not pin:
             return Response({"error": "PIN requis."}, status=status.HTTP_400_BAD_REQUEST)
 
-        managers = User.objects.filter(
-            tenant=request.tenant,
-            role__in=[RoleChoices.OWNER, RoleChoices.MANAGER],
-            is_active=True,
-        )
-        matching_manager = None
-        for mgr in managers:
-            if mgr.check_pin(pin):
-                matching_manager = mgr
-                break
+        from apps.sales.serializers import verify_manager_pin_helper
+        matching_manager = verify_manager_pin_helper(request.tenant, pin, user=request.user)
 
         if not matching_manager:
             return Response({"error": "Code PIN manager incorrect."}, status=status.HTTP_400_BAD_REQUEST)

@@ -423,27 +423,28 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def returns(self, request, pk=None):
         """Process a return for this sale."""
-        sale = self.get_object()
-        if sale.status == "refunded":
-            return Response(
-                {"detail": "Cette vente a déjà été entièrement remboursée."},
-                status=status.HTTP_400_BAD_REQUEST,
+        with transaction.atomic():
+            sale = Sale.objects.select_for_update().get(pk=self.get_object().pk)
+            if sale.status == "refunded":
+                return Response(
+                    {"detail": "Cette vente a déjà été entièrement remboursée."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if sale.status != "completed":
+                return Response(
+                    {"detail": "Seules les ventes complétées peuvent être retournées."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            serializer = CreateReturnSerializer(
+                data=request.data,
+                context={"sale": sale, "request": request, "processed_by": request.user},
             )
-        if sale.status != "completed":
+            serializer.is_valid(raise_exception=True)
+            return_obj = serializer.create_return(sale, processed_by=request.user)
             return Response(
-                {"detail": "Seules les ventes complétées peuvent être retournées."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"id": return_obj.pk, "message": "Return processed successfully."},
+                status=status.HTTP_201_CREATED,
             )
-        serializer = CreateReturnSerializer(
-            data=request.data,
-            context={"sale": sale, "request": request, "processed_by": request.user},
-        )
-        serializer.is_valid(raise_exception=True)
-        return_obj = serializer.create_return(sale, processed_by=request.user)
-        return Response(
-            {"id": return_obj.pk, "message": "Return processed successfully."},
-            status=status.HTTP_201_CREATED,
-        )
 
     @action(detail=True, methods=["post"])
     def exchange(self, request, pk=None):

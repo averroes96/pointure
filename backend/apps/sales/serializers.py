@@ -97,7 +97,7 @@ def verify_manager_pin_helper(tenant, raw_pin, user=None):
     Verify if raw_pin matches any active owner or manager in tenant.
     Returns matching User or None.
     Counts failures in cache keyed per user and raises Throttled (HTTP 429)
-    after 5 failed attempts within 1 minute.
+    after 5 failed attempts within 1 minute using atomic increments.
     """
     if not raw_pin or not str(raw_pin).strip():
         return None
@@ -113,8 +113,8 @@ def verify_manager_pin_helper(tenant, raw_pin, user=None):
         ident = f"tenant:{getattr(tenant, 'pk', 'anon')}"
 
     cache_key = f"pin_failures:{ident}"
-    failures = cache.get(cache_key, 0)
-    if failures >= 5:
+    current_failures = cache.get(cache_key, 0)
+    if current_failures >= 5:
         raise Throttled(
             detail="Trop de tentatives de code PIN erronées. Veuillez réessayer dans une minute."
         )
@@ -130,7 +130,12 @@ def verify_manager_pin_helper(tenant, raw_pin, user=None):
             cache.delete(cache_key)
             return mgr
 
-    cache.set(cache_key, failures + 1, timeout=60)
+    # Record failure atomically in cache
+    try:
+        if not cache.add(cache_key, 1, timeout=60):
+            cache.incr(cache_key)
+    except Exception:
+        cache.set(cache_key, current_failures + 1, timeout=60)
     return None
 
 
@@ -352,25 +357,34 @@ class CreateSaleSerializer(serializers.Serializer):
                             })
 
             # 2. Maximum Discount Check
-            require_discount_pin = store_settings.require_manager_pin_for_discounts if store_settings else True
-            if require_discount_pin:
-                allowed_pct = Decimal(user.max_discount_pct if user.max_discount_pct is not None else (store_settings.default_max_discount_pct if store_settings else 10))
-                gross_items_total = sum(item["unit_price"] * item["quantity"] for item in data["items"])
-                cart_disc = data.get("cart_discount", Decimal("0.00"))
-                item_discs = sum(item.get("discount_amount", Decimal("0.00")) for item in data["items"])
-                total_disc = cart_disc + item_discs
-                if gross_items_total > Decimal("0.00"):
-                    disc_pct = (total_disc / gross_items_total) * Decimal("100")
-                    if disc_pct > allowed_pct:
+            allowed_pct = Decimal(user.max_discount_pct if user.max_discount_pct is not None else (store_settings.default_max_discount_pct if store_settings else 10))
+            gross_items_total = sum(item["unit_price"] * item["quantity"] for item in data["items"])
+            cart_disc = data.get("cart_discount", Decimal("0.00"))
+            item_discs = sum(item.get("discount_amount", Decimal("0.00")) for item in data["items"])
+            total_disc = cart_disc + item_discs
+            if gross_items_total > Decimal("0.00"):
+                disc_pct = (total_disc / gross_items_total) * Decimal("100")
+                if disc_pct > allowed_pct:
+                    require_discount_pin = store_settings.require_manager_pin_for_discounts if store_settings else True
+                    if require_discount_pin:
                         if not authorized_mgr:
                             authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)
                         if not authorized_mgr:
                             raise serializers.ValidationError({
                                 "cart_discount": f"La remise totale accordée ({disc_pct:.1f}%) dépasse votre limite autorisée ({allowed_pct}%). Code PIN manager requis."
                             })
+                    else:
+                        raise serializers.ValidationError({
+                            "cart_discount": f"La remise totale accordée ({disc_pct:.1f}%) dépasse votre limite autorisée ({allowed_pct}%)."
+                        })
 
-        # Underpaid POS sale (neither versement nor layaway): requires client & credit-limit check (D1)
-        if not is_versement and not is_layaway and payment_total < items_total:
+        # Underpaid or On-Account POS sale (neither versement nor layaway): requires client & credit-limit check (D1)
+        account_payment_total = sum(
+            p["amount"] for p in data["payments"] if p.get("method") == "account"
+        )
+        is_on_account = (payment_total < items_total) or (account_payment_total > Decimal("0.00"))
+
+        if not is_versement and not is_layaway and is_on_account:
             client_id = data.get("client_id")
             if not client_id:
                 raise serializers.ValidationError({
@@ -381,7 +395,10 @@ class CreateSaleSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     "client_id": "Client introuvable."
                 })
-            shortfall = items_total - payment_total
+            cleared_payments = sum(
+                p["amount"] for p in data["payments"] if p.get("method") != "account"
+            )
+            shortfall = items_total - cleared_payments
             new_balance = client_obj.cached_balance + shortfall
             if client_obj.credit_limit > Decimal("0.00") and new_balance > client_obj.credit_limit:
                 if not authorized_mgr:
@@ -546,18 +563,22 @@ class CreateSaleSerializer(serializers.Serializer):
                     notes=payment_data.get("notes") or f"Vente caisse {receipt_number}",
                 )
 
-        # Record ClientLedger debit for any unpaid balance on regular POS sales (D1)
-        if not is_versement and not is_layaway and client and payment_total < total:
-            shortfall = total - payment_total
-            ClientLedger.objects.create(
-                client=client,
-                entry_type="debit",
-                amount=shortfall,
-                description=f"Solde sur vente {receipt_number}",
-                reference_type="Sale",
-                reference_id=str(sale.pk),
-                date=today,
+        # Record ClientLedger debit for any unpaid or on-account balance on regular POS sales (D1)
+        if not is_versement and not is_layaway and client:
+            cleared_payments = sum(
+                p["amount"] for p in validated_data["payments"] if p["method"] != "account"
             )
+            shortfall = total - cleared_payments
+            if shortfall > Decimal("0.00"):
+                ClientLedger.objects.create(
+                    client=client,
+                    entry_type="debit",
+                    amount=shortfall,
+                    description=f"Solde sur vente {receipt_number}",
+                    reference_type="Sale",
+                    reference_id=str(sale.pk),
+                    date=today,
+                )
 
         # ── Loyalty: redeem then earn ─────────────────────────────────────────
         # Skip loyalty for versement or layaway — points awarded only when sale completes/collected
@@ -825,6 +846,46 @@ class CreateReturnSerializer(serializers.Serializer):
                 )
 
         self._reverse_loyalty(sale, return_obj, data["refund_amount"])
+
+        # Reverse on-account debt in ClientLedger if this sale was on account or refund is to account
+        if sale.client_id:
+            from apps.clients.models import ClientLedger
+            from django.utils import timezone
+
+            existing_debits = ClientLedger.objects.filter(
+                client_id=sale.client_id,
+                reference_type="Sale",
+                reference_id=str(sale.pk),
+                entry_type="debit",
+            )
+            debit_sum = sum((d.amount for d in existing_debits), Decimal("0.00"))
+            existing_credits = ClientLedger.objects.filter(
+                client_id=sale.client_id,
+                reference_type="Sale",
+                reference_id=str(sale.pk),
+                entry_type="credit",
+            )
+            credited_sum = sum((c.amount for c in existing_credits), Decimal("0.00"))
+            remaining_debit = max(Decimal("0.00"), debit_sum - credited_sum)
+
+            refund_amt = data.get("refund_amount", Decimal("0.00"))
+            if data.get("refund_method") == "account":
+                credit_amount = refund_amt
+            elif remaining_debit > Decimal("0.00"):
+                credit_amount = min(refund_amt, remaining_debit)
+            else:
+                credit_amount = Decimal("0.00")
+
+            if credit_amount > Decimal("0.00"):
+                ClientLedger.objects.create(
+                    client=sale.client,
+                    entry_type="credit",
+                    amount=credit_amount,
+                    description=f"Retour sur vente {sale.receipt_number}",
+                    reference_type="Sale",
+                    reference_id=str(sale.pk),
+                    date=timezone.localdate(),
+                )
 
         # Mark sale as refunded if every sold item is now fully returned
         sold = {item.variant_id: item.quantity for item in sale.items.all()}
