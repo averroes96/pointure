@@ -311,21 +311,21 @@ class HeldSalesTests(TestCase):
 
     def test_cleanup_held_sales_task(self):
         now = timezone.now()
-        # Old held sale (8 days old)
+        # Old held sale (26 hours old)
         old_held = HeldSale.objects.create(
             tenant=self.tenant,
             cashier=self.cashier1,
             cart=[{"variant_id": str(self.variant.id), "quantity": 1, "unit_price": "15000.00"}],
         )
-        HeldSale.objects.filter(pk=old_held.id).update(created_at=now - timedelta(days=8))
+        HeldSale.objects.filter(pk=old_held.id).update(created_at=now - timedelta(hours=26))
 
-        # Recent held sale (2 days old)
+        # Recent held sale (2 hours old)
         recent_held = HeldSale.objects.create(
             tenant=self.tenant,
             cashier=self.cashier1,
             cart=[{"variant_id": str(self.variant.id), "quantity": 1, "unit_price": "15000.00"}],
         )
-        HeldSale.objects.filter(pk=recent_held.id).update(created_at=now - timedelta(days=2))
+        HeldSale.objects.filter(pk=recent_held.id).update(created_at=now - timedelta(hours=2))
 
         deleted = cleanup_held_sales()
         self.assertEqual(deleted, 1)
