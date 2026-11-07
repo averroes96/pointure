@@ -2246,7 +2246,16 @@
     "restore_passphrase_hint": "Indispensable pour déchiffrer les fichiers .shodzbak générés avec chiffrement AES-256.",
     "restore_confirm_type_label": "Pour confirmer, tapez",
     "restore_action_confirm": "Restaurer et Redémarrer",
-    "restore_failed_error": "Échec de la validation de la sauvegarde. Vérifiez le fichier et la phrase de passe."
+    "restore_failed_error": "Échec de la validation de la sauvegarde. Vérifiez le fichier et la phrase de passe.",
+    "diagnostics_pack_title": "Pack Diagnostic & Logs",
+    "diagnostics_pack_desc": "Générez une archive ZIP contenant les journaux d'activité récents (logs, requêtes lentes), les métadonnées système et l'état SQLite pour le support technique.",
+    "diagnostics_include_db": "Inclure une copie de la base de données",
+    "diagnostics_include_db_hint": "contient les données commerciales",
+    "diagnostics_download_btn": "Télécharger le pack (.zip)",
+    "diagnostics_downloading": "Génération...",
+    "diagnostics_download_tooltip": "Télécharger l'archive ZIP de diagnostic",
+    "diagnostics_success_toast": "Pack diagnostic téléchargé. Vous pouvez le transmettre à l'assistance technique.",
+    "diagnostics_error_toast": "Échec de la génération du pack diagnostic."
   },
   "setup": {
     "title": "Configuration initiale",

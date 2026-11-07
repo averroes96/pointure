@@ -2246,7 +2246,16 @@
     "restore_passphrase_hint": "Required to decrypt .shodzbak files generated with AES-256 encryption.",
     "restore_confirm_type_label": "To confirm, type",
     "restore_action_confirm": "Restore & Restart",
-    "restore_failed_error": "Failed to validate backup. Check the file and passphrase."
+    "restore_failed_error": "Failed to validate backup. Check the file and passphrase.",
+    "diagnostics_pack_title": "Diagnostics & Logs Bundle",
+    "diagnostics_pack_desc": "Generate a ZIP archive containing recent activity logs, slow query logs, system metadata, and SQLite state for technical support.",
+    "diagnostics_include_db": "Include a database backup copy",
+    "diagnostics_include_db_hint": "contains business data",
+    "diagnostics_download_btn": "Download bundle (.zip)",
+    "diagnostics_downloading": "Generating...",
+    "diagnostics_download_tooltip": "Download diagnostic ZIP bundle",
+    "diagnostics_success_toast": "Diagnostic bundle downloaded. You can send it to technical support.",
+    "diagnostics_error_toast": "Failed to generate diagnostic bundle."
   },
   "setup": {
     "title": "Initial Setup",

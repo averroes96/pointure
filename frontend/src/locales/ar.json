@@ -2246,7 +2246,16 @@
     "restore_passphrase_hint": "ضرورية لفك تشفير ملفات .shodzbak المحمية بواسطة تشفير AES-256.",
     "restore_confirm_type_label": "للتأكيد، اكتب",
     "restore_action_confirm": "استعادة وإعادة التشغيل",
-    "restore_failed_error": "فشلت عملية التحقق من النسخة الاحتياطية. يرجى التحقق من الملف وعبارة المرور."
+    "restore_failed_error": "فشلت عملية التحقق من النسخة الاحتياطية. يرجى التحقق من الملف وعبارة المرور.",
+    "diagnostics_pack_title": "حزمة التشخيص وسجلات النشاط",
+    "diagnostics_pack_desc": "إنشاء ملف مضغوط ZIP يحتوي على أحدث سجلات النشاط والطلبات البطيئة وبيانات النظام الوصفية وحالة قاعدة البيانات للدعم الفني.",
+    "diagnostics_include_db": "تضمين نسخة من قاعدة البيانات",
+    "diagnostics_include_db_hint": "تحتوي على البيانات التجارية",
+    "diagnostics_download_btn": "تحميل الحزمة (.zip)",
+    "diagnostics_downloading": "جارٍ الإنشاء...",
+    "diagnostics_download_tooltip": "تحميل الملف المضغوط التشخيصي",
+    "diagnostics_success_toast": "تم تحميل حزمة التشخيص بنجاح. يمكنك إرسالها إلى فريق الدعم الفني.",
+    "diagnostics_error_toast": "فشل إنشاء حزمة التشخيص."
   },
   "setup": {
     "title": "الإعداد الأولي",

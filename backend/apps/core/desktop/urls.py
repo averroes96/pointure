@@ -10,6 +10,7 @@ from .views import (
     restore_backup_view,
     update_backup_config_view,
     factory_reset_view,
+    diagnostics_bundle_view,
 )
 
 urlpatterns = [
@@ -22,4 +23,5 @@ urlpatterns = [
     path("backups/<str:filename>/download/", download_backup_view, name="desktop-backups-download"),
     path("backups/<str:filename>/", delete_backup_view, name="desktop-backups-delete"),
     path("reset/", factory_reset_view, name="desktop-factory-reset"),
+    path("diagnostics/", diagnostics_bundle_view, name="desktop-diagnostics"),
 ]

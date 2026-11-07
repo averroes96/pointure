@@ -499,3 +499,155 @@ def factory_reset_view(request):
         "backup_created": backup_file.name if backup_file else None,
         "cleared_tables_count": result.get("cleared_tables_count", 0),
     })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def diagnostics_bundle_view(request):
+    """
+    Generate diagnostic ZIP bundle:
+    - Last 5 MB of each logs/*.log file
+    - perf.log
+    - meta.json (app version, Python & Django versions, OS, DB size, SQLite metrics, top 15 tables by rows, backup status, scheduler state)
+    - Optional: latest local database backup if include_database=true (owner only)
+    """
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    include_db_param = str(request.query_params.get("include_database", "")).lower()
+    include_db = include_db_param in ("true", "1", "yes")
+
+    if include_db and getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut inclure la base de données dans le diagnostic."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    import io
+    import json
+    import os
+    import platform
+    import sys
+    import zipfile
+    import django
+    from django.db import connection
+    from django.utils import timezone
+    from .backup import get_backups_dir, list_backup_files, load_desktop_config
+    from .scheduler import load_scheduler_state
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 1. Logs
+        log_dir = getattr(settings, "LOG_DIR", None)
+        if not log_dir:
+            log_dir = getattr(settings, "DATA_DIR", Path(".")) / "logs"
+        log_dir = Path(log_dir)
+
+        if log_dir.exists() and log_dir.is_dir():
+            for log_file in sorted(log_dir.glob("*.log")):
+                try:
+                    file_size = log_file.stat().st_size
+                    with open(log_file, "rb") as f:
+                        if file_size > 5 * 1024 * 1024:
+                            f.seek(file_size - 5 * 1024 * 1024)
+                            f.readline()  # discard possible partial line
+                        content = f.read()
+                    zf.writestr(f"logs/{log_file.name}", content)
+                except Exception as err:
+                    zf.writestr(f"logs/{log_file.name}.err", f"Error reading log: {err}".encode("utf-8"))
+
+        # 2. SQLite & system metadata
+        page_count = 0
+        page_size = 0
+        freelist_count = 0
+        table_counts = []
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA page_count;")
+                row = cursor.fetchone()
+                if row:
+                    page_count = row[0]
+
+                cursor.execute("PRAGMA page_size;")
+                row = cursor.fetchone()
+                if row:
+                    page_size = row[0]
+
+                cursor.execute("PRAGMA freelist_count;")
+                row = cursor.fetchone()
+                if row:
+                    freelist_count = row[0]
+
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+                )
+                tables = [r[0] for r in cursor.fetchall()]
+                for tbl in tables:
+                    try:
+                        cursor.execute(f'SELECT COUNT(*) FROM "{tbl}";')
+                        cnt_row = cursor.fetchone()
+                        if cnt_row is not None:
+                            table_counts.append({"table": tbl, "rows": cnt_row[0]})
+                    except Exception:
+                        pass
+                table_counts.sort(key=lambda x: x["rows"], reverse=True)
+                table_counts = table_counts[:15]
+        except Exception as e:
+            logger.warning("Error fetching SQLite metadata for diagnostics: %s", e)
+
+        db_path = settings.DATABASES.get("default", {}).get("NAME", "")
+        db_size_bytes = 0
+        if db_path and os.path.exists(str(db_path)):
+            db_size_bytes = os.path.getsize(str(db_path))
+
+        cfg = load_desktop_config()
+        backups = list_backup_files()
+        backup_status = {
+            "destination_dir": cfg.get("backup_destination_dir", ""),
+            "last_external_backup_at": cfg.get("last_external_backup_at"),
+            "last_external_error": cfg.get("last_external_error"),
+            "backup_encrypt": cfg.get("backup_encrypt", True),
+            "local_backups_count": len(backups),
+            "latest_local_backup": backups[0]["filename"] if backups else None,
+        }
+
+        sched_state = load_scheduler_state()
+
+        meta = {
+            "app_version": getattr(settings, "APP_VERSION", "1.1.0"),
+            "python_version": sys.version,
+            "django_version": django.get_version(),
+            "os": f"{platform.system()} {platform.release()} ({platform.machine()})",
+            "timestamp": timezone.now().isoformat(),
+            "db_file_size_bytes": db_size_bytes,
+            "sqlite": {
+                "page_count": page_count,
+                "page_size": page_size,
+                "freelist_count": freelist_count,
+                "top_15_tables_by_rows": table_counts,
+            },
+            "backup_status": backup_status,
+            "scheduler_state": sched_state,
+        }
+        zf.writestr("meta.json", json.dumps(meta, indent=2).encode("utf-8"))
+
+        # 3. Optional Database Backup
+        if include_db:
+            from .backup import perform_database_backup
+            if not backups:
+                perform_database_backup()
+                backups = list_backup_files()
+            if backups:
+                latest_filename = backups[0]["filename"]
+                b_path = get_backups_dir() / latest_filename
+                if b_path.exists():
+                    with open(b_path, "rb") as f_db:
+                        zf.writestr(f"database/{latest_filename}", f_db.read())
+
+    buf.seek(0)
+    now_str = timezone.now().strftime("%Y%m%d_%H%M%S")
+    zip_filename = f"shodz_diagnostic_{now_str}.zip"
+    resp = HttpResponse(buf.getvalue(), content_type="application/zip")
+    resp["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
+    return resp
+

@@ -64,6 +64,8 @@ export default function DesktopTab() {
 
   // Backup State
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [downloadingDiagnostics, setDownloadingDiagnostics] = useState<boolean>(false);
+  const [includeDatabaseInDiagnostic, setIncludeDatabaseInDiagnostic] = useState<boolean>(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -230,6 +232,53 @@ export default function DesktopTab() {
       });
     } finally {
       setDownloadingFile(null);
+    }
+  };
+
+  const handleDownloadDiagnostics = async () => {
+    try {
+      setDownloadingDiagnostics(true);
+      const params = isOwner && includeDatabaseInDiagnostic ? { include_database: "true" } : {};
+      const response = await api.get("/desktop/diagnostics/", {
+        params,
+        responseType: "blob",
+      });
+
+      let filename = `shodz_diagnostic_${new Date().toISOString().slice(0, 10)}.zip`;
+      const disposition = response.headers?.["content-disposition"];
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setToast({
+        type: "success",
+        message: t(
+          "desktop.diagnostics_success_toast",
+          "Pack diagnostic téléchargé. Vous pouvez le transmettre à l'assistance technique."
+        ),
+      });
+    } catch (err: any) {
+      setToast({
+        type: "error",
+        message:
+          err?.response?.data?.detail ||
+          t("desktop.diagnostics_error_toast", "Échec de la génération du pack diagnostic."),
+      });
+    } finally {
+      setDownloadingDiagnostics(false);
     }
   };
 
@@ -967,6 +1016,59 @@ export default function DesktopTab() {
             >
               <RefreshCw size={13} className={cn((resyncingClock || isTimeRefetching) && "animate-spin text-primary-600")} />
               <span>{resyncingClock ? "Synchronisation..." : "Recaler l'horloge"}</span>
+            </button>
+          </div>
+
+          {/* Pack Diagnostic & Logs Card */}
+          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 shadow-2xs">
+                <FolderArchive size={18} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                  {t("desktop.diagnostics_pack_title", "Pack Diagnostic & Logs")}
+                </p>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 max-w-xl">
+                  {t(
+                    "desktop.diagnostics_pack_desc",
+                    "Générez une archive ZIP contenant les journaux d'activité récents (logs, requêtes lentes), les métadonnées système et l'état SQLite pour le support technique."
+                  )}
+                </p>
+                {isOwner && (
+                  <label className="inline-flex items-center gap-2 pt-1 text-2xs text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={includeDatabaseInDiagnostic}
+                      onChange={(e) => setIncludeDatabaseInDiagnostic(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                    />
+                    <span>{t("desktop.diagnostics_include_db", "Inclure une copie de la base de données")}</span>
+                    <span className="text-2xs text-slate-400 font-normal">
+                      ({t("desktop.diagnostics_include_db_hint", "contient les données commerciales")})
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleDownloadDiagnostics}
+              disabled={downloadingDiagnostics}
+              className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs self-stretch md:self-auto justify-center cursor-pointer disabled:opacity-50 shrink-0"
+              title={t("desktop.diagnostics_download_tooltip", "Télécharger l'archive ZIP de diagnostic")}
+            >
+              {downloadingDiagnostics ? (
+                <>
+                  <Loader2 size={13} className="animate-spin text-primary-600" />
+                  <span>{t("desktop.diagnostics_downloading", "Génération...")}</span>
+                </>
+              ) : (
+                <>
+                  <Download size={13} />
+                  <span>{t("desktop.diagnostics_download_btn", "Télécharger le pack (.zip)")}</span>
+                </>
+              )}
             </button>
           </div>
         </div>
