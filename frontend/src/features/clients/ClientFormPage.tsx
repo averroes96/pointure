@@ -303,7 +303,7 @@ export default function ClientFormPage() {
                   value={form.wilaya}
                   onChange={(e) => setForm((f) => ({ ...f, wilaya: e.target.value }))}
                 >
-                  <option value="">Sélectionnez une wilaya...</option>
+                  <option value="">{t("client.select_wilaya", "Sélectionnez une wilaya...")}</option>
                   {wilayas?.map((w) => (
                     <option key={w.code} value={w.code}>
                       {w.code} - {w.name} ({w.ar_name})

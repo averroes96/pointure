@@ -292,9 +292,9 @@ export default function DebtAgeingPage() {
       {isError && (
         <div className="card rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center space-y-2">
           <AlertCircle size={28} className="text-rose-600 mx-auto" />
-          <p className="text-slate-900 font-bold font-sans">Erreur de chargement</p>
+          <p className="text-slate-900 font-bold font-sans">{t("common.error_loading", "Erreur de chargement")}</p>
           <p className="text-xs text-slate-600">
-            Impossible de récupérer les données de vieillissement des créances.
+            {t("client.error_debt_ageing", "Impossible de récupérer les données de vieillissement des créances.")}
           </p>
         </div>
       )}

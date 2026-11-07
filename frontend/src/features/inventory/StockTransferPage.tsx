@@ -119,7 +119,7 @@ function CreateTransferModal({
                 className="form-input"
                 required
               >
-                <option value="">Sélectionner...</option>
+                <option value="">{t("common.select", "Sélectionner...")}</option>
                 {activeBranches.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -133,7 +133,7 @@ function CreateTransferModal({
                 className="form-input"
                 required
               >
-                <option value="">Sélectionner...</option>
+                <option value="">{t("common.select", "Sélectionner...")}</option>
                 {activeBranches
                   .filter((b) => String(b.id) !== form.from_branch)
                   .map((b) => (
@@ -189,8 +189,8 @@ function CreateTransferModal({
             <button type="button" onClick={onClose} className="btn-secondary">{t("common.cancel")}</button>
             <button type="submit" disabled={mutation.isPending} className="btn-primary">
               {mutation.isPending
-                ? <><Loader2 size={14} className="animate-spin" /> Création…</>
-                : <><Truck size={14} /> Créer le transfert</>
+                ? <><Loader2 size={14} className="animate-spin" /> {t("common.creating", "Création…")}</>
+                : <><Truck size={14} /> {t("inventory.create_transfer", "Créer le transfert")}</>
               }
             </button>
           </div>

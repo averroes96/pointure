@@ -82,7 +82,8 @@
     "resetting": "جاري إعادة التعيين…",
     "send_link": "إرسال الرابط",
     "sending": "جاري الإرسال…",
-    "access_denied": "ليس لديك صلاحية للوصول إلى هذه الصفحة."
+    "access_denied": "ليس لديك صلاحية للوصول إلى هذه الصفحة.",
+    "no_email_account_title": "حساب بدون بريد إلكتروني"
   },
   "dashboard": {
     "today_revenue": "رقم الأعمال اليومي",
@@ -370,7 +371,8 @@
     "back_to_list": "العودة إلى القائمة",
     "retail_loyalty_hint": "زبون تجزئة — مؤهل لبرنامج الوفاء.",
     "wholesale_loyalty_hint": "شريك جملة — مستثنى من برنامج الوفاء.",
-    "commune": "البلدية"
+    "commune": "البلدية",
+    "select_wilaya": "اختر ولاية..."
   },
   "inventory": {
     "product": "المنتج",
@@ -774,7 +776,13 @@
     "default_session_title": "جرد يوم {{date}}",
     "rolling_session_title": "جرد دوري يوم {{date}}",
     "targeted_session_title": "جرد موجه يوم {{date}}",
-    "full_session_title": "جرد شامل يوم {{date}}"
+    "full_session_title": "جرد شامل يوم {{date}}",
+    "return_to_simple_view": "الرجوع إلى العرض البسيط",
+    "not_generated": "غير منشأ",
+    "no_variants_defined": "لم يتم تحديد أي متغيرات.",
+    "create_transfer": "إنشاء التحويل",
+    "no_colour_found": "لم يتم العثور على أي لون.",
+    "shelf_label": "ملصق الرف"
   },
   "sales": {
     "search_product": "ابحث عن منتج أو امسح باركود...",
@@ -985,7 +993,8 @@
     "balance_due_amount": "الرصيد المتبقي : {{amount}} دج",
     "layaway_min_deposit_badge": "الحجز المسبق ({{pct}}% كحد أدنى) : {{amount}} دج",
     "balance_at_pickup_amount": "الرصيد عند الاستلام : {{amount}} دج",
-    "layaway_expiration_days": "الصلاحية : ي+{{days}}"
+    "layaway_expiration_days": "الصلاحية : ي+{{days}}",
+    "pos_security_control": "مراقبة أمان نقطة البيع"
   },
   "cheque": {
     "number": "رقم الشيك",
@@ -1175,7 +1184,8 @@
     "invoices_tab": "الفواتير",
     "payments_tab": "المدفوعات",
     "select_supplier": "اختر مورداً (اختياري)",
-    "back_to_list": "العودة إلى القائمة"
+    "back_to_list": "العودة إلى القائمة",
+    "po_not_found": "الطلبية غير موجودة"
   },
   "transfer_status": {
     "pending": "قيد الانتظار",
@@ -1270,7 +1280,10 @@
     "walk_in_customer": "زبون عابر",
     "refresh": "تحديث",
     "days": "أيام",
-    "page_of": "صفحة {{current}} / {{total}}"
+    "page_of": "صفحة {{current}} / {{total}}",
+    "preview": "معاينة",
+    "standard": "قياسي",
+    "validate": "تأكيد"
   },
   "status": {
     "completed": "مكتمل",
@@ -1795,7 +1808,8 @@
     "whatsapp_greeting": "مرحبًا {{name}} 👋،\nشكرًا لوفائكم لمتجر *{{store}}*!",
     "whatsapp_status": "🏅 المستوى: *{{tier}}*",
     "whatsapp_balance": "🎁 رصيدكم الحالي: *{{points}} نقطة* (ما يعادل خصم *{{value}} {{currency}}* على مشترياتكم القادمة).",
-    "whatsapp_farewell": "إلى اللقاء قريبًا!"
+    "whatsapp_farewell": "إلى اللقاء قريبًا!",
+    "points_history": "سجل النقاط"
   },
   "pos": {
     "versement": "تسبيق",
@@ -2274,5 +2288,19 @@
   "roles": {
     "cashier": "بائع / كاشير",
     "manager": "مسير / مدير"
+  },
+  "plan": {
+    "upgrade_required": "ترقية الاشتراك مطلوبة",
+    "feature_requires_plan": "هذه الميزة تتطلب خطة {{required_plan}}. خطتك الحالية هي {{current_plan}}.",
+    "view_plans": "عرض الخطط",
+    "plan_free": "مجاني",
+    "plan_pro_retail": "برو تجزئة",
+    "plan_pro_wholesale": "برو جملة",
+    "plan_enterprise": "مؤسسات"
+  },
+  "manager_pin": {
+    "title": "موافقة المسؤول مطلوبة",
+    "enter_pin": "أدخل رمز PIN للمسؤول (4 إلى 6 أرقام)",
+    "action_cancel": "إلغاء (Esc)"
   }
 }

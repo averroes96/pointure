@@ -101,10 +101,10 @@ function BarcodeCell({ barcode }: { barcode: string | null | undefined }) {
       <button
         onClick={(e) => { e.stopPropagation(); setPopoverOpen((o) => !o); }}
         className="flex items-center gap-0.5 text-2xs text-text-muted hover:text-primary-500 transition-colors"
-        title="Aperçu code-barres"
+        title={t("inventory.label_preview", "Aperçu code-barres")}
       >
         <Barcode size={11} />
-        <span>aperçu</span>
+        <span>{t("common.preview", "aperçu")}</span>
       </button>
 
       {/* Popover with rendered barcode */}
@@ -252,11 +252,11 @@ export default function SkuMatrix({ productId, variants, onSave, readOnly = fals
     return (
       <div className="text-center py-8 text-text-muted text-sm">
         <Package size={32} className="mx-auto mb-2 opacity-40" />
-        <p>Aucune variante définie.</p>
+        <p>{t("inventory.no_variants_defined", "Aucune variante définie.")}</p>
         {!readOnly && (
           <button className="btn-primary mt-4" onClick={() => setShowAddForm(true)}>
             <Plus size={14} />
-            Ajouter une variante
+            {t("inventory.add_variant", "Ajouter une variante")}
           </button>
         )}
         {showAddForm && (

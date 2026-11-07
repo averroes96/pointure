@@ -481,12 +481,12 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
       {/* Filters */}
       <div className="card p-4 flex flex-col md:flex-row gap-4">
         <div className="flex-1">
-          <label className="text-sm font-medium text-text-muted mb-1 block">Recherche</label>
+          <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.search", "Recherche")}</label>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
               type="text"
-              placeholder="Description ou référence..."
+              placeholder={t("client.global_ledger_search_placeholder", "Description ou référence...")}
               className="form-input pl-9 w-full"
               value={search}
               onChange={(e) => {
@@ -1085,7 +1085,7 @@ function LoyaltyTab({ clientId }: { clientId: number | string }) {
       {/* Transaction history */}
       <div className="card overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold text-text-primary">Historique des points</h3>
+          <h3 className="text-sm font-semibold text-text-primary">{t("loyalty.points_history", "Historique des points")}</h3>
         </div>
         {account.transactions.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-muted">{t("common.no_data")}</div>

@@ -124,7 +124,7 @@ export default function ColourPicker({
           {/* Colour grid */}
           <div className="p-2 max-h-64 overflow-y-auto">
             {filtered.length === 0 && (
-              <p className="text-center text-sm text-text-muted py-4">Aucune couleur trouvée.</p>
+              <p className="text-center text-sm text-text-muted py-4">{t("inventory.no_colour_found", "Aucune couleur trouvée.")}</p>
             )}
             <div className="grid grid-cols-2 gap-0.5">
               {filtered.map((colour) => (

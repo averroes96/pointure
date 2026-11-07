@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
               <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-2">
                 <div className="flex items-center gap-2 font-bold text-sm">
                   <AlertTriangle size={18} className="text-amber-600 shrink-0" />
-                  <span>Compte sans adresse email</span>
+                  <span>{t("auth.no_email_account_title", "Compte sans adresse email")}</span>
                 </div>
                 <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
                   {error || t("auth.no_email_account_notice")}

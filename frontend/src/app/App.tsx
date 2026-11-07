@@ -101,9 +101,10 @@ const PromotionsPage = lazy(() => import("@/features/promotions/PromotionsPage")
 const UpgradePromptModal = lazy(() => import("@/components/ui/UpgradePromptModal"));
 
 function PageFallback() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-text-muted text-sm">Chargement...</div>
+      <div className="text-text-muted text-sm">{t("common.loading", "Chargement...")}</div>
     </div>
   );
 }

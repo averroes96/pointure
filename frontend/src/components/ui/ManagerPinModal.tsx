@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ShieldCheck, ShieldAlert, Lock, Delete, X, Check } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/api";
@@ -20,12 +21,14 @@ interface ManagerPinModalProps {
 
 export default function ManagerPinModal({
   isOpen,
-  title = "Autorisation Responsable requise",
+  title,
   reason,
   actionDescription,
   onSuccess,
   onCancel,
 }: ManagerPinModalProps) {
+  const { t } = useTranslation();
+  const displayTitle = title || t("manager_pin.title", "Autorisation Responsable requise");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -142,8 +145,8 @@ export default function ManagerPinModal({
               <Lock size={20} className="stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="font-bold text-sm tracking-tight leading-snug">{title}</h3>
-              <p className="text-2xs text-amber-100 font-medium">Contrôle de sécurité POS</p>
+              <h3 className="font-bold text-sm tracking-tight leading-snug">{displayTitle}</h3>
+              <p className="text-2xs text-amber-100 font-medium">{t("sales.pos_security_control", "Contrôle de sécurité POS")}</p>
             </div>
           </div>
           <button
@@ -171,7 +174,7 @@ export default function ManagerPinModal({
         {/* PIN Display Dots */}
         <div className="px-5 py-3 text-center">
           <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-            Entrez le code PIN du Responsable (4 à 6 chiffres)
+            {t("manager_pin.enter_pin", "Entrez le code PIN du Responsable (4 à 6 chiffres)")}
           </label>
 
           {/* Hidden input for software keyboards / autofocus */}
@@ -242,7 +245,7 @@ export default function ManagerPinModal({
               disabled={isLoading || pin.length === 0}
               className="h-12 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
             >
-              Effacer
+              {t("common.clear", "Effacer")}
             </button>
 
             {/* Zero */}
@@ -274,7 +277,7 @@ export default function ManagerPinModal({
               disabled={isLoading}
               className="flex-1 py-2.5 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
-              Annuler (Échap)
+              {t("manager_pin.action_cancel", "Annuler (Échap)")}
             </button>
             <button
               type="button"
@@ -287,7 +290,7 @@ export default function ManagerPinModal({
               ) : (
                 <>
                   <Check size={16} />
-                  Valider
+                  {t("common.validate", "Valider")}
                 </>
               )}
             </button>

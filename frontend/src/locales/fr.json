@@ -82,7 +82,8 @@
     "confirm_password": "Confirmer le mot de passe",
     "resetting": "Réinitialisation…",
     "reset_password": "Réinitialiser le mot de passe",
-    "access_denied": "Vous n'avez pas la permission d'accéder à cette page."
+    "access_denied": "Vous n'avez pas la permission d'accéder à cette page.",
+    "no_email_account_title": "Compte sans adresse email"
   },
   "dashboard": {
     "today_revenue": "Chiffre du jour",
@@ -370,7 +371,8 @@
     "back_to_list": "Retour à la liste",
     "retail_loyalty_hint": "Client particulier — éligible au programme fidélité.",
     "wholesale_loyalty_hint": "Partenaire grossiste — exclu du programme fidélité.",
-    "commune": "Commune"
+    "commune": "Commune",
+    "select_wilaya": "Sélectionnez une wilaya..."
   },
   "inventory": {
     "product": "Article",
@@ -774,7 +776,13 @@
     "default_session_title": "Inventaire du {{date}}",
     "rolling_session_title": "Inventaire Tournant du {{date}}",
     "targeted_session_title": "Inventaire Ciblé du {{date}}",
-    "full_session_title": "Inventaire Général du {{date}}"
+    "full_session_title": "Inventaire Général du {{date}}",
+    "return_to_simple_view": "Revenir à la vue simple",
+    "not_generated": "Non généré",
+    "no_variants_defined": "Aucune variante définie.",
+    "create_transfer": "Créer le transfert",
+    "no_colour_found": "Aucune couleur trouvée.",
+    "shelf_label": "Étiquette Rayon"
   },
   "sales": {
     "search_product": "Rechercher article ou scanner...",
@@ -985,7 +993,8 @@
     "balance_due_amount": "Solde : {{amount}} DZD",
     "layaway_min_deposit_badge": "Mise de côté ({{pct}}% min) : {{amount}} DZD",
     "balance_at_pickup_amount": "Solde au retrait : {{amount}} DZD",
-    "layaway_expiration_days": "Expiration : J+{{days}}"
+    "layaway_expiration_days": "Expiration : J+{{days}}",
+    "pos_security_control": "Contrôle de sécurité POS"
   },
   "cheque": {
     "number": "N° chèque",
@@ -1175,7 +1184,8 @@
     "invoices_tab": "Factures",
     "payments_tab": "Paiements",
     "select_supplier": "Sélectionner un fournisseur (optionnel)",
-    "back_to_list": "Retour à la liste"
+    "back_to_list": "Retour à la liste",
+    "po_not_found": "Commande introuvable"
   },
   "transfer_status": {
     "pending": "En attente",
@@ -1270,7 +1280,10 @@
     "walk_in_customer": "Client de passage",
     "refresh": "Actualiser",
     "days": "jours",
-    "page_of": "Page {{current}} / {{total}}"
+    "page_of": "Page {{current}} / {{total}}",
+    "preview": "Aperçu",
+    "standard": "Standard",
+    "validate": "Valider"
   },
   "topbar": {
     "just_now": "à l'instant",
@@ -1795,7 +1808,8 @@
     "whatsapp_greeting": "Bonjour {{name}} 👋,\nMerci pour votre fidélité chez *{{store}}* !",
     "whatsapp_status": "🏅 Statut : *{{tier}}*",
     "whatsapp_balance": "🎁 Solde actuel : *{{points}} points* (équivalent à *{{value}} {{currency}}* de remise sur votre prochain achat).",
-    "whatsapp_farewell": "À très bientôt !"
+    "whatsapp_farewell": "À très bientôt !",
+    "points_history": "Historique des points"
   },
   "pos": {
     "versement": "Versement",
@@ -2274,5 +2288,19 @@
   "roles": {
     "cashier": "Caissier",
     "manager": "Gérant"
+  },
+  "plan": {
+    "upgrade_required": "Mise à niveau requise",
+    "feature_requires_plan": "Cette fonctionnalité nécessite le plan {{required_plan}}. Votre plan actuel est {{current_plan}}.",
+    "view_plans": "Voir les plans",
+    "plan_free": "Gratuit",
+    "plan_pro_retail": "Pro Retail",
+    "plan_pro_wholesale": "Pro Wholesale",
+    "plan_enterprise": "Enterprise"
+  },
+  "manager_pin": {
+    "title": "Autorisation Responsable requise",
+    "enter_pin": "Entrez le code PIN du Responsable (4 à 6 chiffres)",
+    "action_cancel": "Annuler (Échap)"
   }
 }

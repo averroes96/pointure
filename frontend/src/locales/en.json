@@ -82,7 +82,8 @@
     "resetting": "Resetting…",
     "send_link": "Send link",
     "sending": "Sending…",
-    "access_denied": "You don't have permission to access this page."
+    "access_denied": "You don't have permission to access this page.",
+    "no_email_account_title": "Account without email address"
   },
   "dashboard": {
     "today_revenue": "Today's Revenue",
@@ -370,7 +371,8 @@
     "back_to_list": "Back to list",
     "retail_loyalty_hint": "Retail customer — eligible for loyalty program.",
     "wholesale_loyalty_hint": "Wholesale partner — excluded from loyalty program.",
-    "commune": "Commune"
+    "commune": "Commune",
+    "select_wilaya": "Select a wilaya..."
   },
   "inventory": {
     "product": "Product",
@@ -774,7 +776,13 @@
     "default_session_title": "Stocktake of {{date}}",
     "rolling_session_title": "Cycle Count of {{date}}",
     "targeted_session_title": "Targeted Stocktake of {{date}}",
-    "full_session_title": "Full Stocktake of {{date}}"
+    "full_session_title": "Full Stocktake of {{date}}",
+    "return_to_simple_view": "Return to simple view",
+    "not_generated": "Not generated",
+    "no_variants_defined": "No variants defined.",
+    "create_transfer": "Create Transfer",
+    "no_colour_found": "No colour found.",
+    "shelf_label": "Shelf Label"
   },
   "sales": {
     "search_product": "Search product or scan barcode...",
@@ -985,7 +993,8 @@
     "balance_due_amount": "Balance due: {{amount}} DZD",
     "layaway_min_deposit_badge": "Layaway ({{pct}}% min): {{amount}} DZD",
     "balance_at_pickup_amount": "Balance at pickup: {{amount}} DZD",
-    "layaway_expiration_days": "Expires: D+{{days}}"
+    "layaway_expiration_days": "Expires: D+{{days}}",
+    "pos_security_control": "POS Security Control"
   },
   "cheque": {
     "number": "Cheque #",
@@ -1175,7 +1184,8 @@
     "invoices_tab": "Invoices",
     "payments_tab": "Payments",
     "select_supplier": "Select a supplier (optional)",
-    "back_to_list": "Back to list"
+    "back_to_list": "Back to list",
+    "po_not_found": "Purchase order not found"
   },
   "transfer_status": {
     "pending": "Pending",
@@ -1270,7 +1280,10 @@
     "walk_in_customer": "Walk-in customer",
     "refresh": "Refresh",
     "days": "days",
-    "page_of": "Page {{current}} / {{total}}"
+    "page_of": "Page {{current}} / {{total}}",
+    "preview": "Preview",
+    "standard": "Standard",
+    "validate": "Validate"
   },
   "status": {
     "completed": "Completed",
@@ -1795,7 +1808,8 @@
     "whatsapp_greeting": "Hello {{name}} 👋,\nThank you for your loyalty to *{{store}}*!",
     "whatsapp_status": "🏅 Status: *{{tier}}*",
     "whatsapp_balance": "🎁 Current balance: *{{points}} points* (equivalent to *{{value}} {{currency}}* discount on your next purchase).",
-    "whatsapp_farewell": "See you soon!"
+    "whatsapp_farewell": "See you soon!",
+    "points_history": "Points History"
   },
   "pos": {
     "versement": "Layaway Deposit",
@@ -2274,5 +2288,19 @@
   "roles": {
     "cashier": "Cashier",
     "manager": "Manager"
+  },
+  "plan": {
+    "upgrade_required": "Upgrade Required",
+    "feature_requires_plan": "This feature requires the {{required_plan}} plan. Your current plan is {{current_plan}}.",
+    "view_plans": "View Plans",
+    "plan_free": "Free",
+    "plan_pro_retail": "Pro Retail",
+    "plan_pro_wholesale": "Pro Wholesale",
+    "plan_enterprise": "Enterprise"
+  },
+  "manager_pin": {
+    "title": "Manager Authorization Required",
+    "enter_pin": "Enter Manager PIN (4 to 6 digits)",
+    "action_cancel": "Cancel (Esc)"
   }
 }

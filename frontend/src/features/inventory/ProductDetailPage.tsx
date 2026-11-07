@@ -308,7 +308,7 @@ export default function ProductDetailPage() {
     return (
       <div className="flex items-center justify-center h-48 text-text-muted gap-2">
         <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm">Chargement...</span>
+        <span className="text-sm">{t("common.loading", "Chargement...")}</span>
       </div>
     );
   }
@@ -317,9 +317,9 @@ export default function ProductDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-48 gap-3 text-text-muted">
         <XCircle size={32} className="text-danger opacity-50" />
-        <p className="text-sm">Produit introuvable.</p>
+        <p className="text-sm">{t("inventory.product_not_found", "Produit introuvable.")}</p>
         <Link to="/inventory/products" className="btn-secondary btn-sm">
-          <ArrowLeft size={14} /> Retour
+          <ArrowLeft size={14} /> {t("common.back", "Retour")}
         </Link>
       </div>
     );
@@ -444,18 +444,18 @@ export default function ProductDetailPage() {
           ) : (
             <div className="flex flex-col items-center gap-2 text-slate-400">
               <Package size={56} className="text-slate-300 dark:text-slate-600 stroke-[1.5]" />
-              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Pas d'image</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{t("inventory.no_image", "Pas d'image")}</span>
             </div>
           )}
         </div>
 
         {/* Classification + Description Card */}
         <div className="card rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4 bg-white dark:bg-slate-900">
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Informations produit</h3>
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.product_info", "Informations produit")}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <InfoBadge label="Catégorie" value={CATEGORY_LABELS[product.category] ?? product.category} />
-            <InfoBadge label="Genre" value={GENDER_LABELS[product.gender] ?? product.gender} />
-            <InfoBadge label="Saison" value={SEASON_LABELS[product.season] ?? product.season} />
+            <InfoBadge label={t("inventory.category", "Catégorie")} value={CATEGORY_LABELS[product.category] ?? product.category} />
+            <InfoBadge label={t("inventory.gender", "Genre")} value={GENDER_LABELS[product.gender] ?? product.gender} />
+            <InfoBadge label={t("inventory.season", "Saison")} value={SEASON_LABELS[product.season] ?? product.season} />
             <InfoBadge label={t("product.pairs_per_carton")} value={String(product.pairs_per_carton ?? 10)} />
           </div>
           {product.description && (
@@ -589,10 +589,10 @@ export default function ProductDetailPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Stock & Code-barres</h2>
-                  <span className="badge badge-neutral text-2xs">Article Unique</span>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">{t("inventory.stock_and_barcode", "Stock & Code-barres")}</h2>
+                  <span className="badge badge-neutral text-2xs">{t("inventory.single_item", "Article Unique")}</span>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gestion directe du stock et étiquette pour cet article</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("inventory.single_item_desc", "Gestion directe du stock et étiquette pour cet article")}</p>
               </div>
             </div>
 
@@ -602,10 +602,10 @@ export default function ProductDetailPage() {
                 onClick={() => handlePrintShelfLabel()}
                 disabled={shelfLabelLoading}
                 className="btn-secondary btn-sm flex items-center gap-1.5 font-medium"
-                title="Imprimer une étiquette rayon (nom, prix de vente, emplacement)"
+                title={t("inventory.print_shelf_label", "Imprimer une étiquette rayon (nom, prix de vente, emplacement)")}
               >
                 {shelfLabelLoading ? <Loader2 size={13} className="animate-spin" /> : <Tag size={13} className="text-amber-600 dark:text-amber-400" />}
-                Étiquette Rayon
+                {t("inventory.shelf_label", "Étiquette Rayon")}
               </button>
               {defaultVariant?.barcode && (
                 <button
@@ -794,7 +794,7 @@ export default function ProductDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Tag size={16} className="text-primary-600" />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Variantes (Taille × Couleur)</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">{t("inventory.variants_size_colour", "Variantes (Taille × Couleur)")}</h2>
             </div>
             {isSimpleProduct && showMatrixOverride && (
               <button
@@ -802,7 +802,7 @@ export default function ProductDetailPage() {
                 onClick={() => setShowMatrixOverride(false)}
                 className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
               >
-                Revenir à la vue simple
+                {t("inventory.return_to_simple_view", "Revenir à la vue simple")}
               </button>
             )}
           </div>
@@ -980,7 +980,7 @@ export default function ProductDetailPage() {
                       <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.size")}</th>
                       <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.colour")}</th>
                       <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("inventory.barcode")}</th>
-                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Aperçu</th>
+                      <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">{t("common.preview", "Aperçu")}</th>
                       <th className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-end"></th>
                     </tr>
                   </thead>
@@ -996,7 +996,7 @@ export default function ProductDetailPage() {
                                 T. {v.size_eu}
                               </span>
                             ) : (
-                              <span className="text-slate-500 dark:text-slate-400 font-medium">Standard</span>
+                              <span className="text-slate-500 dark:text-slate-400 font-medium">{t("common.standard", "Standard")}</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium text-sm">{v.colour === "N/A" ? t("common.na") : v.colour}</td>
@@ -1004,7 +1004,7 @@ export default function ProductDetailPage() {
                             {v.barcode ? (
                               <span className="font-mono font-semibold text-slate-900 dark:text-white">{v.barcode}</span>
                             ) : (
-                              <span className="text-slate-400 text-xs">Non généré</span>
+                              <span className="text-slate-400 text-xs">{t("inventory.not_generated", "Non généré")}</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4 text-center">

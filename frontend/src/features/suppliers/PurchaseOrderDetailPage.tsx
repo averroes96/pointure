@@ -142,7 +142,7 @@ function VariantSearch({
       </div>
       {open && query.length >= 2 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {isFetching && <div className="p-3 text-xs text-text-muted">Chargement…</div>}
+          {isFetching && <div className="p-3 text-xs text-text-muted">{t("common.loading", "Chargement…")}</div>}
           {!isFetching && results.length === 0 && (
             <div className="p-3 text-xs text-text-muted">Aucun résultat pour « {query} »</div>
           )}
@@ -626,14 +626,14 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                               }
                               className="form-input py-0.5 px-2 text-xs"
                             >
-                              <option value="unstitched_sole">Semelle décollée / décousue</option>
-                              <option value="broken_strap">Bride / Lanière cassée</option>
-                              <option value="mismatched_pair">Paire dépareillée</option>
-                              <option value="leather_tear">Déchirure cuir / tissu</option>
-                              <option value="discoloration">Décoloration / Teinte</option>
-                              <option value="broken_heel">Talon cassé</option>
-                              <option value="missing_insole">Semelle manquante</option>
-                              <option value="other">Autre défaut</option>
+                              <option value="unstitched_sole">{t("defects.reason_unstitched_sole", "Semelle décollée / décousue")}</option>
+                              <option value="broken_strap">{t("defects.reason_broken_strap", "Bride / Lanière cassée")}</option>
+                              <option value="mismatched_pair">{t("defects.reason_mismatched_pair", "Paire dépareillée")}</option>
+                              <option value="leather_tear">{t("defects.reason_leather_tear", "Déchirure cuir / tissu")}</option>
+                              <option value="discoloration">{t("defects.reason_discoloration", "Décoloration / Teinte")}</option>
+                              <option value="broken_heel">{t("defects.reason_broken_heel", "Talon cassé")}</option>
+                              <option value="missing_insole">{t("defects.reason_missing_insole", "Semelle manquante")}</option>
+                              <option value="other">{t("defects.reason_other", "Autre défaut")}</option>
                             </select>
                           </div>
 
@@ -985,9 +985,9 @@ export default function PurchaseOrderDetailPage() {
     return (
       <div className="card px-6 py-10 text-center space-y-3">
         <AlertCircle size={32} className="text-danger mx-auto" />
-        <p className="font-semibold text-text-primary">Commande introuvable</p>
+        <p className="font-semibold text-text-primary">{t("supplier.po_not_found", "Commande introuvable")}</p>
         <button onClick={() => navigate("/purchase-orders")} className="btn-secondary">
-          Retour à la liste
+          {t("common.back", "Retour à la liste")}
         </button>
       </div>
     );
