@@ -712,7 +712,7 @@ export default function SalesPage() {
           } else if (data.status === "partially_paid") {
             printBonVersement(data, user?.tenant?.name ?? "ShoeDZ");
           } else {
-            printReceipt(data, user?.tenant?.name ?? "ShoeDZ");
+            printReceipt(data, user?.tenant?.name ?? "ShoeDZ", user?.tenant);
           }
         }
       } catch (err) {
@@ -1348,7 +1348,7 @@ export default function SalesPage() {
           </button>
           <button
             className="btn-primary flex items-center gap-2"
-            onClick={() => printReceipt(receipt, user?.tenant?.name ?? "ShoeDZ")}
+            onClick={() => printReceipt(receipt, user?.tenant?.name ?? "ShoeDZ", user?.tenant)}
           >
             <Printer size={16} />
             {t("common.print", "Imprimer")}

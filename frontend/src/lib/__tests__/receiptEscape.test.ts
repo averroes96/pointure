@@ -76,6 +76,87 @@ describe("HTML escaping for printed documents (Task 3.5)", () => {
       expect(html).toContain("&lt;script&gt;alert(&quot;client&quot;)&lt;/script&gt;");
       expect(html).toContain("&lt;b onmouseover=alert(1)&gt;Name&lt;/b&gt;");
     });
+
+    describe("dynamic tenant RC and NIF (Task 3.3)", () => {
+      const formalSale = { ...sampleSale, is_formal: true } as unknown as Sale;
+
+      it("renders dynamic RC and NIF when formal and both are provided", () => {
+        const html = generateReceiptHtml(formalSale, "Boutique Test", {
+          rc: "16/00-1234567B22",
+          nif: "987654321012345",
+        });
+
+        expect(html).toContain("RC: 16/00-1234567B22 - NIF: 987654321012345");
+        expect(html).not.toContain("1234567A00");
+        expect(html).not.toContain("0987654321");
+      });
+
+      it("renders only RC when NIF is missing or empty", () => {
+        const html = generateReceiptHtml(formalSale, "Boutique Test", {
+          rc: "16/00-1234567B22",
+          nif: "",
+        });
+
+        expect(html).toContain("RC: 16/00-1234567B22");
+        expect(html).not.toContain("NIF:");
+      });
+
+      it("renders only NIF when RC is missing or empty", () => {
+        const html = generateReceiptHtml(formalSale, "Boutique Test", {
+          rc: "   ",
+          nif: "987654321012345",
+        });
+
+        expect(html).toContain("NIF: 987654321012345");
+        expect(html).not.toContain("RC:");
+      });
+
+      it("does not render RC/NIF line when neither is present", () => {
+        const html = generateReceiptHtml(formalSale, "Boutique Test", {
+          rc: "",
+          nif: "",
+        });
+
+        expect(html).not.toContain("RC:");
+        expect(html).not.toContain("NIF:");
+        expect(html).not.toContain("1234567A00");
+      });
+
+      it("does not render RC/NIF line when sale is not formal even if tenant has RC/NIF", () => {
+        const html = generateReceiptHtml(sampleSale, "Boutique Test", {
+          rc: "16/00-1234567B22",
+          nif: "987654321012345",
+        });
+
+        expect(html).not.toContain("RC:");
+        expect(html).not.toContain("NIF:");
+      });
+
+      it("escapes malicious RC and NIF values to prevent XSS", () => {
+        const maliciousRc = `<script>alert("rc")</script>`;
+        const maliciousNif = `<img src=x onerror=alert("nif")>`;
+        const html = generateReceiptHtml(formalSale, "Boutique Test", {
+          rc: maliciousRc,
+          nif: maliciousNif,
+        });
+
+        expect(html).not.toContain(maliciousRc);
+        expect(html).not.toContain(maliciousNif);
+        expect(html).toContain("&lt;script&gt;alert(&quot;rc&quot;)&lt;/script&gt;");
+        expect(html).toContain("&lt;img src=x onerror=alert(&quot;nif&quot;)&gt;");
+      });
+
+      it("supports passing tenant object directly as storeNameOrTenant argument", () => {
+        const html = generateReceiptHtml(formalSale, {
+          name: "Direct Boutique",
+          rc: "16/00-999999",
+          nif: "111222333",
+        });
+
+        expect(html).toContain("Direct Boutique");
+        expect(html).toContain("RC: 16/00-999999 - NIF: 111222333");
+      });
+    });
   });
 
   describe("generateBonVersementHtml and generateBonReservationHtml", () => {

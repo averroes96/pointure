@@ -104,9 +104,31 @@ const RECEIPT_TEXT = {
   },
 } as const;
 
+export interface ReceiptTenantInfo {
+  name?: string;
+  rc?: string;
+  nif?: string;
+}
+
 type ReceiptSale = Sale & { points_earned?: number; points_redeemed?: number };
 
-export function generateReceiptHtml(sale: ReceiptSale, storeName: string): string {
+export function generateReceiptHtml(
+  sale: ReceiptSale,
+  storeNameOrTenant: string | ReceiptTenantInfo = "ShoeDZ",
+  tenantParam?: ReceiptTenantInfo | null
+): string {
+  let storeName = "ShoeDZ";
+  let tenant: ReceiptTenantInfo | null | undefined = null;
+
+  if (typeof storeNameOrTenant === "string") {
+    storeName = storeNameOrTenant;
+    tenant = tenantParam ?? (sale as { tenant?: ReceiptTenantInfo }).tenant;
+  } else if (storeNameOrTenant && typeof storeNameOrTenant === "object") {
+    storeName = storeNameOrTenant.name || "ShoeDZ";
+    tenant = tenantParam ?? storeNameOrTenant;
+  } else if (tenantParam) {
+    tenant = tenantParam;
+  }
   const printLang = getEffectivePrintLang();
   const L = RECEIPT_TEXT[printLang];
   const isRtl = printLang === "ar";
@@ -220,6 +242,20 @@ export function generateReceiptHtml(sale: ReceiptSale, storeName: string): strin
 
   const receiptNum = sale.receipt_number || `#${sale.id}`;
 
+  const tenantRc = tenant?.rc?.trim();
+  const tenantNif = tenant?.nif?.trim();
+  let legalInfoRow = "";
+  if (sale.is_formal && (tenantRc || tenantNif)) {
+    const parts: string[] = [];
+    if (tenantRc) {
+      parts.push(`RC: ${escapeHtml(tenantRc)}`);
+    }
+    if (tenantNif) {
+      parts.push(`NIF: ${escapeHtml(tenantNif)}`);
+    }
+    legalInfoRow = `\n  <p class="center" style="font-size:10px;">${parts.join(" - ")}</p>`;
+  }
+
   const html = `<!DOCTYPE html>
 <html lang="${isRtl ? "ar" : printLang === "en" ? "en" : "fr"}" dir="${isRtl ? "rtl" : "ltr"}">
 <head>
@@ -252,14 +288,7 @@ export function generateReceiptHtml(sale: ReceiptSale, storeName: string): strin
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(storeName)}</h1>
-  ${
-    sale.is_formal
-      ? `
-  <p class="center" style="font-size:10px;">RC: 1234567A00 - NIF: 0987654321</p>
-  `
-      : ""
-  }
+  <h1>${escapeHtml(storeName)}</h1>${legalInfoRow}
   <div class="divider"></div>
 
   <p class="center" style="font-size:10px;font-weight:bold;margin-bottom:4px;">
@@ -311,8 +340,12 @@ export function generateReceiptHtml(sale: ReceiptSale, storeName: string): strin
   return html;
 }
 
-export function printReceipt(sale: ReceiptSale, storeName: string): void {
-  const html = generateReceiptHtml(sale, storeName);
+export function printReceipt(
+  sale: ReceiptSale,
+  storeNameOrTenant: string | ReceiptTenantInfo = "ShoeDZ",
+  tenantParam?: ReceiptTenantInfo | null
+): void {
+  const html = generateReceiptHtml(sale, storeNameOrTenant, tenantParam);
   const cfg = getPrinterConfig();
   printTicket(html, { paperWidth: cfg.ticket.paperWidth });
 }

@@ -500,10 +500,12 @@ function CollectLayawayModal({
   sale,
   onClose,
   storeName,
+  tenant,
 }: {
   sale: Sale;
   onClose: () => void;
   storeName: string;
+  tenant?: { rc?: string; nif?: string; name?: string } | null;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -524,7 +526,7 @@ function CollectLayawayModal({
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["cash-session-current"] });
       queryClient.invalidateQueries({ queryKey: ["cash-sessions"] });
-      printReceipt(data, storeName);
+      printReceipt(data, storeName, tenant);
       onClose();
     },
     onError: (err) => setError(getApiError(err)),
@@ -1472,7 +1474,7 @@ export default function SalesHistoryPage() {
                             } else if (sale.status === "partially_paid") {
                               printBonVersement(sale, storeName);
                             } else {
-                              printReceipt(sale, storeName);
+                              printReceipt(sale, storeName, user?.tenant);
                             }
                           }}
                         >
@@ -1656,6 +1658,7 @@ export default function SalesHistoryPage() {
           sale={collectLayawaySale}
           onClose={() => setCollectLayawaySale(null)}
           storeName={storeName}
+          tenant={user?.tenant}
         />
       )}
       {cancelLayawaySale && (

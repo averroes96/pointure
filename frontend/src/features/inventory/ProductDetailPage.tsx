@@ -259,10 +259,14 @@ export default function ProductDetailPage() {
       if (data?.has_transactions || data?.can_archive) {
         setDeleteCanArchive(true);
         setDeleteError(
-          data?.detail || data?.message || t("inventory.has_history_archive_hint")
+          typeof data?.detail === "string"
+            ? data.detail
+            : typeof data?.message === "string"
+            ? data.message
+            : getApiError(err) || t("inventory.has_history_archive_hint")
         );
       } else {
-        setDeleteError(data?.detail || data?.message || data?.error || getApiError(err));
+        setDeleteError(getApiError(err));
       }
     } finally {
       setDeleteLoading(false);

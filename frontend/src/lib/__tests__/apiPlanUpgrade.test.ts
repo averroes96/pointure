@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractPlanUpgradeDetail } from "../api";
+import { extractPlanUpgradeDetail, getApiError } from "../api";
 
 describe("extractPlanUpgradeDetail", () => {
   it("detects wrapped DRF custom_exception_handler error shape and returns inner details", () => {
@@ -51,6 +51,43 @@ describe("extractPlanUpgradeDetail", () => {
         },
       })
     ).toBeNull();
+  });
+});
+
+describe("getApiError", () => {
+  it("extracts message string from DRF wrapped error shape { error: { code, message } }", () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        data: {
+          error: {
+            code: "has_transactions",
+            message: "Ce produit ne peut pas être supprimé car il possède des transactions.",
+            details: {},
+            status_code: 400,
+          },
+        },
+      },
+    };
+
+    const msg = getApiError(error);
+    expect(typeof msg).toBe("string");
+    expect(msg).toBe("Ce produit ne peut pas être supprimé car il possède des transactions.");
+  });
+
+  it("extracts detail string from standard DRF response { detail: '...' }", () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        data: {
+          detail: "Introuvable.",
+        },
+      },
+    };
+
+    const msg = getApiError(error);
+    expect(typeof msg).toBe("string");
+    expect(msg).toBe("Introuvable.");
   });
 });
 
