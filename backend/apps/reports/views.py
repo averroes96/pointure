@@ -309,7 +309,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({"date": "Format attendu: YYYY-MM-DD"})
         else:
-            target_date = timezone.now().date()
+            target_date = timezone.localdate()
 
         tenant = request.tenant
         sales_qs = Sale.objects.filter(

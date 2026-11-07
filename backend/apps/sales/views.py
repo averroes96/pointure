@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -17,13 +18,13 @@ from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, OWNER_ONLY, RoleP
 from apps.inventory.models import MovementReasonChoices, StockMovement
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
-    CashSessionStatus, Payment, Return, Sale,
+    CashSessionStatus, HeldSale, Payment, Return, Sale,
 )
 from .serializers import (
     AddPaymentSerializer, CashMovementCreateSerializer, CashMovementSerializer,
     CashReconciliationSerializer, CashSessionSerializer, CloseCashSessionSerializer,
     CreateExchangeSerializer, CreateReconciliationSerializer, CreateReturnSerializer,
-    CreateSaleSerializer, OpenCashSessionSerializer, SaleSerializer,
+    CreateSaleSerializer, HeldSaleSerializer, OpenCashSessionSerializer, SaleSerializer,
     verify_manager_pin_helper,
 )
 from .services.z_report import (
@@ -1048,4 +1049,162 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         session.approved_at = timezone.now()
         session.save(update_fields=["approved_by", "approved_at"])
         return Response(CashSessionSerializer(session).data)
+
+
+class HeldSaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """
+    Parked POS sales ("mise en attente").
+    - Cashiers see only their own held sales.
+    - Managers/owners see all held sales in the branch or tenant.
+    - Maximum 20 held sales per branch.
+    - resume action validates current prices and stock availability per line.
+    """
+    queryset = HeldSale.objects.select_related("cashier", "client", "branch")
+    serializer_class = HeldSaleSerializer
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_manager:
+            qs = qs.filter(cashier=user)
+        else:
+            branch_id = self.request.query_params.get("branch") or self.request.query_params.get("branch_id")
+            if branch_id:
+                qs = qs.filter(branch_id=branch_id)
+        return qs
+
+    def perform_create(self, serializer):
+        branch = serializer.validated_data.get("branch")
+        tenant = self.request.tenant
+        qs = HeldSale.objects.filter(tenant=tenant)
+        if branch:
+            qs = qs.filter(branch=branch)
+        else:
+            qs = qs.filter(branch__isnull=True)
+        if qs.count() >= 20:
+            raise ValidationError(
+                _("Le nombre maximum de ventes en attente (20) est atteint pour cette agence.")
+            )
+        serializer.save(tenant=tenant, cashier=self.request.user)
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if not user.is_manager and instance.cashier_id != user.id:
+            raise PermissionDenied(
+                _("Vous ne pouvez supprimer que vos propres ventes en attente.")
+            )
+        instance.delete()
+
+    @action(detail=True, methods=["post"])
+    def resume(self, request, pk=None):
+        held_sale = self.get_object()
+        tenant = request.tenant
+
+        from apps.core.models import StoreSettings
+        from apps.inventory.models import Variant
+        from apps.inventory.serializers import ProductSerializer, VariantSerializer
+
+        store_settings = StoreSettings.objects.filter(tenant=tenant).first()
+        allow_negative_stock = store_settings.allow_negative_stock if store_settings else False
+
+        raw_cart = held_sale.cart or []
+        validated_cart = []
+        changes = []
+
+        for item in raw_cart:
+            if not isinstance(item, dict):
+                continue
+            variant_id = item.get("variant_id")
+            stored_qty = int(item.get("quantity", 1))
+            stored_unit_price = Decimal(str(item.get("unit_price", "0.00")))
+            stored_discount = Decimal(str(item.get("discount_amount", "0.00")))
+
+            variant = (
+                Variant.objects.select_related("product")
+                .filter(pk=variant_id, tenant=tenant)
+                .first()
+            )
+
+            # 1. Existence and active status check
+            if not variant or not variant.is_active or not variant.product.is_active:
+                changes.append({
+                    "type": "removed",
+                    "variant_id": str(variant_id),
+                    "product_name": variant.product.name if variant else _("Article inconnu"),
+                    "message": _("L'article n'est plus actif ou disponible et a été retiré du panier."),
+                })
+                continue
+
+            # 2. Stock check
+            if held_sale.branch_id:
+                branch_stock = variant.movements.filter(
+                    branch_id=held_sale.branch_id
+                ).aggregate(total=Sum("quantity_delta"))["total"] or 0
+                available = branch_stock
+            else:
+                available = variant.stock_qty
+
+            final_qty = stored_qty
+            if not allow_negative_stock and available < stored_qty:
+                if available <= 0:
+                    changes.append({
+                        "type": "out_of_stock",
+                        "variant_id": str(variant.id),
+                        "product_name": variant.product.name,
+                        "variant_str": str(variant),
+                        "message": _("%(variant)s : Rupture de stock, article retiré du panier.") % {"variant": str(variant)},
+                    })
+                    continue
+                else:
+                    final_qty = available
+                    changes.append({
+                        "type": "qty_reduced",
+                        "variant_id": str(variant.id),
+                        "product_name": variant.product.name,
+                        "variant_str": str(variant),
+                        "old_quantity": stored_qty,
+                        "new_quantity": final_qty,
+                        "message": _("%(variant)s : Quantité ajustée de %(old)d à %(new)d (stock disponible insuffisant).") % {
+                            "variant": str(variant),
+                            "old": stored_qty,
+                            "new": final_qty,
+                        },
+                    })
+
+            # 3. Price check
+            current_unit_price = variant.product.sale_price
+            final_unit_price = stored_unit_price
+            if current_unit_price != stored_unit_price:
+                changes.append({
+                    "type": "price_changed",
+                    "variant_id": str(variant.id),
+                    "product_name": variant.product.name,
+                    "variant_str": str(variant),
+                    "old_price": str(stored_unit_price),
+                    "new_price": str(current_unit_price),
+                    "message": _("%(variant)s : Le prix a été actualisé de %(old)s DA à %(new)s DA.") % {
+                        "variant": str(variant),
+                        "old": str(stored_unit_price),
+                        "new": str(current_unit_price),
+                    },
+                })
+                final_unit_price = current_unit_price
+
+            validated_cart.append({
+                "variant_id": str(variant.id),
+                "quantity": final_qty,
+                "unit_price": str(final_unit_price),
+                "discount_amount": str(stored_discount),
+                "variant": VariantSerializer(variant).data,
+                "product": ProductSerializer(variant.product).data,
+            })
+
+        return Response({
+            "held_sale": HeldSaleSerializer(held_sale).data,
+            "cart": validated_cart,
+            "changes": changes,
+        })
+
 

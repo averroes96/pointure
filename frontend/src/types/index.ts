@@ -323,6 +323,56 @@ export interface Sale {
   created_at: string;
 }
 
+export interface HeldSaleItem {
+  variant_id: string;
+  quantity: number;
+  unit_price: string;
+  discount_amount: string;
+}
+
+export interface HeldSale {
+  id: string;
+  branch: number | null;
+  branch_name: string | null;
+  cashier: number;
+  cashier_name: string;
+  client: number | null;
+  client_name: string | null;
+  label: string;
+  cart: HeldSaleItem[];
+  cart_discount: string;
+  notes: string;
+  item_count: number;
+  total_amount: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HeldSaleChange {
+  type: "removed" | "out_of_stock" | "qty_reduced" | "price_changed";
+  variant_id?: string;
+  product_name?: string;
+  variant_str?: string;
+  old_quantity?: number;
+  new_quantity?: number;
+  old_price?: string;
+  new_price?: string;
+  message: string;
+}
+
+export interface HeldSaleResumeResponse {
+  held_sale: HeldSale;
+  cart: Array<{
+    variant_id: string;
+    quantity: number;
+    unit_price: string;
+    discount_amount: string;
+    variant: Variant;
+    product: Product;
+  }>;
+  changes: HeldSaleChange[];
+}
+
 export type BusinessMode = "retail" | "wholesale" | "mixed";
 
 export interface StoreSettings {

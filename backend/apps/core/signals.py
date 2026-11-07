@@ -16,7 +16,7 @@ _pre_save_state = threading.local()
 AUDITED_MODELS = [
     # Financial & Sales
     "Invoice", "InvoicePayment", "Payment", "Sale",
-    "StockMovement", "CreditNote", "Return",
+    "StockMovement", "CreditNote", "Return", "HeldSale",
     
     # Catalog Integrity
     "Product", "Variant",

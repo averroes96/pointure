@@ -34,6 +34,7 @@ export default function ShortcutsModal() {
     { key: "F1", label: t("shortcuts.new_sale", "Nouvelle vente / Caisse POS"), desc: "Alt + 1" },
     { key: "F2", label: t("shortcuts.search", "Rechercher un produit / scanner"), desc: "Alt + 2" },
     { key: "Alt + V", label: "Versement rapide & Client", desc: "Sélectionner / créer un client et activer le versement" },
+    { key: "Alt + H", label: t("shortcuts.held_sales", "Mise en attente & Reprise"), desc: t("shortcuts.held_sales_desc", "Mettre en attente ou reprendre une vente en cours") },
     { key: "Alt + M", label: "Mouvements de caisse", desc: "Ctrl + M · Ajouter ou retirer des espèces du tiroir" },
     { key: "Échap", label: t("shortcuts.clear_cart", "Vider le panier / Effacer recherche") },
     { key: "F10 · .", label: t("shortcuts.confirm_sale", "Confirmer & Encaisser la vente"), desc: t("shortcuts.confirm_sale_desc", "Touche F10 ou touche point \".\" du pavé numérique") },

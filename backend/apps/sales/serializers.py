@@ -10,7 +10,7 @@ from apps.inventory.services.costing import current_unit_cost
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
     CashSessionStatus, Exchange, ExchangeNewItem, ExchangeReturnItem,
-    Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem,
+    HeldSale, Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem,
 )
 
 
@@ -150,6 +150,65 @@ def verify_manager_pin_helper(tenant, raw_pin, user=None):
     return None
 
 
+# ─── Held sale (Park & Resume) ────────────────────────────────────────────────
+
+class HeldSaleItemInput(serializers.Serializer):
+    variant_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1)
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
+    discount_amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00"), min_value=Decimal("0.00")
+    )
+
+
+class HeldSaleSerializer(serializers.ModelSerializer):
+    cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True)
+    client_name = serializers.CharField(source="client.name", read_only=True, default=None)
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default=None)
+    item_count = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeldSale
+        fields = [
+            "id", "branch", "branch_name", "cashier", "cashier_name",
+            "client", "client_name", "label", "cart", "cart_discount",
+            "notes", "item_count", "total_amount", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "cashier", "cashier_name", "created_at", "updated_at"]
+
+    def get_item_count(self, obj):
+        if not obj.cart or not isinstance(obj.cart, list):
+            return 0
+        return sum(int(item.get("quantity", 1)) for item in obj.cart if isinstance(item, dict))
+
+    def get_total_amount(self, obj):
+        if not obj.cart or not isinstance(obj.cart, list):
+            return "0.00"
+        total = Decimal("0.00")
+        for item in obj.cart:
+            if isinstance(item, dict):
+                try:
+                    qty = Decimal(str(item.get("quantity", 1)))
+                    price = Decimal(str(item.get("unit_price", "0.00")))
+                    disc = Decimal(str(item.get("discount_amount", "0.00")))
+                    total += (qty * price) - disc
+                except Exception:
+                    pass
+        total -= Decimal(str(obj.cart_discount or 0))
+        return str(max(Decimal("0.00"), total).quantize(Decimal("0.01")))
+
+    def validate_cart(self, value):
+        if not isinstance(value, list) or len(value) == 0:
+            raise serializers.ValidationError("Le panier ne peut pas être vide.")
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Format d'article invalide dans le panier.")
+            if "variant_id" not in item or "quantity" not in item:
+                raise serializers.ValidationError("Chaque article doit avoir un variant_id et une quantité.")
+        return value
+
+
 # ─── Create sale input ────────────────────────────────────────────────────────
 
 class CreateSaleItemInput(serializers.Serializer):
@@ -177,6 +236,7 @@ class CreateSaleSerializer(serializers.Serializer):
     """
     branch_id = serializers.UUIDField(required=False, allow_null=True)
     client_id = serializers.UUIDField(required=False, allow_null=True)
+    held_sale_id = serializers.UUIDField(required=False, allow_null=True)
     items = CreateSaleItemInput(many=True, min_length=1)
     payments = CreatePaymentInput(many=True, min_length=1)
     cart_discount = serializers.DecimalField(
@@ -452,6 +512,7 @@ class CreateSaleSerializer(serializers.Serializer):
         is_layaway = validated_data.pop("is_layaway", False)
         layaway_duration_days = validated_data.pop("_layaway_duration_days", 7)
         authorized_by = validated_data.pop("_authorized_by", None)
+        held_sale_id = validated_data.pop("held_sale_id", None)
 
         # Resolve optional FKs
         branch = None
@@ -612,6 +673,10 @@ class CreateSaleSerializer(serializers.Serializer):
                 loyalty_account=_loyalty_account,
             )
             sale._loyalty_summary = loyalty_summary
+
+        # Clean up held sale if this sale was resumed from a parked ticket
+        if held_sale_id:
+            HeldSale.objects.filter(pk=held_sale_id, tenant=tenant).delete()
 
         return sale
 
