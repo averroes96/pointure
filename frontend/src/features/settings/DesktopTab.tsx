@@ -21,6 +21,8 @@ import {
   Info,
   X,
   ShieldAlert,
+  RotateCcw,
+  Upload,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,7 @@ import { useTimeSyncStatus } from "@/lib/time";
 import { useAuth } from "@/features/auth/AuthContext";
 import FactoryResetModal from "./components/FactoryResetModal";
 import ExternalBackupModal, { type ExternalBackupConfig } from "./components/ExternalBackupModal";
+import RestoreBackupModal from "./components/RestoreBackupModal";
 import type { UpdateStatusData } from "@/vite-env";
 
 interface BackupItem {
@@ -69,6 +72,8 @@ export default function DesktopTab() {
   const isOwner = user?.role === "owner";
   const [showResetModal, setShowResetModal] = useState(false);
   const [showExternalBackupModal, setShowExternalBackupModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<string | null>(null);
 
   const handleSuccessPurge = (backupName: string | null) => {
     queryClient.invalidateQueries();
@@ -369,6 +374,20 @@ export default function DesktopTab() {
               </button>
             )}
 
+            {isOwner && (
+              <button
+                onClick={() => {
+                  setRestoreTarget(null);
+                  setShowRestoreModal(true);
+                }}
+                className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                title={t("desktop.restore_from_file", "Restaurer depuis un fichier...")}
+              >
+                <Upload size={13} className="text-slate-500" />
+                <span>{t("desktop.restore_from_file_short", "Restaurer un fichier...")}</span>
+              </button>
+            )}
+
             <button
               onClick={() => createBackupMutation.mutate()}
               disabled={createBackupMutation.isPending}
@@ -523,6 +542,20 @@ export default function DesktopTab() {
                         </td>
                         <td className="py-3.5 px-4 text-end">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Restore Button (Owner only) */}
+                            {isOwner && (
+                              <button
+                                onClick={() => {
+                                  setRestoreTarget(b.filename);
+                                  setShowRestoreModal(true);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-transparent hover:border-amber-200 dark:hover:border-amber-800 transition-colors cursor-pointer"
+                                title={t("desktop.restore_button", "Restaurer cette sauvegarde")}
+                              >
+                                <RotateCcw size={15} />
+                              </button>
+                            )}
+
                             {/* Download Button */}
                             <button
                               onClick={() => handleDownloadBackup(b.filename)}
@@ -990,6 +1023,17 @@ export default function DesktopTab() {
             message: t("desktop.external_config_saved_success", "Configuration de sauvegarde externe enregistrée avec succès !"),
           });
         }}
+      />
+
+      {/* Restore Backup Modal */}
+      <RestoreBackupModal
+        isOpen={showRestoreModal}
+        onClose={() => {
+          setShowRestoreModal(false);
+          setRestoreTarget(null);
+        }}
+        initialFilename={restoreTarget}
+        availableBackups={backups}
       />
     </div>
   );

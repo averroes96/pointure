@@ -4,6 +4,7 @@ ShoeDZ Desktop endpoints: health check, metadata, shutdown, and SPA serving.
 import os
 import signal
 import threading
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -331,6 +332,109 @@ def delete_backup_view(request, filename):
         return Response({"detail": "Fichier introuvable ou suppression impossible."}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({"status": "ok", "message": f"Sauvegarde {filename} supprimée."})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def restore_backup_view(request):
+    """
+    Validate and stage a database restore from a local backup file or an uploaded file.
+    Writes pending_restore.json and initiates a backend restart (exit code 100).
+    Restricted to Owner only.
+    """
+    if getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut restaurer une sauvegarde de la base de données."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    from .backup import get_backups_dir
+    from .restore import (
+        validate_backup_for_restore,
+        create_pending_restore_marker,
+        trigger_backend_restart,
+        get_desktop_data_dir,
+    )
+
+    passphrase = (request.data.get("passphrase") or "").strip() or None
+    local_filename = request.data.get("filename")
+    uploaded_file = request.FILES.get("file")
+
+    if not local_filename and not uploaded_file:
+        return Response(
+            {"detail": "Veuillez fournir un nom de sauvegarde locale ou téléverser un fichier de sauvegarde (.sqlite3 ou .shodzbak)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    source_path = None
+    temp_upload_file = None
+    source_name = ""
+
+    try:
+        if local_filename:
+            safe_name = os.path.basename(local_filename)
+            if safe_name != local_filename or not (safe_name.endswith(".sqlite3") or safe_name.endswith(".shodzbak")):
+                return Response(
+                    {"detail": "Nom de fichier de sauvegarde non valide."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            backups_dir = get_backups_dir()
+            candidate = (backups_dir / safe_name).resolve()
+            try:
+                candidate.relative_to(backups_dir.resolve())
+            except ValueError:
+                return Response({"detail": "Accès non autorisé."}, status=status.HTTP_403_FORBIDDEN)
+
+            if not candidate.exists() or not candidate.is_file():
+                return Response(
+                    {"detail": f"Fichier de sauvegarde locale '{safe_name}' introuvable."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            source_path = candidate
+            source_name = safe_name
+        else:
+            safe_name = os.path.basename(uploaded_file.name)
+            if not (safe_name.endswith(".sqlite3") or safe_name.endswith(".shodzbak")):
+                return Response(
+                    {"detail": "Format de fichier non supporté. Veuillez choisir un fichier .sqlite3 ou .shodzbak."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            temp_dir = get_desktop_data_dir() / "temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_upload_file = temp_dir / f"upload_{int(time.time())}_{safe_name}"
+            with open(temp_upload_file, "wb") as f:
+                for chunk in uploaded_file.chunks():
+                    f.write(chunk)
+            source_path = temp_upload_file
+            source_name = safe_name
+
+        # Validate backup
+        try:
+            validated_temp_path = validate_backup_for_restore(
+                source_path=source_path,
+                passphrase=passphrase,
+            )
+        except ValueError as err:
+            return Response({"detail": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create marker file
+        create_pending_restore_marker(validated_temp_path, source_name=source_name)
+
+        # Trigger restart
+        trigger_backend_restart(delay_seconds=0.5)
+
+        return Response({
+            "status": "ok",
+            "message": "Sauvegarde validée avec succès. Redémarrage du système en cours pour appliquer la restauration...",
+            "source_name": source_name,
+        })
+    finally:
+        # Clean up uploaded raw file if we created one
+        if temp_upload_file and temp_upload_file.exists():
+            try:
+                temp_upload_file.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 @api_view(["POST"])
