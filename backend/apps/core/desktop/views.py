@@ -101,14 +101,48 @@ from django.http import FileResponse, Http404
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_backups_view(request):
-    """List available local database backups."""
+    """List available local database backups and external backup configuration."""
     if getattr(request.user, "role", "") not in ("owner", "manager"):
         return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
 
-    from .backup import get_backups_dir, list_backup_files, MAX_BACKUP_COPIES
+    from .backup import (
+        get_backups_dir,
+        list_backup_files,
+        load_desktop_config,
+        MAX_BACKUP_COPIES,
+    )
     backups = list_backup_files()
     backups_dir = get_backups_dir()
     db_name = str(settings.DATABASES["default"]["NAME"])
+
+    config = load_desktop_config()
+    dest_dir = (config.get("backup_destination_dir") or "").strip()
+    last_ext_at = config.get("last_external_backup_at")
+    last_ext_err = config.get("last_external_error")
+    last_ext_file = config.get("last_external_file")
+    encrypt = config.get("backup_encrypt", True)
+    keep_external = config.get("backup_keep_external", 30)
+    has_passphrase = bool(config.get("backup_derived_key"))
+
+    is_dest_connected = False
+    if dest_dir:
+        try:
+            p = Path(dest_dir)
+            is_dest_connected = p.exists() and p.is_dir()
+        except Exception:
+            is_dest_connected = False
+
+    is_older_than_3_days = False
+    if dest_dir:
+        if not last_ext_at:
+            is_older_than_3_days = True
+        else:
+            try:
+                dt = datetime.fromisoformat(last_ext_at)
+                if (datetime.now() - dt).total_seconds() > 3 * 86400:
+                    is_older_than_3_days = True
+            except Exception:
+                is_older_than_3_days = True
 
     return Response({
         "backups": backups,
@@ -117,6 +151,108 @@ def list_backups_view(request):
         "db_path": db_name,
         "max_copies": MAX_BACKUP_COPIES,
         "last_backup": backups[0]["created_at"] if backups else None,
+        "external_config": {
+            "destination_dir": dest_dir,
+            "encrypt": encrypt,
+            "keep_external": keep_external,
+            "has_passphrase": has_passphrase,
+            "last_external_backup_at": last_ext_at,
+            "last_external_error": last_ext_err,
+            "last_external_file": last_ext_file,
+            "is_destination_connected": is_dest_connected,
+            "is_older_than_3_days": is_older_than_3_days,
+        },
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_backup_config_view(request):
+    """
+    Update external backup configuration: destination directory, encryption, retention, and passphrase.
+    Restricted to Owner only.
+    """
+    if getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut modifier la configuration de sauvegarde externe."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    from .backup import load_desktop_config, save_desktop_config
+    from .crypto import create_passphrase_verifier
+
+    data = request.data
+    updates = {}
+
+    if "destination_dir" in data:
+        dest = (data.get("destination_dir") or "").strip()
+        updates["backup_destination_dir"] = dest
+
+    if "encrypt" in data:
+        updates["backup_encrypt"] = bool(data.get("encrypt"))
+
+    if "keep_external" in data:
+        try:
+            keep = int(data["keep_external"])
+            if keep < 1 or keep > 365:
+                return Response(
+                    {"detail": "La rétention doit être comprise entre 1 et 365 copies."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            updates["backup_keep_external"] = keep
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Nombre de copies invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # Passphrase update
+    if "passphrase" in data and data["passphrase"]:
+        passphrase = str(data["passphrase"])
+        confirm = str(data.get("passphrase_confirm", ""))
+        if passphrase != confirm:
+            return Response(
+                {"detail": "Les deux phrases de passe ne correspondent pas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(passphrase) < 8:
+            return Response(
+                {"detail": "La phrase de passe doit contenir au moins 8 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        verifier = create_passphrase_verifier(passphrase)
+        updates["backup_salt"] = verifier["salt_hex"]
+        updates["backup_verifier_salt"] = verifier["verifier_salt_hex"]
+        updates["backup_verifier_hash"] = verifier["verifier_hash_hex"]
+        updates["backup_derived_key"] = verifier["derived_key_hex"]
+        # Clear any previous encryption error
+        updates["last_external_error"] = None
+
+    saved = save_desktop_config(updates)
+
+    dest_dir = (saved.get("backup_destination_dir") or "").strip()
+    is_dest_connected = False
+    if dest_dir:
+        try:
+            p = Path(dest_dir)
+            is_dest_connected = p.exists() and p.is_dir()
+        except Exception:
+            is_dest_connected = False
+
+    return Response({
+        "status": "ok",
+        "message": "Configuration de sauvegarde mise à jour avec succès.",
+        "external_config": {
+            "destination_dir": dest_dir,
+            "encrypt": saved.get("backup_encrypt", True),
+            "keep_external": saved.get("backup_keep_external", 30),
+            "has_passphrase": bool(saved.get("backup_derived_key")),
+            "last_external_backup_at": saved.get("last_external_backup_at"),
+            "last_external_error": saved.get("last_external_error"),
+            "last_external_file": saved.get("last_external_file"),
+            "is_destination_connected": is_dest_connected,
+        },
     })
 
 
