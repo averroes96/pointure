@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2123,8 +2123,8 @@ export default function SettingsPage() {
       ? [{ key: "deliveries" as TabKey, label: t("nav.delivery_settings"), icon: Truck, roles: ["owner", "manager"] }]
       : []),
     { key: "imprimantes", label: t("settings.tab_printers", "Imprimantes"), icon: Printer, roles: ["owner", "manager"] },
-    { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner", "manager"] },
-    { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner", "manager"] },
+    { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner"] },
+    { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner"] },
   ];
 
   // Fetch tenant data for boutique tab
@@ -2137,6 +2137,13 @@ export default function SettingsPage() {
   const visibleTabs = tabs.filter(
     (tab) => !tab.roles || (user && tab.roles.includes(user.role))
   );
+
+  // If the active tab is not accessible by the current user's role, fallback to profil
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.key === activeTab)) {
+      setActiveTab("profil");
+    }
+  }, [visibleTabs, activeTab]);
 
   if (!user) return null;
 
@@ -2221,9 +2228,9 @@ export default function SettingsPage() {
 
             {activeTab === "imprimantes" && <PrintersTab />}
 
-            {activeTab === "migration" && <LegacyImportSection />}
+            {activeTab === "migration" && user?.role === "owner" && <LegacyImportSection />}
 
-            {activeTab === "desktop" && <DesktopTab />}
+            {activeTab === "desktop" && user?.role === "owner" && <DesktopTab />}
           </div>
         </div>
       </div>

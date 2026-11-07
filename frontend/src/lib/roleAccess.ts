@@ -1,8 +1,9 @@
 /**
  * Role-based route access matrix (plan decision D6).
  *
- * Cashiers may only reach the POS, sales history, reconciliation, the product
- * catalogue (read-only), low-stock and the barcode scanner. Everything else
+ * Cashiers may reach the POS, sales history, reconciliation, the product
+ * catalogue (read-only), low-stock, the barcode scanner, stocktake (for scanning),
+ * and clients (for lookup and creation at the till). Everything else
  * needs at least the manager role; the audit log is owner-only.
  * Keep in sync with the backend `apps.core.permissions` matrix.
  */
@@ -17,14 +18,14 @@ const MANAGER_PREFIXES = [
   "/inventory/movements",
   "/inventory/transfers",
   "/inventory/defects",
-  "/inventory/stocktake",
   "/inventory/products/new",
   "/promotions",
   "/deliveries",
   "/invoices",
   "/delivery-notes",
   "/credit-notes",
-  "/clients",
+  "/clients/ledger",
+  "/clients/ageing",
   "/cheques",
   "/loyalty",
   "/suppliers",

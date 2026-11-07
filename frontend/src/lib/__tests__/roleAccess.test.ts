@@ -2,26 +2,31 @@ import { describe, it, expect } from "vitest";
 import { canAccessPath, requiredRoleForPath } from "../roleAccess";
 
 describe("roleAccess", () => {
-  it("lets every role open POS, history, reconciliation, catalogue and scanner", () => {
+  it("lets every role open POS, history, reconciliation, catalogue, scanner, stocktake and clients", () => {
     for (const p of [
       "/", "/sales", "/sales/new", "/sales/reconciliation",
       "/inventory/products", "/inventory/products/42",
       "/inventory/low-stock", "/inventory/scanner",
+      "/inventory/stocktake", "/clients", "/clients/new", "/clients/42",
     ]) {
       expect(canAccessPath("cashier", p)).toBe(true);
     }
+    expect(requiredRoleForPath("/inventory/stocktake")).toBeNull();
+    expect(requiredRoleForPath("/clients")).toBeNull();
   });
 
   it("blocks cashiers from restricted pages typed by URL", () => {
     for (const p of [
       "/settings", "/settings/webhooks", "/reports/daily", "/reports/builder",
       "/inventory/products/new", "/inventory/products/42/edit",
-      "/inventory/stocktake", "/clients", "/clients/new", "/invoices/new",
+      "/clients/ledger", "/clients/ageing", "/invoices/new",
       "/suppliers/payables", "/purchase-orders", "/promotions", "/loyalty",
       "/cheques", "/deliveries/drafts", "/settings/", "/reports/stock?x=1",
     ]) {
       expect(canAccessPath("cashier", p)).toBe(false);
     }
+    expect(requiredRoleForPath("/clients/ledger")).toBe("manager");
+    expect(requiredRoleForPath("/clients/ageing")).toBe("manager");
   });
 
   it("lets managers in but keeps the audit log owner-only", () => {

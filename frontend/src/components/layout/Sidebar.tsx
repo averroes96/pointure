@@ -77,14 +77,14 @@ function useNavSections(): NavSection[] {
         { to: "/inventory/defects", labelKey: "nav.defects", icon: ShieldAlert, managerOnly: true },
         { to: "/inventory/low-stock", labelKey: "nav.low_stock", icon: AlertTriangle },
         { to: "/inventory/scanner", labelKey: "nav.barcode_scanner", icon: ScanBarcode },
-        { to: "/inventory/stocktake", labelKey: "nav.stocktake", icon: ClipboardList, managerOnly: true },
+        { to: "/inventory/stocktake", labelKey: "nav.stocktake", icon: ClipboardList },
       ],
     },
     {
       key: "clients",
       label: t("nav.clients"),
       items: [
-        { to: "/clients", labelKey: "nav.client_list", icon: Users, managerOnly: true },
+        { to: "/clients", labelKey: "nav.client_list", icon: Users },
         { to: "/clients/ledger", labelKey: "nav.global_ledger", icon: BookOpen, managerOnly: true },
         { to: "/clients/ageing", labelKey: "nav.debt_ageing", icon: TrendingDown, managerOnly: true },
         { to: "/cheques", labelKey: "nav.cheque_tracker", icon: CreditCard, managerOnly: true },
