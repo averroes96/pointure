@@ -263,7 +263,7 @@ class TestLegacyDBFClientOpeningBalances:
             },
         ]
 
-        def fake_get_dbf(self, filename):
+        def fake_get_dbf(self, filename, optional=False):
             if filename.upper() == "CLIENT.DBF":
                 return synthetic_clients
             return []
@@ -420,7 +420,7 @@ class TestLegacyDBFDryRun:
             "GCPARAM.DBF": [],
         }
 
-        def fake_get_dbf(self, filename):
+        def fake_get_dbf(self, filename, optional=False):
             return synthetic_data.get(filename.upper(), [])
 
         monkeypatch.setattr(LegacyDBFImporter, "get_dbf", fake_get_dbf)
@@ -483,7 +483,7 @@ class TestLegacyDBFDryRun:
         from apps.core.services.legacy_dbf import LegacyDBFImporter
 
         # Synthetic importer DBF loader
-        def fake_get_dbf(self, filename):
+        def fake_get_dbf(self, filename, optional=False):
             if filename.upper() == "CLIENT.DBF":
                 return [
                     {
@@ -535,7 +535,7 @@ class TestLegacyDBFDryRun:
         from apps.clients.models import Client
         from apps.core.services.legacy_dbf import LegacyDBFImporter
 
-        def fake_get_dbf(self, filename):
+        def fake_get_dbf(self, filename, optional=False):
             if filename.upper() == "CLIENT.DBF":
                 return [
                     {
@@ -563,3 +563,416 @@ class TestLegacyDBFDryRun:
         assert "DRY-RUN" in output
         assert "Dry-run completed" in output
         assert Client.objects.filter(tenant=tenant, name="Client Commande Test").count() == 0
+
+
+@pytest.mark.django_db
+class TestLegacyDBFTiersSuppliersChequesPartPayments:
+    """Task 7.3 — Import 3 price tiers, supplier opening balances (+/-), unsettled cheques, and open part-payments."""
+
+    def test_import_three_price_tiers_and_client_price_tier(self, tenant, branch, monkeypatch):
+        from apps.clients.models import Client
+        from apps.inventory.models import Product
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "CLT_T1",
+                    "DESIGNAT": "Client Tarif Detail",
+                    "TEL1": "0550100001",
+                    "CODE_TARIF": "1",
+                },
+                {
+                    "CLIENT": "CLT_T2",
+                    "DESIGNAT": "Client Tarif DemiGros",
+                    "TEL1": "0550100002",
+                    "CODE_TARIF": "2",
+                },
+                {
+                    "CLIENT": "CLT_T3",
+                    "DESIGNAT": "Client Tarif Gros",
+                    "TEL1": "0550100003",
+                    "CODE_TARIF": "3",
+                },
+            ],
+            "FAMILLE.DBF": [
+                {"FAMILLE": "SPORT", "LIBELLE": "Basket Sport"},
+            ],
+            "ARTICLEB.DBF": [
+                {
+                    "ARTICLE": "ART_3TIERS",
+                    "REFERENCE": "BSK-900",
+                    "LIBELLE": "Basket Cuir 3 Tarifs",
+                    "FAMILLE": "SPORT",
+                    "PRIX_ACHAT": Decimal("1800.00"),
+                    "BTARIF1": Decimal("3500.00"),
+                    "BTARIF2": Decimal("2900.00"),
+                    "BTARIF3": Decimal("2500.00"),
+                    "ST_BL": 5,
+                    "POINTURE": "42",
+                },
+                {
+                    "ARTICLE": "ART_2TIERS",
+                    "REFERENCE": "BSK-901",
+                    "LIBELLE": "Basket 2 Tarifs Sans BTARIF3",
+                    "FAMILLE": "SPORT",
+                    "PRIX_ACHAT": Decimal("1500.00"),
+                    "PV_TARIF1": Decimal("3200.00"),
+                    "PV_TARIF2": Decimal("2700.00"),
+                    "PV_TARIF3": Decimal("0.00"),
+                    "ST_BL": 3,
+                    "POINTURE": "41",
+                },
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": True,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        importer.execute_import()
+
+        c1 = Client.objects.get(tenant=tenant, name="Client Tarif Detail")
+        c2 = Client.objects.get(tenant=tenant, name="Client Tarif DemiGros")
+        c3 = Client.objects.get(tenant=tenant, name="Client Tarif Gros")
+        assert c1.price_tier == "detail"
+        assert c2.price_tier == "demi_gros"
+        assert c3.price_tier == "gros"
+
+        p3 = Product.objects.get(tenant=tenant, reference="BSK-900")
+        assert p3.sale_price == Decimal("3500.00")
+        assert p3.semi_wholesale_price == Decimal("2900.00")
+        assert p3.wholesale_price == Decimal("2500.00")
+
+        p2 = Product.objects.get(tenant=tenant, reference="BSK-901")
+        assert p2.sale_price == Decimal("3200.00")
+        assert p2.semi_wholesale_price == Decimal("2700.00")
+        # Fallback to Tarif 2 when Tarif 3 is 0
+        assert p2.wholesale_price == Decimal("2700.00")
+
+    def test_import_supplier_positive_and_negative_opening_balances(self, tenant, branch, monkeypatch):
+        from apps.suppliers.models import Supplier, SupplierInvoice, SupplierPayment
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "FOURNISS.DBF": [
+                {
+                    "CODE_FOURN": "FRN_POS",
+                    "RAISON": "Usine Chaussures Tlemcen",
+                    "TELEPHONE": "043221100",
+                    "ADRESSE": "Tlemcen",
+                    "MT_RESTE": Decimal("85000.00"),
+                },
+                {
+                    "CODE_FOURN": "FRN_NEG",
+                    "RAISON": "Importateur Cuir Bejaia",
+                    "TELEPHONE": "034112233",
+                    "ADRESSE": "Bejaia",
+                    "MT_RESTE": Decimal("-12000.00"),
+                },
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": True,
+                "clients": False,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        stats = importer.execute_import()
+
+        assert stats["totals"]["supplier_debts"] == Decimal("85000.00")
+        assert stats["totals"]["supplier_credits"] == Decimal("12000.00")
+
+        sup_pos = Supplier.objects.get(tenant=tenant, name="Usine Chaussures Tlemcen")
+        sup_neg = Supplier.objects.get(tenant=tenant, name="Importateur Cuir Bejaia")
+        assert sup_pos.outstanding_balance == Decimal("85000.00")
+        assert sup_neg.outstanding_balance == Decimal("-12000.00")
+
+        inv = SupplierInvoice.objects.get(tenant=tenant, supplier=sup_pos, invoice_number="SOLDE-OUVERTURE")
+        assert inv.total_amount == Decimal("85000.00")
+
+        pmt = SupplierPayment.objects.get(
+            tenant=tenant,
+            supplier=sup_neg,
+            notes="Solde créditeur d'ouverture",
+        )
+        assert pmt.amount == Decimal("12000.00")
+
+        # Verify idempotency when re-importing
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": True,
+                "clients": False,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        importer2.execute_import()
+        sup_pos.refresh_from_db()
+        sup_neg.refresh_from_db()
+        assert sup_pos.outstanding_balance == Decimal("85000.00")
+        assert sup_neg.outstanding_balance == Decimal("-12000.00")
+        assert SupplierInvoice.objects.filter(tenant=tenant, supplier=sup_pos).count() == 1
+        assert SupplierPayment.objects.filter(tenant=tenant, supplier=sup_neg).count() == 1
+
+    def test_import_unsettled_cheques_from_chequexp_and_creance(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Client, Cheque
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque Un",
+                    "TEL1": "0550778899",
+                    "MT_RESTE": Decimal("0.00"),
+                },
+            ],
+            "CHEQUEXP.DBF": [
+                {
+                    "NUM": "10",
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque Un",
+                    "CHEQUE": "CHQ-9988",
+                    "COMPTE": "CPA",
+                    "MONTANT": Decimal("45000.00"),
+                    "REGLE": "N",
+                    "DATE_FACT": datetime.date(2026, 2, 10),
+                    "DATE_BNA": datetime.date(2026, 3, 15),
+                },
+                {
+                    "NUM": "11",
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque Un",
+                    "CHEQUE": "CHQ-SETTLED",
+                    "COMPTE": "BNA",
+                    "MONTANT": Decimal("20000.00"),
+                    "REGLE": "O",
+                },
+            ],
+            "CREANCE.DBF": [
+                {
+                    "NUM": "20",
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque Un",
+                    "CHEQUE": "CHQ-7766",
+                    "COMPTE": "BEA",
+                    "MONTANT": Decimal("15000.00"),
+                    "REGLE": "",
+                    "DATE_FACT": datetime.date(2026, 2, 20),
+                },
+                {
+                    "NUM": "21",
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque Un",
+                    "CHEQUE": "CHQ-CRE-DONE",
+                    "MONTANT": Decimal("10000.00"),
+                    "REGLE": "O",
+                },
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": True,
+                "part_payments": False,
+            },
+        )
+        stats = importer.execute_import()
+
+        assert stats["cheques_imported"] == 2
+        assert stats["counts"]["cheques"] == 2
+        assert stats["totals"]["unsettled_cheques"] == Decimal("60000.00")
+
+        cheques = Cheque.objects.filter(tenant=tenant).order_by("number")
+        assert cheques.count() == 2
+
+        c_7766 = cheques.get(number="CHQ-7766")
+        assert c_7766.direction == "receivable"
+        assert c_7766.status == "pending"
+        assert c_7766.amount == Decimal("15000.00")
+        assert c_7766.client is not None
+        assert c_7766.client.name == "Client Cheque Un"
+
+        c_9988 = cheques.get(number="CHQ-9988")
+        assert c_9988.direction == "receivable"
+        assert c_9988.status == "pending"
+        assert c_9988.amount == Decimal("45000.00")
+        assert c_9988.bank == "CPA"
+        assert c_9988.due_date == datetime.date(2026, 3, 15)
+
+        # Re-importing does not duplicate cheques
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": True,
+                "part_payments": False,
+            },
+        )
+        importer2.execute_import()
+        assert Cheque.objects.filter(tenant=tenant).count() == 2
+
+    def test_import_open_part_payments_from_verseclt(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Client, ClientLedger
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "C_VRS",
+                    "DESIGNAT": "Client Versement",
+                    "TEL1": "0550998877",
+                    "MT_RESTE": Decimal("0.00"),
+                },
+            ],
+            "VERSECLT.DBF": [
+                {
+                    "NUM": "101",
+                    "NOM": "Client Versement",
+                    "TEL": "0550998877",
+                    "LIBELLE": "Bottes Cuir",
+                    "POINTURE": "39",
+                    "PRIX_VENTE": Decimal("6500.00"),
+                    "VERSE1": Decimal("2000.00"),
+                    "VERSE2": Decimal("1500.00"),
+                    "ECARTV": Decimal("3000.00"),
+                    "LIVREE": "N",
+                    "DATE_FACT": datetime.date(2026, 1, 15),
+                },
+                {
+                    "NUM": "102",
+                    "NOM": "Client Versement",
+                    "LIBELLE": "Article Deja Livre",
+                    "PRIX_VENTE": Decimal("5000.00"),
+                    "VERSE1": Decimal("5000.00"),
+                    "VERSE2": Decimal("0.00"),
+                    "ECARTV": Decimal("0.00"),
+                    "LIVREE": "O",
+                },
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": True,
+            },
+        )
+        stats = importer.execute_import()
+
+        assert stats["part_payments_imported"] == 1
+        assert stats["counts"]["part_payments"] == 1
+        assert stats["totals"]["part_payments"] == Decimal("3000.00")
+        assert stats["totals"]["client_debts"] == Decimal("3000.00")
+
+        client = Client.objects.get(tenant=tenant, name="Client Versement")
+        assert client.cached_balance == Decimal("3000.00")
+
+        entries = ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment")
+        assert entries.count() == 1
+        entry = entries.first()
+        assert entry.entry_type == "debit"
+        assert entry.amount == Decimal("3000.00")
+        assert "Bottes Cuir" in entry.description
+
+        # Re-importing does not duplicate part-payment ledger entries
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": True,
+            },
+        )
+        importer2.execute_import()
+        client.refresh_from_db()
+        assert client.cached_balance == Decimal("3000.00")
+        assert ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment").count() == 1
+

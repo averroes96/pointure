@@ -93,6 +93,9 @@ class Product(TenantScopedModel):
     sale_price = models.DecimalField(
         _("Sale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    semi_wholesale_price = models.DecimalField(
+        _("Semi-Wholesale Price (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
     wholesale_price = models.DecimalField(
         _("Wholesale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )

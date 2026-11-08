@@ -1571,7 +1571,14 @@
     "legacy_refresh_preview": "تحديث المعاينة",
     "legacy_confirm_import": "تأكيد الاستيراد",
     "legacy_purchase_orders_imported": "أوامر الشراء / الاستلام المستوردة:",
-    "legacy_defects_imported": "الأصناف المعيبة المعزولة:"
+    "legacy_defects_imported": "الأصناف المعيبة المعزولة:",
+    "legacy_cheques": "الشيكات قيد الانتظار",
+    "legacy_part_payments": "الدفعات الجزئية الجارية",
+    "legacy_total_unsettled_cheques": "شيكات العملاء قيد التحصيل",
+    "legacy_total_part_payments": "المتبقي من الدفعات الجزئية (VERSECLT)",
+    "legacy_total_supplier_credits": "تسبقات / أرصدة دائنة لدى الموردين",
+    "legacy_cheques_imported": "الشيكات قيد الانتظار المستوردة:",
+    "legacy_part_payments_imported": "الدفعات الجزئية المستوردة:"
   },
   "user": {
     "first_name": "الاسم الأول",

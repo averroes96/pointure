@@ -23,6 +23,9 @@ interface LegacyImportTotals {
   client_debts?: number | string;
   client_credits?: number | string;
   supplier_debts?: number | string;
+  supplier_credits?: number | string;
+  unsettled_cheques?: number | string;
+  part_payments?: number | string;
   stock_pairs?: number;
   stock_value?: number | string;
   stock_retail_value?: number | string;
@@ -44,6 +47,8 @@ interface LegacyImportStats {
   sales_imported: number;
   refunds_imported: number;
   defects_imported: number;
+  cheques_imported?: number;
+  part_payments_imported?: number;
   store_settings_updated?: boolean;
   counts?: Record<string, number>;
   totals?: LegacyImportTotals;
@@ -651,6 +656,24 @@ export const LegacyImportSection: React.FC = () => {
                   {previewReport.counts?.defects ?? previewReport.defects_imported}
                 </div>
               </div>
+
+              <div className="p-3.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-2xs">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {t('settings.legacy_cheques')}
+                </div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                  {previewReport.counts?.cheques ?? previewReport.cheques_imported ?? 0}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-2xs">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {t('settings.legacy_part_payments')}
+                </div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                  {previewReport.counts?.part_payments ?? previewReport.part_payments_imported ?? 0}
+                </div>
+              </div>
             </div>
 
             {/* Financial Totals */}
@@ -669,7 +692,7 @@ export const LegacyImportSection: React.FC = () => {
                   </div>
                   {previewReport.totals?.stock_retail_value && (
                     <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      Vente : {formatDZD(previewReport.totals.stock_retail_value)}
+                      {t('settings.legacy_sales')} : {formatDZD(previewReport.totals.stock_retail_value)}
                     </div>
                   )}
                 </div>
@@ -698,6 +721,33 @@ export const LegacyImportSection: React.FC = () => {
                   </div>
                   <div className="text-sm font-bold text-rose-700 dark:text-rose-400 mt-0.5">
                     {formatDZD(previewReport.totals?.supplier_debts ?? 0)}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-sky-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('settings.legacy_total_supplier_credits')}
+                  </div>
+                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    {formatDZD(previewReport.totals?.supplier_credits ?? 0)}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-sky-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('settings.legacy_total_unsettled_cheques')}
+                  </div>
+                  <div className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-0.5">
+                    {formatDZD(previewReport.totals?.unsettled_cheques ?? 0)}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-sky-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('settings.legacy_total_part_payments')}
+                  </div>
+                  <div className="text-sm font-bold text-amber-700 dark:text-amber-400 mt-0.5">
+                    {formatDZD(previewReport.totals?.part_payments ?? 0)}
                   </div>
                 </div>
               </div>
@@ -800,6 +850,12 @@ export const LegacyImportSection: React.FC = () => {
               <li>{t('settings.refunds_imported')} <strong>{result.refunds_imported}</strong></li>
               {result.defects_imported > 0 && (
                 <li>{t('settings.legacy_defects_imported')} <strong>{result.defects_imported}</strong></li>
+              )}
+              {(result.cheques_imported ?? 0) > 0 && (
+                <li>{t('settings.legacy_cheques_imported')} <strong>{result.cheques_imported}</strong></li>
+              )}
+              {(result.part_payments_imported ?? 0) > 0 && (
+                <li>{t('settings.legacy_part_payments_imported')} <strong>{result.part_payments_imported}</strong></li>
               )}
             </ul>
           </div>

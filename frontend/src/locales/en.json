@@ -1571,7 +1571,14 @@
     "legacy_refresh_preview": "Refresh Preview",
     "legacy_confirm_import": "Import Now",
     "legacy_purchase_orders_imported": "Purchase orders / receptions imported:",
-    "legacy_defects_imported": "Defective items quarantined:"
+    "legacy_defects_imported": "Defective items quarantined:",
+    "legacy_cheques": "Pending Cheques",
+    "legacy_part_payments": "Open Part-Payments",
+    "legacy_total_unsettled_cheques": "Unsettled Client Cheques",
+    "legacy_total_part_payments": "Open Part-Payment Balances (VERSECLT)",
+    "legacy_total_supplier_credits": "Supplier Advances / Credits",
+    "legacy_cheques_imported": "Pending cheques imported:",
+    "legacy_part_payments_imported": "Open part-payments imported:"
   },
   "user": {
     "first_name": "First Name",

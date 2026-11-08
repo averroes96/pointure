@@ -1571,7 +1571,14 @@
     "legacy_refresh_preview": "Actualiser l'aperçu",
     "legacy_confirm_import": "Importer maintenant",
     "legacy_purchase_orders_imported": "Bons d'achat / réceptions importés :",
-    "legacy_defects_imported": "Articles défectueux isolés :"
+    "legacy_defects_imported": "Articles défectueux isolés :",
+    "legacy_cheques": "Chèques en attente",
+    "legacy_part_payments": "Versements en cours",
+    "legacy_total_unsettled_cheques": "Chèques clients à encaisser",
+    "legacy_total_part_payments": "Restes sur versements (VERSECLT)",
+    "legacy_total_supplier_credits": "Avances / Avoirs fournisseurs",
+    "legacy_cheques_imported": "Chèques en attente importés :",
+    "legacy_part_payments_imported": "Versements en cours importés :"
   },
   "user": {
     "first_name": "Prénom",

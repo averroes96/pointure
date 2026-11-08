@@ -16,6 +16,12 @@ class ClientTypeChoices(models.TextChoices):
     WHOLESALE = "wholesale", _("Wholesale")
 
 
+class PriceTierChoices(models.TextChoices):
+    DETAIL = "detail", _("Détail")
+    DEMI_GROS = "demi_gros", _("Demi-Gros")
+    GROS = "gros", _("Gros")
+
+
 class ChequeStatusChoices(models.TextChoices):
     PENDING = "pending", _("Pending")
     DEPOSITED = "deposited", _("Deposited")
@@ -44,6 +50,12 @@ class Client(TenantScopedModel):
         _("Client Type"), max_length=10,
         choices=ClientTypeChoices.choices,
         default=ClientTypeChoices.RETAIL,
+        db_index=True,
+    )
+    price_tier = models.CharField(
+        _("Price Tier"), max_length=15,
+        choices=PriceTierChoices.choices,
+        default=PriceTierChoices.DETAIL,
         db_index=True,
     )
 
