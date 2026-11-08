@@ -226,3 +226,112 @@ class TestImportApiEndpoints:
         )
         assert res_preview.status_code == status.HTTP_200_OK
         assert res_preview.data["summary"]["valid_rows"] == 1
+
+
+@pytest.mark.django_db
+class TestLegacyDBFClientOpeningBalances:
+    def test_client_opening_balances_debit_and_credit(self, tenant, branch, monkeypatch):
+        import datetime
+        from django.utils import timezone
+        from apps.clients.models import ClientLedger
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_clients = [
+            {
+                "CLIENT": "CLT001",
+                "DESIGNAT": "Chaussures El Bahia",
+                "TEL1": "0550123456",
+                "ADRESSE": "Rue Larbi Ben M'hidi, Oran",
+                "MT_RESTE": Decimal("48500.00"),
+                "JOUR": datetime.date(2025, 11, 15),
+            },
+            {
+                "CLIENT": "CLT002",
+                "DESIGNAT": "Boutique El Amir",
+                "TEL1": "0661987654",
+                "ADRESSE": "Didouche Mourad, Alger",
+                "MT_RESTE": Decimal("-12000.00"),
+                "JOUR": None,
+            },
+            {
+                "CLIENT": "CLT003",
+                "DESIGNAT": "Client Comptoir Solde Zero",
+                "TEL1": "0770112233",
+                "ADRESSE": "Blida",
+                "MT_RESTE": Decimal("0.00"),
+                "JOUR": datetime.date(2025, 10, 1),
+            },
+        ]
+
+        def fake_get_dbf(self, filename):
+            if filename.upper() == "CLIENT.DBF":
+                return synthetic_clients
+            return []
+
+        monkeypatch.setattr(LegacyDBFImporter, "get_dbf", fake_get_dbf)
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+            },
+        )
+        stats = importer.execute_import()
+        assert stats["clients_imported"] == 3
+
+        c1 = Client.objects.get(tenant=tenant, name="Chaussures El Bahia")
+        c2 = Client.objects.get(tenant=tenant, name="Boutique El Amir")
+        c3 = Client.objects.get(tenant=tenant, name="Client Comptoir Solde Zero")
+
+        assert c1.cached_balance == Decimal("48500.00")
+        assert c2.cached_balance == Decimal("-12000.00")
+        assert c3.cached_balance == Decimal("0.00")
+
+        entries_c1 = list(ClientLedger.objects.filter(client=c1))
+        assert len(entries_c1) == 1
+        assert entries_c1[0].entry_type == "debit"
+        assert entries_c1[0].amount == Decimal("48500.00")
+        assert entries_c1[0].balance_after == Decimal("48500.00")
+        assert entries_c1[0].reference_type == "LegacyOpening"
+        assert entries_c1[0].reference_id == "CLT001"
+        assert entries_c1[0].date == datetime.date(2025, 11, 15)
+
+        entries_c2 = list(ClientLedger.objects.filter(client=c2))
+        assert len(entries_c2) == 1
+        assert entries_c2[0].entry_type == "credit"
+        assert entries_c2[0].amount == Decimal("12000.00")
+        assert entries_c2[0].balance_after == Decimal("-12000.00")
+        assert entries_c2[0].reference_type == "LegacyOpening"
+        assert entries_c2[0].reference_id == "CLT002"
+        assert entries_c2[0].date == timezone.localdate()
+
+        assert ClientLedger.objects.filter(client=c3).count() == 0
+
+        # Re-running the import does not duplicate opening balance entries
+        importer_second = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+            },
+        )
+        importer_second.execute_import()
+        c1.refresh_from_db()
+        c2.refresh_from_db()
+        assert c1.cached_balance == Decimal("48500.00")
+        assert c2.cached_balance == Decimal("-12000.00")
+        assert ClientLedger.objects.filter(client=c1).count() == 1
+        assert ClientLedger.objects.filter(client=c2).count() == 1

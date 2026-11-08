@@ -3,6 +3,7 @@ import re
 import datetime
 from decimal import Decimal
 from django.db import transaction
+from django.utils import timezone
 from dbfread import DBF
 
 from apps.core.models import Tenant, Branch, StoreSettings
@@ -16,6 +17,7 @@ from apps.sales.models import Sale, SaleItem, SaleStatusChoices, PaymentMethodCh
 
 def safe_decimal(val):
     if val is None: return Decimal("0.00")
+    if isinstance(val, Decimal): return val
     if isinstance(val, (int, float)): return Decimal(str(val))
     if isinstance(val, str):
         try: return Decimal(val.strip())
@@ -29,11 +31,31 @@ def safe_str(val):
 
 def safe_int(val):
     if val is None: return 0
-    if isinstance(val, (int, float)): return int(val)
+    if isinstance(val, (int, float, Decimal)): return int(val)
     if isinstance(val, str):
         try: return int(val.strip())
         except: pass
     return 0
+
+def safe_date(val, default=None):
+    if default is None:
+        default = timezone.localdate()
+    if val is None:
+        return default
+    if isinstance(val, datetime.datetime):
+        return val.date()
+    if isinstance(val, datetime.date):
+        return val
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return default
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y%m%d", "%d-%m-%Y"):
+            try:
+                return datetime.datetime.strptime(s[:10], fmt).date()
+            except ValueError:
+                continue
+    return default
 
 def parse_pointure_range(val: str, default_sizes: list[int]) -> list[int]:
     """
@@ -300,25 +322,26 @@ class LegacyDBFImporter:
             self.client_map[legacy_client_id] = client
 
             debt = safe_decimal(r.get("MT_RESTE"))
+            entry_date = safe_date(r.get("JOUR"), default=timezone.localdate())
             if debt > 0 and created:
                 ClientLedger.objects.create(
-                    tenant=self.tenant,
                     client=client,
                     entry_type="debit",
                     amount=debt,
-                    date=datetime.date.today(),
+                    date=entry_date,
                     description="Opening Balance (Imported from Legacy)",
-                    reference_number="LEGACY-OPENING"
+                    reference_type="LegacyOpening",
+                    reference_id=legacy_client_id[:50],
                 )
             elif debt < 0 and created:
                 ClientLedger.objects.create(
-                    tenant=self.tenant,
                     client=client,
                     entry_type="credit",
                     amount=abs(debt),
-                    date=datetime.date.today(),
+                    date=entry_date,
                     description="Opening Credit (Imported from Legacy)",
-                    reference_number="LEGACY-OPENING"
+                    reference_type="LegacyOpening",
+                    reference_id=legacy_client_id[:50],
                 )
             self.stats["clients_imported"] += 1
 
@@ -507,9 +530,7 @@ class LegacyDBFImporter:
                 )
                 self.supplier_map[client_id] = supplier
 
-            date_fact = header.get("DATE_FACT") or lines[0].get("DATE_FACT")
-            if not date_fact:
-                date_fact = datetime.date.today()
+            date_fact = safe_date(header.get("DATE_FACT") or lines[0].get("DATE_FACT"))
 
             total_amount = safe_decimal(header.get("MT_HT"))
             calculated_total = Decimal("0.00")
@@ -613,8 +634,7 @@ class LegacyDBFImporter:
             sales_group = {}
             for r in records:
                 num = safe_str(r.get("NUMERO"))
-                date_fact = r.get("DATE_FACT")
-                if not date_fact: date_fact = datetime.date.today()
+                date_fact = safe_date(r.get("DATE_FACT"))
                 
                 key = f"{num}_{date_fact}"
                 if key not in sales_group:
@@ -704,8 +724,7 @@ class LegacyDBFImporter:
             invoice_group = {}
             for r in records:
                 num = safe_str(r.get("FACTURE"))
-                date_fact = r.get("DATE_FACT")
-                if not date_fact: date_fact = datetime.date.today()
+                date_fact = safe_date(r.get("DATE_FACT"))
                 
                 key = f"{num}_{date_fact}"
                 if key not in invoice_group:
