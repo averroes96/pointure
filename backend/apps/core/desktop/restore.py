@@ -248,19 +248,50 @@ def apply_pending_restore_if_needed(
     pre_restore_backup = backups_dir / f"pre_restore_{timestamp}.sqlite3"
 
     try:
-        # 1. Preserve current database if it exists
+        # 1. Preserve current database if it exists (using online SQLite backup so any
+        # uncheckpointed WAL frames are merged before -wal/-shm are removed)
         if target_db.exists():
             logger.info(
                 "Preserving current database to pre-restore backup: %s",
                 pre_restore_backup,
             )
-            shutil.copy2(target_db, pre_restore_backup)
+            wal = target_db.with_name(target_db.name + "-wal")
+            shm = target_db.with_name(target_db.name + "-shm")
+
+            backed_up_online = False
+            src_conn = None
+            dst_conn = None
+            try:
+                src_conn = sqlite3.connect(str(target_db), timeout=30)
+                # Ensure SQLite reads and checkpoints/merges any valid WAL frames
+                src_conn.execute("SELECT name FROM sqlite_master LIMIT 1;").fetchall()
+                dst_conn = sqlite3.connect(str(pre_restore_backup), timeout=30)
+                with dst_conn:
+                    src_conn.backup(dst_conn)
+                backed_up_online = True
+            except Exception:
+                logger.warning(
+                    "Online SQLite backup of pre-restore DB failed; falling back to file copy",
+                    exc_info=True,
+                )
+            finally:
+                if dst_conn:
+                    try:
+                        dst_conn.close()
+                    except Exception:
+                        pass
+                if src_conn:
+                    try:
+                        src_conn.close()
+                    except Exception:
+                        pass
+
+            if not backed_up_online or not pre_restore_backup.exists() or pre_restore_backup.stat().st_size == 0:
+                shutil.copy2(target_db, pre_restore_backup)
 
             # Remove SQLite WAL & SHM files so they don't corrupt the newly swapped database
-            wal = target_db.with_name(target_db.name + "-wal")
             if wal.exists():
                 wal.unlink(missing_ok=True)
-            shm = target_db.with_name(target_db.name + "-shm")
             if shm.exists():
                 shm.unlink(missing_ok=True)
 

@@ -251,6 +251,54 @@ class TestApplyPendingRestore:
         assert cur_pre.fetchone()[0] == "before_restore"
         conn_pre.close()
 
+    def test_apply_pending_restore_merges_uncheckpointed_wal_and_lists_in_backups(
+        self, temp_restore_env
+    ):
+        from apps.core.desktop.backup import list_backup_files
+
+        data_dir, backups_dir, active_db = temp_restore_env
+        create_sample_sqlite_db(active_db, extra_data="initial_checkpointed")
+
+        # Open a WAL connection and write a row without closing/checkpointing
+        wal_conn = sqlite3.connect(str(active_db))
+        wal_conn.execute("PRAGMA journal_mode=WAL;")
+        wal_conn.execute("PRAGMA wal_autocheckpoint=0;")
+        wal_conn.execute("UPDATE test_data SET content='uncheckpointed_wal_write' WHERE id=1;")
+        wal_conn.commit()
+        try:
+            wal_file = data_dir / "db.sqlite3-wal"
+            assert wal_file.exists() and wal_file.stat().st_size > 0
+
+            # Prepare new database to restore
+            temp_dir = data_dir / "temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            restored_db_temp = temp_dir / "restored.sqlite3"
+            create_sample_sqlite_db(restored_db_temp, extra_data="restored_state")
+
+            create_pending_restore_marker(
+                validated_temp_path=restored_db_temp,
+                source_name="db_backup_test.sqlite3",
+                data_dir=data_dir,
+            )
+
+            res = apply_pending_restore_if_needed(data_dir, target_db_path=active_db)
+            assert res is True
+        finally:
+            wal_conn.close()
+
+        # Pre-restore backup must contain the uncheckpointed WAL write
+        pre_restores = list(backups_dir.glob("pre_restore_*.sqlite3"))
+        assert len(pre_restores) == 1
+        conn_pre = sqlite3.connect(str(pre_restores[0]))
+        cur_pre = conn_pre.cursor()
+        cur_pre.execute("SELECT content FROM test_data WHERE id=1;")
+        assert cur_pre.fetchone()[0] == "uncheckpointed_wal_write"
+        conn_pre.close()
+
+        # Pre-restore backup must appear in list_backup_files() for UI recovery
+        listed_names = [b["filename"] for b in list_backup_files()]
+        assert pre_restores[0].name in listed_names
+
 
 @pytest.mark.django_db
 class TestRestoreAPI:

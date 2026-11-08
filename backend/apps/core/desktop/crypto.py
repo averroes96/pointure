@@ -79,19 +79,31 @@ def verify_passphrase_against_verifier(passphrase: str, verifier: dict) -> bool:
         return False
 
 
-def encrypt_backup(data_bytes: bytes, passphrase: Optional[str] = None, derived_key: Optional[bytes] = None) -> bytes:
+def encrypt_backup(
+    data_bytes: bytes,
+    passphrase: Optional[str] = None,
+    derived_key: Optional[bytes] = None,
+    salt: Optional[bytes] = None,
+) -> bytes:
     """
     Encrypt sqlite database bytes into .shodzbak format.
-    Accepts either a passphrase or a pre-derived 32-byte key.
+    Accepts either a passphrase or a pre-derived 32-byte key (with its matching 16-byte salt).
     Format: [MAGIC (8)][VERSION (1)][SALT (16)][NONCE (12)][CIPHERTEXT (with tag)]
     """
     if not passphrase and not derived_key:
         raise ValueError("Either passphrase or derived_key must be provided.")
 
-    salt = secrets.token_bytes(SALT_LEN)
-    if derived_key:
+    if derived_key and not passphrase:
+        if salt is None or len(salt) != SALT_LEN:
+            raise ValueError(
+                "A 16-byte salt matching derived_key must be provided when encrypting with derived_key."
+            )
         key = derived_key
     else:
+        if salt is None:
+            salt = secrets.token_bytes(SALT_LEN)
+        elif len(salt) != SALT_LEN:
+            raise ValueError(f"salt must be {SALT_LEN} bytes.")
         key = derive_key(passphrase, salt)
 
     nonce = os.urandom(NONCE_LEN)

@@ -76,15 +76,17 @@ def copy_to_external_destination(local_backup_path: Path) -> dict:
         encrypt = config.get("backup_encrypt", True)
         if encrypt:
             derived_key_hex = config.get("backup_derived_key")
-            if not derived_key_hex:
+            salt_hex = config.get("backup_salt")
+            if not derived_key_hex or not salt_hex:
                 error_msg = "Chiffrement activé mais aucune clé de chiffrement configurée."
                 logger.warning(error_msg)
                 save_desktop_config({"last_external_error": error_msg})
                 return {"status": "error", "error": error_msg}
 
             derived_key = bytes.fromhex(derived_key_hex)
+            salt = bytes.fromhex(salt_hex)
             raw_bytes = local_backup_path.read_bytes()
-            encrypted_package = encrypt_backup(raw_bytes, derived_key=derived_key)
+            encrypted_package = encrypt_backup(raw_bytes, derived_key=derived_key, salt=salt)
 
             target_filename = local_backup_path.stem + ".shodzbak"
             target_path = dest_dir / target_filename
@@ -160,7 +162,11 @@ def list_backup_files() -> list:
     """Return a sorted list of metadata for all available database backups."""
     backups_dir = get_backups_dir()
     files = sorted(
-        backups_dir.glob("db_backup_*.sqlite3"),
+        [
+            p
+            for p in backups_dir.glob("*.sqlite3")
+            if p.name.startswith("db_backup_") or p.name.startswith("pre_restore_")
+        ],
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )

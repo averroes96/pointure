@@ -100,9 +100,20 @@ class TestBackupCrypto:
         salt = os.urandom(16)
         key = derive_key("passphrase456", salt)
 
-        encrypted = encrypt_backup(sample_data, derived_key=key)
+        encrypted = encrypt_backup(sample_data, derived_key=key, salt=salt)
         decrypted = decrypt_backup(encrypted, derived_key=key)
         assert decrypted == sample_data
+        # Must also decrypt with the original passphrase (disaster recovery on a new PC)
+        decrypted_by_passphrase = decrypt_backup(encrypted, passphrase="passphrase456")
+        assert decrypted_by_passphrase == sample_data
+
+    def test_encrypt_with_derived_key_requires_salt(self):
+        sample_data = b"Payload for derived key encryption"
+        salt = os.urandom(16)
+        key = derive_key("passphrase456", salt)
+
+        with pytest.raises(ValueError, match="salt"):
+            encrypt_backup(sample_data, derived_key=key)
 
     def test_passphrase_verifier(self):
         passphrase = "StoreOwnerStrongKey2026!"
@@ -160,6 +171,7 @@ class TestExternalBackupExecution:
         save_desktop_config({
             "backup_destination_dir": str(external_dir),
             "backup_encrypt": True,
+            "backup_salt": verifier["salt_hex"],
             "backup_derived_key": verifier["derived_key_hex"],
         })
 
@@ -175,6 +187,10 @@ class TestExternalBackupExecution:
             derived_key=bytes.fromhex(verifier["derived_key_hex"]),
         )
         assert decrypted == backup_file.read_bytes()
+
+        # Disaster recovery on a fresh PC: decrypt using ONLY the passphrase (no derived_key)
+        decrypted_with_passphrase = decrypt_backup(encrypted_bytes, passphrase=passphrase)
+        assert decrypted_with_passphrase == backup_file.read_bytes()
 
         cfg = load_desktop_config()
         assert cfg.get("last_external_file") == shodzbak_files[0].name
