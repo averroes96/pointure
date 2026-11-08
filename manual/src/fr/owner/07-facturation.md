@@ -29,7 +29,22 @@ Pour votre clientèle de revendeurs, d'entreprises ou d'administrations, ShoeDZ 
 
 ---
 
-### C. Factures d'avoir (Credit Notes)
+### C. Devis et factures proforma (Devis / Proforma)
+
+Pour établir des propositions commerciales à vos clients grossistes avant commande ferme :
+1. Accédez au menu **Devis & Proformas** puis cliquez sur **+ Nouveau Devis**.
+2. Sélectionnez le client et renseignez la date d'émission ainsi que la date de validité (par défaut fixée à 15 jours).
+3. Ajoutez les articles par pointures et cartons. Le système calcule les montants HT, la TVA et le Total TTC.
+4. **Impact comptable et stock :** Le devis est une proposition purement commerciale. Il **n'engendre aucune sortie de stock** et **n'inscrit aucune créance** au compte du client.
+5. Vous pouvez imprimer le devis au format A4 (`PF-AAAA-#####`) ou le partager instantanément par **WhatsApp**.
+6. Dès accord du client :
+   - Cliquez sur **Convertir en facture** pour générer automatiquement un brouillon de facture reprenant l'intégralité des lignes, prix et remises.
+   - Ou cliquez sur **Convertir en bon de livraison** pour éditer le bon de livraison correspondant.
+7. Les devis non validés dont la date de validité est échue sont automatiquement marqués comme expirés par la maintenance quotidienne du logiciel.
+
+---
+
+### D. Factures d'avoir (Credit Notes)
 
 En cas d'accord sur une remise commerciale rétroactive ou de régularisation d'une facture émise :
 1. Allez dans **Facturation → Avoirs**.
@@ -41,7 +56,7 @@ En cas d'accord sur une remise commerciale rétroactive ou de régularisation d'
 
 ---
 
-### D. Prérequis de licence (Formules Pro / Entreprise)
+### E. Prérequis de licence (Formules Pro / Entreprise)
 
 > [!NOTE]
 > L'émission de factures formelles A4, de bons de livraison groupés et de factures d'avoir B2B est soumise aux fonctionnalités activées par votre clé de licence ShoeDZ (formule Pro ou Entreprise). Contactez votre administrateur si un cadenas s'affiche sur ce module.

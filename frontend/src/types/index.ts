@@ -610,6 +610,51 @@ export interface Cheque {
 
 export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "overdue" | "cancelled";
 
+export type QuoteStatus = "draft" | "sent" | "accepted" | "expired" | "converted" | "cancelled";
+
+export interface QuoteLine {
+  id: string;
+  variant: number | string | null;
+  product_id?: string | number | null;
+  product_name?: string;
+  colour?: string;
+  size_eu?: number;
+  description: string;
+  quantity: string;
+  unit_price: string;
+  discount_pct: string;
+  cartons: number;
+  line_total: string;
+  order: number;
+  unit_cost?: string | null;
+  unit_cost_estimated?: boolean;
+}
+
+export interface Quote {
+  id: string;
+  client: string | null;
+  client_name: string;
+  branch: string | null;
+  number: string;
+  date: string;
+  valid_until: string;
+  status: QuoteStatus;
+  total_ht: string;
+  tva_rate: string;
+  tva_amount: string;
+  total_ttc: string;
+  apply_tva: boolean;
+  notes: string;
+  converted_invoice: string | null;
+  converted_invoice_number: string;
+  converted_delivery_note: string | null;
+  converted_delivery_note_number: string;
+  lines: QuoteLine[];
+  has_pdf: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DeliveryNote {
   id: number;
   invoice: number;

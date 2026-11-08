@@ -58,6 +58,8 @@ const DeliveryNotesPage = lazy(() => import("@/features/invoicing/DeliveryNotesP
 const DeliveryNoteFormPage = lazy(() => import("@/features/invoicing/DeliveryNoteFormPage"));
 const CreditNotesPage = lazy(() => import("@/features/invoicing/CreditNotesPage"));
 const CreditNoteFormPage = lazy(() => import("@/features/invoicing/CreditNoteFormPage"));
+const QuotesPage = lazy(() => import("@/features/invoicing/QuotesPage"));
+const QuoteFormPage = lazy(() => import("@/features/invoicing/QuoteFormPage"));
 
 // Clients
 const ClientsPage = lazy(() => import("@/features/clients/ClientsPage"));
@@ -155,6 +157,11 @@ function AppRoutes() {
             <Route index element={<InvoiceListPage />} />
             <Route path="new" element={<InvoiceBuilderPage />} />
             <Route path=":id/edit" element={<InvoiceBuilderPage />} />
+          </Route>
+          <Route path="quotes">
+            <Route index element={<QuotesPage />} />
+            <Route path="new" element={<QuoteFormPage />} />
+            <Route path=":id/edit" element={<QuoteFormPage />} />
           </Route>
           <Route path="delivery-notes">
             <Route index element={<DeliveryNotesPage />} />

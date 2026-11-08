@@ -44,6 +44,7 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
 
   // Invoicing & Delivery Notes
   { prefix: "/invoices", cashierAnchor: "connexion", ownerAnchor: "facturation" },
+  { prefix: "/quotes", cashierAnchor: "connexion", ownerAnchor: "facturation" },
   { prefix: "/delivery-notes", cashierAnchor: "connexion", ownerAnchor: "facturation" },
   { prefix: "/credit-notes", cashierAnchor: "retour-echange", ownerAnchor: "facturation" },
 
