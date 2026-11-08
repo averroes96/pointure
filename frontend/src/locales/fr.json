@@ -1293,7 +1293,9 @@
     "minutes_ago": "il y a {{count}}m",
     "hours_ago": "il y a {{count}}h",
     "days_ago": "il y a {{count}}j",
-    "active_branch": "Agence active"
+    "active_branch": "Agence active",
+    "help": "Manuel d'utilisation & Aide",
+    "help_label": "Aide"
   },
   "payment": {
     "cash": "Espèces",
@@ -1741,7 +1743,8 @@
     "store_note": "Ces touches de fonction sont actives en permanence sous Windows, même lorsque votre curseur est positionné à l'intérieur d'un champ de saisie (recherche, quantité ou code-barres).",
     "clear_cart": "Vider panier / Effacer",
     "settings": "Paramètres",
-    "sidebar": "Afficher / Masquer menu"
+    "sidebar": "Afficher / Masquer menu",
+    "full_manual": "Consulter le manuel complet"
   },
   "v14": {
     "print_language": "Langue des tickets & reçus imprimés",

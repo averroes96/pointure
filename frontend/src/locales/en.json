@@ -1304,7 +1304,9 @@
     "minutes_ago": "{{count}}m ago",
     "hours_ago": "{{count}}h ago",
     "days_ago": "{{count}}d ago",
-    "active_branch": "Active Branch"
+    "active_branch": "Active Branch",
+    "help": "User Manual & Help",
+    "help_label": "Help"
   },
   "gender": {
     "m": "Men",
@@ -1741,7 +1743,8 @@
     "store_note": "These function keys work seamlessly on Windows, even while typing inside search, quantity, or barcode input fields.",
     "clear_cart": "Clear cart / Reset",
     "settings": "Settings",
-    "sidebar": "Show / Hide menu"
+    "sidebar": "Show / Hide menu",
+    "full_manual": "Open complete user manual"
   },
   "v14": {
     "print_language": "Printed Receipts & Slips Language",

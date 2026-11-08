@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Keyboard, ShoppingCart, Package, Sparkles } from "lucide-react";
+import { X, Keyboard, ShoppingCart, Package, Sparkles, BookOpen } from "lucide-react";
+import { useAuth } from "@/features/auth/AuthContext";
+import { openHelp } from "@/lib/helpLinks";
 
 interface ShortcutItem {
   key: string;
@@ -9,7 +11,8 @@ interface ShortcutItem {
 }
 
 export default function ShortcutsModal() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -180,7 +183,17 @@ export default function ShortcutsModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex justify-end">
+        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex items-center justify-between gap-3">
+          <button
+            onClick={() => {
+              openHelp(window.location.pathname, user?.role, i18n.language);
+              setIsOpen(false);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline cursor-pointer"
+          >
+            <BookOpen size={14} />
+            <span>{t("shortcuts.full_manual", "Consulter le manuel complet")}</span>
+          </button>
           <button onClick={() => setIsOpen(false)} className="btn-secondary px-5">
             {t("common.close", "Fermer")}
           </button>
