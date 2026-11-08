@@ -409,3 +409,145 @@ class TestPeriodLock:
         )
         assert resp_pay.status_code == 400
         assert resp_pay.data["error"]["code"] == "period_closed"
+        assert not resp_pay.data["error"]["message"].startswith("[ErrorDetail")
+
+    def test_closed_fiscal_year_cannot_be_deleted_or_patched_and_manager_forbidden(self):
+        """
+        A closed FiscalYear cannot be deleted or modified via REST endpoints,
+        and only the store OWNER may create/update/delete FiscalYear records.
+        """
+        # Manager cannot create, patch, or delete FiscalYear records
+        self.api.force_authenticate(user=self.manager)
+        resp_mgr_create = self.api.post(
+            "/api/v1/closing/years/",
+            {"year": 2027, "start_date": "2027-01-01", "end_date": "2027-12-31"},
+            format="json",
+        )
+        assert resp_mgr_create.status_code == 403
+
+        resp_mgr_patch = self.api.patch(
+            f"/api/v1/closing/years/{self.fy2026.pk}/",
+            {"end_date": "2026-12-30"},
+            format="json",
+        )
+        assert resp_mgr_patch.status_code == 403
+
+        resp_mgr_del = self.api.delete(f"/api/v1/closing/years/{self.fy2026.pk}/")
+        assert resp_mgr_del.status_code == 403
+
+        # Even OWNER cannot delete or patch a CLOSED FiscalYear
+        self.api.force_authenticate(user=self.owner)
+        resp_del_closed = self.api.delete(f"/api/v1/closing/years/{self.fy2025.pk}/")
+        assert resp_del_closed.status_code == 400
+        assert resp_del_closed.data["error"]["code"] == "year_closed"
+        assert FiscalYear.objects.filter(pk=self.fy2025.pk).exists()
+
+        resp_patch_closed = self.api.patch(
+            f"/api/v1/closing/years/{self.fy2025.pk}/",
+            {"start_date": "2025-06-01"},
+            format="json",
+        )
+        assert resp_patch_closed.status_code == 400
+        assert resp_patch_closed.data["error"]["code"] == "year_closed"
+
+        # Invalid date order or overlapping dates rejected
+        resp_bad_dates = self.api.post(
+            "/api/v1/closing/years/",
+            {"year": 2027, "start_date": "2027-12-31", "end_date": "2027-01-01"},
+            format="json",
+        )
+        assert resp_bad_dates.status_code == 400
+
+        resp_overlap = self.api.post(
+            "/api/v1/closing/years/",
+            {"year": 2027, "start_date": "2026-06-01", "end_date": "2027-05-31"},
+            format="json",
+        )
+        assert resp_overlap.status_code == 400
+
+    def test_remaining_write_paths_blocked_in_closed_period(self):
+        """
+        Unallocated client payment, supplier invoice/payment DELETE, draft invoice DELETE,
+        and delivery note PATCH/DELETE dated in a closed period are rejected with 400 period_closed.
+        """
+        from apps.invoicing.models import DeliveryNote
+
+        # Temporarily reopen 2025 to seed 2025 records
+        self.fy2025.status = FiscalYearStatusChoices.OPEN
+        self.fy2025.save(update_fields=["status"])
+
+        sup_inv = SupplierInvoice.objects.create(
+            tenant=self.tenant,
+            supplier=self.supplier,
+            invoice_number="SUP-2025-DEL",
+            date=datetime.date(2025, 4, 10),
+            due_date=datetime.date(2025, 5, 10),
+            total_amount=Decimal("10000.00"),
+        )
+        sup_pay = SupplierPayment.objects.create(
+            tenant=self.tenant,
+            supplier=self.supplier,
+            amount=Decimal("5000.00"),
+            method="cash",
+            date=datetime.date(2025, 4, 12),
+            recorded_by=self.manager,
+        )
+        draft_inv = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            branch=self.branch,
+            date=datetime.date(2025, 4, 15),
+            due_date=datetime.date(2025, 5, 15),
+            status=InvoiceStatusChoices.DRAFT,
+            created_by=self.manager,
+        )
+        dn = DeliveryNote.objects.create(
+            tenant=self.tenant,
+            client=self.client_obj,
+            number="BL-2025-00001",
+            date=datetime.date(2025, 4, 20),
+        )
+
+        # Re-close 2025
+        self.fy2025.status = FiscalYearStatusChoices.CLOSED
+        self.fy2025.save(update_fields=["status"])
+
+        self.api.force_authenticate(user=self.manager)
+
+        # 1. Unallocated client payment dated in 2025 (no open invoices) -> 400 period_closed
+        resp_cli_pay = self.api.post(
+            f"/api/v1/clients/{self.client_obj.pk}/record-payment/",
+            {"amount": "3000.00", "method": "cash", "date": "2025-07-01"},
+            format="json",
+        )
+        assert resp_cli_pay.status_code == 400
+        assert resp_cli_pay.data["error"]["code"] == "period_closed"
+
+        # 2. DELETE supplier invoice in 2025 -> 400 period_closed
+        resp_del_si = self.api.delete(f"/api/v1/suppliers/invoices/{sup_inv.pk}/")
+        assert resp_del_si.status_code == 400
+        assert resp_del_si.data["error"]["code"] == "period_closed"
+
+        # 3. DELETE supplier payment in 2025 -> 400 period_closed
+        resp_del_sp = self.api.delete(f"/api/v1/suppliers/payments/{sup_pay.pk}/")
+        assert resp_del_sp.status_code == 400
+        assert resp_del_sp.data["error"]["code"] == "period_closed"
+
+        # 4. DELETE draft invoice in 2025 -> 400 period_closed
+        resp_del_inv = self.api.delete(f"/api/v1/invoicing/invoices/{draft_inv.pk}/")
+        assert resp_del_inv.status_code == 400
+        assert resp_del_inv.data["error"]["code"] == "period_closed"
+
+        # 5. PATCH and DELETE delivery note in 2025 -> 400 period_closed
+        resp_patch_dn = self.api.patch(
+            f"/api/v1/invoicing/delivery-notes/{dn.pk}/",
+            {"notes": "tentative modification"},
+            format="json",
+        )
+        assert resp_patch_dn.status_code == 400
+        assert resp_patch_dn.data["error"]["code"] == "period_closed"
+
+        resp_del_dn = self.api.delete(f"/api/v1/invoicing/delivery-notes/{dn.pk}/")
+        assert resp_del_dn.status_code == 400
+        assert resp_del_dn.data["error"]["code"] == "period_closed"
+

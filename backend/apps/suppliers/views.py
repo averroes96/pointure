@@ -907,6 +907,12 @@ class SupplierInvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
         serializer.save()
 
+    def perform_destroy(self, instance):
+        from apps.closing.services.lock import assert_period_open
+        if instance.date:
+            assert_period_open(self.request.tenant, instance.date)
+        instance.delete()
+
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
         """Download the supplier invoice as a PDF."""
@@ -941,6 +947,12 @@ class SupplierPaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if serializer.validated_data.get("date"):
             assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
         serializer.save()
+
+    def perform_destroy(self, instance):
+        from apps.closing.services.lock import assert_period_open
+        if instance.date:
+            assert_period_open(self.request.tenant, instance.date)
+        instance.delete()
 
 
 class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):

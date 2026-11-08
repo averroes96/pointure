@@ -123,7 +123,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
         branch_id = request.query_params.get("branch")
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         # Numeric presets: last N days, grouped by day
         if period_param in ("7", "30", "90"):
@@ -345,7 +345,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 "amount": by_method.get(method, {}).get("total", Decimal("0")), 
                 "count": by_method.get(method, {}).get("count", 0)
             }
-            for method in ["cash", "ccp", "virement", "cheque", "account"]
+            for method in ["cash", "tpe", "baridimob", "ccp", "virement", "cheque", "account"]
         ]
 
         # Top 5 products
@@ -409,7 +409,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         import datetime as _dt
         branch_id = request.query_params.get("branch")
-        today_date = timezone.now().date()
+        today_date = timezone.localdate()
 
         # Numeric presets → same logic as sales_by_period
         if period in ("7", "30", "90"):

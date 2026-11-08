@@ -296,6 +296,8 @@ def _populate_sales_journal_sheet(ws, fiscal_year: FiscalYear, styles: dict):
         item["timbre"] += s.timbre_fiscal
 
         for p in s.payments.all():
+            if p.recorded_at and not (start_dt <= p.recorded_at <= end_dt):
+                continue
             m = p.method
             amt = p.amount
             if m == PaymentMethodChoices.CASH:
@@ -402,10 +404,15 @@ def _populate_invoices_sheet(ws, fiscal_year: FiscalYear, styles: dict):
     invoices = (
         Invoice.objects.filter(
             tenant=fiscal_year.tenant,
+            status__in=[
+                InvoiceStatusChoices.SENT,
+                InvoiceStatusChoices.PAID,
+                InvoiceStatusChoices.PARTIAL,
+                InvoiceStatusChoices.OVERDUE,
+            ],
             date__gte=fiscal_year.start_date,
             date__lte=fiscal_year.end_date,
         )
-        .exclude(status=InvoiceStatusChoices.CANCELLED)
         .select_related("client")
         .order_by("date", "number")
     )

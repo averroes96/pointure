@@ -60,7 +60,7 @@ class InvoiceCounter(models.Model):
             if date is not None:
                 year = date.year if hasattr(date, "year") else int(str(date)[:4])
             else:
-                year = timezone.now().year
+                year = timezone.localdate().year
 
         counter, _ = cls.objects.select_for_update().get_or_create(
             tenant=tenant,

@@ -402,3 +402,92 @@ class TestAccountantExportPack:
         assert resp_reopen.data["status"] == "open"
         assert resp_reopen.data["reopened_reason"] == "Audit fiscal complémentaire demandé par l'expert"
 
+    def test_invoices_sheet_excludes_draft_invoices_and_matches_snapshot_totals(self):
+        """
+        Draft invoices dated in the fiscal year must not be summed in the Factures sheet,
+        ensuring Factures sheet TOTAL matches FiscalYear.totals['invoices'].
+        """
+        draft_inv = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.customer,
+            number="",
+            date=datetime.date(2026, 7, 1),
+            due_date=datetime.date(2026, 8, 1),
+            status=InvoiceStatusChoices.DRAFT,
+            tva_rate=Decimal("19.00"),
+            created_by=self.manager,
+        )
+        InvoiceLine.objects.create(
+            invoice=draft_inv,
+            variant=self.var42,
+            description="Draft Line",
+            quantity=5,
+            unit_price=Decimal("10000.00"),
+            discount_pct=Decimal("0.00"),
+        )
+        draft_inv.save()
+        build_snapshot(self.fy)
+        self.fy.refresh_from_db()
+
+        self.client.force_authenticate(user=self.owner)
+        resp = self.client.get(f"/api/v1/closing/years/{self.fy.id}/export/")
+        assert resp.status_code == 200
+        wb = openpyxl.load_workbook(io.BytesIO(resp.content), data_only=True)
+        ws_inv = wb["Factures"]
+        inv_last = ws_inv.max_row
+        assert Decimal(str(ws_inv.cell(row=inv_last, column=5).value)) == Decimal(
+            self.fy.totals["invoices"]["total_ht"]
+        )
+        assert Decimal(str(ws_inv.cell(row=inv_last, column=8).value)) == Decimal(
+            self.fy.totals["invoices"]["total_ttc"]
+        )
+
+    def test_checklist_includes_partially_paid_sales_and_snapshot_can_unlink_stocktake(self):
+        """
+        Checklist active_layaways item warns on both uncollected layaways and partially_paid (versement) sales,
+        and build-snapshot with stocktake_session_id=None unlinks a previously linked stocktake session.
+        """
+        from apps.inventory.models import StocktakeSession, StocktakeStatusChoices
+
+        # Create a partially_paid sale in 2026
+        part_sale = Sale.objects.create(
+            tenant=self.tenant,
+            cashier=self.cashier,
+            receipt_number="REC-2026-PART",
+            total_amount=Decimal("8000.00"),
+            status="partially_paid",
+            is_layaway=False,
+        )
+        Sale.objects.filter(pk=part_sale.pk).update(
+            created_at=datetime.datetime(2026, 6, 10, 12, 0, tzinfo=self.algiers_tz)
+        )
+
+        self.client.force_authenticate(user=self.owner)
+        resp_chk = self.client.get(f"/api/v1/closing/years/{self.fy.id}/checklist/")
+        assert resp_chk.status_code == 200
+        layaway_item = [i for i in resp_chk.data["items"] if i["key"] == "active_layaways"][0]
+        assert layaway_item["count"] >= 1
+
+        # Link then unlink a stocktake session
+        st = StocktakeSession.objects.create(
+            tenant=self.tenant,
+            status=StocktakeStatusChoices.COMPLETED,
+            created_by=self.manager,
+        )
+        resp_link = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/build-snapshot/",
+            {"stocktake_session_id": str(st.id)},
+            format="json",
+        )
+        assert resp_link.status_code == 200
+        assert str(resp_link.data["stocktake_session"]) == str(st.id)
+
+        resp_unlink = self.client.post(
+            f"/api/v1/closing/years/{self.fy.id}/build-snapshot/",
+            {"stocktake_session_id": None},
+            format="json",
+        )
+        assert resp_unlink.status_code == 200
+        assert resp_unlink.data["stocktake_session"] is None
+
+

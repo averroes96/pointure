@@ -181,6 +181,9 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        from apps.closing.services.lock import assert_period_open
+        assert_period_open(request.tenant, data["date"])
+
         with transaction.atomic():
             method_labels = {
                 "cash": "ESPÈCES",

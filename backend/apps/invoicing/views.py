@@ -281,6 +281,9 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """Delete an invoice only if user is manager+ and the invoice is still a draft."""
         self.require_manager()
         invoice = self.get_object()
+        from apps.closing.services.lock import assert_period_open
+        if invoice.date:
+            assert_period_open(request.tenant, invoice.date)
         if invoice.status != InvoiceStatusChoices.DRAFT:
             return Response(
                 {"detail": "Seule une facture brouillon peut être supprimée."},
@@ -455,6 +458,21 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         from .tasks import generate_delivery_note_pdf
         transaction.on_commit(lambda: run_task(generate_delivery_note_pdf, dn.pk))
+
+    def perform_update(self, serializer):
+        from apps.closing.services.lock import assert_period_open
+        instance = self.get_object()
+        if instance.date:
+            assert_period_open(self.request.tenant, instance.date)
+        if serializer.validated_data.get("date"):
+            assert_period_open(self.request.tenant, serializer.validated_data.get("date"))
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        from apps.closing.services.lock import assert_period_open
+        if instance.date:
+            assert_period_open(self.request.tenant, instance.date)
+        instance.delete()
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):

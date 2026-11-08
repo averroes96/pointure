@@ -39,7 +39,21 @@ def custom_exception_handler(exc, context):
                 elif isinstance(first_val, str):
                     error_code = first_val
 
-        message = str(exc.detail) if hasattr(exc, "detail") else str(exc)
+        if hasattr(exc, "detail"):
+            if isinstance(exc.detail, list) and exc.detail:
+                message = str(exc.detail[0])
+            elif isinstance(exc.detail, dict) and exc.detail:
+                first_val = next(iter(exc.detail.values()), None)
+                if isinstance(first_val, list) and first_val:
+                    message = str(first_val[0])
+                elif first_val is not None:
+                    message = str(first_val)
+                else:
+                    message = str(exc.detail)
+            else:
+                message = str(exc.detail)
+        else:
+            message = str(exc)
 
         # For validation errors, the detail is a dict/list
         details = {}

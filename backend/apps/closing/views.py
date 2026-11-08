@@ -3,6 +3,7 @@ import io
 import logging
 
 from zoneinfo import ZoneInfo
+from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -50,6 +51,61 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = FiscalYearSerializer
     permission_classes = [IsAuthenticated, IsManagerOrOwner]
     content_negotiation_class = IgnoreFormatContentNegotiation
+
+    def _require_owner(self, request):
+        if request.user.role != RoleChoices.OWNER:
+            return Response(
+                {
+                    "error": {
+                        "code": "permission_denied",
+                        "message": _("Seul le propriétaire peut créer, modifier ou supprimer un exercice fiscal."),
+                    }
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    def create(self, request, *args, **kwargs):
+        denied = self._require_owner(request)
+        if denied:
+            return denied
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        denied = self._require_owner(request)
+        if denied:
+            return denied
+        fiscal_year = self.get_object()
+        if fiscal_year.is_closed:
+            return Response(
+                {"error": {"code": "year_closed", "message": _("Impossible de modifier un exercice clôturé.")}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        denied = self._require_owner(request)
+        if denied:
+            return denied
+        fiscal_year = self.get_object()
+        if fiscal_year.is_closed:
+            return Response(
+                {"error": {"code": "year_closed", "message": _("Impossible de modifier un exercice clôturé.")}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        denied = self._require_owner(request)
+        if denied:
+            return denied
+        fiscal_year = self.get_object()
+        if fiscal_year.is_closed:
+            return Response(
+                {"error": {"code": "year_closed", "message": _("Impossible de supprimer un exercice clôturé.")}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=["get"], url_path="checklist")
     def checklist(self, request, pk=None):
@@ -107,13 +163,13 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         )
         unfinished_stocktakes_count = unfinished_stocktakes.count()
 
-        # 5. Active layaways
+        # 5. Active layaways & part-payments (versements)
         active_layaways = Sale.objects.filter(
             tenant=tenant,
-            is_layaway=True,
-            status="completed",
-            layaway_collected_at__isnull=True,
             created_at__date__lte=fiscal_year.end_date,
+        ).filter(
+            models.Q(is_layaway=True, status="completed", layaway_collected_at__isnull=True)
+            | models.Q(status="partially_paid")
         )
         active_layaways_count = active_layaways.count()
 
@@ -172,14 +228,14 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             },
             {
                 "key": "active_layaways",
-                "label": _("Mises de côté (réservations) actives"),
+                "label": _("Mises de côté et versements en cours"),
                 "count": active_layaways_count,
                 "is_blocking": False,
                 "details": [],
                 "message": (
-                    _("%(count)d article(s) mis de côté non encore retirés.") % {"count": active_layaways_count}
+                    _("%(count)d mise(s) de côté ou vente(s) avec versement non soldée(s).") % {"count": active_layaways_count}
                     if active_layaways_count
-                    else _("Aucune mise de côté en attente.")
+                    else _("Aucune mise de côté ou vente avec versement en attente.")
                 ),
             },
         ]
@@ -201,17 +257,21 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        stocktake_id = request.data.get("stocktake_session_id")
-        if stocktake_id:
-            try:
-                session = StocktakeSession.objects.get(pk=stocktake_id, tenant=request.tenant)
-                fiscal_year.stocktake_session = session
+        if "stocktake_session_id" in request.data:
+            stocktake_id = request.data.get("stocktake_session_id")
+            if stocktake_id:
+                try:
+                    session = StocktakeSession.objects.get(pk=stocktake_id, tenant=request.tenant)
+                    fiscal_year.stocktake_session = session
+                    fiscal_year.save(update_fields=["stocktake_session"])
+                except StocktakeSession.DoesNotExist:
+                    return Response(
+                        {"error": {"code": "not_found", "message": _("Session d'inventaire introuvable.")}},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+            elif fiscal_year.stocktake_session_id is not None:
+                fiscal_year.stocktake_session = None
                 fiscal_year.save(update_fields=["stocktake_session"])
-            except StocktakeSession.DoesNotExist:
-                return Response(
-                    {"error": {"code": "not_found", "message": _("Session d'inventaire introuvable.")}},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
 
         build_snapshot(fiscal_year)
         fiscal_year.refresh_from_db()
@@ -246,13 +306,16 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check blocking items
+        # Check blocking items using Africa/Algiers local date (consistent with checklist)
         algiers_tz = ZoneInfo("Africa/Algiers")
-        blocking_open_sessions = CashSession.objects.filter(
+        open_sessions = CashSession.objects.filter(
             tenant=request.tenant,
             status=CashSessionStatus.OPEN,
-            opened_at__date__lte=fiscal_year.end_date,
-        ).exists()
+        )
+        blocking_open_sessions = any(
+            timezone.localtime(s.opened_at, algiers_tz).date() <= fiscal_year.end_date
+            for s in open_sessions
+        )
         if blocking_open_sessions:
             return Response(
                 {
@@ -341,7 +404,7 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             except Exception as e:
                 logger.exception("Failed to render fiscal year summary PDF: %s", e)
                 return Response(
-                    {"error": {"code": "pdf_render_failed", "message": str(e)}},
+                    {"error": {"code": "pdf_render_failed", "message": _("Échec de la génération du document PDF.")}},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             response = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -358,7 +421,7 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         except Exception as e:
             logger.exception("Failed to generate fiscal year export workbook: %s", e)
             return Response(
-                {"error": {"code": "export_failed", "message": str(e)}},
+                {"error": {"code": "export_failed", "message": _("Échec de la génération de l'export comptable.")}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -384,7 +447,7 @@ class FiscalYearViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         except Exception as e:
             logger.exception("Failed to render fiscal year summary PDF: %s", e)
             return Response(
-                {"error": {"code": "pdf_render_failed", "message": str(e)}},
+                {"error": {"code": "pdf_render_failed", "message": _("Échec de la génération du document PDF.")}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
