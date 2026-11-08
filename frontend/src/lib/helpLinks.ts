@@ -12,7 +12,7 @@ export interface HelpRouteMapping {
 export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   // POS & Sales
   { prefix: "/sales/new", cashierAnchor: "encaisser", ownerAnchor: "encaisser" },
-  { prefix: "/sales/history", cashierAnchor: "retours-echanges", ownerAnchor: "clotures-rapports" },
+  { prefix: "/sales/history", cashierAnchor: "retour-echange", ownerAnchor: "clotures-rapports" },
   { prefix: "/sales", cashierAnchor: "encaisser", ownerAnchor: "encaisser" },
 
   // Inventory, Stocks & Products
@@ -28,7 +28,7 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   { prefix: "/closing", cashierAnchor: "fermer-caisse", ownerAnchor: "clotures-rapports" },
 
   // Clients & Layaway / Versements
-  { prefix: "/clients", cashierAnchor: "versement-acompte", ownerAnchor: "facturation-b2b" },
+  { prefix: "/clients", cashierAnchor: "versement-reservation", ownerAnchor: "facturation-b2b" },
 
   // Suppliers & Purchases
   { prefix: "/suppliers", cashierAnchor: "connexion", ownerAnchor: "fournisseurs-achats" },
@@ -37,7 +37,7 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   // Invoicing & Delivery Notes
   { prefix: "/invoices", cashierAnchor: "connexion", ownerAnchor: "facturation-b2b" },
   { prefix: "/delivery-notes", cashierAnchor: "connexion", ownerAnchor: "facturation-b2b" },
-  { prefix: "/credit-notes", cashierAnchor: "retours-echanges", ownerAnchor: "facturation-b2b" },
+  { prefix: "/credit-notes", cashierAnchor: "retour-echange", ownerAnchor: "facturation-b2b" },
 
   // Reports
   { prefix: "/reports", cashierAnchor: "fermer-caisse", ownerAnchor: "clotures-rapports" },

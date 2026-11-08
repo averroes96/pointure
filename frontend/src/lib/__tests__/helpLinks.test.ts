@@ -31,7 +31,7 @@ describe("helpLinks", () => {
     it("routes cashier role to cashier.html with context anchor", () => {
       expect(getHelpUrl("/sales/new", "cashier", "fr")).toBe("/manual/fr/cashier.html#encaisser");
       expect(getHelpUrl("/closing", "cashier", "ar-DZ")).toBe("/manual/ar/cashier.html#fermer-caisse");
-      expect(getHelpUrl("/sales/history", "cashier", "en")).toBe("/manual/en/cashier.html#retours-echanges");
+      expect(getHelpUrl("/sales/history", "cashier", "en")).toBe("/manual/en/cashier.html#retour-echange");
     });
 
     it("routes manager or owner to owner.html with context anchor", () => {

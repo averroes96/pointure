@@ -84,15 +84,21 @@ function preprocessAlerts(markdown) {
   let inAlert = null;
   let alertContent = [];
 
+  function flushAlert() {
+    if (inAlert) {
+      const innerHtml = marked.parse(alertContent.join("\n"));
+      result.push(`<div class="${inAlert}">\n${innerHtml}\n</div>`);
+      inAlert = null;
+      alertContent = [];
+    }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const alertMatch = line.match(/^>\s*\[!(TIP|WARNING|CAUTION|NOTE|IMPORTANT)\]\s*(.*)$/i);
 
     if (alertMatch) {
-      if (inAlert) {
-        result.push(`<div class="${inAlert}">\n${alertContent.join("\n")}\n</div>`);
-        alertContent = [];
-      }
+      flushAlert();
       const type = alertMatch[1].toUpperCase();
       inAlert = (type === "TIP") ? "tip" : (type === "WARNING" || type === "CAUTION") ? "warning" : "note";
       if (alertMatch[2].trim()) {
@@ -101,18 +107,12 @@ function preprocessAlerts(markdown) {
     } else if (inAlert && line.startsWith(">")) {
       alertContent.push(line.replace(/^>\s?/, ""));
     } else {
-      if (inAlert) {
-        result.push(`<div class="${inAlert}">\n${alertContent.join("\n")}\n</div>`);
-        inAlert = null;
-        alertContent = [];
-      }
+      flushAlert();
       result.push(line);
     }
   }
 
-  if (inAlert) {
-    result.push(`<div class="${inAlert}">\n${alertContent.join("\n")}\n</div>`);
-  }
+  flushAlert();
 
   return result.join("\n");
 }
