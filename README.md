@@ -192,10 +192,9 @@ pointure/
 │   ├── nginx.conf              # Production (SSL, HTTP→HTTPS redirect)
 │   └── nginx.local.conf        # Self-hosted (HTTP only, loopback bind)
 │
-├── manual/                     # Comprehensive User Manuals (HTML)
-│   ├── fr.html                 # Manuel utilisateur en français
-│   ├── ar.html                 # دليل المستخدم باللغة العربية
-│   └── en.html                 # User manual in English
+├── manual/                     # User manuals source and assets
+│   ├── src/                    # Markdown sources (fr, ar, en / cashier, owner)
+│   └── assets/                 # Manual screenshots and diagrams
 │
 ├── license-server/             # Separate Django app (SQLite) for key validation
 │
