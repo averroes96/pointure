@@ -34,6 +34,8 @@ import {
   Medal,
   TrendingUp,
   Search,
+  Download,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
@@ -454,15 +456,76 @@ function ClientInfoTab({
 
 // ── Tab: Relevé de compte ──────────────────────────────────────────────────
 
-function LedgerTab({ clientId }: { clientId: number | string }) {
+function LedgerTab({ clientId, client }: { clientId: number | string; client?: Client }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingXlsx, setIsDownloadingXlsx] = useState(false);
   
   const search = searchParams.get("search") || "";
   const type = searchParams.get("type") || "";
   const fromDate = searchParams.get("from") || "";
   const toDate = searchParams.get("to") || "";
+
+  async function handleDownloadPdf() {
+    setIsDownloadingPdf(true);
+    try {
+      const res = await api.get(`/clients/${clientId}/statement/`, {
+        params: { from: fromDate || undefined, to: toDate || undefined, format: "pdf" },
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `releve-compte-${(client?.name || "client").replace(/\s+/g, "_")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }
+
+  async function handleDownloadXlsx() {
+    setIsDownloadingXlsx(true);
+    try {
+      const res = await api.get(`/clients/${clientId}/statement/`, {
+        params: { from: fromDate || undefined, to: toDate || undefined, format: "xlsx" },
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `releve-compte-${(client?.name || "client").replace(/\s+/g, "_")}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    } finally {
+      setIsDownloadingXlsx(false);
+    }
+  }
+
+  function handleShareWhatsApp() {
+    const rawPhone = (client?.phone || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+    let intlPhone = rawPhone;
+    if (intlPhone.startsWith("0")) intlPhone = "213" + intlPhone.slice(1);
+    else if (intlPhone.startsWith("+")) intlPhone = intlPhone.slice(1);
+
+    const formattedBal = formatDZD(client?.cached_balance || 0);
+    const msg =
+      `Bonjour ${client?.name || ""},\n` +
+      `Votre solde restant dû en magasin s'élève à *${formattedBal} DZD*.\n` +
+      `Merci de votre confiance !\n` +
+      `---\n` +
+      `مرحباً ${client?.name || ""}، رصيد حسابكم الحالي هو *${formattedBal} د.ج*. شكراً لثقتكم!`;
+    const url = intlPhone
+      ? `https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   const { data, isLoading } = useQuery<PaginatedResponse<ClientLedgerEntry>>({
     queryKey: ["client-ledger", clientId, page, search, type, fromDate, toDate],
@@ -478,9 +541,9 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Filters */}
-      <div className="card p-4 flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
+      {/* Filters & Actions */}
+      <div className="card p-4 flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex-1 w-full">
           <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.search", "Recherche")}</label>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -500,7 +563,7 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
             />
           </div>
         </div>
-        <div>
+        <div className="w-full md:w-auto">
           <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.type")}</label>
           <select
             className="form-input w-full md:w-auto"
@@ -519,7 +582,7 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
             <option value="credit">{t("client.credits_payments")}</option>
           </select>
         </div>
-        <div>
+        <div className="w-full md:w-auto">
           <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.from")}</label>
           <input
             type="date"
@@ -535,7 +598,7 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
             }}
           />
         </div>
-        <div>
+        <div className="w-full md:w-auto">
           <label className="text-sm font-medium text-text-muted mb-1 block">{t("common.to")}</label>
           <input
             type="date"
@@ -550,6 +613,37 @@ function LedgerTab({ clientId }: { clientId: number | string }) {
               setPage(1);
             }}
           />
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            className="btn-secondary text-xs px-3 py-2 rounded-xl inline-flex items-center gap-1.5"
+            title={t("client.download_statement_pdf")}
+          >
+            {isDownloadingPdf ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+            PDF
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadXlsx}
+            disabled={isDownloadingXlsx}
+            className="btn-secondary text-xs px-3 py-2 rounded-xl inline-flex items-center gap-1.5"
+            title={t("client.download_statement_xlsx")}
+          >
+            {isDownloadingXlsx ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            className="btn-secondary text-xs px-3 py-2 rounded-xl inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            title={t("client.share_whatsapp")}
+          >
+            <MessageCircle size={14} />
+            WhatsApp
+          </button>
         </div>
       </div>
 
@@ -1280,7 +1374,7 @@ export default function ClientDetailPage() {
         {activeTab === "info" && (
           <ClientInfoTab client={client} onPayment={() => setShowPaymentModal(true)} />
         )}
-        {activeTab === "ledger" && <LedgerTab clientId={clientId} />}
+        {activeTab === "ledger" && <LedgerTab clientId={clientId} client={client} />}
         {activeTab === "cheques" && <ChequesTab clientId={clientId} />}
         {activeTab === "invoices" && <InvoicesTab clientId={clientId} />}
         {activeTab === "loyalty" && hasLoyalty && <LoyaltyTab clientId={clientId} />}

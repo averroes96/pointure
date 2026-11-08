@@ -29,7 +29,7 @@ ShoeDZ maintains an automated running ledger for every customer:
 - **Debit:** Every credit sale or invoice increases the customer's balance due.
 - **Credit:** Every cash installment, down payment, or cleared cheque reduces the debt.
 - **Net Balance:** Accurate balance due computed in real time.
-- Clicking **Print Account Statement** generates a certified statement detailing all transactions and the exact balance due.
+- Clicking **PDF** or **Excel** exports an official statement of account over the selected date range (featuring opening balance, ledger movements, and open invoices). The **WhatsApp** button sends an instant reminder message with the current balance due.
 
 ---
 
@@ -53,4 +53,6 @@ The **Debt Ageing** table breaks down outstanding receivables across aging brack
 - **30 to 60 Days:** Minor delays suitable for friendly phone reminders.
 - **60 to 90 Days:** Overdue receivables requiring formal collection notices.
 - **Over 90 Days:** High-risk balances warranting account blocking and recovery procedures.
+
+The **Download all statements (ZIP)** button generates a compressed archive containing individual statement PDFs for all debtor clients in a single click.
 

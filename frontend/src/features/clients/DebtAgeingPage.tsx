@@ -11,7 +11,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Download, AlertCircle, MapPin, MessageCircle, Search, ExternalLink } from "lucide-react";
+import { Download, AlertCircle, MapPin, MessageCircle, Search, ExternalLink, Archive, Loader2 } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import type { DebtAgeingRow } from "@/types";
 import { cn } from "@/lib/utils";
@@ -107,6 +107,7 @@ export default function DebtAgeingPage() {
 
   const [wilayaFilter, setWilayaFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isDownloadingZip, setIsDownloadingZip] = useState<boolean>(false);
 
   const { data: rows = [], isLoading, isError } = useQuery<DebtAgeingRow[]>({
     queryKey: ["reports", "ageing"],
@@ -148,6 +149,25 @@ export default function DebtAgeingPage() {
     );
   }, [filtered]);
 
+  async function handleExportStatementsZip() {
+    setIsDownloadingZip(true);
+    try {
+      const response = await api.get("/clients/statements-zip/", {
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `releves-clients-${new Date().toISOString().split("T")[0]}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.show(t("client.error_statements_zip", "Erreur lors du téléchargement des relevés."));
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  }
+
   async function handleExportExcel() {
     try {
       const response = await api.get("/clients/ageing-csv/", {
@@ -187,10 +207,20 @@ export default function DebtAgeingPage() {
             )}
           </p>
         </div>
-        <button onClick={handleExportExcel} className="btn-secondary rounded-xl">
-          <Download size={15} />
-          {t("common.export_csv")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportStatementsZip}
+            disabled={isDownloadingZip}
+            className="btn-primary rounded-xl inline-flex items-center gap-2"
+          >
+            {isDownloadingZip ? <Loader2 size={15} className="animate-spin" /> : <Archive size={15} />}
+            {t("client.download_all_statements_zip", "Télécharger tous les relevés (ZIP)")}
+          </button>
+          <button onClick={handleExportExcel} className="btn-secondary rounded-xl">
+            <Download size={15} />
+            {t("common.export_csv")}
+          </button>
+        </div>
       </div>
 
       {/* Top Bucket KPI Cards */}
