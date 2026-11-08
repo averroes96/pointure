@@ -281,6 +281,9 @@ backend/staticfiles/
 2026
 
 # Desktop build & runtime artifacts
+/backups/
+*.sqlite3
+*.shodzbak
 backend/data/
 desktop/python-dist/
 desktop/backend-dist/
