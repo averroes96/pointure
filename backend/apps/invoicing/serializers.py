@@ -13,6 +13,14 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
     colour = serializers.CharField(source="variant.colour", read_only=True)
     size_eu = serializers.CharField(source="variant.size_eu", read_only=True)
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from apps.inventory.serializers import _can_see_costs
+        if not _can_see_costs(self.context.get("request")):
+            data.pop("unit_cost", None)
+            data.pop("unit_cost_estimated", None)
+        return data
+
     class Meta:
         model = InvoiceLine
         fields = [

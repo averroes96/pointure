@@ -331,3 +331,99 @@ class HeldSalesTests(TestCase):
         self.assertEqual(deleted, 1)
         self.assertFalse(HeldSale.objects.filter(pk=old_held.id).exists())
         self.assertTrue(HeldSale.objects.filter(pk=recent_held.id).exists())
+
+    def test_resume_masks_costs_for_cashier_hydrates_client_and_clamps_discount(self):
+        """
+        Resuming a held sale as a cashier must mask purchase_price/margin_pct on variant & product,
+        return the full serialized client when attached, and clamp line discount when quantity is reduced.
+        Also verifies a cashier cannot delete another cashier's held sale via held_sale_id on checkout,
+        and negative cart quantities are rejected.
+        """
+        from apps.clients.models import Client
+
+        customer = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Fidèle",
+            phone="0550998877",
+            credit_limit=Decimal("50000.00"),
+        )
+
+        # Negative quantity in cart is rejected by HeldSaleItemInput validation
+        self.client_api.force_authenticate(user=self.cashier1)
+        bad_cart_resp = self.client_api.post(
+            "/api/v1/sales/held/",
+            {
+                "branch": str(self.branch1.id),
+                "cart": [{"variant_id": str(self.variant.id), "quantity": -2, "unit_price": "15000.00"}],
+            },
+            format="json",
+        )
+        self.assertEqual(bad_cart_resp.status_code, 400)
+
+        held = HeldSale.objects.create(
+            tenant=self.tenant,
+            branch=self.branch1,
+            cashier=self.cashier1,
+            client=customer,
+            label="Panier avec client et remise",
+            cart=[
+                {
+                    "variant_id": str(self.variant.id),
+                    "quantity": 10,
+                    "unit_price": "15000.00",
+                    "discount_amount": "30000.00",  # 30,000 DA discount across 10 pairs
+                }
+            ],
+        )
+
+        # Reduce branch1 stock from 10 to 1 pair so 30,000 DA discount exceeds 1 * 15,000 DA
+        StockMovement.objects.create(
+            tenant=self.tenant,
+            variant=self.variant,
+            branch=self.branch1,
+            reason=MovementReasonChoices.ADJUSTMENT,
+            quantity_delta=-9,
+        )
+
+        self.client_api.force_authenticate(user=self.cashier1)
+        resume_resp = self.client_api.post(f"/api/v1/sales/held/{held.id}/resume/")
+        self.assertEqual(resume_resp.status_code, 200)
+
+        # 1. Cost fields masked for cashier
+        cart_line = resume_resp.data["cart"][0]
+        self.assertNotIn("purchase_price", cart_line["variant"])
+        self.assertNotIn("purchase_price", cart_line["product"])
+        self.assertNotIn("margin_pct", cart_line["product"])
+
+        # 2. Full client object hydrated in resume response
+        self.assertIsNotNone(resume_resp.data.get("client"))
+        self.assertEqual(str(resume_resp.data["client"]["id"]), str(customer.id))
+        self.assertEqual(resume_resp.data["client"]["phone"], "0550998877")
+
+        # 3. Line discount clamped to new line subtotal (1 * 15000.00 = 15000.00)
+        self.assertEqual(cart_line["quantity"], 1)
+        self.assertEqual(Decimal(cart_line["discount_amount"]), Decimal("15000.00"))
+
+        # 4. Cashier 2 cannot delete Cashier 1's held sale by passing held_sale_id on checkout
+        self.client_api.force_authenticate(user=self.cashier2)
+        sale_resp = self.client_api.post(
+            "/api/v1/sales/",
+            {
+                "branch_id": str(self.branch1.id),
+                "held_sale_id": str(held.id),
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "15000.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "15000.00", "method": "cash"}],
+            },
+            format="json",
+        )
+        self.assertEqual(sale_resp.status_code, 201)
+        # Cashier 1's held sale must still exist!
+        self.assertTrue(HeldSale.objects.filter(pk=held.id).exists())
+

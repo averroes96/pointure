@@ -3104,14 +3104,7 @@ export default function SalesPage() {
           setCartDiscount(Number(resumeData.held_sale.cart_discount || 0));
           setActiveHeldSaleId(resumeData.held_sale.id);
           setActiveHeldSaleLabel(resumeData.held_sale.label || null);
-          if (resumeData.held_sale.client) {
-            setSelectedClient({
-              id: resumeData.held_sale.client as any,
-              name: resumeData.held_sale.client_name || "",
-            } as Client);
-          } else {
-            setSelectedClient(null);
-          }
+          setSelectedClient(resumeData.client ?? null);
           queryClient.invalidateQueries({ queryKey: ["held-sales"] });
         }}
       />

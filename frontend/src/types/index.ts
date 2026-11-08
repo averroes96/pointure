@@ -362,6 +362,7 @@ export interface HeldSaleChange {
 
 export interface HeldSaleResumeResponse {
   held_sale: HeldSale;
+  client?: Client | null;
   cart: Array<{
     variant_id: string;
     quantity: number;

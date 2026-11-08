@@ -128,7 +128,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             tenant=request.tenant,
             cashier=request.user,
         )
-        resp_data = SaleSerializer(sale).data
+        resp_data = SaleSerializer(sale, context={"request": request}).data
         loyalty = getattr(sale, "_loyalty_summary", {})
         resp_data["points_earned"] = loyalty.get("points_earned", 0)
         resp_data["points_redeemed"] = loyalty.get("points_redeemed", 0)
@@ -1192,17 +1192,28 @@ class HeldSaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 })
                 final_unit_price = current_unit_price
 
+            line_subtotal = (final_unit_price * Decimal(final_qty)).quantize(Decimal("0.01"))
+            final_discount = min(max(Decimal("0.00"), stored_discount), line_subtotal)
+
             validated_cart.append({
                 "variant_id": str(variant.id),
                 "quantity": final_qty,
                 "unit_price": str(final_unit_price),
-                "discount_amount": str(stored_discount),
-                "variant": VariantSerializer(variant).data,
-                "product": ProductSerializer(variant.product).data,
+                "discount_amount": str(final_discount),
+                "variant": VariantSerializer(variant, context={"request": request}).data,
+                "product": ProductSerializer(variant.product, context={"request": request}).data,
             })
 
+        from apps.clients.serializers import ClientSerializer
+        serialized_client = (
+            ClientSerializer(held_sale.client, context={"request": request}).data
+            if (held_sale.client and held_sale.client.is_active)
+            else None
+        )
+
         return Response({
-            "held_sale": HeldSaleSerializer(held_sale).data,
+            "held_sale": HeldSaleSerializer(held_sale, context={"request": request}).data,
+            "client": serialized_client,
             "cart": validated_cart,
             "changes": changes,
         })

@@ -9,10 +9,13 @@ from .models import DefectItem, Product, StockMovement, StockTransfer, Variant, 
 
 def _can_see_costs(request) -> bool:
     """Return True if the requesting user is allowed to view cost and purchase prices."""
-    if not request:
+    user = getattr(request, "user", None) if request else None
+    if not user:
+        from apps.core.signals import get_current_user
+        user = get_current_user()
+    if not user:
         return True
-    user = getattr(request, "user", None)
-    if not user or not getattr(user, "is_authenticated", False):
+    if not getattr(user, "is_authenticated", False):
         return False
     if getattr(user, "is_superuser", False):
         return True

@@ -400,3 +400,38 @@ class TestSaleCostingAndReports:
         legacy_item.refresh_from_db()
         assert legacy_item.unit_cost == Decimal("7500.00")
         assert legacy_item.unit_cost_estimated is True
+
+    def test_unit_cost_hidden_from_cashier_in_sale_and_invoice_responses(self):
+        """
+        Cashiers (can_see_costs=False) must not see unit_cost or unit_cost_estimated
+        in SaleItemSerializer or InvoiceLineSerializer API responses, whereas managers do.
+        """
+        self.client.force_authenticate(user=self.cashier)
+        payload = {
+            "items": [
+                {
+                    "variant_id": str(self.variant.pk),
+                    "quantity": 1,
+                    "unit_price": "12000.00",
+                    "discount_amount": "0.00",
+                }
+            ],
+            "payments": [{"amount": "12000.00", "method": PaymentMethodChoices.CASH}],
+        }
+        res_cashier = self.client.post("/api/v1/sales/", payload, format="json")
+        assert res_cashier.status_code == 201
+        cashier_item = res_cashier.data["items"][0]
+        assert "unit_cost" not in cashier_item
+        assert "unit_cost_estimated" not in cashier_item
+
+        # GET /api/v1/sales/{id}/ as cashier also masks unit_cost
+        get_cashier = self.client.get(f"/api/v1/sales/{res_cashier.data['id']}/")
+        assert get_cashier.status_code == 200
+        assert "unit_cost" not in get_cashier.data["items"][0]
+
+        # GET /api/v1/sales/{id}/ as manager includes unit_cost
+        self.client.force_authenticate(user=self.manager)
+        get_mgr = self.client.get(f"/api/v1/sales/{res_cashier.data['id']}/")
+        assert get_mgr.status_code == 200
+        assert Decimal(str(get_mgr.data["items"][0]["unit_cost"])) == Decimal("7500.00")
+

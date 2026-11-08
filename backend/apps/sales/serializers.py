@@ -25,6 +25,14 @@ class SaleItemSerializer(serializers.ModelSerializer):
     subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     variant_str = serializers.CharField(source="variant.__str__", read_only=True)
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from apps.inventory.serializers import _can_see_costs
+        if not _can_see_costs(self.context.get("request")):
+            data.pop("unit_cost", None)
+            data.pop("unit_cost_estimated", None)
+        return data
+
     class Meta:
         model = SaleItem
         fields = [
@@ -206,7 +214,28 @@ class HeldSaleSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Format d'article invalide dans le panier.")
             if "variant_id" not in item or "quantity" not in item:
                 raise serializers.ValidationError("Chaque article doit avoir un variant_id et une quantité.")
-        return value
+        item_ser = HeldSaleItemInput(data=value, many=True)
+        item_ser.is_valid(raise_exception=True)
+        normalized = []
+        for raw, valid in zip(value, item_ser.validated_data):
+            entry = dict(raw)
+            entry["variant_id"] = str(valid["variant_id"])
+            entry["quantity"] = int(valid["quantity"])
+            entry["unit_price"] = str(valid["unit_price"])
+            entry["discount_amount"] = str(valid.get("discount_amount", Decimal("0.00")))
+            normalized.append(entry)
+        return normalized
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        tenant = getattr(request, "tenant", None) if request else None
+        branch = attrs.get("branch")
+        if branch and tenant and branch.tenant_id != tenant.id:
+            raise serializers.ValidationError({"branch": "Agence introuvable."})
+        client = attrs.get("client")
+        if client and tenant and client.tenant_id != tenant.id:
+            raise serializers.ValidationError({"client": "Client introuvable."})
+        return attrs
 
 
 # ─── Create sale input ────────────────────────────────────────────────────────
@@ -676,7 +705,10 @@ class CreateSaleSerializer(serializers.Serializer):
 
         # Clean up held sale if this sale was resumed from a parked ticket
         if held_sale_id:
-            HeldSale.objects.filter(pk=held_sale_id, tenant=tenant).delete()
+            held_qs = HeldSale.objects.filter(pk=held_sale_id, tenant=tenant)
+            if cashier and not getattr(cashier, "is_manager", False):
+                held_qs = held_qs.filter(cashier=cashier)
+            held_qs.delete()
 
         return sale
 
