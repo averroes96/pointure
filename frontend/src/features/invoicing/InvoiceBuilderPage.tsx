@@ -17,6 +17,7 @@ import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
+import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
 import { InvoiceProductMatrix, type MatrixConfig, createEmptyMatrix } from "./components/InvoiceProductMatrix";
 
@@ -195,6 +196,25 @@ export default function InvoiceBuilderPage() {
 
   // ── Matrices ──
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
+  const prevInvoiceTierRef = useRef<string>("gros");
+  useEffect(() => {
+    const nextTier = client?.price_tier ?? "gros";
+    const prevTier = prevInvoiceTierRef.current;
+    if (nextTier !== prevTier) {
+      setMatrices((prev) =>
+        prev.map((m) => {
+          if (!m.product) return m;
+          const prevCatalog = unitPriceFor(m.product, prevTier);
+          const curPrice = parseFloat(m.unit_price || "0") || 0;
+          if (Math.abs(curPrice - prevCatalog) < 0.01) {
+            return { ...m, unit_price: unitPriceStringFor(m.product, nextTier) };
+          }
+          return m;
+        }),
+      );
+      prevInvoiceTierRef.current = nextTier;
+    }
+  }, [client]);
 
   // Hydrate edit state
   useEffect(() => {
@@ -686,6 +706,7 @@ export default function InvoiceBuilderPage() {
                 <InvoiceProductMatrix
                   key={m.id}
                   config={m}
+                  priceTier={client?.price_tier ?? "gros"}
                   onChange={(newConfig) => setMatrices(prev => prev.map(old => old.id === m.id ? newConfig : old))}
                   onRemove={() => setMatrices(prev => prev.length > 1 ? prev.filter(old => old.id !== m.id) : prev)}
                 />

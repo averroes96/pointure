@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { unitPriceStringFor } from "@/lib/pricing";
+import type { PriceTier } from "@/types";
 
 export interface VariantData {
   id: number;
@@ -17,7 +19,8 @@ export interface ProductResult {
   name: string;
   brand: string;
   sale_price: string;
-  wholesale_price?: string;
+  semi_wholesale_price?: string | null;
+  wholesale_price?: string | null;
   purchase_price?: string;
   pairs_per_carton?: number;
   variants: VariantData[];
@@ -137,10 +140,12 @@ function ProductSearch({
 
 export function InvoiceProductMatrix({
   config,
+  priceTier = "gros",
   onChange,
   onRemove,
 }: {
   config: MatrixConfig;
+  priceTier?: PriceTier;
   onChange: (c: MatrixConfig) => void;
   onRemove: () => void;
 }) {
@@ -209,7 +214,7 @@ export function InvoiceProductMatrix({
               product: p,
               pairs_per_carton: ppc,
               quantities: getDistributedQty(p, config.cartons, ppc),
-              unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
+              unit_price: unitPriceStringFor(p, priceTier),
               discount_pct: "0"
             });
           }}

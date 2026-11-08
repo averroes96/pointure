@@ -7,6 +7,7 @@ import {
   validatePaymentTotal,
   type CartItem,
 } from "@/lib/cartUtils";
+import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
 import type { Product, Variant } from "@/types";
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
@@ -232,5 +233,58 @@ describe("validatePaymentTotal", () => {
   it("handles zero sale total gracefully", () => {
     // 0 payment on 0 total is fine
     expect(validatePaymentTotal(0, 0)).toBeNull();
+  });
+});
+
+// ─── unitPriceFor (Task 7.4 tier pricing & fallback) ─────────────────────────
+
+describe("unitPriceFor", () => {
+  it("returns sale_price for detail tier or when tier is omitted", () => {
+    const p = makeProduct({
+      sale_price: "6500.00",
+      semi_wholesale_price: "5800.00",
+      wholesale_price: "5200.00",
+    });
+    expect(unitPriceFor(p)).toBe(6500);
+    expect(unitPriceFor(p, "detail")).toBe(6500);
+  });
+
+  it("returns semi_wholesale_price for demi_gros and wholesale_price for gros", () => {
+    const p = makeProduct({
+      sale_price: "6500.00",
+      semi_wholesale_price: "5800.00",
+      wholesale_price: "5200.00",
+    });
+    expect(unitPriceFor(p, "demi_gros")).toBe(5800);
+    expect(unitPriceFor(p, "gros")).toBe(5200);
+    expect(unitPriceStringFor(p, "demi_gros")).toBe("5800");
+  });
+
+  it("falls back from demi_gros -> gros -> detail when tiers are empty or zero", () => {
+    const onlyWholesale = makeProduct({
+      sale_price: "6500.00",
+      semi_wholesale_price: null,
+      wholesale_price: "5200.00",
+    });
+    expect(unitPriceFor(onlyWholesale, "demi_gros")).toBe(5200);
+
+    const onlyRetail = makeProduct({
+      sale_price: "6500.00",
+      semi_wholesale_price: "0.00",
+      wholesale_price: "0.00",
+    });
+    expect(unitPriceFor(onlyRetail, "demi_gros")).toBe(6500);
+    expect(unitPriceFor(onlyRetail, "gros")).toBe(6500);
+  });
+
+  it("uses client tier in addItemToCart when provided", () => {
+    const v = makeVariant();
+    const p = makeProduct({
+      sale_price: "6500.00",
+      semi_wholesale_price: "5800.00",
+      wholesale_price: "5200.00",
+    });
+    const cartDemi = addItemToCart([], v, p, "demi_gros");
+    expect(cartDemi[0].unit_price).toBe(5800);
   });
 });

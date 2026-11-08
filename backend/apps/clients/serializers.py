@@ -14,7 +14,7 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = [
             "id", "name", "phone", "email", "address", "wilaya",
-            "client_type", "nif", "rc", "credit_limit", "cached_balance",
+            "client_type", "price_tier", "nif", "rc", "credit_limit", "cached_balance",
             "is_over_credit_limit", "is_active", "notes", "created_at",
         ]
         read_only_fields = ["id", "cached_balance", "is_over_credit_limit", "created_at"]
@@ -33,6 +33,10 @@ class ClientSerializer(serializers.ModelSerializer):
                 raise PermissionDenied(
                     "Seul un manager ou le propriétaire peut définir le plafond de crédit d'un client."
                 )
+        if "price_tier" not in validated_data and validated_data.get("client_type") == "wholesale":
+            validated_data["price_tier"] = "gros"
+        elif "client_type" not in validated_data and validated_data.get("price_tier") in ("demi_gros", "gros"):
+            validated_data["client_type"] = "wholesale"
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

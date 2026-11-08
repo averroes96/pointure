@@ -69,6 +69,8 @@ export interface Variant {
   product: number;
   product_name: string;
   product_sale_price: string;
+  product_semi_wholesale_price?: string | null;
+  product_wholesale_price?: string | null;
   size_eu: number;
   colour: string;
   barcode: string;
@@ -90,7 +92,8 @@ export interface Product {
   purchase_price?: string; // Hidden from cashiers
   pamp?: string; // Weighted Average Purchase Price (Coût Moyen Pondéré)
   sale_price: string;
-  wholesale_price?: string;
+  semi_wholesale_price?: string | null;
+  wholesale_price?: string | null;
   margin_pct?: string;
   image: string | null;
   description: string;
@@ -551,6 +554,7 @@ export type ChequeStatus = "pending" | "deposited" | "bounced" | "cancelled";
 export type ChequeDirection = "receivable" | "payable";
 
 export type ClientType = "retail" | "wholesale";
+export type PriceTier = "detail" | "demi_gros" | "gros";
 
 export interface Client {
   id: number;
@@ -560,6 +564,7 @@ export interface Client {
   address: string;
   wilaya: string;
   client_type: ClientType;
+  price_tier?: PriceTier;
   nif: string;
   rc: string;
   credit_limit: string;

@@ -16,6 +16,7 @@ import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession, HeldSale } from "@/types";
 import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils";
+import { unitPriceFor } from "@/lib/pricing";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
@@ -333,6 +334,25 @@ export default function SalesPage() {
   const [cashTendered, setCashTendered] = useState<string>("");
   const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const selectedClientRef = useRef<Client | null>(null);
+  const prevClientTierRef = useRef<string>("detail");
+  useEffect(() => {
+    selectedClientRef.current = selectedClient;
+    const nextTier = selectedClient?.price_tier ?? "detail";
+    const prevTier = prevClientTierRef.current;
+    if (nextTier !== prevTier) {
+      setCart((prev) =>
+        prev.map((item) => {
+          const prevCatalog = unitPriceFor(item.product, prevTier);
+          if (Math.abs(item.unit_price - prevCatalog) < 0.01) {
+            return { ...item, unit_price: unitPriceFor(item.product, nextTier) };
+          }
+          return item;
+        }),
+      );
+      prevClientTierRef.current = nextTier;
+    }
+  }, [selectedClient]);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
   const [isLayaway, setIsLayaway] = useState(false);
@@ -554,7 +574,16 @@ export default function SalesPage() {
           i.variant.id === variant.id ? { ...i, quantity: newQty } : i
         );
       }
-      return [...prev, { variant, product, quantity: 1, unit_price: parseFloat(product.sale_price), discount: 0 }];
+      return [
+        ...prev,
+        {
+          variant,
+          product,
+          quantity: 1,
+          unit_price: unitPriceFor(product, selectedClientRef.current?.price_tier),
+          discount: 0,
+        },
+      ];
     });
     setSearch("");
     setSelectedProduct(null);
@@ -864,9 +893,10 @@ export default function SalesPage() {
 
       if (user.can_modify_price === false) {
         const altered = cart.find(
-          (i) => Math.abs(Number(i.unit_price) - parseFloat(i.product.sale_price)) > 0.01
+          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, selectedClient?.price_tier)) > 0.01
         );
         if (altered) {
+          const catalogPrice = unitPriceFor(altered.product, selectedClient?.price_tier);
           setManagerPinPrompt({
             isOpen: true,
             reason: t(
@@ -875,7 +905,7 @@ export default function SalesPage() {
               {
                 product: altered.product.name,
                 price: Number(altered.unit_price).toFixed(2),
-                originalPrice: parseFloat(altered.product.sale_price).toFixed(2),
+                originalPrice: catalogPrice.toFixed(2),
               }
             ),
             actionDescription: t(
@@ -1662,7 +1692,7 @@ export default function SalesPage() {
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 px-2.5 py-0.5 rounded-lg border border-primary-100 dark:border-primary-800">
-                            {formatDZD(product.sale_price)} DZD
+                            {formatDZD(unitPriceFor(product, selectedClient?.price_tier))} DZD
                           </span>
                           <span className="text-slate-300 dark:text-slate-700">·</span>
                           <span className={cn(

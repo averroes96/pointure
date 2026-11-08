@@ -32,7 +32,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "ageing_csv": MANAGER_OR_OWNER,
         "default": ALL_ROLES,
     }
-    filterset_fields = ["wilaya", "is_active", "client_type"]
+    filterset_fields = ["wilaya", "is_active", "client_type", "price_tier"]
     search_fields = ["name", "phone", "nif", "rc"]
     ordering_fields = ["name", "cached_balance", "created_at"]
     ordering = ["name"]

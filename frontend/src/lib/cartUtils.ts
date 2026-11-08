@@ -3,7 +3,8 @@
  * Extracted from SalesPage so they can be tested without rendering.
  */
 
-import type { Product, Variant } from "@/types";
+import type { PriceTier, Product, Variant } from "@/types";
+import { unitPriceFor } from "@/lib/pricing";
 
 export interface CartItem {
   variant: Variant;
@@ -21,7 +22,8 @@ export interface CartItem {
 export function addItemToCart(
   cart: CartItem[],
   variant: Variant,
-  product: Product
+  product: Product,
+  tier?: PriceTier | null,
 ): CartItem[] {
   const existing = cart.find((i) => i.variant.id === variant.id);
   if (existing) {
@@ -35,7 +37,7 @@ export function addItemToCart(
       variant,
       product,
       quantity: 1,
-      unit_price: parseFloat(product.sale_price),
+      unit_price: unitPriceFor(product, tier),
       discount: 0,
     },
   ];

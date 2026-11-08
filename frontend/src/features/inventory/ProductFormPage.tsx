@@ -61,6 +61,7 @@ interface FormState {
   gender: Gender;
   season: Season;
   sale_price: string;
+  semi_wholesale_price: string;
   wholesale_price: string;
   purchase_price: string;
   is_active: boolean;
@@ -80,6 +81,7 @@ const EMPTY_FORM: FormState = {
   gender: "U",
   season: "all",
   sale_price: "",
+  semi_wholesale_price: "",
   wholesale_price: "",
   purchase_price: "",
   is_active: true,
@@ -191,6 +193,7 @@ export default function ProductFormPage() {
       gender: existingProduct.gender,
       season: existingProduct.season,
       sale_price: existingProduct.sale_price ?? "",
+      semi_wholesale_price: existingProduct.semi_wholesale_price ?? "",
       wholesale_price: existingProduct.wholesale_price ?? "",
       purchase_price: existingProduct.purchase_price ?? "",
       is_active: existingProduct.is_active,
@@ -298,6 +301,8 @@ export default function ProductFormPage() {
         }
         const payload: Record<string, unknown> = { ...form };
         delete payload.initial_stock;
+        payload.semi_wholesale_price = form.semi_wholesale_price ? form.semi_wholesale_price : null;
+        if (!form.wholesale_price) payload.wholesale_price = "0.00";
         if (payload.barcode !== undefined) payload.barcode = String(payload.barcode).trim();
         if (currentBranch) payload.branch_id = currentBranch.id;
         if (clearImage) payload.image = null;
@@ -342,6 +347,8 @@ export default function ProductFormPage() {
 
       // JSON payload with inline variants or simple mode
       const payload: Record<string, unknown> = { ...form };
+      payload.semi_wholesale_price = form.semi_wholesale_price ? form.semi_wholesale_price : null;
+      if (!form.wholesale_price) payload.wholesale_price = "0.00";
       if (payload.initial_stock) {
         const num = parseInt(String(payload.initial_stock), 10);
         if (!isNaN(num) && num > 0) payload.initial_stock = num;
@@ -656,6 +663,18 @@ export default function ProductFormPage() {
                   type="number"
                   value={form.sale_price}
                   onChange={(e) => setForm((f) => ({ ...f, sale_price: e.target.value }))}
+                  className="form-input"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </Field>
+
+              <Field label={`${t("inventory.semi_wholesale_price", "Prix demi-gros")} (DZD)`}>
+                <input
+                  type="number"
+                  value={form.semi_wholesale_price}
+                  onChange={(e) => setForm((f) => ({ ...f, semi_wholesale_price: e.target.value }))}
                   className="form-input"
                   placeholder="0.00"
                   min="0"

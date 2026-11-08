@@ -445,9 +445,14 @@ class CreateSaleSerializer(serializers.Serializer):
         if user and getattr(user, "role", None) == "cashier":
             # 1. Price Modification Check
             if not getattr(user, "can_modify_price", False):
+                from apps.inventory.services.pricing import unit_price_for
+                sale_client = None
+                if data.get("client_id"):
+                    sale_client = Client.objects.filter(pk=data["client_id"], tenant=tenant).first()
+                client_tier = sale_client.price_tier if sale_client else "detail"
                 for item_data in data["items"]:
                     variant = item_data["variant"]
-                    catalog_price = variant.product.sale_price
+                    catalog_price = unit_price_for(variant, client_tier)
                     if item_data["unit_price"] != catalog_price:
                         if not authorized_mgr:
                             authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)

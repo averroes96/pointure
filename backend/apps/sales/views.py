@@ -1174,7 +1174,9 @@ class HeldSaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     })
 
             # 3. Price check
-            current_unit_price = variant.product.sale_price
+            from apps.inventory.services.pricing import unit_price_for
+            client_tier = held_sale.client.price_tier if held_sale.client else "detail"
+            current_unit_price = unit_price_for(variant, client_tier)
             final_unit_price = stored_unit_price
             if current_unit_price != stored_unit_price:
                 changes.append({
