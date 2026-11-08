@@ -290,3 +290,6 @@ desktop/python-*.zip
 !desktop/build/
 !desktop/build/**
 RELEASE_CHANGELOG.md
+
+# Generated user manual HTML
+frontend/public/manual/
