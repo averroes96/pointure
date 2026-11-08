@@ -6,7 +6,7 @@ For wholesale clients, regional resellers, and business accounts, ShoeDZ creates
 
 1. Open the **Invoices** menu (<kbd>F3</kbd>) and click **+ New Invoice** (<kbd>Shift + F3</kbd>).
 2. Select the customer (their NIF, RC, and AI credentials populate automatically).
-3. Add line items (shoe models, sizes, pairs or cartons, and unit prices excluding tax HT).
+3. Add line items (shoe models, sizes, pairs or cartons, and unit prices excluding tax HT). The **+ Add Cartons (Series)** button lets you select a model, colour, and number of cartons to directly insert the size breakdown while verifying stock availability.
 4. The system calculates automatically:
    - Total Amount Excluding Tax (HT).
    - VAT at statutory rate (19%).

@@ -26,6 +26,7 @@ Define your store's pricing strategy for each shoe model:
 - **Purchase Price (HT) and Weighted Average Cost (PAMP):** Supplier purchase price and weighted average cost updated automatically upon receiving purchase orders.
 - **Retail Selling Price (Rayon):** Standard unit retail price charged to walk-in customers.
 - **Wholesale Price (Carton):** Discounted price applied when selling complete cartons or bulk bundles to trade clients.
+- **Carton Breakdown (Series / Assortment):** Define the number of pairs per size within a standard carton (e.g., 40×2, 41×2, 42×3, 43×2, 44×1). This breakdown is automatically used to expand wholesale cartons in invoices and quotes.
 
 ---
 

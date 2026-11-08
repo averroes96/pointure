@@ -197,6 +197,7 @@
     "status_paid": "مدفوعة",
     "status_overdue": "متأخرة",
     "status_cancelled": "ملغاة",
+    "add_another_product": "إضافة منتج آخر",
     "add_line": "إضافة سطر",
     "add_one_line_error": "أضف سطراً واحداً على الأقل",
     "bl_created_success": "تم إنشاء وصل التسليم بنجاح",
@@ -1859,9 +1860,29 @@
     "whatsapp_reminder": "تذكير عبر واتساب",
     "print_po_labels": "طباعة ملصقات الاستلام"
   },
+  "carton": {
+    "add_cartons_title": "إضافة كراتين (سلسلة)",
+    "add_cartons_btn": "إضافة كراتين (سلسلة)",
+    "select_product": "البحث عن السلعة",
+    "has_breakdown": "سلسلة محددة",
+    "checking_stock": "التحقق من توفر المخزون...",
+    "preview_title": "تفاصيل الأزواج المراد إضافتها",
+    "stock_warning": "المخزون المتوفر أقل من الكمية المطلوبة لبعض المقاسات.",
+    "insert_cartons": "إدراج الكراتين",
+    "series_badge": "السلسلة:"
+  },
   "product": {
     "pairs_per_carton": "أزواج / كرتون",
-    "pairs_per_carton_hint": "عدد الأزواج في كل كرتون كامل (إن وُجد)."
+    "pairs_per_carton_hint": "عدد الأزواج في كل كرتون كامل (إن وُجد).",
+    "colour": "اللون",
+    "carton_breakdown": "توزيع الكرتون (السلسلة / المقاسات)",
+    "carton_breakdown_hint": "عدد الأزواج لكل مقاس في الكرتون القياسي.",
+    "distribute_equally": "توزيع بالتساوي",
+    "clear_breakdown": "إفراغ",
+    "no_breakdown_set": "لم يتم تحديد توزيع (اختياري).",
+    "breakdown_valid": "التوزيع صحيح: {{total}} / {{pairs}} زوج",
+    "breakdown_mismatch": "المجموع: {{total}} / {{pairs}} زوج (الفارق: {{diff}})",
+    "error_carton_breakdown_mismatch": "توزيع المقاسات ({{total}} زوج) لا يطابق سعة الكرتون ({{pairs}} زوج)."
   },
   "loyalty": {
     "title": "برنامج الولاء والبطاقات المميزة VIP",

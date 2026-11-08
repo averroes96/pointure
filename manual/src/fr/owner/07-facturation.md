@@ -6,7 +6,7 @@ Pour votre clientèle de revendeurs, d'entreprises ou d'administrations, ShoeDZ 
 
 1. Accédez au menu **Factures** (<kbd>F3</kbd>) puis cliquez sur **+ Nouvelle facture** (<kbd>Shift + F3</kbd>).
 2. Sélectionnez le client destinataire (ses mentions NIF, RC et AI s'insèrent automatiquement).
-3. Ajoutez les lignes de vente (modèles, pointures, quantités de paires ou cartons, prix unitaires HT).
+3. Ajoutez les lignes de vente (modèles, pointures, quantités de paires ou cartons, prix unitaires HT). Le bouton **+ Ajouter cartons (Série)** permet de sélectionner un modèle, une couleur et un nombre de cartons pour insérer directement la répartition détaillée tout en vérifiant le stock disponible.
 4. Le système calcule automatiquement :
    - Le montant Total Hors Taxes (HT).
    - La TVA au taux légal en vigueur (19%).

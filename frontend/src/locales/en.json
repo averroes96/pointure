@@ -197,6 +197,7 @@
     "status_paid": "Paid",
     "status_overdue": "Overdue",
     "status_cancelled": "Cancelled",
+    "add_another_product": "Add another product",
     "add_line": "Add Line",
     "add_one_line_error": "Add at least one line",
     "bl_created_success": "Delivery note created successfully",
@@ -1706,9 +1707,29 @@
     "total_price": "Total Price (COD)",
     "total_price_hint": "The amount the customer pays on delivery. Delivery fees are calculated by the delivery service."
   },
+  "carton": {
+    "add_cartons_title": "Add Cartons (Series)",
+    "add_cartons_btn": "Add Cartons (Series)",
+    "select_product": "Search item",
+    "has_breakdown": "Series configured",
+    "checking_stock": "Checking stock availability...",
+    "preview_title": "Pairs to be added",
+    "stock_warning": "Available stock is less than required for certain sizes.",
+    "insert_cartons": "Insert cartons",
+    "series_badge": "Series:"
+  },
   "product": {
     "pairs_per_carton": "Pairs / Carton",
-    "pairs_per_carton_hint": "Number of pairs per full carton (if applicable)."
+    "pairs_per_carton_hint": "Number of pairs per full carton (if applicable).",
+    "colour": "Colour",
+    "carton_breakdown": "Carton Breakdown (Series / Assortment)",
+    "carton_breakdown_hint": "Number of pairs per size in a standard carton.",
+    "distribute_equally": "Distribute equally",
+    "clear_breakdown": "Clear",
+    "no_breakdown_set": "No breakdown defined (optional).",
+    "breakdown_valid": "Valid breakdown: {{total}} / {{pairs}} pairs",
+    "breakdown_mismatch": "Total: {{total}} / {{pairs}} pairs (diff: {{diff}})",
+    "error_carton_breakdown_mismatch": "The size breakdown ({{total}} pairs) does not match the carton capacity ({{pairs}} pairs)."
   },
   "defects": {
     "title": "Defective Items & Supplier Returns",

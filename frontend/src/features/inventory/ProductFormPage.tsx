@@ -67,6 +67,7 @@ interface FormState {
   is_active: boolean;
   alert_threshold: number;
   pairs_per_carton: number;
+  carton_breakdown: Record<string, number>;
   location: string;
 }
 
@@ -87,6 +88,7 @@ const EMPTY_FORM: FormState = {
   is_active: true,
   alert_threshold: 10,
   pairs_per_carton: 10,
+  carton_breakdown: {},
   location: "",
 };
 
@@ -199,6 +201,7 @@ export default function ProductFormPage() {
       is_active: existingProduct.is_active,
       alert_threshold: existingProduct.alert_threshold ?? 10,
       pairs_per_carton: existingProduct.pairs_per_carton ?? 10,
+      carton_breakdown: existingProduct.carton_breakdown ?? {},
     });
     if (existingProduct.image) setImagePreview(existingProduct.image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -273,6 +276,18 @@ export default function ProductFormPage() {
       (isNaN(parseFloat(form.purchase_price)) || parseFloat(form.purchase_price) < 0)
     )
       return "Le prix d'achat doit être un nombre positif.";
+
+    const breakdownEntries = Object.entries(form.carton_breakdown || {});
+    if (breakdownEntries.length > 0) {
+      const totalPairs = breakdownEntries.reduce((sum, [, qty]) => sum + (Number(qty) || 0), 0);
+      if (totalPairs > 0 && totalPairs !== form.pairs_per_carton) {
+        return t("product.error_carton_breakdown_mismatch", {
+          defaultValue: `La répartition par pointure (${totalPairs} paires) ne correspond pas au total du carton (${form.pairs_per_carton} paires).`,
+          total: totalPairs,
+          pairs: form.pairs_per_carton,
+        });
+      }
+    }
     return null;
   }
 
@@ -288,6 +303,8 @@ export default function ProductFormPage() {
             if (k !== "initial_stock") {
               if (k === "barcode") {
                 fd.append("barcode", String(v).trim());
+              } else if (k === "carton_breakdown") {
+                fd.append("carton_breakdown", JSON.stringify(v || {}));
               } else {
                 fd.append(k, String(v));
               }
@@ -321,6 +338,8 @@ export default function ProductFormPage() {
               if (!isNaN(num) && num > 0) fd.append(k, String(num));
             } else if (k === "barcode") {
               if (String(v).trim()) fd.append("barcode", String(v).trim());
+            } else if (k === "carton_breakdown") {
+              fd.append("carton_breakdown", JSON.stringify(v || {}));
             } else {
               fd.append(k, String(v));
             }
@@ -649,6 +668,125 @@ export default function ProductFormPage() {
                     className="form-input"
                   />
                 </Field>
+              </div>
+
+              {/* Carton breakdown (Série) */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {t("product.carton_breakdown", "Répartition par carton (Série / Assortiment)")}
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {t("product.carton_breakdown_hint", "Nombre de paires par pointure dans un carton standard.")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sizes = selectedSizes.length > 0
+                          ? selectedSizes
+                          : existingProduct?.variants?.length
+                          ? Array.from(new Set(existingProduct.variants.map((v) => v.size_eu))).sort((a, b) => a - b)
+                          : [39, 40, 41, 42, 43, 44, 45, 46];
+                        if (sizes.length === 0) return;
+                        const total = form.pairs_per_carton;
+                        const base = Math.floor(total / sizes.length);
+                        let rem = total % sizes.length;
+                        const next: Record<string, number> = {};
+                        sizes.forEach((sz) => {
+                          next[sz] = base + (rem > 0 ? 1 : 0);
+                          if (rem > 0) rem--;
+                        });
+                        setForm((f) => ({ ...f, carton_breakdown: next }));
+                      }}
+                      className="px-2.5 py-1 text-2xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                    >
+                      {t("product.distribute_equally", "Répartir également")}
+                    </button>
+                    {Object.keys(form.carton_breakdown || {}).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, carton_breakdown: {} }))}
+                        className="px-2 py-1 text-2xs font-medium rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
+                      >
+                        {t("product.clear_breakdown", "Vider")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Size inputs grid */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {(selectedSizes.length > 0
+                    ? selectedSizes
+                    : existingProduct?.variants?.length
+                    ? Array.from(new Set(existingProduct.variants.map((v) => v.size_eu))).sort((a, b) => a - b)
+                    : [39, 40, 41, 42, 43, 44, 45, 46]
+                  ).map((sz) => (
+                    <div
+                      key={sz}
+                      className="flex flex-col items-center bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 rounded-xl p-2 min-w-[56px]"
+                    >
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mb-1">
+                        {sz}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.carton_breakdown?.[sz] ?? ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setForm((f) => {
+                            const next = { ...f.carton_breakdown };
+                            if (val > 0) next[sz] = val;
+                            else delete next[sz];
+                            return { ...f, carton_breakdown: next };
+                          });
+                        }}
+                        className="input w-12 text-center py-1 px-1 text-xs font-mono font-bold rounded-lg border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total indicator */}
+                <div className="flex items-center gap-2 pt-1 text-xs font-medium">
+                  {(() => {
+                    const total = Object.values(form.carton_breakdown || {}).reduce(
+                      (s, v) => s + (Number(v) || 0),
+                      0
+                    );
+                    if (total === 0) {
+                      return (
+                        <span className="text-slate-400 text-2xs italic">
+                          {t("product.no_breakdown_set", "Aucune répartition définie (facultatif).")}
+                        </span>
+                      );
+                    }
+                    if (total === form.pairs_per_carton) {
+                      return (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-2xs">
+                          ✓ {t("product.breakdown_valid", "Répartition valide : {{total}} / {{pairs}} paires", {
+                            total,
+                            pairs: form.pairs_per_carton,
+                          })}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 text-2xs">
+                        ⚠️ {t("product.breakdown_mismatch", "Total : {{total}} / {{pairs}} paires (écart : {{diff}})", {
+                          total,
+                          pairs: form.pairs_per_carton,
+                          diff: Math.abs(form.pairs_per_carton - total),
+                        })}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
 

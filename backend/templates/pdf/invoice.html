@@ -65,7 +65,10 @@
     {% for item in grouped_lines %}
     <tr>
       <td>{{ forloop.counter }}</td>
-      <td>{{ item.name }}</td>
+      <td>
+        {{ item.name }}
+        {% if item.sizes_str %}<br><small style="color:#555; font-size:8pt;">({{ item.sizes_str }})</small>{% endif %}
+      </td>
       <td class="num">{% if item.cartons > 0 %}{{ item.cartons }}{% else %}—{% endif %}</td>
       <td class="num">{{ item.quantity }}</td>
       <td class="num">{{ item.unit_price|floatformat:2 }}</td>

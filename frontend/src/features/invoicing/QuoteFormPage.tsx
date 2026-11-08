@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Save, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Plus, Save, AlertCircle, FileSpreadsheet, Layers } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Quote } from "@/types";
@@ -14,6 +14,7 @@ import {
   type MatrixConfig,
   createEmptyMatrix,
 } from "./components/InvoiceProductMatrix";
+import { AddCartonsModal } from "./components/AddCartonsModal";
 
 function formatDefaultDate(daysOffset = 0): string {
   const d = new Date();
@@ -38,6 +39,7 @@ export default function QuoteFormPage() {
   const [notes, setNotes] = useState<string>("");
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isCartonModalOpen, setIsCartonModalOpen] = useState<boolean>(false);
 
   // Fetch quote in edit mode
   const { data: quoteToEdit, isSuccess: isQuoteLoaded } = useQuery<Quote>({
@@ -219,7 +221,8 @@ export default function QuoteFormPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-12">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -381,14 +384,24 @@ export default function QuoteFormPage() {
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
                 {t("quote.articles_cartons", "Articles & Grille de Tailles")}
               </h2>
-              <button
-                type="button"
-                onClick={() => setMatrices((prev) => [...prev, createEmptyMatrix()])}
-                className="btn-secondary px-3 py-1.5 text-xs font-medium rounded-xl inline-flex items-center gap-1.5"
-              >
-                <Plus size={14} />
-                {t("quote.add_product", "Ajouter un produit")}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCartonModalOpen(true)}
+                  className="btn-secondary px-3 py-1.5 text-xs font-medium rounded-xl inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-400 border-brand-200 dark:border-brand-800 hover:bg-brand-50 dark:hover:bg-brand-950/40"
+                >
+                  <Layers size={14} />
+                  {t("carton.add_cartons_btn", "Ajouter cartons (Série)")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatrices((prev) => [...prev, createEmptyMatrix()])}
+                  className="btn-secondary px-3 py-1.5 text-xs font-medium rounded-xl inline-flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  {t("quote.add_product", "Ajouter un produit")}
+                </button>
+              </div>
             </div>
 
             {matrices.map((matrix) => (
@@ -457,5 +470,15 @@ export default function QuoteFormPage() {
         </div>
       </div>
     </form>
+
+    <AddCartonsModal
+      isOpen={isCartonModalOpen}
+      onClose={() => setIsCartonModalOpen(false)}
+      priceTier={client?.price_tier || "gros"}
+      onAddCartons={(newMatrix) => {
+        setMatrices((prev) => [...prev.filter((m) => m.product !== null), newMatrix]);
+      }}
+    />
+  </>
   );
 }

@@ -12,7 +12,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle, Layers } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
@@ -21,6 +21,7 @@ import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
 import { InvoiceProductMatrix, type MatrixConfig, createEmptyMatrix } from "./components/InvoiceProductMatrix";
 import { ClientSelector } from "./components/ClientSelector";
+import { AddCartonsModal } from "./components/AddCartonsModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ export default function InvoiceBuilderPage() {
 
   // ── Matrices ──
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
+  const [isCartonModalOpen, setIsCartonModalOpen] = useState(false);
   const prevInvoiceTierRef = useRef<string>("gros");
   useEffect(() => {
     const nextTier = client?.price_tier ?? "gros";
@@ -371,7 +373,8 @@ export default function InvoiceBuilderPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pb-12">
+    <>
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pb-12">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -602,13 +605,22 @@ export default function InvoiceBuilderPage() {
                 />
               ))}
 
-              <button
-                type="button"
-                onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
-                className="w-full py-2.5 px-3 border border-dashed border-primary-300 dark:border-primary-700/60 hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 text-primary-600 dark:text-primary-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus size={15} /> Ajouter un autre produit
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCartonModalOpen(true)}
+                  className="py-2.5 px-3 border border-brand-300 dark:border-brand-700/60 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-brand-600 dark:text-brand-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Layers size={15} /> {t("carton.add_cartons_btn", "Ajouter cartons (Série)")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
+                  className="py-2.5 px-3 border border-dashed border-primary-300 dark:border-primary-700/60 hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 text-primary-600 dark:text-primary-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus size={15} /> {t("invoice.add_another_product", "Ajouter un autre produit")}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -781,6 +793,16 @@ export default function InvoiceBuilderPage() {
         </div>
       </div>
     </form>
+
+    <AddCartonsModal
+      isOpen={isCartonModalOpen}
+      onClose={() => setIsCartonModalOpen(false)}
+      priceTier={client?.price_tier ?? "gros"}
+      onAddCartons={(newMatrix) => {
+        setMatrices((prev) => [...prev.filter((m) => m.product !== null), newMatrix]);
+      }}
+    />
+  </>
   );
 }
 

@@ -26,6 +26,7 @@ Pour chaque modèle, définissez votre stratégie de prix :
 - **Prix d'achat (HT) et Coût PAMP :** Prix d'achat fournisseur et coût moyen pondéré actualisé automatiquement lors des réceptions de commandes.
 - **Prix de vente détail (Rayon) :** Prix unitaire TTC appliqué au comptoir pour une paire unique.
 - **Prix de vente gros (Carton) :** Prix remisé appliqué lors de la vente par carton complet ou colis aux clients professionnels.
+- **Répartition par carton (Série / Assortiment) :** Définissez le nombre de paires par pointure dans un carton standard (ex : 40×2, 41×2, 42×3, 43×2, 44×1). Cette répartition est ensuite utilisée pour éclater automatiquement les commandes en gros dans les factures et devis.
 
 ---
 

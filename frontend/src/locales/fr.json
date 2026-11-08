@@ -197,6 +197,7 @@
     "status_paid": "Payée",
     "status_overdue": "En retard",
     "status_cancelled": "Annulée",
+    "add_another_product": "Ajouter un autre produit",
     "add_line": "Ajouter une ligne",
     "add_one_line_error": "Ajoutez au moins une ligne",
     "bl_created_success": "Bon de livraison créé avec succès",
@@ -1706,9 +1707,29 @@
     "total_price": "Prix total (Contre remboursement)",
     "total_price_hint": "Montant que le client paie à la livraison. Les frais de livraison sont calculés par le service de livraison."
   },
+  "carton": {
+    "add_cartons_title": "Ajouter des cartons (Série)",
+    "add_cartons_btn": "Ajouter cartons (Série)",
+    "select_product": "Rechercher l'article",
+    "has_breakdown": "Série configurée",
+    "checking_stock": "Vérification des disponibilités...",
+    "preview_title": "Détail des paires à ajouter",
+    "stock_warning": "Le stock disponible est inférieur à la quantité demandée pour certaines pointures.",
+    "insert_cartons": "Insérer les cartons",
+    "series_badge": "Série :"
+  },
   "product": {
     "pairs_per_carton": "Paires / Carton",
-    "pairs_per_carton_hint": "Le nombre de paires dans chaque carton complet (si applicable)."
+    "pairs_per_carton_hint": "Le nombre de paires dans chaque carton complet (si applicable).",
+    "colour": "Couleur",
+    "carton_breakdown": "Répartition par carton (Série / Assortiment)",
+    "carton_breakdown_hint": "Nombre de paires par pointure dans un carton standard.",
+    "distribute_equally": "Répartir également",
+    "clear_breakdown": "Vider",
+    "no_breakdown_set": "Aucune répartition définie (facultatif).",
+    "breakdown_valid": "Répartition valide : {{total}} / {{pairs}} paires",
+    "breakdown_mismatch": "Total : {{total}} / {{pairs}} paires (écart : {{diff}})",
+    "error_carton_breakdown_mismatch": "La répartition par pointure ({{total}} paires) ne correspond pas au total du carton ({{pairs}} paires)."
   },
   "defects": {
     "title": "Gestion des Défectueux & Retours Fournisseurs",

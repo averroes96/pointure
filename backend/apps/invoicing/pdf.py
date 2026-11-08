@@ -59,6 +59,8 @@ def group_lines_by_product(lines):
                 "unit_price": getattr(line, "unit_price", getattr(line, "agreed_unit_price", 0)),
                 "total_price": 0,
                 "cartons": 0,
+                "sizes": {},
+                "sizes_str": "",
             }
         
         qty = getattr(line, "quantity", getattr(line, "quantity_ordered", 0))
@@ -71,7 +73,15 @@ def group_lines_by_product(lines):
             groups[key]["cartons"] = c
         if ppc > getattr(groups[key], "pairs_per_carton", 0) or "pairs_per_carton" not in groups[key]:
             groups[key]["pairs_per_carton"] = ppc
+
+        if getattr(line, "variant", None) and line.variant.size_eu:
+            s = line.variant.size_eu
+            groups[key]["sizes"][s] = groups[key]["sizes"].get(s, 0) + int(qty)
             
+    for g in groups.values():
+        if g.get("sizes"):
+            g["sizes_str"] = ", ".join(f"{s}×{q}" for s, q in sorted(g["sizes"].items()))
+
     return list(groups.values())
 
 

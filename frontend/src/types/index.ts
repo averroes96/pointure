@@ -101,6 +101,7 @@ export interface Product {
   is_demo?: boolean;
   alert_threshold: number;
   pairs_per_carton?: number;
+  carton_breakdown?: Record<string, number> | null;
   total_stock: number;
   has_low_stock: boolean;
   is_total_low_stock: boolean;
