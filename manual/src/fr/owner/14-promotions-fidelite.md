@@ -26,9 +26,9 @@ Pour stimuler la fréquentation de votre boutique et fidéliser votre clientèle
 
 ShoeDZ propose un programme de fidélisation par points, simple à comprendre pour vos acheteurs :
 
-1. **Activation du programme :**
-   - Allez dans **Paramètres → Fidélité**.
-   - Cochez **Activer le programme de fidélité**.
+1. **Activation et configuration du programme :**
+   - Rendez-vous dans le menu **Clients → Fidélité** (`/loyalty`).
+   - Activez et configurez les règles de votre programme de fidélité.
 2. **Règle de cumul des points :**
    - Définissez le barème de gain : par exemple, `1 point de fidélité attribué par tranche de 100 DZD d'achats`.
    - Chaque fois qu'un client identifié achète en caisse, son solde de points est automatiquement incrémenté.

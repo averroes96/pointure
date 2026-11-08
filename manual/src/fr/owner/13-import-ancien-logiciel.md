@@ -8,9 +8,11 @@ De nombreux commerces de chaussures en Algérie utilisent d'anciens logiciels so
 
 1. Récupérez le dossier de données de votre ancien logiciel sur clé USB.
 2. ShoeDZ reconnaît automatiquement les fichiers standards suivants :
-   - `ARTICLE.DBF` ou `ARTICLEB.DBF` : Catalogue des chaussures, marques, pointures, codes-barres et prix de vente.
-   - `CLIENT.DBF` : Répertoire complet des clients avec leurs numéros de téléphone et soldes de dettes antérieurs.
-   - `FOURNISS.DBF` ou `FOURND.DBF` : Annuaire des fournisseurs et soldes créditeurs.
+   - `ARTICLEB.DBF` ou `ARTICLE.DBF` : Catalogue des chaussures, marques, pointures, codes-barres et prix de vente.
+   - `FAMILLE.DBF` : Familles et catégories d'articles.
+   - `CLIENT.DBF` ou `CLIENTB.DBF` : Répertoire complet des clients avec leurs numéros de téléphone et soldes de dettes antérieurs.
+   - `FOURNISS.DBF` et `FOURND.DBF` : Annuaire des fournisseurs et soldes créditeurs.
+   - `GCPARAM.DBF` : Paramètres généraux de l'ancien dossier.
 3. Rendez-vous dans **Paramètres → Importation & Migration**.
 4. Cliquez sur **Importer une base DBF**, puis sélectionnez le dossier source.
 5. Cliquez sur **Lancer l'analyse préliminaire** : le système affiche le nombre exact d'articles, de variantes et de clients détectés.

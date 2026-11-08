@@ -8,9 +8,11 @@ Many footwear shops in Algeria rely on legacy DOS or Windows applications that s
 
 1. Copy the data folder from your previous software onto a USB flash drive.
 2. ShoeDZ automatically detects these standard files:
-   - `ARTICLE.DBF` or `ARTICLEB.DBF`: Footwear catalog, brands, sizes, barcodes, and retail prices.
-   - `CLIENT.DBF`: Customer directory with phone numbers and historical debt balances.
-   - `FOURNISS.DBF` or `FOURND.DBF`: Supplier directory and accounts payable balances.
+   - `ARTICLEB.DBF` or `ARTICLE.DBF`: Footwear catalog, brands, sizes, barcodes, and retail prices.
+   - `FAMILLE.DBF`: Product families and categories.
+   - `CLIENT.DBF` or `CLIENTB.DBF`: Customer directory with phone numbers and historical debt balances.
+   - `FOURNISS.DBF` and `FOURND.DBF`: Supplier directory and accounts payable balances.
+   - `GCPARAM.DBF`: General legacy software parameters.
 3. Open **Settings → Data Migration & Import**.
 4. Click **Import DBF Database** and select the folder.
 5. Click **Run Pre-Scan**: the software displays counts of detected models, sizes, and clients.

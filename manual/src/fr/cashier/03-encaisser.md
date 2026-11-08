@@ -18,9 +18,6 @@ Vous disposez de deux méthodes pour ajouter des chaussures ou accessoires :
 4. Sélectionnez la **Pointure** (ex : 41, 42, 43) et la **Couleur** souhaitée.
 5. Cliquez sur **Ajouter au panier** ou appuyez sur <kbd>Entrée</kbd>.
 
-> [!NOTE]
-> **Vente au carton (Gros / Demi-gros) :** Si votre boutique vend des cartons complets, sélectionnez l'onglet *Carton* sur l'article pour appliquer le prix de gros par assortiment.
-
 > 📷 **Capture d'écran :** *Écran POS avec barre de recherche, grille de pointures et panier latéral.*
 
 ---
@@ -53,7 +50,9 @@ Sélectionnez le mode de paiement convenu avec le client :
    - Idéal pour les paiements électroniques par virement instantané d'Algérie Poste. Vérifiez la notification de réception sur votre téléphone magasin avant de valider.
 4. **Chèque bancaire :**
    - Saisissez le numéro du chèque, la banque émettrice et la date d'échéance convenue.
-5. **Règlement mixte (Paiement fractionné) :**
+5. **CCP ou Virement bancaire :**
+   - Sélectionnez **CCP** ou **Virement** pour enregistrer un règlement par compte postal ou virement bancaire.
+6. **Règlement mixte (Paiement fractionné) :**
    - Vous pouvez combiner plusieurs modes (ex : `3 000 DZD` en espèces et le reste par TPE).
 
 > [!NOTE]

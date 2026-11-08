@@ -33,9 +33,10 @@ ShoeDZ applique une hiérarchie stricte des privilèges :
 | **Sessions d'inventaire & Ajustements** | ✓ | ✓ | ✗ (bloqué) |
 | **Facturation & Avoirs B2B** | ✓ | ✓ | ✗ (bloqué) |
 | **Rapports financiers & Marge brute** | ✓ | ✓ | ✗ (bloqué) |
+| **Sauvegardes locales & Pack diagnostic** | ✓ | ✓ (création/téléchargement) | ✗ (bloqué) |
 | **Gestion des utilisateurs & Rôles** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
-| **Clôture annuelle & Paramètres fiscaux** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
-| **Sauvegardes & Restauration** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
+| **Clôture annuelle & Journal d'audit** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
+| **Restauration & Sauvegarde externe chiffrée** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
 
 ---
 
@@ -53,12 +54,11 @@ Toute action tentée par le caissier au-delà de ses droits déclenche immédiat
 
 ### D. Le code PIN Responsable
 
-Le PIN Responsable est un code confidentiel à **4 chiffres** attribué à chaque gérant et propriétaire.
+Le PIN Responsable est un code confidentiel de **4 à 6 chiffres** attribué à chaque gérant et propriétaire.
 
 1. **Configuration du PIN :**
-   - Ouvrez **Mon Profil** ou la fiche de l'utilisateur concerné.
-   - Cliquez sur **Définir le PIN Responsable**.
-   - Tapez 4 chiffres non triviaux (évitez `0000` ou `1234`).
+   - Rendez-vous dans **Paramètres → Utilisateurs** et ouvrez la fiche du gérant ou propriétaire concerné.
+   - Renseignez le champ **PIN Responsable (4 à 6 chiffres)** (évitez `0000` ou `1234`) puis cliquez sur **Enregistrer**.
 2. **Utilisation :**
    - Lorsqu'un caissier sollicite une remise exceptionnelle ou un retour sans ticket, le responsable tape son PIN sur l'écran du caissier.
    - L'autorisation est instantanément validée et consignée dans le journal d'audit avec la date et le nom du responsable.

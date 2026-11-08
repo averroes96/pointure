@@ -23,9 +23,9 @@ Dans le secteur de la chaussure, la gestion du catalogue exige une structure rig
 ### B. Politique tarifaire et prix de vente
 
 Pour chaque modèle, définissez votre stratégie de prix :
+- **Prix d'achat (HT) et Coût PAMP :** Prix d'achat fournisseur et coût moyen pondéré actualisé automatiquement lors des réceptions de commandes.
 - **Prix de vente détail (Rayon) :** Prix unitaire TTC appliqué au comptoir pour une paire unique.
 - **Prix de vente gros (Carton) :** Prix remisé appliqué lors de la vente par carton complet ou colis aux clients professionnels.
-- **Prix plancher (Prix minimum de sécurité) :** Seuil tarifaire en dessous duquel aucun caissier ni gérant ne peut descendre, même avec une remise. Ce mécanisme protège votre marge bénéficiaire.
 
 ---
 

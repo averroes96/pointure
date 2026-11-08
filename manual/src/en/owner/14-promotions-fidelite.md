@@ -26,9 +26,9 @@ To drive foot traffic and encourage repeat store visits, ShoeDZ includes a promo
 
 ShoeDZ provides a transparent points-based loyalty rewards system:
 
-1. **Enabling the Program:**
-   - Open **Settings → Loyalty**.
-   - Check **Enable Loyalty Program**.
+1. **Enabling and Configuring the Program:**
+   - Navigate to the **Customers → Loyalty** menu (`/loyalty`).
+   - Enable and configure your loyalty program rules.
 2. **Points Earning Ratio:**
    - Define the earning rule: for example, `1 loyalty point earned per 100 DZD spent`.
    - Each time an identified customer makes a purchase, their points balance increases automatically.

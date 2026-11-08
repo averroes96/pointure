@@ -1,63 +1,43 @@
 ## 12. Clôture annuelle d'exercice et export comptable {#cloture-exercice}
 
-En Algérie, le Système Comptable Financier (SCF) et la législation fiscale imposent un arrêté annuel des comptes pour établir le bilan et la liasse fiscale de l'entreprise.
+En Algérie, la gestion commerciale rigoureuse impose d'arrêter en fin d'année la valorisation des stocks, le chiffre d'affaires annuel et les soldes de créances/dettes à transmettre à votre cabinet comptable.
+
+> [!NOTE]
+> **Périmètre de la clôture dans ShoeDZ :** ShoeDZ assure une **clôture de gestion commerciale et de stocks** (instantané de valorisation au PAMP, photographie des soldes clients/fournisseurs, verrouillage des pièces antidatées et export du dossier pour l'expert-comptable). Il ne s'agit pas d'un logiciel de comptabilité générale SCF (pas de saisie de plan comptable ni d'écritures d'à-nouveaux).
 
 ### A. Le calendrier de l'exercice fiscal
 
 Par défaut, l'exercice fiscal coïncide avec l'année civile (du **1er janvier au 31 décembre**) :
-- Vous pouvez visualiser l'état de l'exercice en cours dans **Paramètres → Exercices fiscaux**.
-- Si votre comptable préconise des dates d'ouverture ou de clôture spécifiques, celles-ci sont modifiables par le propriétaire avant le verrouillage officiel.
+- Accédez au module depuis le menu latéral **Clôture d'exercice** (`/closing`, réservé au propriétaire).
+- Cliquez sur **Initialiser un exercice** pour créer l'exercice de l'année souhaitée (les dates de début et de fin restent ajustables tant que l'exercice est ouvert).
 
 ---
 
-### B. L'assistant de clôture d'exercice (Closing Wizard)
+### B. Les 5 étapes de l'assistant de clôture (Closing Wizard)
 
-Au 31 décembre de chaque année, suivez les étapes de l'assistant de clôture :
+1. **Étape 1 — Vérifications préalables :**
+   - Vérifie qu'aucune **session de caisse** n'est restée ouverte sur la période (bloquant) et signale les bons de commande fournisseurs en brouillon, factures non confirmées, ventes à paiement partiel ou chèques en attente.
+2. **Étape 2 — Inventaire physique de fin d'année :**
+   - Associez une session d'inventaire physique finalisée ou cochez explicitement l'option permettant d'utiliser le stock théorique calculé.
+3. **Étape 3 — Bilan & Instantané (Snapshot) :**
+   - Figer et contrôler les indicateurs annuels : **Ventes Caisse (TTC hors timbre)**, **Timbre fiscal**, **Factures B2B (HT)**, **TVA facturée**, **Avoirs clients (HT)**, **Chiffre d'Affaires Net (HT)**, **Coût des marchandises (COGS)**, **Marge brute réalisée**, **Valorisation des stocks (PAMP et détail)** et **Créances & Dettes**.
+4. **Étape 4 — Téléchargement du pack comptable :**
+   - **Télécharger le pack comptable (`.xlsx`) :** Classeur Excel complet comprenant **9 feuilles** (*Synthèse*, *Journal des ventes*, *Factures*, *Avoirs*, *Achats*, *Stock fin d'exercice*, *Soldes clients*, *Soldes fournisseurs*, *Chèques en circulation*).
+   - **Imprimer la synthèse annuelle (`.pdf`) :** Rapport officiel d'une page A4 avec cadre de visas et signatures pour le gérant et l'expert-comptable.
+5. **Étape 5 — Clôture définitive et verrouillage :**
+   - Tapez l'année à clôturer (ex : `2026`) et cliquez sur **Clôturer définitivement l'exercice**.
+   - Une sauvegarde automatique de sécurité (`pre_close_<année>_*.sqlite3`) est générée immédiatement avant le verrouillage.
 
-1. **Inventaire physique général de fin d'année :**
-   - Réalisez un comptage exhaustif de toutes les paires de chaussures du magasin et validez la session d'inventaire (<kbd>F5</kbd> → **Inventaire**).
-2. **Apurement des opérations en cours :**
-   - Vérifiez et soldez les réservations/acomptes non réclamés.
-   - Saisissez les dernières factures d'achat fournisseurs de l'année.
-3. **Contrôle des totaux fiscaux :**
-   - L'assistant récapitule :
-     - Chiffre d'affaires brut et net annuel.
-     - Total de la TVA collectée (19%).
-     - Total du droit de timbre fiscal perçu sur les encaissements en espèces.
-     - Coût d'Achat des Marchandises Vendues (CAMV / COGS basé sur le PAMP).
-     - Valeur marchande exacte du stock final arrêté au 31 décembre.
-
-> 📷 **Capture d'écran :** *Assistant de clôture d'exercice avec récapitulatif fiscal annuel et boutons de verrouillage.*
+> 📷 **Capture d'écran :** *Assistant de clôture d'exercice en 5 étapes avec téléchargement du pack Excel/PDF et verrouillage.*
 
 ---
 
-### C. Verrouillage fiscal de la période
+### C. Effets du verrouillage et Réouverture exceptionnelle
 
-Dès que les totaux annuels sont validés en accord avec votre comptable :
-1. Cliquez sur **Verrouiller définitivement l'exercice fiscal**.
-2. **Effets du verrouillage :**
-   - Aucune vente, facture, avoir ou mouvement de stock ne pourra plus être antidaté sur l'année écoulée.
-   - Toute tentative d'écriture sur cette période sera bloquée avec le message d'erreur *"Période fiscale clôturée"*.
-   - Ce mécanisme protège votre magasin contre tout redressement fiscal résultant de modifications involontaires de bilans déjà arrêtés.
-
----
-
-### D. Export pour l'expert-comptable
-
-1. Dans la fiche de l'exercice clôturé, cliquez sur **Télécharger le pack comptable**.
-2. ShoeDZ génère un fichier Excel/CSV normé contenant :
-   - Le journal récapitulatif des ventes journalières.
-   - Le journal des achats et réceptions fournisseurs.
-   - Le tableau récapitulatif de la TVA et des timbres fiscaux.
-   - L'état d'inventaire physique détaillé chiffré au PAMP au 31 décembre.
-3. Transmettez directement ce fichier à votre cabinet d'expertise comptable pour l'établissement de la déclaration G50 et de la liasse fiscale annuelle.
-
----
-
-### E. Réouverture et report des soldes à nouveau
-
-Lors de l'ouverture du 1er janvier :
-- Le système initialise automatiquement le nouvel exercice.
-- Les quantités finales en stock deviennent les **Stocks initiaux d'ouverture**.
-- Les créances clients et dettes fournisseurs sont automatiquement reportées à nouveau.
+1. **Verrouillage de la période :**
+   - Dès que l'exercice est clôturé, aucune vente, retour, facture, avoir, achat fournisseur, mouvement de stock ou paiement ne peut être créé, modifié ou supprimé à une date appartenant à l'exercice clôturé.
+2. **Continuité d'exploitation :**
+   - Vos stocks courants, fiches clients et soldes fournisseurs restent continus au 1er janvier sans aucune ressaisie d'ouverture.
+3. **Réouverture auditée (Propriétaire uniquement) :**
+   - En cas de rectification demandée par votre commissaire aux comptes ou expert-comptable, le propriétaire peut cliquer sur **Réouvrir l'exercice**, saisir un **Motif de réouverture** obligatoire (consigné dans le journal d'audit), effectuer l'écriture corrective, puis clôturer à nouveau l'exercice.
 

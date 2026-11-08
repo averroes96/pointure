@@ -49,10 +49,6 @@ Pour que vos factures formelles, devis et bons de livraison soient conformes à 
 - **NIF :** Numéro d'Identification Fiscale (15 chiffres).
 - **RC :** Numéro du Registre de Commerce (ex : `16/00-1234567B16`).
 - **AI :** Article d'Imposition (11 chiffres).
-- **NIS :** Numéro d'Identification Statistique.
 
 Ces mentions obligatoires apparaîtront automatiquement sur l'en-tête de vos documents d'impression grand format (A4) et sur les tickets de caisse légaux.
-
-> [!TIP]
-> Si votre établissement relève du régime de l'**Impôt Forfaitaire Unique (IFU)**, cochez l'option correspondante dans les paramètres fiscaux : l'application appliquera par défaut une TVA à 0% et ajoutera la mention légale d'exonération sur vos factures.
 

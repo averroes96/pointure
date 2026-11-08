@@ -7,14 +7,14 @@ To ensure complete operational integrity and deter fraud or handling errors, Sho
 The audit log captures sensitive actions performed on audited data models (`AUDITED_MODELS`):
 
 > [!NOTE]
-> The audit trail does not record every routine HTTP call; it specifically targets models with financial or governance implications:
-> - **Sales and Checkout (`Sale`):** Issued tickets, reversals, and extraordinary discounts.
-> - **Products and Prices (`Product`, `Variant`):** Selling price overrides and wholesale tier updates.
-> - **Stock Movements (`StockMovement`):** Manual count adjustments, logged defects, and receiving inward slips.
-> - **Cash Movements (`CashMovement`):** Cash drawer inflows and expense withdrawals.
-> - **Users and Permissions (`User`):** Account provisioning, role changes, and PIN assignments.
-> - **Invoices and Credit Notes (`Invoice`, `CreditNote`):** Commercial document issuance and cancellations.
-> - **Customer Records (`Client`):** Credit ceiling adjustments and account blocking status.
+> The audit trail does not record every routine HTTP call; it specifically targets models in `AUDITED_MODELS`:
+> - **Sales, Returns, and Held Sales (`Sale`, `Return`, `HeldSale`):** Issued tickets, refunds, reversals, parked carts, and resumptions.
+> - **Cash Drawer Sessions (`CashSession`, `CashMovement`):** Session openings/closings, cash inflows, and expense withdrawals.
+> - **Products, Stock, and Stocktakes (`Product`, `Variant`, `StockMovement`, `StocktakeSession`, `DefectItem`):** Selling price updates, inventory adjustments, stocktake counts, and defect write-offs.
+> - **Suppliers and Purchasing (`Supplier`, `PurchaseOrder`, `SupplierInvoice`, `SupplierPayment`):** Purchase orders, receiving, supplier bills, and payments.
+> - **Customers, Cheques, and Loyalty (`Client`, `Cheque`, `Promotion`, `LoyaltyProgram`):** Credit limits, cheque status transitions, and promotional campaigns.
+> - **B2B Invoicing (`Invoice`, `InvoicePayment`, `DeliveryNote`, `CreditNote`):** Commercial document issuance, confirmation, payments, and cancellations.
+> - **Fiscal Closing and Administration (`FiscalYear`, `User`):** Fiscal year closing/reopening, user provisioning, roles, and Manager PIN overrides.
 
 ---
 
@@ -33,7 +33,7 @@ Every logged event records:
 
 ### C. Searching and Filtering the Audit Log
 
-From **Settings → Audit Log**:
+From the sidebar **Audit Log** menu (`/settings/audit-log`, owner only):
 - Filter by **User** to investigate specific cashier shifts during discrepancy reviews.
 - Filter by **Date Range** (e.g., during seasonal sales campaigns or annual stocktakes).
 - Filter by **Action Type** (e.g., inspecting all authorizations granted via Manager PIN).

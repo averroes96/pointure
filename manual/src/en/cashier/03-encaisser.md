@@ -18,9 +18,6 @@ You can add shoes or accessories to the active cart using two methods:
 4. Select the desired **Size** (e.g., 41, 42, 43) and **Colour**.
 5. Click **Add to Cart** or press <kbd>Enter</kbd>.
 
-> [!NOTE]
-> **Carton Sales (Wholesale / Semi-Wholesale):** If your store sells full carton assortments, select the *Carton* tab on the product card to apply the wholesale assortment price.
-
 > 📷 **Screenshot:** *POS screen displaying search bar, footwear size grid, and side cart.*
 
 ---
@@ -53,7 +50,9 @@ Select the agreed payment method with the customer:
    - Fast electronic payment via Algérie Poste instant transfer. Confirm receipt notification on your store phone before finalizing.
 4. **Bank Cheque:**
    - Enter the cheque number, issuing bank, and agreed maturity/deposit date.
-5. **Split / Mixed Payment:**
+5. **CCP or Bank Transfer (Virement):**
+   - Select **CCP** or **Bank Transfer** to record postal or bank transfer payments.
+6. **Split / Mixed Payment:**
    - You can combine multiple payment methods (e.g., `3 000 DZD` in cash and the remainder via TPE).
 
 > [!NOTE]

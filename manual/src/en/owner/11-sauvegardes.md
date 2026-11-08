@@ -6,46 +6,38 @@ Your store's operational data represents the digital lifeblood of your enterpris
 
 ShoeDZ provides dual-level data protection:
 1. **Automated Daily Backups:**
-   - The application automatically snapshots the SQLite database upon register closing or at a scheduled time.
-   - Local archives are saved in the software's data directory with chronological timestamps.
+   - The application automatically snapshots the SQLite database every **24 hours** (as well as automatically prior to any fiscal year closing, database restoration, or data reset).
+   - Local archives (`.sqlite3`, unencrypted to enable instant local recovery) are saved in the `backups/` directory with a rolling retention of the **14 most recent copies**.
 2. **Immediate Manual Backup:**
-   - At any time, navigate to **Settings → Desktop / Backups**.
+   - At any time, navigate to **Settings → Desktop**.
    - Click the **Create Backup Now** button.
 
 ---
 
-### B. Encryption and the Recovery Sheet
+### B. External Backup (USB / Synced Folder) and AES-256 Encryption
 
-To safeguard confidential commercial data, all backup archives are encrypted with a secure **Passphrase** defined during initial setup.
+Keeping backups solely on the PC's internal drive offers no protection against hard drive failure, electrical damage, or hardware theft.
+
+1. In **Settings → Desktop**, click **Configure external backup**.
+2. Specify the **Destination folder path** (e.g., your USB flash drive `E:\Backups` or a Google Drive / OneDrive synced folder).
+3. Enable **AES-256-GCM encryption** (enabled by default for external copies) and set your **Encryption passphrase**:
+   - External copies are written in the encrypted `.shodzbak` format with a default retention of **30 copies**.
+   - Encryption protects off-site copies on USB or external drives against loss or theft, while local automatic backups on the POS PC remain unencrypted (`.sqlite3`) for instant recovery.
 
 > [!IMPORTANT]
-> **Print and Safely Store Your Recovery Sheet:**
-> - In **Settings → Backups**, click **Print Recovery Sheet**.
-> - This printed page contains your emergency decryption passphrase and recovery instructions.
-> - **Store this physical sheet in the store's physical safe**, away from the computer. Without this passphrase, encrypted backups cannot be restored onto a replacement PC.
+> **Print and Safely Store Your Recovery Sheet Outside the Store:**
+> - When saving your passphrase, click **Print recovery sheet**.
+> - **Store this physical sheet in a secure place outside the store premises**. If this passphrase is lost, no encrypted backup (`.shodzbak`) can be restored, even by ShoeDZ technical support.
+
+> 📷 **Screenshot:** *Local and external backup management panel in Settings → Desktop.*
 
 ---
 
-### C. Daily External USB Drive Copy (Critical Rule)
+### C. Disaster Recovery and System Restoration
 
-Keeping backups solely on the PC's internal drive offers no protection against hard drive failure or hardware theft.
-
-1. Insert a **Dedicated USB Flash Drive** into the PC every evening.
-2. In **Settings → Backups**, click **Export to USB Drive**.
-3. Select the external drive letter.
-4. The encrypted backup archive (`.enc` or `.zip`) copies over in seconds.
-5. Unplug the drive and take it home when leaving the store.
-
-> 📷 **Screenshot:** *Backup management panel showing snapshot archive list and USB export button.*
-
----
-
-### D. Disaster Recovery and System Restoration
-
-If you must set up ShoeDZ on a replacement computer following an incident:
-1. Install ShoeDZ on the new Windows PC.
-2. On the initial startup screen, select **Restore from an Existing Backup**.
-3. Connect your USB flash drive and select the most recent backup archive.
-4. Enter the emergency passphrase from your printed recovery sheet.
-5. Click **Begin Restoration**: your catalog, prices, customer ledgers, and inventory counts are fully restored.
+To restore your database (on the current PC or after installing ShoeDZ on a replacement PC):
+1. Navigate to **Settings → Desktop** (signed in as **Owner**).
+2. Click **Restore this backup** next to a local snapshot, or click **Restore a file...** to upload a `.sqlite3` or `.shodzbak` file from your USB drive.
+3. If the backup is encrypted (`.shodzbak`), enter your **Restore passphrase**.
+4. Type the confirmation word (`RESTORE` or `RESTAURER`) and click **Restore & Restart**: an automatic pre-restore safety backup (`pre_restore_*.sqlite3`) is created, and the application restarts automatically with your restored data.
 

@@ -28,19 +28,19 @@ Here are straightforward checks you can perform at the checkout counter whenever
 
 ---
 
-### 3. System Clock Anomaly Alert (Orange Banner `TimeAnomalyBanner`)
+### 3. System Clock Anomaly Alert (Orange Banner)
 
 If an orange warning banner appears across the top of the screen reading *"Anomaly detected on system clock"*:
 - This indicates that the Windows system date or time was manually altered, or the motherboard CMOS battery has failed.
 - For tax and legal compliance, sales transactions cannot be backdated.
-- **Solution:** Navigate to **Settings** → **Desktop** tab, then click **Resync Clock** to synchronize time automatically via the Internet.
+- **Solution:** Navigate to **Settings** → **Desktop** tab, then click **Resync clock** to synchronize time automatically via the Internet.
 
 ---
 
-### 4. Error Message: "Closed Fiscal Period"
+### 4. Error Message: "Fiscal Year Is Closed"
 
-If the system rejects creating or updating a transaction with the error *"Cannot post transactions to a closed period"*:
-- This indicates that the store manager or accountant has finalized and locked the previous month or fiscal year.
+If the system rejects creating or updating a transaction with the error *"Fiscal year … is closed. No modifications are permitted in this period."*:
+- This indicates that the store owner has permanently locked the fiscal year covering that date.
 - Backdated entries into locked periods are prohibited. Record the transaction under today's open date.
 
 ---

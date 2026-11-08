@@ -20,9 +20,8 @@ Pour démarrer votre travail sur le terminal de caisse, connectez-vous avec vos 
 
 > 📷 **Capture d'écran :** *Écran de connexion avec les champs numéro de téléphone et mot de passe.*
 
-### Modifier votre mot de passe
+### Modifier votre mot de passe ou vos accès
 
-1. Cliquez sur votre nom ou avatar en haut à droite de l'écran (<kbd>Topbar</kbd>).
-2. Sélectionnez **Mon Profil**.
-3. Saisissez votre mot de passe actuel, puis tapez votre nouveau mot de passe deux fois pour confirmation.
-4. Cliquez sur **Mettre à jour le mot de passe**.
+Pour modifier votre mot de passe ou mettre à jour vos droits d'accès, adressez-vous au **Propriétaire** ou au **Gérant** du magasin, qui peut modifier votre fiche dans **Paramètres → Utilisateurs**.
+
+Pour fermer votre session à la fin de votre service, cliquez sur le bouton de déconnexion en haut à droite de l'écran.

@@ -49,10 +49,6 @@ To ensure your official invoices, quotes, and delivery notes comply with Algeria
 - **NIF:** Tax Identification Number (15 digits).
 - **RC:** Commercial Register Number (e.g., `16/00-1234567B16`).
 - **AI:** Tax Article Number (11 digits).
-- **NIS:** Statistical Identification Number.
 
 These mandatory legal mentions automatically populate invoice headers and receipt printouts.
-
-> [!TIP]
-> If your business operates under the **Sole Flat Tax (IFU)** regime, check the corresponding box in fiscal settings: the system will default invoices to 0% VAT and include the statutory exemption notice.
 

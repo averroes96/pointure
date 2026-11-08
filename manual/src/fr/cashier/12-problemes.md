@@ -28,7 +28,7 @@ Voici les vérifications simples à effectuer en cas d'imprévu au comptoir avan
 
 ---
 
-### 3. Alerte d'anomalie d'horloge (Bandeau orange `TimeAnomalyBanner`)
+### 3. Alerte d'anomalie d'horloge (Bandeau orange)
 
 Si un bandeau orange apparaît en haut de l'écran avec le message *"Anomalie détectée sur l'horloge système"* :
 - Cela signifie que l'heure ou la date de Windows a été modifiée manuellement, ou que la pile de la carte mère de l'ordinateur est déchargée.
@@ -37,10 +37,10 @@ Si un bandeau orange apparaît en haut de l'écran avec le message *"Anomalie d�
 
 ---
 
-### 4. Message d'erreur : "Période fiscale clôturée"
+### 4. Message d'erreur : "L'exercice fiscal est clôturé"
 
-Si le système refuse la modification ou la création d'un document avec le message *"Impossible d'enregistrer sur une période clôturée"* :
-- Cela indique que le gérant ou l'expert-comptable a définitivement verrouillé le mois ou l'année fiscale écoulée.
+Si le système refuse la modification ou la création d'un document avec le message *"L'exercice fiscal … est clôturé. Aucune modification n'est autorisée sur cette période."* :
+- Cela indique que le propriétaire a définitivement verrouillé l'exercice fiscal correspondant à cette date.
 - Vous ne pouvez plus enregistrer d'opération sur cette date passée. Enregistrez l'opération sur la date du jour en cours.
 
 ---

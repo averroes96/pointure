@@ -11,16 +11,15 @@ Under the **Customers** menu (<kbd>F4</kbd>), each customer file consolidates:
 
 ---
 
-### B. Credit Limits and Automatic Credit Blocking
+### B. Credit Limits and Automatic Credit Control
 
 To mitigate bad debt risks, ShoeDZ provides automated credit governance:
-1. In the customer profile, set the **Authorized Credit Limit** (e.g., `50 000 DZD`).
-2. At checkout, if an on-account sale would cause the outstanding balance to exceed this threshold, the system blocks the sale unless overridden by a manager's PIN.
-3. **Blocking Delinquent Accounts:**
-   - If an account accumulates overdue debts, check **Block Customer**.
-   - Blocked customers cannot buy on credit or receive deferred invoices; they can only purchase with immediate cash or card settlement.
+1. In the customer profile, set the **Authorized Credit Limit** (`credit_limit`, e.g., `50 000 DZD`).
+2. At checkout or when issuing an invoice, if an on-account transaction would cause the outstanding balance to exceed this threshold, the system blocks the credit sale unless approved by a manager or owner.
+3. **Suspending Credit or Archiving Delinquent Accounts:**
+   - To stop granting credit to a delinquent account, lower their **Authorized Credit Limit** to `0 DZD` or deactivate their customer profile (`is_active`).
 
-> 📷 **Screenshot:** *Customer profile displaying balance due, credit limit gauge, and blocking toggle.*
+> 📷 **Screenshot:** *Customer profile displaying balance due and authorized credit limit.*
 
 ---
 

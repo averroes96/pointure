@@ -11,16 +11,15 @@ Dans le menu **Clients** (<kbd>F4</kbd>), chaque fiche client centralise :
 
 ---
 
-### B. Plafond de crédit et verrouillage automatique
+### B. Plafond de crédit et contrôle automatique
 
 Pour limiter les risques d'impayés, ShoeDZ intègre un contrôle strict du crédit :
-1. Sur la fiche du client, renseignez le champ **Plafond de crédit autorisé** (ex : `50 000 DZD`).
-2. Lors d'un passage en caisse, si une vente à crédit amène le solde débiteur au-delà de cette limite, le système refuse la validation à moins qu'un responsable ne déverrouille l'opération via son PIN.
-3. **Blocage d'un client défaillant :**
-   - Si un client accumule des retards de paiement inacceptables, activez l'option **Bloquer le client**.
-   - Un client bloqué ne peut plus acheter à crédit ni recevoir de nouvelle facture. Il peut uniquement régler ses achats au comptant en espèces ou par carte.
+1. Sur la fiche du client, renseignez le champ **Plafond de crédit autorisé** (`credit_limit`, ex : `50 000 DZD`).
+2. Lors d'un passage en caisse ou de l'émission d'une facture, si une vente à crédit amène le solde débiteur au-delà de ce plafond, le système bloque la validation à crédit (sauf autorisation expresse d'un gérant ou propriétaire).
+3. **Désactivation / Archivage d'un compte client :**
+   - Si vous ne souhaitez plus accorder de crédit à un client défaillant, abaissez son **Plafond de crédit** à `0 DZD` ou désactivez sa fiche (`is_active`).
 
-> 📷 **Capture d'écran :** *Fiche client avec solde débiteur, jauge de plafond de crédit et bouton de blocage.*
+> 📷 **Capture d'écran :** *Fiche client avec solde débiteur et plafond de crédit autorisé.*
 
 ---
 

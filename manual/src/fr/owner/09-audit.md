@@ -8,13 +8,13 @@ Le journal d'audit consigne automatiquement chaque action sensible survenue dans
 
 > [!NOTE]
 > Le journal d'audit ne trace pas l'intégralité des requêtes techniques de l'application, mais cible précisément les modèles de données audités (`AUDITED_MODELS`) :
-> - **Ventes et encaissements (`Sale`) :** Création de ticket, annulation, remises exceptionnelles accordées.
-> - **Articles et prix (`Product`, `Variant`) :** Modification manuelle d'un prix de vente ou d'un tarif gros.
-> - **Mouvements de stock (`StockMovement`) :** Ajustements manuels d'inventaire, pertes déclarées, réceptions.
-> - **Mouvements de caisse (`CashMovement`) :** Tout apport ou prélèvement d'espèces dans le tiroir.
-> - **Utilisateurs et permissions (`User`) :** Création de compte, changement de rôle, attribution de PIN.
-> - **Factures et avoirs (`Invoice`, `CreditNote`) :** Émission, validation et annulation de pièces comptables.
-> - **Fiches clients (`Client`) :** Modification du plafond de crédit ou statut de blocage.
+> - **Ventes, retours et ventes en attente (`Sale`, `Return`, `HeldSale`) :** Création de ticket, remboursement, annulation, mise en attente et reprise.
+> - **Caisse et sessions (`CashSession`, `CashMovement`) :** Ouverture/clôture de caisse et tout apport ou prélèvement d'espèces dans le tiroir.
+> - **Articles, stocks et inventaires (`Product`, `Variant`, `StockMovement`, `StocktakeSession`, `DefectItem`) :** Modification de tarif, ajustements de stock, sessions d'inventaire et démarques défectueux.
+> - **Fournisseurs et achats (`Supplier`, `PurchaseOrder`, `SupplierInvoice`, `SupplierPayment`) :** Commandes fournisseurs, réceptions, factures d'achat et règlements.
+> - **Clients, chèques et fidélité (`Client`, `Cheque`, `Promotion`, `LoyaltyProgram`) :** Plafonds de crédit, suivi des chèques et campagnes promotionnelles.
+> - **Facturation B2B (`Invoice`, `InvoicePayment`, `DeliveryNote`, `CreditNote`) :** Émission, confirmation, encaissement et annulation de pièces commerciales.
+> - **Clôture fiscale et administration (`FiscalYear`, `User`) :** Clôture/réouverture d'exercice, création de comptes, rôles et autorisations par PIN.
 
 ---
 
@@ -33,7 +33,7 @@ Chaque ligne enregistrée dans le journal comprend :
 
 ### C. Recherche et filtrage dans l'audit
 
-Depuis le menu **Paramètres → Journal d'audit** :
+Depuis le menu latéral **Journal d'audit** (`/settings/audit-log`, réservé au propriétaire) :
 - Filtrez par **Utilisateur** pour auditer l'activité d'un caissier spécifique lors d'un incident de caisse.
 - Filtrez par **Période** (ex : lors d'une semaine d'inventaire ou pendant les soldes).
 - Filtrez par **Type d'opération** (ex : afficher toutes les autorisations accordées par le PIN d'un gérant).

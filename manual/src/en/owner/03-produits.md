@@ -23,9 +23,9 @@ In footwear retail, catalog management requires a structured breakdown by model,
 ### B. Pricing Structure
 
 Define your store's pricing strategy for each shoe model:
+- **Purchase Price (HT) and Weighted Average Cost (PAMP):** Supplier purchase price and weighted average cost updated automatically upon receiving purchase orders.
 - **Retail Selling Price (Rayon):** Standard unit retail price charged to walk-in customers.
 - **Wholesale Price (Carton):** Discounted price applied when selling complete cartons or bulk bundles to trade clients.
-- **Floor Price (Minimum Safety Price):** Absolute bottom price below which no cashier or manager may sell, safeguarding profit margins.
 
 ---
 

@@ -1,63 +1,43 @@
 ## 12. Annual Fiscal Closing and Accounting Export {#cloture-exercice}
 
-Under the Algerian Financial Accounting System (SCF) and tax laws, businesses must close accounting records annually to prepare balance sheets and tax filings.
+Sound retail management requires freezing year-end stock valuations, annual sales figures, and receivable/payable balances for your certified accountant.
+
+> [!NOTE]
+> **Scope of Closing in ShoeDZ:** ShoeDZ performs a **commercial and inventory management closing** (PAMP stock valuation snapshot, customer/supplier balance snapshot, period lock against backdated documents, and accountant export pack). It is not general-ledger SCF accounting software and does not require manual opening-entry journals.
 
 ### A. The Fiscal Year Calendar
 
 By default, the fiscal year mirrors the calendar year (**January 1 to December 31**):
-- View your active fiscal period under **Settings → Fiscal Years**.
-- If your certified accountant advises custom start and end dates, these can be adjusted by the owner prior to formal locking.
+- Access the module from the sidebar **Fiscal Year Closing** menu (`/closing`, owner only).
+- Click **Initialize Fiscal Year** to create the desired fiscal period (start and end dates can be adjusted while the period remains open).
 
 ---
 
-### B. The Fiscal Year-End Closing Wizard
+### B. The 5-Step Fiscal Closing Wizard
 
-On December 31 of each year, follow the closing wizard steps:
+1. **Step 1 — Pre-closing Checklist:**
+   - Verifies that no **cash sessions** remain open in the period (blocking) and flags any draft purchase orders, unconfirmed invoices, partially paid sales, or pending cheques.
+2. **Step 2 — Year-end Physical Stocktake:**
+   - Link a completed physical stocktake session or explicitly opt in to using calculated ledger stock.
+3. **Step 3 — Review Financial & Stock Snapshot:**
+   - Freeze and inspect annual KPIs: **POS Sales (TTC excl. stamp duty)**, **Fiscal Stamp**, **B2B Invoices (HT)**, **VAT**, **Credit Notes (HT)**, **Net Revenue (HT)**, **Cost of Goods Sold (COGS)**, **Gross Margin**, **Stock Valuation (PAMP & retail)**, and **Receivables & Payables**.
+4. **Step 4 — Accountant Pack Export:**
+   - **Download Accountant Pack (`.xlsx`):** Complete Excel workbook with **9 sheets** (*Summary*, *Sales journal*, *Invoices*, *Credit notes*, *Purchases*, *Year-end stock*, *Client balances*, *Supplier balances*, *Outstanding cheques*).
+   - **Print Annual Summary (`.pdf`):** Official 1-page A4 report with signature blocks for the store manager and certified accountant.
+5. **Step 5 — Final Closing & Period Lock:**
+   - Type the fiscal year (e.g., `2026`) and click **Permanently Close Fiscal Year**.
+   - An automatic pre-close safety backup (`pre_close_<year>_*.sqlite3`) is created before locking.
 
-1. **Exhaustive Year-End Physical Inventory:**
-   - Count every pair of shoes in the store and validate the final stocktake session (<kbd>F5</kbd> → **Inventory**).
-2. **Clear Outstanding In-Flight Transactions:**
-   - Resolve or settle unclaimed layaway deposits.
-   - Post any pending vendor purchase invoices belonging to the closing year.
-3. **Audit Statutory Totals:**
-   - The wizard summarizes:
-     - Gross and net annual sales turnover.
-     - Total VAT collected (19%).
-     - Total cash fiscal stamp duty collected.
-     - Cost of Goods Sold (COGS based on line-item PAMP).
-     - Accurate valuation of closing inventory as of December 31.
-
-> 📷 **Screenshot:** *Fiscal closing wizard showing annual revenue, tax aggregates, and period locking buttons.*
+> 📷 **Screenshot:** *5-step fiscal closing wizard with Excel/PDF export and period lock.*
 
 ---
 
-### C. Locking the Fiscal Period
+### C. Period Lock Enforcement and Audited Reopening
 
-Once annual figures are vetted with your accountant:
-1. Click **Lock Fiscal Year Permanently**.
-2. **Impact of Period Locking:**
-   - No sales, invoices, credit notes, or inventory adjustments can ever be backdated into the closed year.
-   - Any modification attempt in closed dates is blocked with the error *"Closed Fiscal Period"*.
-   - This protects your store against accidental alterations to audited tax filings.
-
----
-
-### D. Exporting Files for Your Certified Accountant
-
-1. On the closed fiscal year record, click **Download Accounting Bundle**.
-2. ShoeDZ compiles a standardized Excel/CSV workbook containing:
-   - Daily sales journal summary.
-   - Purchasing and vendor receiving journal.
-   - VAT and stamp duty reconciliation tables.
-   - Itemized physical inventory valued at unit PAMP as of December 31.
-3. Deliver this bundle to your accounting firm for filing your G50 and corporate tax returns.
-
----
-
-### E. Reopening and Balance Carryforward
-
-On the morning of January 1:
-- The system automatically initializes the new fiscal year.
-- Closing inventory counts roll forward as **Opening Stock**.
-- Customer receivables and supplier payables roll forward as opening balances.
+1. **Period Lock:**
+   - Once closed, no sales, returns, invoices, credit notes, supplier bills, stock movements, or payments can be created, updated, or deleted with a date falling inside the closed period.
+2. **Continuous Operations:**
+   - Live inventory quantities, customer receivables, and supplier balances continue seamlessly into the new year without manual carry-forward entries.
+3. **Audited Reopening (Owner Only):**
+   - If your external auditor requests an adjustment, the owner can click **Reopen Fiscal Year**, enter a mandatory **Reopening reason** (recorded in the audit log), post the adjustment, and close the year again.
 

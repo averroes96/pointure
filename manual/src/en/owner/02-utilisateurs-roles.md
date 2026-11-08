@@ -33,9 +33,10 @@ ShoeDZ enforces a strict hierarchy of capabilities:
 | **Stocktake Sessions & Adjustments** | ✓ | ✓ | ✗ (blocked) |
 | **B2B Invoicing & Credit Notes** | ✓ | ✓ | ✗ (blocked) |
 | **Financial Reports & Gross Margin** | ✓ | ✓ | ✗ (blocked) |
+| **Local Backups & Diagnostic Bundle** | ✓ | ✓ (create/download) | ✗ (blocked) |
 | **User Accounts & Role Management** | ✓ | ✗ (blocked) | ✗ (blocked) |
-| **Annual Fiscal Closing & Tax Settings** | ✓ | ✗ (blocked) | ✗ (blocked) |
-| **Backups & Database Restoration** | ✓ | ✗ (blocked) | ✗ (blocked) |
+| **Annual Fiscal Closing & Audit Log** | ✓ | ✗ (blocked) | ✗ (blocked) |
+| **Database Restore & Encrypted External Backup** | ✓ | ✗ (blocked) | ✗ (blocked) |
 
 ---
 
@@ -53,12 +54,11 @@ Any operation attempted beyond authorized thresholds triggers a **Manager PIN Au
 
 ### D. The Manager PIN Code
 
-The Manager PIN is a confidential **4-digit code** assigned to managers and owners.
+The Manager PIN is a confidential **4-to-6-digit code** assigned to managers and owners.
 
 1. **Configuring the PIN:**
-   - Open **My Profile** or the relevant user card.
-   - Click **Set Manager PIN**.
-   - Type 4 non-trivial digits (avoid `0000` or `1234`).
+   - Open **Settings → Users** and edit the relevant manager or owner profile.
+   - Enter the **Manager PIN (4 to 6 digits)** (avoid `0000` or `1234`) and click **Save**.
 2. **Usage:**
    - When a cashier requires an override, the manager enters their PIN directly on the cashier's screen.
    - The action is approved instantly and recorded in the audit trail with the manager's name and timestamp.

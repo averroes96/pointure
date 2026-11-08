@@ -20,9 +20,8 @@ To begin your cashier shift, sign in using your personal credentials.
 
 > 📷 **Screenshot:** *Sign-in screen showing mobile phone and password inputs.*
 
-### Changing Your Password
+### Changing Your Password or Account Access
 
-1. Click on your name or avatar in the top right corner of the screen (<kbd>Topbar</kbd>).
-2. Select **My Profile**.
-3. Enter your current password, then type your new password twice to confirm.
-4. Click **Update Password**.
+To update your password or account permissions, ask your **Store Owner** or **Manager**, who can edit your user profile under **Settings → Users**.
+
+To sign out at the end of your shift, click the sign-out button in the top right corner of the screen.

@@ -6,46 +6,38 @@ Les données de votre magasin (historique des ventes, dettes clients, valorisati
 
 ShoeDZ intègre un système de sauvegarde double niveau :
 1. **Sauvegarde automatique quotidienne :**
-   - L'application génère automatiquement une copie de sécurité de la base de données lors de chaque clôture de caisse ou à heure fixe programmée.
-   - Les sauvegardes locales sont conservées dans le dossier sécurisé du logiciel avec un horodatage précis.
+   - L'application génère automatiquement une copie de sécurité de la base de données toutes les **24 heures** (ainsi qu'automatiquement avant toute clôture d'exercice fiscal, restauration ou réinitialisation).
+   - Les sauvegardes locales (`.sqlite3`, non chiffrées pour permettre une reprise locale immédiate) sont conservées dans le dossier `backups/` avec une rétention glissante des **14 dernières copies**.
 2. **Sauvegarde manuelle immédiate :**
-   - À tout moment, rendez-vous dans **Paramètres → Desktop / Sauvegardes**.
+   - À tout moment, rendez-vous dans **Paramètres → Desktop**.
    - Cliquez sur le bouton **Créer une sauvegarde maintenant**.
 
 ---
 
-### B. Chiffrement et Fiche de secours (Recovery Sheet)
+### B. Sauvegarde externe (USB / Dossier synchronisé) et Chiffrement AES-256
 
-Pour protéger vos informations commerciales confidentielles en cas de perte de clé USB, chaque archive de sauvegarde est chiffrée à l'aide d'une **Phrase secrète de secours (Passphrase)** définie lors du premier démarrage.
+Une sauvegarde stockée uniquement sur le disque dur du PC caisse ne vous protège pas en cas de panne de disque dur, de surtension électrique ou de vol de l'ordinateur.
+
+1. Dans **Paramètres → Desktop**, cliquez sur **Configurer la sauvegarde externe**.
+2. Indiquez le **Chemin du dossier de destination** (ex : lettre de votre clé USB `E:\Sauvegardes` ou dossier synchronisé Google Drive / OneDrive).
+3. Activez le **Chiffrement AES-256-GCM** (activé par défaut pour les copies externes) et définissez votre **Phrase de passe de chiffrement** :
+   - Les copies externes sont enregistrées au format chiffré `.shodzbak` avec une rétention par défaut de **30 copies**.
+   - Le chiffrement protège vos copies externes en cas de perte ou de vol de la clé USB, tandis que les sauvegardes locales sur le PC de caisse restent au format `.sqlite3` pour un dépannage instantané.
 
 > [!IMPORTANT]
-> **Imprimez immédiatement votre Fiche de secours :**
-> - Rendez-vous dans **Paramètres → Sauvegardes** et cliquez sur **Imprimer la fiche de secours**.
-> - Cette fiche papier contient votre phrase secrète de déchiffrement ainsi que les consignes d'urgence.
-> - **Conservez impérativement ce document papier dans le coffre-fort physique du magasin**, à l'abri des regards et séparé de l'ordinateur. Sans cette phrase, aucune sauvegarde chiffrée ne pourra être restaurée sur un nouveau PC.
+> **Imprimez immédiatement votre Fiche de récupération :**
+> - Lors de l'enregistrement de votre phrase de passe, cliquez sur **Imprimer la fiche de récupération**.
+> - **Conservez impérativement ce document papier hors du magasin (ex : coffre-fort de direction)**. En cas de perte de cette phrase de passe, aucune sauvegarde chiffrée (`.shodzbak`) ne pourra être restaurée, même par l'équipe technique ShoeDZ.
+
+> 📷 **Capture d'écran :** *Interface de gestion des sauvegardes locales et externes dans Paramètres → Desktop.*
 
 ---
 
-### C. Copie externe sur clé USB (Recommandation vitale)
+### C. Restauration d'une sauvegarde en cas de sinistre
 
-Une sauvegarde stockée uniquement sur le disque dur du PC caisse ne vous protège pas en cas de panne de disque dur, de surtension électrique ou de cambriolage.
-
-1. Insérez chaque soir une **Clé USB dédiée** sur l'ordinateur.
-2. Dans **Paramètres → Sauvegardes**, cliquez sur **Exporter vers clé USB**.
-3. Sélectionnez le lecteur amovible de votre clé USB.
-4. Le fichier de sauvegarde sécurisé (format `.enc` ou `.zip`) y est copié en quelques secondes.
-5. Retirez la clé USB et emportez-la avec vous en quittant la boutique.
-
-> 📷 **Capture d'écran :** *Interface de gestion des sauvegardes avec liste des archives et bouton d'export USB.*
-
----
-
-### D. Restauration d'une sauvegarde en cas de sinistre
-
-Si vous devez réinstaller ShoeDZ sur un nouvel ordinateur après un incident :
-1. Installez ShoeDZ sur le nouveau poste Windows.
-2. Sur l'écran d'accueil d'initialisation, cliquez sur **Restaurer à partir d'une sauvegarde existante**.
-3. Branchez votre clé USB et sélectionnez le fichier de sauvegarde le plus récent.
-4. Saisissez votre phrase secrète de secours inscrite sur votre fiche papier.
-5. Cliquez sur **Lancer la restauration** : l'ensemble de votre catalogue, vos prix, vos clients et vos stocks sont instantanément réintégrés dans l'état exact où ils se trouvaient lors de la sauvegarde.
+Pour restaurer votre base de données (sur le poste actuel ou après installation de ShoeDZ sur un nouveau PC) :
+1. Rendez-vous dans **Paramètres → Desktop** (connecté en tant que **Propriétaire**).
+2. Cliquez sur **Restaurer cette sauvegarde** en face d'une archive locale, ou sur **Restaurer un fichier...** pour sélectionner un fichier `.sqlite3` ou `.shodzbak` depuis votre clé USB.
+3. Si le fichier est chiffré (`.shodzbak`), saisissez votre **Phrase de passe de restauration**.
+4. Tapez le mot de confirmation demandé (`RESTAURER`), puis cliquez sur **Restaurer et Redémarrer** : une sauvegarde automatique pré-restauration (`pre_restore_*.sqlite3`) est créée, puis l'application redémarre automatiquement avec vos données restaurées.
 
