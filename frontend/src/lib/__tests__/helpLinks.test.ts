@@ -36,8 +36,14 @@ describe("helpLinks", () => {
 
     it("routes manager or owner to owner.html with context anchor", () => {
       expect(getHelpUrl("/inventory/stocktake", "manager", "fr")).toBe("/manual/fr/owner.html#inventaire");
+      expect(getHelpUrl("/inventory/transfers", "manager", "fr")).toBe("/manual/fr/owner.html#inventaire");
       expect(getHelpUrl("/inventory", "owner", "ar")).toBe("/manual/ar/owner.html#produits");
+      expect(getHelpUrl("/closing", "owner", "fr")).toBe("/manual/fr/owner.html#cloture-exercice");
+      expect(getHelpUrl("/promotions", "owner", "fr")).toBe("/manual/fr/owner.html#promotions-fidelite");
+      expect(getHelpUrl("/loyalty", "owner", "en")).toBe("/manual/en/owner.html#promotions-fidelite");
+      expect(getHelpUrl("/cheques", "owner", "fr")).toBe("/manual/fr/owner.html#clients-credit");
       expect(getHelpUrl("/settings/desktop", "owner", "en")).toBe("/manual/en/owner.html#sauvegardes");
+      expect(getHelpUrl("/settings/audit-log", "owner", "fr")).toBe("/manual/fr/owner.html#audit");
       expect(getHelpUrl("/settings", "manager", "fr")).toBe("/manual/fr/owner.html#premier-demarrage");
     });
 

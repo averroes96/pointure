@@ -60,12 +60,13 @@ interface StocktakeOption {
 }
 
 export default function FiscalYearPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [years, setYears] = useState<FiscalYear[]>([]);
   const [selectedYearId, setSelectedYearId] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [activeStep, setActiveStep] = useState<number>(1);
+  const [actionError, setActionError] = useState<string>("");
 
   // Step 1: Checklist
   const [checklist, setChecklist] = useState<ChecklistResponse | null>(null);
@@ -113,7 +114,7 @@ export default function FiscalYearPage() {
         setSelectedYearId(openYear ? openYear.id : data[0].id);
       }
     } catch (err) {
-      console.error("Failed to fetch fiscal years", err);
+      setActionError(getApiError(err));
     } finally {
       setLoading(false);
     }
@@ -129,8 +130,9 @@ export default function FiscalYearPage() {
     setActiveStep(1);
     setConfirmYearText("");
     setCloseError("");
+    setActionError("");
     setSelectedStocktakeId(currentYear.stocktake_session || "");
-    setSkipStocktake(!currentYear.stocktake_session);
+    setSkipStocktake(false);
 
     if (currentYear.status === "open") {
       fetchChecklist(currentYear.id);
@@ -144,7 +146,7 @@ export default function FiscalYearPage() {
       const res = await api.get(`/closing/years/${yearId}/checklist/`);
       setChecklist(res.data);
     } catch (err) {
-      console.error("Failed to load checklist", err);
+      setActionError(getApiError(err));
     } finally {
       setLoadingChecklist(false);
     }
@@ -155,22 +157,22 @@ export default function FiscalYearPage() {
       const res = await api.get("/closing/years/stocktake-options/");
       setStocktakeOptions(res.data);
     } catch (err) {
-      console.error("Failed to load stocktake options", err);
+      setActionError(getApiError(err));
     }
   };
 
   const handleBuildSnapshot = async () => {
     if (!currentYear) return;
     setBuildingSnapshot(true);
+    setActionError("");
     try {
-      const payload: { stocktake_session_id?: string } = {};
-      if (!skipStocktake && selectedStocktakeId) {
-        payload.stocktake_session_id = selectedStocktakeId;
-      }
+      const payload: { stocktake_session_id: string | null } = {
+        stocktake_session_id: !skipStocktake && selectedStocktakeId ? selectedStocktakeId : null,
+      };
       const res = await api.post(`/closing/years/${currentYear.id}/build-snapshot/`, payload);
       setYears((prev) => prev.map((y) => (y.id === currentYear.id ? res.data : y)));
     } catch (err) {
-      console.error("Failed to build snapshot", err);
+      setActionError(getApiError(err));
     } finally {
       setBuildingSnapshot(false);
     }
@@ -196,6 +198,7 @@ export default function FiscalYearPage() {
   const handleReopenYear = async () => {
     if (!currentYear) return;
     setReopening(true);
+    setActionError("");
     try {
       const res = await api.post(`/closing/years/${currentYear.id}/reopen/`, {
         reason: reopenReason,
@@ -204,7 +207,7 @@ export default function FiscalYearPage() {
       setReopenModalOpen(false);
       setReopenReason("");
     } catch (err) {
-      console.error("Failed to reopen fiscal year", err);
+      setActionError(getApiError(err));
     } finally {
       setReopening(false);
     }
@@ -213,6 +216,7 @@ export default function FiscalYearPage() {
   const handleCreateYear = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
+    setActionError("");
     try {
       const res = await api.post("/closing/years/", {
         year: newYear,
@@ -223,7 +227,7 @@ export default function FiscalYearPage() {
       setSelectedYearId(res.data.id);
       setCreateModalOpen(false);
     } catch (err) {
-      console.error("Failed to create fiscal year", err);
+      setActionError(getApiError(err));
     } finally {
       setCreating(false);
     }
@@ -231,8 +235,11 @@ export default function FiscalYearPage() {
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(true);
+    setActionError("");
     try {
-      const res = await api.get(url, { responseType: "blob" });
+      const langParam = encodeURIComponent((i18n.language || "fr").slice(0, 2));
+      const separator = url.includes("?") ? "&" : "?";
+      const res = await api.get(`${url}${separator}lang=${langParam}`, { responseType: "blob" });
       const blob = new Blob([res.data]);
       const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
@@ -242,7 +249,7 @@ export default function FiscalYearPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(link.href);
     } catch (err) {
-      console.error("Download failed", err);
+      setActionError(getApiError(err));
     } finally {
       setDownloading(false);
     }
@@ -298,6 +305,23 @@ export default function FiscalYearPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Action Error Banner ─────────────────────────────────────────── */}
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="shrink-0 text-rose-600 dark:text-rose-400" />
+            <span>{actionError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError("")}
+            className="text-xs font-semibold text-rose-700 dark:text-rose-300 hover:underline shrink-0"
+          >
+            {t("closing.btn_cancel", "Cancel")}
+          </button>
+        </div>
+      )}
 
       {/* ── No Fiscal Years Empty State ───────────────────────────────────── */}
       {years.length === 0 && (
@@ -535,7 +559,11 @@ export default function FiscalYearPage() {
                                         key={d.id}
                                         className="text-xs font-mono bg-white dark:bg-slate-800 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 inline-block me-2"
                                       >
-                                        Session #{d.session_number} ({d.cashier_name}) — {d.branch_name}
+                                        {t("closing.session_item", {
+                                          number: d.session_number,
+                                          cashier: d.cashier_name,
+                                          branch: d.branch_name,
+                                        })}
                                       </div>
                                     ))}
                                   </div>
@@ -599,8 +627,12 @@ export default function FiscalYearPage() {
                           </option>
                           {stocktakeOptions.map((opt) => (
                             <option key={opt.id} value={opt.id}>
-                              Session #{opt.id.slice(0, 8)} ({opt.branch_name}) — {opt.total_items} items (
-                              {formatDate(opt.completed_at || opt.created_at)})
+                              {t("closing.stocktake_option_item", {
+                                id: opt.id.slice(0, 8),
+                                branch: opt.branch_name,
+                                count: opt.total_items,
+                                date: formatDate(opt.completed_at || opt.created_at),
+                              })}
                             </option>
                           ))}
                         </select>
@@ -881,7 +913,7 @@ export default function FiscalYearPage() {
             </p>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t("closing.reopened_reason_label", { reason: "" })}
+                {t("closing.reopen_reason_field", "Reopening reason")}
               </label>
               <textarea
                 rows={3}

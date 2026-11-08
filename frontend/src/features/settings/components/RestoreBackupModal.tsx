@@ -96,7 +96,10 @@ export default function RestoreBackupModal({
 
   if (!isOpen) return null;
 
-  const isConfirmationValid = confirmationInput.trim().toUpperCase() === "RESTAURER";
+  const confirmWord = t("desktop.restore_confirm_word", "RESTAURER");
+  const normalizedConfirm = confirmationInput.trim().toUpperCase();
+  const isConfirmationValid =
+    normalizedConfirm === confirmWord.toUpperCase() || normalizedConfirm === "RESTAURER";
   const hasSource = sourceType === "local" ? !!selectedFilename : !!selectedFile;
   const canSubmit = hasSource && isConfirmationValid && !loading && !restarting;
 
@@ -334,13 +337,14 @@ export default function RestoreBackupModal({
               {/* Confirmation Phrase Input */}
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {t("desktop.restore_confirm_type_label", "Pour confirmer, tapez")} <strong className="text-rose-600 font-mono">RESTAURER</strong> :
+                  {t("desktop.restore_confirm_type_label", "Pour confirmer, tapez")}{" "}
+                  <strong className="text-rose-600 font-mono">{confirmWord}</strong> :
                 </label>
                 <input
                   type="text"
                   value={confirmationInput}
                   onChange={(e) => setConfirmationInput(e.target.value)}
-                  placeholder="RESTAURER"
+                  placeholder={confirmWord}
                   className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500"
                 />
               </div>

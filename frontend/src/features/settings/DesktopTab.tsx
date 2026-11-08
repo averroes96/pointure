@@ -380,20 +380,20 @@ export default function DesktopTab() {
 
       {/* ── 1. Database Backups Section (Core Feature) ────────────────────────── */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-600 border border-primary-200/60 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-200/60 dark:border-primary-800 flex items-center justify-center shrink-0">
                 <Database size={16} />
               </div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {t("settings.backup_title", "Sauvegardes de la base de données")}
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-2xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="px-2 py-0.5 rounded-full text-2xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 SQLite WAL
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
               {t(
                 "settings.backup_desc",
                 "Sauvegardes locales automatiques et manuelles. Vos ventes, stocks et clients sont instantanément sécurisés sans interrompre l'activité de la caisse."
@@ -464,7 +464,7 @@ export default function DesktopTab() {
                 {backupsLoading ? "..." : formatRelativeTime(latestBackup)}
               </div>
               <div className="text-2xs text-slate-400 font-mono mt-0.5 truncate max-w-[180px]">
-                {backups[0]?.filename || "Aucune sauvegarde générée"}
+                {backups[0]?.filename || t("desktop.backup_none_generated", "Aucune sauvegarde générée")}
               </div>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center shrink-0">
@@ -521,7 +521,7 @@ export default function DesktopTab() {
             </div>
           ) : backups.length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center border border-slate-200/70">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center border border-slate-200/70 dark:border-slate-700">
                 <Database size={22} />
               </div>
               <div>
@@ -571,7 +571,7 @@ export default function DesktopTab() {
                                 <span className="font-mono font-semibold text-slate-900 dark:text-white">{b.filename}</span>
                                 {isLatest && (
                                   <span className="px-1.5 py-0.5 rounded-md font-bold text-3xs uppercase bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                    Dernière
+                                    {t("desktop.backup_badge_latest", "Dernière")}
                                   </span>
                                 )}
                               </div>
@@ -586,7 +586,7 @@ export default function DesktopTab() {
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                            <CheckCircle2 size={11} /> Prête
+                            <CheckCircle2 size={11} /> {t("desktop.backup_status_ready", "Prête")}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-end">
@@ -609,7 +609,7 @@ export default function DesktopTab() {
                             <button
                               onClick={() => handleDownloadBackup(b.filename)}
                               disabled={downloadingFile === b.filename}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-primary-700 hover:bg-primary-50 border border-transparent hover:border-primary-200 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-950/40 border border-transparent hover:border-primary-200 dark:hover:border-primary-800 transition-colors cursor-pointer"
                               title={t("settings.backup_download", "Télécharger une copie (.sqlite3)")}
                             >
                               {downloadingFile === b.filename ? (
@@ -630,20 +630,20 @@ export default function DesktopTab() {
                                   {deleteBackupMutation.isPending ? (
                                     <Loader2 size={12} className="animate-spin" />
                                   ) : (
-                                    "Supprimer"
+                                    t("settings.backup_delete", "Supprimer")
                                   )}
                                 </button>
                                 <button
                                   onClick={() => setDeleteTarget(null)}
-                                  className="px-2 py-1 text-2xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                                  className="px-2 py-1 text-2xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                                 >
-                                  Annuler
+                                  {t("common.cancel", "Annuler")}
                                 </button>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setDeleteTarget(b.filename)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800 transition-colors cursor-pointer"
                                 title={t("settings.backup_delete", "Supprimer")}
                               >
                                 <Trash2 size={15} />
@@ -789,22 +789,23 @@ export default function DesktopTab() {
       </div>
 
       {/* ── 2. Application & Mises à Jour (Electron Auto-Updater) ─────────────── */}
-      <div className="space-y-4 pt-4 border-t border-slate-100">
+      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
         {/* App Overview Card */}
-        <div className="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/90 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-primary-600 text-white flex items-center justify-center text-2xl shadow-xs">
               👟
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold font-sans tracking-tight text-slate-900">ShoeDZ Desktop POS</h3>
-                <span className="px-2.5 py-0.5 rounded-full text-2xs font-bold bg-primary-50 text-primary-700 border border-primary-200">
+                <h3 className="text-base font-bold font-sans tracking-tight text-slate-900 dark:text-white">ShoeDZ Desktop POS</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-2xs font-bold bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
                   {isDesktop ? "Windows Edition" : "Web Edition"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Version installée : <strong className="text-slate-900 font-mono">v{version}</strong>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t("desktop.installed_version", "Version installée :")}{" "}
+                <strong className="text-slate-900 dark:text-white font-mono">v{version}</strong>
               </p>
             </div>
           </div>
@@ -816,10 +817,14 @@ export default function DesktopTab() {
               className="btn-secondary py-2 px-3.5 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-2xs self-stretch md:self-auto justify-center cursor-pointer"
             >
               <RefreshCw size={14} className={checking ? "animate-spin text-primary-600" : ""} />
-              <span>{checking ? "Vérification..." : "Vérifier les mises à jour"}</span>
+              <span>
+                {checking
+                  ? t("desktop.update_checking", "Vérification...")
+                  : t("desktop.update_check_btn", "Vérifier les mises à jour")}
+              </span>
             </button>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700">
               <Info size={14} className="text-slate-400" />
               <span>{t("desktop.browser_local_mode")}</span>
             </div>
@@ -838,37 +843,39 @@ export default function DesktopTab() {
               {/* Status Badge */}
               {status === "checking" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  <RefreshCw size={12} className="animate-spin" /> Recherche en cours...
+                  <RefreshCw size={12} className="animate-spin" /> {t("desktop.update_searching", "Recherche en cours...")}
                 </span>
               )}
               {status === "not-available" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  <CheckCircle2 size={13} /> Votre application est à jour
+                  <CheckCircle2 size={13} /> {t("desktop.update_up_to_date", "Votre application est à jour")}
                 </span>
               )}
               {status === "available" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  <Download size={13} /> Nouvelle version v{updateInfo?.version} disponible
+                  <Download size={13} />{" "}
+                  {t("desktop.update_available", { version: updateInfo?.version || "" })}
                 </span>
               )}
               {status === "downloading" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  <Download size={13} className="animate-bounce" /> Téléchargement ({downloadProgress}%)
+                  <Download size={13} className="animate-bounce" />{" "}
+                  {t("desktop.update_downloading", { progress: downloadProgress })}
                 </span>
               )}
               {status === "downloaded" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  <CheckCircle2 size={13} /> Prête pour installation
+                  <CheckCircle2 size={13} /> {t("desktop.update_ready_install", "Prête pour installation")}
                 </span>
               )}
               {status === "error" && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                  <AlertCircle size={13} /> Erreur de vérification
+                  <AlertCircle size={13} /> {t("desktop.update_check_error", "Erreur de vérification")}
                 </span>
               )}
               {status === ("idle" as any) && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                  Canal de mise à jour stable (GitHub Releases)
+                  {t("desktop.update_channel_stable", "Canal de mise à jour stable (GitHub Releases)")}
                 </span>
               )}
             </div>
@@ -882,7 +889,9 @@ export default function DesktopTab() {
                     style={{ width: `${downloadProgress}%` }}
                   />
                 </div>
-                <p className="text-2xs text-slate-500 dark:text-slate-400 text-right font-mono font-medium">{downloadProgress}% téléchargé</p>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 text-right font-mono font-medium">
+                  {t("desktop.update_downloaded_pct", { progress: downloadProgress })}
+                </p>
               </div>
             )}
 
@@ -891,10 +900,13 @@ export default function DesktopTab() {
               <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                 <div>
                   <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                    La version {updateInfo?.version || "récente"} est téléchargée et prête !
+                    {t("desktop.update_downloaded_title", { version: updateInfo?.version || "" })}
                   </p>
                   <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    Cliquez sur le bouton ci-contre pour redémarrer l'application et appliquer automatiquement la mise à jour.
+                    {t(
+                      "desktop.update_downloaded_desc",
+                      "Cliquez sur le bouton ci-contre pour redémarrer l'application et appliquer automatiquement la mise à jour."
+                    )}
                   </p>
                 </div>
                 <button
@@ -986,22 +998,23 @@ export default function DesktopTab() {
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("desktop.clock_integrity")}</p>
                   {anomalyDetected ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                      <AlertCircle size={11} /> Anomalie détectée
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      <AlertCircle size={11} /> {t("desktop.clock_anomaly_detected", "Anomalie détectée")}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <CheckCircle2 size={11} /> Synchronisée
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <CheckCircle2 size={11} /> {t("desktop.clock_synchronized", "Synchronisée")}
                     </span>
                   )}
                 </div>
-                <p className="text-2xs text-slate-500 mt-0.5">
-                  Heure certifiée : <strong className="text-slate-800 font-mono">{currentTimeDisplay || "..."}</strong>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t("desktop.clock_certified_time", "Heure certifiée :")}{" "}
+                  <strong className="text-slate-800 dark:text-slate-200 font-mono">{currentTimeDisplay || "..."}</strong>
                   {syncSource && ` • Source: ${syncSource}`}
                   {skewSeconds !== 0 && ` • Décalage: ${skewSeconds > 0 ? "+" : ""}${skewSeconds}s`}
                 </p>
                 {anomalyDetected && anomalyMessage && (
-                  <p className="text-2xs text-amber-800 mt-1 font-medium bg-amber-50 p-1.5 rounded-lg border border-amber-200/70">
+                  <p className="text-2xs text-amber-800 dark:text-amber-200 mt-1 font-medium bg-amber-50 dark:bg-amber-950/50 p-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/70">
                     {anomalyMessage}
                   </p>
                 )}
@@ -1012,10 +1025,14 @@ export default function DesktopTab() {
               onClick={handleManualTimeSync}
               disabled={resyncingClock || isTimeRefetching}
               className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs self-stretch md:self-auto justify-center cursor-pointer disabled:opacity-50"
-              title="Resynchroniser avec les serveurs de temps HTTPS et recaler l'horloge Windows"
+              title={t("desktop.clock_resync_tooltip", "Resynchroniser avec les serveurs de temps HTTPS et recaler l'horloge Windows")}
             >
               <RefreshCw size={13} className={cn((resyncingClock || isTimeRefetching) && "animate-spin text-primary-600")} />
-              <span>{resyncingClock ? "Synchronisation..." : "Recaler l'horloge"}</span>
+              <span>
+                {resyncingClock
+                  ? t("desktop.clock_syncing", "Synchronisation...")
+                  : t("desktop.clock_resync_btn", "Recaler l'horloge")}
+              </span>
             </button>
           </div>
 
@@ -1075,21 +1092,24 @@ export default function DesktopTab() {
 
         {/* ── 4. Zone de Danger : Réinitialisation ────────────────────────── */}
         {isOwner && (
-          <div className="p-6 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-xs space-y-4">
+          <div className="p-6 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/30 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 border border-rose-200/80 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800 flex items-center justify-center shrink-0">
                   <ShieldAlert size={20} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-rose-950">{t("desktop.danger_zone")}</h4>
-                    <span className="px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase bg-rose-100 text-rose-800 border border-rose-300">
-                      Propriétaire uniquement
+                    <h4 className="text-sm font-bold text-rose-950 dark:text-rose-200">{t("desktop.danger_zone")}</h4>
+                    <span className="px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                      {t("desktop.owner_only_badge", "Propriétaire uniquement")}
                     </span>
                   </div>
-                  <p className="text-xs text-rose-800/80 mt-1 max-w-2xl leading-relaxed">
-                    Remettez votre application à zéro (configuration neuve d'usine) ou purgez uniquement l'historique des ventes et mouvements de stock sans toucher à votre catalogue d'articles. Une sauvegarde automatique est créée avant toute suppression.
+                  <p className="text-xs text-rose-800/80 dark:text-rose-300/80 mt-1 max-w-2xl leading-relaxed">
+                    {t(
+                      "desktop.danger_zone_desc",
+                      "Remettez votre application à zéro (configuration neuve d'usine) ou purgez uniquement l'historique des ventes et mouvements de stock sans toucher à votre catalogue d'articles. Une sauvegarde automatique est créée avant toute suppression."
+                    )}
                   </p>
                 </div>
               </div>

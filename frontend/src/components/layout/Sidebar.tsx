@@ -31,6 +31,7 @@ interface NavItem {
   label?: string;
   icon: LucideIcon;
   managerOnly?: boolean;
+  ownerOnly?: boolean;
   /** If set, item is shown but locked/dimmed when tenant plan is below this */
   minPlan?: Plan;
 }
@@ -114,9 +115,9 @@ function useNavSections(): NavSection[] {
       key: "settings",
       label: "",
       items: [
-        { to: "/closing", labelKey: "nav.fiscal_closing", icon: CalendarCheck, managerOnly: true },
+        { to: "/closing", labelKey: "nav.fiscal_closing", icon: CalendarCheck, ownerOnly: true },
         { to: "/settings", labelKey: "nav.settings", icon: Settings, managerOnly: true },
-        { to: "/settings/audit-log", labelKey: "nav.audit_log", icon: Shield, managerOnly: true },
+        { to: "/settings/audit-log", labelKey: "nav.audit_log", icon: Shield, ownerOnly: true },
         { to: "/settings/webhooks", labelKey: "nav.webhooks", icon: Webhook, managerOnly: true, minPlan: "pro_retail" },
       ],
     },

@@ -13,22 +13,30 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   // POS & Sales
   { prefix: "/sales/new", cashierAnchor: "encaisser", ownerAnchor: "rapports" },
   { prefix: "/sales/history", cashierAnchor: "retour-echange", ownerAnchor: "rapports" },
+  { prefix: "/sales/reconciliation", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
   { prefix: "/sales", cashierAnchor: "encaisser", ownerAnchor: "rapports" },
+
+  // Promotions & Loyalty
+  { prefix: "/promotions", cashierAnchor: "fidelite-promotions", ownerAnchor: "promotions-fidelite" },
+  { prefix: "/loyalty", cashierAnchor: "fidelite-promotions", ownerAnchor: "promotions-fidelite" },
 
   // Inventory, Stocks & Products
   { prefix: "/inventory/stocktake", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/transfers", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
   { prefix: "/inventory/transfer", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
   { prefix: "/inventory/movements", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
   { prefix: "/inventory/low-stock", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
   { prefix: "/inventory/defects", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/scanner", cashierAnchor: "rechercher-scanner", ownerAnchor: "produits" },
   { prefix: "/inventory", cashierAnchor: "connexion", ownerAnchor: "produits" },
   { prefix: "/products", cashierAnchor: "connexion", ownerAnchor: "produits" },
 
   // Cash sessions & Closing
-  { prefix: "/closing", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
+  { prefix: "/closing", cashierAnchor: "fermer-caisse", ownerAnchor: "cloture-exercice" },
 
-  // Clients & Layaway / Versements
+  // Clients, Cheques & Layaway / Versements
   { prefix: "/clients", cashierAnchor: "versement-reservation", ownerAnchor: "clients-credit" },
+  { prefix: "/cheques", cashierAnchor: "versement-reservation", ownerAnchor: "clients-credit" },
 
   // Suppliers & Purchases
   { prefix: "/suppliers", cashierAnchor: "connexion", ownerAnchor: "achats-reception" },
@@ -42,8 +50,9 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   // Reports
   { prefix: "/reports", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
 
-  // Settings & Desktop
+  // Settings, Audit & Desktop
   { prefix: "/settings/desktop", cashierAnchor: "connexion", ownerAnchor: "sauvegardes" },
+  { prefix: "/settings/audit-log", cashierAnchor: "connexion", ownerAnchor: "audit" },
   { prefix: "/settings", cashierAnchor: "connexion", ownerAnchor: "premier-demarrage" },
 
   // Auth / Login

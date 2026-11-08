@@ -45,7 +45,7 @@ export default function ExternalBackupModal({
   config,
   onSuccess,
 }: ExternalBackupModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   // Mode: "config" or "recovery_sheet"
@@ -100,7 +100,10 @@ export default function ExternalBackupModal({
 
   const handlePrintRecoverySheet = () => {
     const storeName = user?.tenant?.name || "ShoeDZ Pointure";
-    const dateStr = new Date().toLocaleDateString("fr-FR", {
+    const langCode = (i18n.language || "fr").slice(0, 2);
+    const dirAttr = (i18n.language || "fr").startsWith("ar") ? "rtl" : "ltr";
+    const localeTag = langCode === "ar" ? "ar-DZ" : langCode === "en" ? "en-GB" : "fr-FR";
+    const dateStr = new Date().toLocaleDateString(localeTag, {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -111,12 +114,20 @@ export default function ExternalBackupModal({
     const safeStore = escapeHtml(storeName);
     const safeDate = escapeHtml(dateStr);
     const safePassphrase = escapeHtml(savedPassphrase);
+    const safeConfidential = escapeHtml(t("desktop.external_recovery_sheet_confidential"));
+    const safeTitle = escapeHtml(t("desktop.external_recovery_sheet_title"));
+    const safeStoreLabel = escapeHtml(t("desktop.recovery_print_store_label"));
+    const safeDateLabel = escapeHtml(t("desktop.recovery_print_date_label"));
+    const safePassphraseTitle = escapeHtml(t("desktop.external_recovery_passphrase"));
+    const safeWarningTitle = escapeHtml(t("desktop.recovery_print_warning_title"));
+    const safeWarningBody = escapeHtml(t("desktop.external_recovery_warning"));
+    const safeFooter = escapeHtml(t("desktop.recovery_print_footer"));
 
     const html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${escapeHtml(langCode)}" dir="${dirAttr}">
 <head>
   <meta charset="utf-8" />
-  <title>Fiche de Récupération Sauvegarde - ShoeDZ</title>
+  <title>${safeTitle} - ShoeDZ</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -199,28 +210,26 @@ export default function ExternalBackupModal({
 </head>
 <body>
   <div class="header">
-    <span class="badge">Document Strictement Confidentiel</span>
-    <h1>FICHE DE RÉCUPÉRATION DE SAUVEGARDE CHIFFRÉE</h1>
+    <span class="badge">${safeConfidential}</span>
+    <h1>${safeTitle}</h1>
     <div class="meta">
-      <strong>Établissement :</strong> ${safeStore} &nbsp;|&nbsp; 
-      <strong>Date d'émission :</strong> ${safeDate}
+      <strong>${safeStoreLabel}</strong> ${safeStore} &nbsp;|&nbsp; 
+      <strong>${safeDateLabel}</strong> ${safeDate}
     </div>
   </div>
 
   <div class="passphrase-box">
-    <div class="passphrase-title">Phrase de passe de déchiffrement (AES-256-GCM)</div>
+    <div class="passphrase-title">${safePassphraseTitle}</div>
     <div class="passphrase-code">${safePassphrase}</div>
   </div>
 
   <div class="warning">
-    <strong>AVERTISSEMENT CRITIQUE DE SÉCURITÉ :</strong><br/>
-    Conservez cette fiche imprimée dans un endroit physique sécurisé hors du point de vente (ex: coffre-fort de direction).<br/>
-    En cas de panne, sinistre ou vol, cette phrase de passe est <strong>l'unique clé</strong> permettant de restaurer vos sauvegardes chiffrées (.shodzbak).<br/>
-    Pour des raisons de sécurité cryptographique, aucun technicien ni support ShoeDZ ne peut récupérer ou réinitialiser ce mot de passe.
+    <strong>${safeWarningTitle} :</strong><br/>
+    ${safeWarningBody}
   </div>
 
   <div class="footer">
-    ShoeDZ Pointure Desktop — Solution de gestion certifiée hors-ligne
+    ${safeFooter}
   </div>
 </body>
 </html>`;
@@ -412,6 +421,9 @@ export default function ExternalBackupModal({
                           "Vos fichiers seront protégés par une phrase de passe et sauvegardés au format sécurisé .shodzbak."
                         )}
                       </div>
+                      <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        {t("desktop.external_encrypt_scope_note")}
+                      </p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -451,7 +463,7 @@ export default function ExternalBackupModal({
                           onChange={(e) => setPassphrase(e.target.value)}
                           placeholder={
                             config?.has_passphrase
-                              ? "•••••••••••• (Inchangée)"
+                              ? t("desktop.external_passphrase_unchanged", "•••••••••••• (Inchangée)")
                               : t("desktop.external_passphrase_placeholder", "Phrase secrète (ex: CleSecuriseeMagasin2026)")
                           }
                           className="w-full pl-3 pr-9 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 font-mono"
@@ -528,7 +540,7 @@ export default function ExternalBackupModal({
                 <div className="flex items-center justify-between border-b border-sky-200 dark:border-sky-900/60 pb-3">
                   <div>
                     <span className="px-2 py-0.5 rounded-full text-3xs font-bold uppercase tracking-wider bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
-                      Document Strictement Confidentiel
+                      {t("desktop.external_recovery_sheet_confidential", "Document Strictement Confidentiel")}
                     </span>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-1">
                       {user?.tenant?.name || "ShoeDZ Pointure"}
@@ -570,7 +582,7 @@ export default function ExternalBackupModal({
                 <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/50 text-2xs text-amber-900 dark:text-amber-200 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <AlertTriangle size={13} className="text-amber-700 dark:text-amber-400 shrink-0" />
-                    <span>Avertissement Critique</span>
+                    <span>{t("desktop.recovery_print_warning_title", "Avertissement Critique")}</span>
                   </div>
                   <p className="leading-relaxed">
                     {t(
