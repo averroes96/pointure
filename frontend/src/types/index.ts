@@ -557,6 +557,22 @@ export type ChequeDirection = "receivable" | "payable";
 export type ClientType = "retail" | "wholesale";
 export type PriceTier = "detail" | "demi_gros" | "gros";
 
+export type ClientRiskGrade = "A" | "B" | "C" | "D";
+
+export interface ClientRiskDetails {
+  grade: ClientRiskGrade;
+  avg_days_to_pay: number | null;
+  overdue_amount: string;
+  bounced_cheques_12m: number;
+  last_payment_date: string | null;
+  buckets?: {
+    current: string;
+    days_30: string;
+    days_60: string;
+    days_90_plus: string;
+  };
+}
+
 export interface Client {
   id: number;
   name: string;
@@ -572,6 +588,9 @@ export interface Client {
   cached_balance: string;
   is_over_credit_limit: boolean;
   is_active: boolean;
+  is_blocked?: boolean;
+  risk_grade?: ClientRiskGrade;
+  risk_details?: ClientRiskDetails;
   notes: string;
   created_at: string;
 }

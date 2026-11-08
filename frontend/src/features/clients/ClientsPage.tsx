@@ -8,6 +8,7 @@ import type { Client } from "@/types";
 import { cn, whatsappLink } from "@/lib/utils";
 import { wilayaName } from "@/lib/wilayas";
 import ImportModal from "@/components/ui/ImportModal";
+import { ClientRiskBadge } from "@/components/ClientRiskBadge";
 
 const CLIENT_TEMPLATE = `name,phone,address,wilaya,client_type,nif,rc
 Ahmed Benali,0555123456,Rue des Fleurs Alger,16,retail,,
@@ -135,6 +136,12 @@ export default function ClientsPage() {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 transition-colors">{client.name}</span>
+                      <ClientRiskBadge
+                        grade={client.risk_grade}
+                        isBlocked={client.is_blocked}
+                        details={client.risk_details}
+                        compact
+                      />
                       <span className={cn(
                         "text-2xs font-bold px-2 py-0.5 rounded-md border",
                         client.client_type === "wholesale"

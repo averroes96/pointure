@@ -92,13 +92,27 @@ class CreateInvoiceSerializer(serializers.Serializer):
     apply_tva = serializers.BooleanField(default=True)
     is_formal = serializers.BooleanField(default=True)
     is_paid_in_cash = serializers.BooleanField(default=False)
-    is_formal = serializers.BooleanField(default=True)
-    is_paid_in_cash = serializers.BooleanField(default=False)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
     notes = serializers.CharField(required=False, allow_blank=True)
     lines = InvoiceLineSerializer(many=True, min_length=1)
     confirm = serializers.BooleanField(default=False, help_text="If true, assign number (FA-2026-00001) and set status to sent.")
     payment = InitialPaymentInput(required=False, allow_null=True)
+
+    def validate(self, data):
+        client_id = data.get("client_id")
+        if client_id:
+            from apps.clients.models import Client
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            qs = Client.objects.filter(pk=client_id)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            client = qs.first()
+            if client and client.is_blocked:
+                raise serializers.ValidationError(
+                    {"client_id": "Ce client est bloqué. Impossible d'émettre une facture."}
+                )
+        return data
 
 
 

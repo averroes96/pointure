@@ -36,6 +36,8 @@ import {
   Search,
   Download,
   Loader2,
+  Lock,
+  Unlock,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
@@ -44,6 +46,7 @@ import { cn, whatsappLink, getStatusBadgeClass } from "@/lib/utils";
 import { wilayaLabel } from "@/lib/wilayas";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { ClientRiskBadge } from "@/components/ClientRiskBadge";
 import i18n from "@/lib/i18n";
 const t = i18n.t.bind(i18n);
 
@@ -448,6 +451,48 @@ function ClientInfoTab({
               {client.notes}
             </p>
           )}
+        </div>
+
+        {/* Risk profile card */}
+        <div className="card rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs p-6 space-y-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{t("risk.risk_profile")}</span>
+            <ClientRiskBadge
+              grade={client.risk_grade}
+              isBlocked={client.is_blocked}
+              details={client.risk_details}
+            />
+          </div>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span>{t("risk.avg_settlement_delay")}</span>
+              <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
+                {client.risk_details?.avg_days_to_pay !== null && client.risk_details?.avg_days_to_pay !== undefined
+                  ? t("risk.avg_days_value", { days: client.risk_details.avg_days_to_pay })
+                  : t("risk.no_settled_invoices")}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span>{t("risk.overdue_debt")}</span>
+              <span className={cn("font-semibold tabular-nums", Number(client.risk_details?.overdue_amount || 0) > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                {formatDZD(client.risk_details?.overdue_amount || "0.00")} DZD
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+              <span>{t("risk.bounced_cheques_12m")}</span>
+              <span className={cn("font-semibold tabular-nums", (client.risk_details?.bounced_cheques_12m || 0) > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                {client.risk_details?.bounced_cheques_12m || 0}
+              </span>
+            </div>
+            {client.risk_details?.last_payment_date && (
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                <span>{t("risk.last_payment_received")}</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {formatDate(client.risk_details.last_payment_date)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1221,7 +1266,18 @@ export default function ClientDetailPage() {
   const navigate = useNavigate();
   const clientId = id;
   const { canAccess } = usePlan();
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const hasLoyalty = canAccess("pro_retail");
+  const canManageBlock = user?.role === "owner" || user?.role === "manager";
+
+  const toggleBlockMutation = useMutation({
+    mutationFn: () => api.post(`/clients/${clientId}/toggle-block/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client", clientId] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
 
   const tabs = [
     { key: "info", label: t("client.info_tab") },
@@ -1322,6 +1378,11 @@ export default function ClientDetailPage() {
                 )}>
                   {client.client_type === "wholesale" ? t("client.wholesale") : t("client.retail")}
                 </span>
+                <ClientRiskBadge
+                  grade={client.risk_grade}
+                  isBlocked={client.is_blocked}
+                  details={client.risk_details}
+                />
                 {client.wilaya && (
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{wilayaLabel(client.wilaya)}</span>
                 )}
@@ -1330,6 +1391,22 @@ export default function ClientDetailPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {canManageBlock && (
+              <button
+                onClick={() => toggleBlockMutation.mutate()}
+                disabled={toggleBlockMutation.isPending}
+                className={cn(
+                  "btn-secondary rounded-xl font-medium inline-flex items-center gap-1.5 transition-colors",
+                  client.is_blocked
+                    ? "text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                    : "text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                )}
+                title={client.is_blocked ? t("risk.unblock_client") : t("risk.block_client")}
+              >
+                {client.is_blocked ? <Unlock size={15} /> : <Lock size={15} />}
+                <span>{client.is_blocked ? t("risk.unblock_client") : t("risk.block_client")}</span>
+              </button>
+            )}
             {client.phone && (
               <a
                 href={whatsappLink(client.phone, whatsappMsg)}

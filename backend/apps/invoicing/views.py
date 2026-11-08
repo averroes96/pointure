@@ -90,6 +90,12 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 from apps.clients.models import Client
                 client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
 
+            if client and client.is_blocked:
+                from rest_framework.exceptions import ValidationError as DRFValidationError
+                raise DRFValidationError({
+                    "client_id": "Ce client est bloqué. Impossible d'émettre une facture."
+                })
+
             branch = None
             if data.get("branch_id"):
                 from apps.core.models import Branch
@@ -563,6 +569,10 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     Branch.objects.filter(tenant=request.tenant, is_headquarters=True).first()
                     or Branch.objects.filter(tenant=request.tenant).first()
                 )
+
+            if client.is_blocked:
+                from rest_framework.exceptions import ValidationError as DRFValidationError
+                raise DRFValidationError({"error": "client_blocked", "client_id": "Ce client est bloqué. Impossible d'émettre une facture."})
 
             # Check credit limit
             estimated_total = sum(

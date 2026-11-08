@@ -169,6 +169,7 @@
   },
   "invoice": {
     "new": "Nouvelle Facture",
+    "client_blocked_warning": "Ce client est bloqué. Impossible d'émettre une facture pour ce client.",
     "cartons_count": "Nombre de cartons",
     "pairs_per_carton": "Paires par carton",
     "total_pairs_calc": "= {{total}} paires totales",
@@ -330,6 +331,25 @@
     "convert_to_bl": "Convertir en Bon de Livraison",
     "cancel": "Annuler le devis",
     "error_no_lines": "Ajoutez au moins un produit avec une quantité valide."
+  },
+  "risk": {
+    "grade_a": "Risque faible",
+    "grade_b": "Risque modéré",
+    "grade_c": "Risque élevé",
+    "grade_d": "Risque très élevé",
+    "blocked": "Bloqué",
+    "blocked_title": "Client bloqué : achats à crédit et factures suspendus",
+    "avg_days_value": "{{days}} jrs de règlement",
+    "no_settled_invoices": "Aucun historique de règlement",
+    "overdue_amount": "{{amount}} DZD en souffrance",
+    "bounced_count": "{{count}} chèque(s) rejeté(s)",
+    "risk_profile": "Profil de risque et solvabilité",
+    "avg_settlement_delay": "Délai moyen de règlement",
+    "overdue_debt": "Dette en souffrance (> 30j)",
+    "bounced_cheques_12m": "Chèques rejetés (12 mois)",
+    "last_payment_received": "Dernier paiement reçu",
+    "block_client": "Bloquer le client",
+    "unblock_client": "Débloquer le client"
   },
   "client": {
     "new": "Nouveau client",
@@ -2015,6 +2035,7 @@
     "negative_stock_current": "Stock actuel :",
     "negative_stock_new": "Nouveau :",
     "confirm_sale": "Confirmer la vente",
+    "blocked_client_credit_error": "Ce client est bloqué pour les achats à crédit.",
     "on_account_balance": "Reste sur compte client : {{amount}} DZD",
     "on_account_client_required": "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
     "on_account_client_selected": "Client : {{name}}",

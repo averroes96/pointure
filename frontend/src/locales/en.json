@@ -169,6 +169,7 @@
   },
   "invoice": {
     "new": "New Invoice",
+    "client_blocked_warning": "This client is blocked. Invoices cannot be issued for this client.",
     "cartons_count": "Cartons count",
     "pairs_per_carton": "Pairs per carton",
     "total_pairs_calc": "= {{total}} total pairs",
@@ -330,6 +331,25 @@
     "convert_to_bl": "Convert to Delivery Note",
     "cancel": "Cancel quote",
     "error_no_lines": "Add at least one product with a valid quantity."
+  },
+  "risk": {
+    "grade_a": "Low risk",
+    "grade_b": "Moderate risk",
+    "grade_c": "High risk",
+    "grade_d": "Very high risk",
+    "blocked": "Blocked",
+    "blocked_title": "Blocked client: credit purchases and invoices suspended",
+    "avg_days_value": "{{days}} days to settle",
+    "no_settled_invoices": "No settlement history",
+    "overdue_amount": "{{amount}} DZD overdue",
+    "bounced_count": "{{count}} bounced cheque(s)",
+    "risk_profile": "Risk profile & creditworthiness",
+    "avg_settlement_delay": "Average settlement delay",
+    "overdue_debt": "Overdue debt (> 30d)",
+    "bounced_cheques_12m": "Bounced cheques (12 months)",
+    "last_payment_received": "Last payment received",
+    "block_client": "Block client",
+    "unblock_client": "Unblock client"
   },
   "client": {
     "new": "New Client",
@@ -2015,6 +2035,7 @@
     "negative_stock_current": "Current stock:",
     "negative_stock_new": "New stock:",
     "confirm_sale": "Confirm Sale",
+    "blocked_client_credit_error": "This client is blocked from credit purchases.",
     "on_account_balance": "Remaining on client account: {{amount}} DZD",
     "on_account_client_required": "Please select a client to record a remaining balance on account.",
     "on_account_client_selected": "Client: {{name}}",

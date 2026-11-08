@@ -169,6 +169,7 @@
   },
   "invoice": {
     "new": "فاتورة جديدة",
+    "client_blocked_warning": "هذا العميل محظور. لا يمكن إصدار فاتورة له.",
     "cartons_count": "عدد الكراتين",
     "pairs_per_carton": "عدد الأزواج في الكرتونة",
     "total_pairs_calc": "= {{total}} إجمالي الأزواج",
@@ -330,6 +331,25 @@
     "convert_to_bl": "تحويل إلى وصل تسليم",
     "cancel": "إلغاء عرض السعر",
     "error_no_lines": "يرجى إضافة منتج واحد على الأقل بكمية صالحة."
+  },
+  "risk": {
+    "grade_a": "مخاطر منخفضة",
+    "grade_b": "مخاطر متوسطة",
+    "grade_c": "مخاطر عالية",
+    "grade_d": "مخاطر عالية جداً",
+    "blocked": "محظور",
+    "blocked_title": "عميل محظور: تم تعليق الشراء بالدين وإصدار الفواتير",
+    "avg_days_value": "{{days}} يوم للسداد",
+    "no_settled_invoices": "لا يوجد سجل سداد",
+    "overdue_amount": "{{amount}} د.ج متأخرات",
+    "bounced_count": "{{count}} شيك مرفوض",
+    "risk_profile": "ملف المخاطر والملاءة المالية",
+    "avg_settlement_delay": "متوسط أجل السداد",
+    "overdue_debt": "ديون متأخرة (> 30 يوم)",
+    "bounced_cheques_12m": "شيكات مرفوضة (12 شهراً)",
+    "last_payment_received": "آخر دفعة مستلمة",
+    "block_client": "حظر العميل",
+    "unblock_client": "إلغاء حظر العميل"
   },
   "client": {
     "new": "زبون جديد",
@@ -2015,6 +2035,7 @@
     "negative_stock_current": "المخزون الحالي :",
     "negative_stock_new": "الجديد :",
     "confirm_sale": "تأكيد البيع",
+    "blocked_client_credit_error": "هذا العميل محظور من الشراء بالدين.",
     "on_account_balance": "المبلغ المتبقي على حساب العميل: {{amount}} د.ج",
     "on_account_client_required": "يرجى اختيار عميل لتسجيل المبلغ المتبقي على الحساب.",
     "on_account_client_selected": "العميل: {{name}}",

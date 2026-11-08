@@ -20,6 +20,7 @@ import { unitPriceFor } from "@/lib/pricing";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
+import { ClientRiskBadge } from "@/components/ClientRiskBadge";
 import PosShortcutsCoachmark from "./PosShortcutsCoachmark";
 import HeldSalesModal from "./HeldSalesModal";
 
@@ -220,9 +221,10 @@ function ClientSelector({
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-800">
         <UserCircle size={15} className="text-primary-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 flex-1 truncate">{selected.name}</span>
+        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 truncate">{selected.name}</span>
+        <ClientRiskBadge grade={selected.risk_grade} isBlocked={selected.is_blocked} compact />
         {selected.phone && (
-          <span className="text-xs text-primary-400">{selected.phone}</span>
+          <span className="text-xs text-primary-400 ms-auto">{selected.phone}</span>
         )}
         <button onClick={onClear} className="text-primary-400 hover:text-primary-600 dark:hover:text-primary-200">
           <X size={13} />
@@ -278,6 +280,7 @@ function ClientSelector({
                   >
                     <UserCircle size={14} className="text-text-muted flex-shrink-0" />
                     <span className="text-sm font-medium text-text-primary dark:text-slate-100">{c.name}</span>
+                    <ClientRiskBadge grade={c.risk_grade} isBlocked={c.is_blocked} compact />
                     {c.phone && <span className="text-xs text-text-muted dark:text-slate-400 ml-auto">{c.phone}</span>}
                   </button>
                 ))}
@@ -828,6 +831,12 @@ export default function SalesPage() {
       }
     }
 
+    if (isVersement && selectedClient?.is_blocked) {
+      setStockWarningToast(t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit."));
+      setTimeout(() => setStockWarningToast(null), 4000);
+      return;
+    }
+
     // Underpaid POS sale (on account): require client and check credit limit (D1)
     if (!quickMode && !isVersement && !isLayaway && total > 0 && paymentTotal < total) {
       if (!selectedClient) {
@@ -835,6 +844,16 @@ export default function SalesPage() {
           t(
             "pos.on_account_client_required",
             "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
+          ),
+        );
+        setTimeout(() => setStockWarningToast(null), 4000);
+        return;
+      }
+      if (selectedClient.is_blocked) {
+        setStockWarningToast(
+          t(
+            "pos.blocked_client_credit_error",
+            "Ce client est bloqué pour les achats à crédit.",
           ),
         );
         setTimeout(() => setStockWarningToast(null), 4000);
@@ -970,6 +989,9 @@ export default function SalesPage() {
     }
     if (!selectedClient) {
       setShowVersementClientModal(true);
+    } else if (selectedClient.is_blocked) {
+      setStockWarningToast(t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit."));
+      setTimeout(() => setStockWarningToast(null), 3000);
     } else {
       setIsVersement(true);
       setIsLayaway(false);
@@ -2513,6 +2535,14 @@ export default function SalesPage() {
               );
             })()}
 
+            {/* Blocked client credit warning */}
+            {selectedClient?.is_blocked && (isVersement || (!isLayaway && total > 0 && paymentTotal < total)) && (
+              <div className="text-xs px-3 py-2.5 rounded-xl border font-semibold bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 flex items-center gap-2">
+                <AlertTriangle size={15} className="shrink-0 text-red-600 dark:text-red-400" />
+                <span>{t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit.")}</span>
+              </div>
+            )}
+
             {/* Underpaid on-account warning & info (D1) */}
             {!isVersement && !isLayaway && total > 0 && paymentTotal < total && (
               <div
@@ -2605,7 +2635,8 @@ export default function SalesPage() {
                 saleMutation.isPending ||
                 (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100) ||
                 (isLayaway && paymentTotal < total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100) ||
-                (!isVersement && !isLayaway && total > 0 && paymentTotal < total && !selectedClient)
+                (!isVersement && !isLayaway && total > 0 && paymentTotal < total && !selectedClient) ||
+                (Boolean(selectedClient?.is_blocked) && (isVersement || paymentTotal < total))
               }
               className={cn(
                 "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",

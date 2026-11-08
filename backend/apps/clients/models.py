@@ -71,6 +71,7 @@ class Client(TenantScopedModel):
         _("Outstanding Balance (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     is_active = models.BooleanField(_("Active"), default=True)
+    is_blocked = models.BooleanField(_("Blocked"), default=False, db_index=True)
     notes = models.TextField(_("Notes"), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

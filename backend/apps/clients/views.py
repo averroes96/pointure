@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.db import models, transaction
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -38,12 +39,32 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "ageing": MANAGER_OR_OWNER,
         "ageing_csv": MANAGER_OR_OWNER,
         "statements_zip": MANAGER_OR_OWNER,
+        "toggle_block": MANAGER_OR_OWNER,
+        "risk": ALL_ROLES,
         "default": ALL_ROLES,
     }
     filterset_fields = ["wilaya", "is_active", "client_type", "price_tier"]
     search_fields = ["name", "phone", "nif", "rc"]
     ordering_fields = ["name", "cached_balance", "created_at"]
     ordering = ["name"]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        target_objs = list(page) if page is not None else list(queryset)
+
+        from .services.risk import bulk_client_risk
+        bulk_map = bulk_client_risk(target_objs)
+
+        context = self.get_serializer_context()
+        context["bulk_risk_map"] = bulk_map
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(target_objs, many=True, context=context)
+        return Response(serializer.data)
 
     def perform_content_negotiation(self, request, force=False):
         fmt = request.query_params.get("format", "").lower()
@@ -193,6 +214,29 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         serializer = ClientLedgerSerializer(qs, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="toggle-block")
+    def toggle_block(self, request, pk=None):
+        """Toggle is_blocked status (manager or owner only)."""
+        self.require_manager()
+        client = self.get_object()
+        client.is_blocked = not client.is_blocked
+        client.save(update_fields=["is_blocked"])
+        return Response({
+            "id": client.pk,
+            "is_blocked": client.is_blocked,
+            "detail": _("Client bloqué avec succès.") if client.is_blocked else _("Client débloqué avec succès."),
+        })
+
+    @action(detail=True, methods=["get"], url_path="risk")
+    def risk(self, request, pk=None):
+        """Get detailed risk scoring profile for a client."""
+        client = self.get_object()
+        from .services.risk import client_risk
+        data = client_risk(client)
+        data_copy = data.copy()
+        data_copy["overdue_amount"] = str(data_copy["overdue_amount"])
+        return Response(data_copy)
 
     @action(detail=True, methods=["get"], url_path="statement")
     def statement(self, request, pk=None):

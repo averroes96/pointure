@@ -12,7 +12,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle, Layers } from "lucide-react";
+import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle, AlertTriangle, Layers } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
@@ -335,6 +335,11 @@ export default function InvoiceBuilderPage() {
       return;
     }
 
+    if (client.is_blocked) {
+      setFormError(t("invoice.client_blocked_warning", "Ce client est bloqué. Impossible d'émettre une facture pour ce client."));
+      return;
+    }
+
     const flatLines = getFlatLines();
     if (flatLines.length === 0) {
       setFormError(t("invoice.add_one_line_error"));
@@ -401,7 +406,7 @@ export default function InvoiceBuilderPage() {
           <button
             type="button"
             onClick={(e) => handleSubmit(e, false)}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !!client?.is_blocked}
             className="btn-secondary px-3.5 py-2 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5"
           >
             <Save size={14} />
@@ -410,7 +415,7 @@ export default function InvoiceBuilderPage() {
           <button
             type="button"
             onClick={(e) => handleSubmit(e, true)}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !!client?.is_blocked}
             className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl shadow-xs"
           >
             <Save size={15} />
@@ -481,6 +486,12 @@ export default function InvoiceBuilderPage() {
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.client")}</label>
                 <ClientSelector value={client} onChange={setClient} />
+                {client?.is_blocked && (
+                  <div className="mt-2 text-xs px-3 py-2 rounded-xl border font-semibold bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0 text-red-600 dark:text-red-400" />
+                    <span>{t("invoice.client_blocked_warning", "Ce client est bloqué. Impossible d'émettre une facture pour ce client.")}</span>
+                  </div>
+                )}
               </div>
 
               {/* Date */}
@@ -775,7 +786,7 @@ export default function InvoiceBuilderPage() {
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || !!client?.is_blocked}
                 className="btn-primary w-full justify-center py-2.5 rounded-xl font-semibold shadow-xs"
               >
                 <Save size={15} />

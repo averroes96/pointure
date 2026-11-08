@@ -5,6 +5,7 @@ import { ChevronDown, Search, X } from "lucide-react";
 import api, { type PaginatedResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types";
+import { ClientRiskBadge } from "@/components/ClientRiskBadge";
 
 interface ClientSelectorProps {
   value: Client | null;
@@ -49,7 +50,12 @@ export function ClientSelector({ value, onChange }: ClientSelectorProps) {
           !value && "text-slate-400"
         )}
       >
-        <span className="truncate">{value ? value.name : t("invoice.select_client")}</span>
+        <div className="flex items-center gap-2 truncate">
+          <span className="truncate">{value ? value.name : t("invoice.select_client")}</span>
+          {value && (
+            <ClientRiskBadge grade={value.risk_grade} isBlocked={value.is_blocked} compact />
+          )}
+        </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {value && (
             <span
@@ -100,7 +106,10 @@ export function ClientSelector({ value, onChange }: ClientSelectorProps) {
                 }}
                 className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
               >
-                <div className="font-semibold text-slate-900 dark:text-white">{c.name}</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-slate-900 dark:text-white truncate">{c.name}</div>
+                  <ClientRiskBadge grade={c.risk_grade} isBlocked={c.is_blocked} compact />
+                </div>
                 {c.phone && (
                   <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{c.phone}</div>
                 )}

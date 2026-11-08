@@ -620,6 +620,10 @@ class Quote(TenantScopedModel):
         from django.utils import timezone
         from apps.closing.services.lock import assert_period_open
 
+        if self.client and self.client.is_blocked:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
+
         inv_date = target_date or timezone.localdate()
         assert_period_open(self.tenant, inv_date)
 
