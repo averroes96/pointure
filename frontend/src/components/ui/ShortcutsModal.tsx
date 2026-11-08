@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Keyboard, ShoppingCart, Package, Sparkles } from "lucide-react";
+import { X, Keyboard, ShoppingCart, Package, Sparkles, BookOpen } from "lucide-react";
+import { useAuth } from "@/features/auth/AuthContext";
+import { openHelp } from "@/lib/helpLinks";
 
 interface ShortcutItem {
   key: string;
@@ -9,7 +11,8 @@ interface ShortcutItem {
 }
 
 export default function ShortcutsModal() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -34,6 +37,7 @@ export default function ShortcutsModal() {
     { key: "F1", label: t("shortcuts.new_sale", "Nouvelle vente / Caisse POS"), desc: "Alt + 1" },
     { key: "F2", label: t("shortcuts.search", "Rechercher un produit / scanner"), desc: "Alt + 2" },
     { key: "Alt + V", label: "Versement rapide & Client", desc: "Sélectionner / créer un client et activer le versement" },
+    { key: "Alt + H", label: t("shortcuts.held_sales", "Mise en attente & Reprise"), desc: t("shortcuts.held_sales_desc", "Mettre en attente ou reprendre une vente en cours") },
     { key: "Alt + M", label: "Mouvements de caisse", desc: "Ctrl + M · Ajouter ou retirer des espèces du tiroir" },
     { key: "Échap", label: t("shortcuts.clear_cart", "Vider le panier / Effacer recherche") },
     { key: "F10 · .", label: t("shortcuts.confirm_sale", "Confirmer & Encaisser la vente"), desc: t("shortcuts.confirm_sale_desc", "Touche F10 ou touche point \".\" du pavé numérique") },
@@ -179,7 +183,17 @@ export default function ShortcutsModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex justify-end">
+        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex items-center justify-between gap-3">
+          <button
+            onClick={() => {
+              openHelp(window.location.pathname, user?.role, i18n.language);
+              setIsOpen(false);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline cursor-pointer"
+          >
+            <BookOpen size={14} />
+            <span>{t("shortcuts.full_manual", "Consulter le manuel complet")}</span>
+          </button>
           <button onClick={() => setIsOpen(false)} className="btn-secondary px-5">
             {t("common.close", "Fermer")}
           </button>

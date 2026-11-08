@@ -12,7 +12,7 @@ import type { Role } from "@/types";
 const RANK: Record<Role, number> = { cashier: 0, manager: 1, owner: 2 };
 
 /** Path prefixes (matched on whole segments) requiring a minimum role. */
-const OWNER_PREFIXES = ["/settings/audit-log"];
+const OWNER_PREFIXES = ["/settings/audit-log", "/closing"];
 
 const MANAGER_PREFIXES = [
   "/inventory/movements",

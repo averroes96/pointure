@@ -49,13 +49,18 @@ class InvoiceCounter(models.Model):
 
     @classmethod
     @transaction.atomic
-    def next_number(cls, tenant, prefix="FA"):
+    def next_number(cls, tenant, prefix="FA", date=None, year=None):
         """
         Get and increment the next invoice number atomically.
         Returns e.g. "FA-2026-00147"
+        Uses document date's year (or explicitly passed year), defaulting to timezone.now().year.
         """
         from django.utils import timezone
-        year = timezone.now().year
+        if year is None:
+            if date is not None:
+                year = date.year if hasattr(date, "year") else int(str(date)[:4])
+            else:
+                year = timezone.now().year
 
         counter, _ = cls.objects.select_for_update().get_or_create(
             tenant=tenant,
@@ -126,9 +131,12 @@ class Invoice(TenantScopedModel):
         return f"Invoice {self.number or self.pk}"
 
     def save(self, *args, **kwargs):
+        if self.date:
+            from apps.closing.services.lock import assert_period_open
+            assert_period_open(self.tenant, self.date)
         # Auto-assign invoice number on first save (when moving out of draft)
         if not self.number and self.status != InvoiceStatusChoices.DRAFT:
-            self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix)
+            self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix, date=self.date)
         # Only recompute line totals on UPDATE — on initial INSERT there are no
         # lines yet (FK needs a PK to exist first). Callers must call
         # compute_totals() + save(update_fields=...) after adding lines.
@@ -161,7 +169,10 @@ class Invoice(TenantScopedModel):
         """Assign invoice number and set status based on payments."""
         if self.status == InvoiceStatusChoices.DRAFT:
             with transaction.atomic():
-                self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix)
+                if self.date:
+                    from apps.closing.services.lock import assert_period_open
+                    assert_period_open(self.tenant, self.date)
+                self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix, date=self.date)
                 self.status = InvoiceStatusChoices.SENT
                 self.save(update_fields=["number", "status"])
                 self.update_status()
@@ -331,6 +342,12 @@ class InvoiceLine(models.Model):
     )
     cartons = models.PositiveIntegerField(_("Cartons"), default=0)
     order = models.PositiveSmallIntegerField(_("Order"), default=0)
+    unit_cost = models.DecimalField(
+        _("Unit Cost HT"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         ordering = ["order", "pk"]
@@ -371,6 +388,10 @@ class InvoicePayment(models.Model):
         return f"{self.method} {self.amount} on {self.invoice}"
 
     def save(self, *args, **kwargs):
+        if self.date and self.invoice_id:
+            from apps.closing.services.lock import assert_period_open
+            tenant = getattr(self.invoice, "tenant", None)
+            assert_period_open(tenant, self.date)
         super().save(*args, **kwargs)
         # Update invoice status based on payments
         self.invoice.update_status()
@@ -406,6 +427,12 @@ class DeliveryNote(TenantScopedModel):
 
     def __str__(self):
         return f"BL {self.number}"
+
+    def save(self, *args, **kwargs):
+        if self.date:
+            from apps.closing.services.lock import assert_period_open
+            assert_period_open(self.tenant, self.date)
+        super().save(*args, **kwargs)
 
 class DeliveryNoteLine(models.Model):
     """One line item on a delivery note."""
@@ -447,6 +474,9 @@ class CreditNote(TenantScopedModel):
         return f"Avoir {self.number} on {self.original_invoice}"
 
     def save(self, *args, **kwargs):
+        if self.date:
+            from apps.closing.services.lock import assert_period_open
+            assert_period_open(self.tenant, self.date)
         super().save(*args, **kwargs)
         # Generate number if not set
         if not self.number:

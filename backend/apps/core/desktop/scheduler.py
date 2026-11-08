@@ -151,6 +151,18 @@ def _run_scheduler_loop():
             except Exception:
                 logger.warning("Scheduled perform_database_backup failed", exc_info=True)
 
+            try:
+                from apps.closing.services.reminder import check_closing_reminders
+                check_closing_reminders(now=now, state=state, save_state=True)
+            except Exception:
+                logger.warning("Scheduled check_closing_reminders failed", exc_info=True)
+
+            try:
+                from apps.sales.tasks import cleanup_held_sales
+                cleanup_held_sales()
+            except Exception:
+                logger.warning("Scheduled cleanup_held_sales failed", exc_info=True)
+
         # Always close thread-local DB connections to prevent holding SQLite locks
         try:
             from django.db import connections

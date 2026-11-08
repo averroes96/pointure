@@ -20,6 +20,7 @@ for _dir in (DATA_DIR, MEDIA_ROOT, STATIC_ROOT, LOG_DIR):
 
 DATABASES["default"]["NAME"] = DATA_DIR / "db.sqlite3"
 LOGGING["handlers"]["file"]["filename"] = str(LOG_DIR / "shodz.log")
+LOGGING["handlers"]["perf_file"]["filename"] = str(LOG_DIR / "perf.log")
 
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",

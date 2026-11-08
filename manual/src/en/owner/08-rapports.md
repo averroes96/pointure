@@ -1,0 +1,39 @@
+## 8. Sales Reporting, Profitability, and Valuation {#rapports}
+
+Executive reporting dashboards provide store owners with immediate visibility into store performance.
+
+### A. Consolidated Daily Report (Registers Summary)
+
+Under **Reports → Daily**:
+1. Review an aggregated summary of all cashier sessions opened and closed during the business day.
+2. For each cashier, review:
+   - Gross and net revenue collected.
+   - Breakdown by payment method: **Cash**, **TPE (CIB/Edahabia)**, **BaridiMob**, **Cheques**, and **Credit Sales**.
+   - Petty cash inflows and outflows.
+   - Any cash variances logged during the Z-Report closing.
+3. Print the daily consolidated summary for your accounting files.
+
+> 📷 **Screenshot:** *Consolidated daily report dashboard displaying payment method breakdown.*
+
+---
+
+### B. Revenue and True Gross Margin Analysis
+
+Under **Reports → Sales & Profitability**, measure your actual trading profits:
+- **Gross and Net Revenue:** Filterable by day, week, month, or custom date ranges.
+- **True Gross Margin:** Calculated from the actual line-item unit cost (`unit_cost` / PAMP) captured at the time of each sale:
+  $$\text{Gross Margin} = \text{Selling Price (HT)} - \text{Unit Cost (PAMP)}$$
+  $$\text{Margin Rate (\%)} = \frac{\text{Gross Margin}}{\text{Selling Price (HT)}} \times 100$$
+- **Performance by Brand and Category:** Identify high-margin brands and leading product lines (e.g., Men's Dress Loafers vs Women's Sneakers).
+- **Top and Slow-Moving Products:** Rank bestsellers and uncover dormant inventory to plan timely promotions.
+
+---
+
+### C. Inventory Valuation Report
+
+The **Stock Valuation Report** certifies the capital investment tied up in store inventory:
+- **Total Pair Count:** Segmented by model and size.
+- **Total Purchase Valuation (at PAMP):** Capital currently held across shelves and reserves. This figure is required for your annual balance sheet.
+- **Potential Retail Value (at Selling Price):** Potential revenue if current inventory sells through completely.
+- **Potential Gross Profit:** Projected margin residing in current stock.
+

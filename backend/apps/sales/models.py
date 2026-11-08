@@ -129,6 +129,12 @@ class SaleItem(models.Model):
     discount_amount = models.DecimalField(
         _("Line Discount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    unit_cost = models.DecimalField(
+        _("Unit Cost (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         verbose_name = _("Sale Item")
@@ -470,6 +476,42 @@ class ExchangeNewItem(models.Model):
     )
     quantity = models.PositiveIntegerField(_("Quantity"))
     unit_price = models.DecimalField(_("Unit Price"), max_digits=12, decimal_places=2)
+    unit_cost = models.DecimalField(
+        _("Unit Cost (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
 
     class Meta:
         verbose_name = _("Exchange New Item")
+
+
+class HeldSale(TenantScopedModel):
+    """Parked sale at the POS ('mise en attente')."""
+    cashier = models.ForeignKey(
+        "core.User", on_delete=models.CASCADE, related_name="held_sales"
+    )
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="held_sales"
+    )
+    client = models.ForeignKey(
+        "clients.Client", on_delete=models.SET_NULL, null=True, blank=True, related_name="held_sales"
+    )
+    label = models.CharField(_("Label"), max_length=100, blank=True, default="")
+    cart = models.JSONField(_("Cart items"), default=list)
+    cart_discount = models.DecimalField(
+        _("Cart Discount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    notes = models.TextField(_("Notes"), blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Held Sale")
+        verbose_name_plural = _("Held Sales")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"HeldSale #{self.pk} ({self.label or self.cashier})"
+

@@ -1,13 +1,14 @@
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX,
-  Menu, Keyboard, Download, ArrowRight, Trash2, Sun, Moon, Monitor, type LucideIcon,
+  Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Calendar,
+  Menu, Keyboard, HelpCircle, Download, ArrowRight, Trash2, Sun, Moon, Monitor, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
 import { useTheme } from "@/hooks/useTheme";
 import { applyDirection } from "@/lib/i18n";
+import { openHelp } from "@/lib/helpLinks";
 import i18n from "i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -36,6 +37,7 @@ const NOTIF_ICON: Record<string, LucideIcon> = {
   cheque_due: CreditCard,
   low_stock: AlertTriangle,
   invoice_overdue: FileX,
+  closing_reminder: Calendar,
   general: Bell,
 };
 
@@ -43,6 +45,7 @@ const NOTIF_ACCENT: Record<string, string> = {
   cheque_due: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
   low_stock: "text-orange-500 bg-orange-50 dark:bg-orange-950/40",
   invoice_overdue: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
+  closing_reminder: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40",
   general: "text-blue-500 bg-blue-50 dark:bg-blue-950/40",
 };
 
@@ -100,6 +103,7 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleNotificationClick = (notif: Notification) => {
     if (!notif.read) {
@@ -111,6 +115,8 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
       navigate("/inventory/low-stock");
     } else if (notif.type === "cheque_due") {
       navigate("/cheques");
+    } else if (notif.type === "closing_reminder") {
+      navigate("/closing");
     } else if (notif.type === "invoice_overdue") {
       if (notif.related_object_id) {
         navigate(`/invoices/${notif.related_object_id}/edit`);
@@ -232,6 +238,19 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
           <kbd className="hidden md:inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shadow-2xs">
             F12
           </kbd>
+        </button>
+
+        {/* User Manual & Help */}
+        <button
+          onClick={() => openHelp(location.pathname, user?.role, i18n.language)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+          title={t("topbar.help", "Manuel d'utilisation & Aide")}
+          aria-label={t("topbar.help", "Manuel d'utilisation & Aide")}
+        >
+          <HelpCircle size={16} />
+          <span className="hidden xl:inline text-xs font-semibold">
+            {t("topbar.help_label", "Aide")}
+          </span>
         </button>
 
         {/* Theme mode switcher */}

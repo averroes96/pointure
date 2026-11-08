@@ -51,6 +51,7 @@ flowchart LR
 3. **Small Atomic Edits**:
    - Focus on one component, view, or endpoint at a time.
    - Preserve existing docstrings, comments, and unrelated functionality.
+   - If a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or list it as a follow-up in the report.
 4. **Build, Type Check & Test** (commands in §2.1; all must pass).
 5. **Present & Review**:
    - Provide clickable file links using `[filename](file:///path/to/file)`.
@@ -232,7 +233,7 @@ Many saves trigger other writes. Check this table, the model's `save()` and `app
 ## 7. Plans & Documentation
 
 - **Work plans** live in `docs/plans/`. Do one task at a time in the listed order, then stop for review.
-- **User manual:** if a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the user manual in the same task. The manual lives in `manual/src/{fr,ar,en}/` once v1.7 Group J exists; until then, list the change as a follow-up.
+- **User manual:** if a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or list it as a follow-up in the report.
 - **README:** keep its claims true. Don't document features that don't exist, or that have changed.
 
 ---
@@ -249,5 +250,5 @@ Many saves trigger other writes. Check this table, the model's `save()` and `app
 - [ ] `npm run typecheck --prefix frontend` shows 0 errors, and `npm run build --prefix frontend` passes.
 - [ ] Every user-facing string uses `t(...)`, and its key exists in `fr.json`, `ar.json` and `en.json`.
 - [ ] Dark mode is verified on every modified UI component.
-- [ ] User-visible changes are reflected in the manual/README, or listed as a follow-up.
+- [ ] User-visible changes are reflected in the matching chapter in `manual/src/{fr,ar,en}/` (or README), or listed as a follow-up.
 - [ ] No git commits or tags were created, and every referenced file is linked with a clickable path.

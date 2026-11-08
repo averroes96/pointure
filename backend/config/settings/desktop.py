@@ -95,6 +95,7 @@ LOCAL_APPS = [
     "apps.events",
     "apps.webhooks",
     "apps.delivery_integrations",
+    "apps.closing",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -120,6 +121,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.core.middleware.TenantMiddleware",
+    "apps.core.middleware.PerformanceLogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -391,12 +393,18 @@ try:
 except Exception:
     pass
 
+PERF_SLOW_MS = config("PERF_SLOW_MS", default=800, cast=int)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
             "format": "[{asctime}] {levelname} {name} [{threadName}] {message}",
+            "style": "{",
+        },
+        "raw": {
+            "format": "{message}",
             "style": "{",
         },
     },
@@ -417,6 +425,15 @@ LOGGING = {
             "encoding": "utf-8",
             "delay": True,
         },
+        "perf_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOG_DIR / "perf.log"),
+            "maxBytes": 2 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "raw",
+            "encoding": "utf-8",
+            "delay": True,
+        },
     },
     "root": {"handlers": ["console", "file"], "level": "INFO"},
     "loggers": {
@@ -427,6 +444,7 @@ LOGGING = {
         "waitress": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
         "apps": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
         "shodz": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
+        "shodz.perf": {"handlers": ["perf_file"], "level": "INFO", "propagate": False},
     },
 }
 

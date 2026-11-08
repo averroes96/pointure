@@ -4,6 +4,7 @@ ShoeDZ Desktop endpoints: health check, metadata, shutdown, and SPA serving.
 import os
 import signal
 import threading
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -101,14 +102,48 @@ from django.http import FileResponse, Http404
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_backups_view(request):
-    """List available local database backups."""
+    """List available local database backups and external backup configuration."""
     if getattr(request.user, "role", "") not in ("owner", "manager"):
         return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
 
-    from .backup import get_backups_dir, list_backup_files, MAX_BACKUP_COPIES
+    from .backup import (
+        get_backups_dir,
+        list_backup_files,
+        load_desktop_config,
+        MAX_BACKUP_COPIES,
+    )
     backups = list_backup_files()
     backups_dir = get_backups_dir()
     db_name = str(settings.DATABASES["default"]["NAME"])
+
+    config = load_desktop_config()
+    dest_dir = (config.get("backup_destination_dir") or "").strip()
+    last_ext_at = config.get("last_external_backup_at")
+    last_ext_err = config.get("last_external_error")
+    last_ext_file = config.get("last_external_file")
+    encrypt = config.get("backup_encrypt", True)
+    keep_external = config.get("backup_keep_external", 30)
+    has_passphrase = bool(config.get("backup_derived_key"))
+
+    is_dest_connected = False
+    if dest_dir:
+        try:
+            p = Path(dest_dir)
+            is_dest_connected = p.exists() and p.is_dir()
+        except Exception:
+            is_dest_connected = False
+
+    is_older_than_3_days = False
+    if dest_dir:
+        if not last_ext_at:
+            is_older_than_3_days = True
+        else:
+            try:
+                dt = datetime.fromisoformat(last_ext_at)
+                if (datetime.now() - dt).total_seconds() > 3 * 86400:
+                    is_older_than_3_days = True
+            except Exception:
+                is_older_than_3_days = True
 
     return Response({
         "backups": backups,
@@ -117,6 +152,108 @@ def list_backups_view(request):
         "db_path": db_name,
         "max_copies": MAX_BACKUP_COPIES,
         "last_backup": backups[0]["created_at"] if backups else None,
+        "external_config": {
+            "destination_dir": dest_dir,
+            "encrypt": encrypt,
+            "keep_external": keep_external,
+            "has_passphrase": has_passphrase,
+            "last_external_backup_at": last_ext_at,
+            "last_external_error": last_ext_err,
+            "last_external_file": last_ext_file,
+            "is_destination_connected": is_dest_connected,
+            "is_older_than_3_days": is_older_than_3_days,
+        },
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_backup_config_view(request):
+    """
+    Update external backup configuration: destination directory, encryption, retention, and passphrase.
+    Restricted to Owner only.
+    """
+    if getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut modifier la configuration de sauvegarde externe."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    from .backup import load_desktop_config, save_desktop_config
+    from .crypto import create_passphrase_verifier
+
+    data = request.data
+    updates = {}
+
+    if "destination_dir" in data:
+        dest = (data.get("destination_dir") or "").strip()
+        updates["backup_destination_dir"] = dest
+
+    if "encrypt" in data:
+        updates["backup_encrypt"] = bool(data.get("encrypt"))
+
+    if "keep_external" in data:
+        try:
+            keep = int(data["keep_external"])
+            if keep < 1 or keep > 365:
+                return Response(
+                    {"detail": "La rétention doit être comprise entre 1 et 365 copies."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            updates["backup_keep_external"] = keep
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Nombre de copies invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # Passphrase update
+    if "passphrase" in data and data["passphrase"]:
+        passphrase = str(data["passphrase"])
+        confirm = str(data.get("passphrase_confirm", ""))
+        if passphrase != confirm:
+            return Response(
+                {"detail": "Les deux phrases de passe ne correspondent pas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(passphrase) < 8:
+            return Response(
+                {"detail": "La phrase de passe doit contenir au moins 8 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        verifier = create_passphrase_verifier(passphrase)
+        updates["backup_salt"] = verifier["salt_hex"]
+        updates["backup_verifier_salt"] = verifier["verifier_salt_hex"]
+        updates["backup_verifier_hash"] = verifier["verifier_hash_hex"]
+        updates["backup_derived_key"] = verifier["derived_key_hex"]
+        # Clear any previous encryption error
+        updates["last_external_error"] = None
+
+    saved = save_desktop_config(updates)
+
+    dest_dir = (saved.get("backup_destination_dir") or "").strip()
+    is_dest_connected = False
+    if dest_dir:
+        try:
+            p = Path(dest_dir)
+            is_dest_connected = p.exists() and p.is_dir()
+        except Exception:
+            is_dest_connected = False
+
+    return Response({
+        "status": "ok",
+        "message": "Configuration de sauvegarde mise à jour avec succès.",
+        "external_config": {
+            "destination_dir": dest_dir,
+            "encrypt": saved.get("backup_encrypt", True),
+            "keep_external": saved.get("backup_keep_external", 30),
+            "has_passphrase": bool(saved.get("backup_derived_key")),
+            "last_external_backup_at": saved.get("last_external_backup_at"),
+            "last_external_error": saved.get("last_external_error"),
+            "last_external_file": saved.get("last_external_file"),
+            "is_destination_connected": is_dest_connected,
+        },
     })
 
 
@@ -199,6 +336,109 @@ def delete_backup_view(request, filename):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+def restore_backup_view(request):
+    """
+    Validate and stage a database restore from a local backup file or an uploaded file.
+    Writes pending_restore.json and initiates a backend restart (exit code 100).
+    Restricted to Owner only.
+    """
+    if getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut restaurer une sauvegarde de la base de données."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    from .backup import get_backups_dir
+    from .restore import (
+        validate_backup_for_restore,
+        create_pending_restore_marker,
+        trigger_backend_restart,
+        get_desktop_data_dir,
+    )
+
+    passphrase = (request.data.get("passphrase") or "").strip() or None
+    local_filename = request.data.get("filename")
+    uploaded_file = request.FILES.get("file")
+
+    if not local_filename and not uploaded_file:
+        return Response(
+            {"detail": "Veuillez fournir un nom de sauvegarde locale ou téléverser un fichier de sauvegarde (.sqlite3 ou .shodzbak)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    source_path = None
+    temp_upload_file = None
+    source_name = ""
+
+    try:
+        if local_filename:
+            safe_name = os.path.basename(local_filename)
+            if safe_name != local_filename or not (safe_name.endswith(".sqlite3") or safe_name.endswith(".shodzbak")):
+                return Response(
+                    {"detail": "Nom de fichier de sauvegarde non valide."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            backups_dir = get_backups_dir()
+            candidate = (backups_dir / safe_name).resolve()
+            try:
+                candidate.relative_to(backups_dir.resolve())
+            except ValueError:
+                return Response({"detail": "Accès non autorisé."}, status=status.HTTP_403_FORBIDDEN)
+
+            if not candidate.exists() or not candidate.is_file():
+                return Response(
+                    {"detail": f"Fichier de sauvegarde locale '{safe_name}' introuvable."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            source_path = candidate
+            source_name = safe_name
+        else:
+            safe_name = os.path.basename(uploaded_file.name)
+            if not (safe_name.endswith(".sqlite3") or safe_name.endswith(".shodzbak")):
+                return Response(
+                    {"detail": "Format de fichier non supporté. Veuillez choisir un fichier .sqlite3 ou .shodzbak."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            temp_dir = get_desktop_data_dir() / "temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_upload_file = temp_dir / f"upload_{int(time.time())}_{safe_name}"
+            with open(temp_upload_file, "wb") as f:
+                for chunk in uploaded_file.chunks():
+                    f.write(chunk)
+            source_path = temp_upload_file
+            source_name = safe_name
+
+        # Validate backup
+        try:
+            validated_temp_path = validate_backup_for_restore(
+                source_path=source_path,
+                passphrase=passphrase,
+            )
+        except ValueError as err:
+            return Response({"detail": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create marker file
+        create_pending_restore_marker(validated_temp_path, source_name=source_name)
+
+        # Trigger restart
+        trigger_backend_restart(delay_seconds=0.5)
+
+        return Response({
+            "status": "ok",
+            "message": "Sauvegarde validée avec succès. Redémarrage du système en cours pour appliquer la restauration...",
+            "source_name": source_name,
+        })
+    finally:
+        # Clean up uploaded raw file if we created one
+        if temp_upload_file and temp_upload_file.exists():
+            try:
+                temp_upload_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def factory_reset_view(request):
     """
     Executes an in-app database wipe (Factory Reset or Operational Purge).
@@ -259,3 +499,155 @@ def factory_reset_view(request):
         "backup_created": backup_file.name if backup_file else None,
         "cleared_tables_count": result.get("cleared_tables_count", 0),
     })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def diagnostics_bundle_view(request):
+    """
+    Generate diagnostic ZIP bundle:
+    - Last 5 MB of each logs/*.log file
+    - perf.log
+    - meta.json (app version, Python & Django versions, OS, DB size, SQLite metrics, top 15 tables by rows, backup status, scheduler state)
+    - Optional: latest local database backup if include_database=true (owner only)
+    """
+    if getattr(request.user, "role", "") not in ("owner", "manager"):
+        return Response({"detail": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
+
+    include_db_param = str(request.query_params.get("include_database", "")).lower()
+    include_db = include_db_param in ("true", "1", "yes")
+
+    if include_db and getattr(request.user, "role", "") != "owner":
+        return Response(
+            {"detail": "Seul le propriétaire peut inclure la base de données dans le diagnostic."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    import io
+    import json
+    import os
+    import platform
+    import sys
+    import zipfile
+    import django
+    from django.db import connection
+    from django.utils import timezone
+    from .backup import get_backups_dir, list_backup_files, load_desktop_config
+    from .scheduler import load_scheduler_state
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 1. Logs
+        log_dir = getattr(settings, "LOG_DIR", None)
+        if not log_dir:
+            log_dir = getattr(settings, "DATA_DIR", Path(".")) / "logs"
+        log_dir = Path(log_dir)
+
+        if log_dir.exists() and log_dir.is_dir():
+            for log_file in sorted(log_dir.glob("*.log")):
+                try:
+                    file_size = log_file.stat().st_size
+                    with open(log_file, "rb") as f:
+                        if file_size > 5 * 1024 * 1024:
+                            f.seek(file_size - 5 * 1024 * 1024)
+                            f.readline()  # discard possible partial line
+                        content = f.read()
+                    zf.writestr(f"logs/{log_file.name}", content)
+                except Exception as err:
+                    zf.writestr(f"logs/{log_file.name}.err", f"Error reading log: {err}".encode("utf-8"))
+
+        # 2. SQLite & system metadata
+        page_count = 0
+        page_size = 0
+        freelist_count = 0
+        table_counts = []
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA page_count;")
+                row = cursor.fetchone()
+                if row:
+                    page_count = row[0]
+
+                cursor.execute("PRAGMA page_size;")
+                row = cursor.fetchone()
+                if row:
+                    page_size = row[0]
+
+                cursor.execute("PRAGMA freelist_count;")
+                row = cursor.fetchone()
+                if row:
+                    freelist_count = row[0]
+
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+                )
+                tables = [r[0] for r in cursor.fetchall()]
+                for tbl in tables:
+                    try:
+                        cursor.execute(f'SELECT COUNT(*) FROM "{tbl}";')
+                        cnt_row = cursor.fetchone()
+                        if cnt_row is not None:
+                            table_counts.append({"table": tbl, "rows": cnt_row[0]})
+                    except Exception:
+                        pass
+                table_counts.sort(key=lambda x: x["rows"], reverse=True)
+                table_counts = table_counts[:15]
+        except Exception as e:
+            logger.warning("Error fetching SQLite metadata for diagnostics: %s", e)
+
+        db_path = settings.DATABASES.get("default", {}).get("NAME", "")
+        db_size_bytes = 0
+        if db_path and os.path.exists(str(db_path)):
+            db_size_bytes = os.path.getsize(str(db_path))
+
+        cfg = load_desktop_config()
+        backups = list_backup_files()
+        backup_status = {
+            "destination_dir": cfg.get("backup_destination_dir", ""),
+            "last_external_backup_at": cfg.get("last_external_backup_at"),
+            "last_external_error": cfg.get("last_external_error"),
+            "backup_encrypt": cfg.get("backup_encrypt", True),
+            "local_backups_count": len(backups),
+            "latest_local_backup": backups[0]["filename"] if backups else None,
+        }
+
+        sched_state = load_scheduler_state()
+
+        meta = {
+            "app_version": getattr(settings, "APP_VERSION", "1.1.0"),
+            "python_version": sys.version,
+            "django_version": django.get_version(),
+            "os": f"{platform.system()} {platform.release()} ({platform.machine()})",
+            "timestamp": timezone.now().isoformat(),
+            "db_file_size_bytes": db_size_bytes,
+            "sqlite": {
+                "page_count": page_count,
+                "page_size": page_size,
+                "freelist_count": freelist_count,
+                "top_15_tables_by_rows": table_counts,
+            },
+            "backup_status": backup_status,
+            "scheduler_state": sched_state,
+        }
+        zf.writestr("meta.json", json.dumps(meta, indent=2).encode("utf-8"))
+
+        # 3. Optional Database Backup
+        if include_db:
+            from .backup import perform_database_backup
+            if not backups:
+                perform_database_backup()
+                backups = list_backup_files()
+            if backups:
+                latest_filename = backups[0]["filename"]
+                b_path = get_backups_dir() / latest_filename
+                if b_path.exists():
+                    with open(b_path, "rb") as f_db:
+                        zf.writestr(f"database/{latest_filename}", f_db.read())
+
+    buf.seek(0)
+    now_str = timezone.now().strftime("%Y%m%d_%H%M%S")
+    zip_filename = f"shodz_diagnostic_{now_str}.zip"
+    resp = HttpResponse(buf.getvalue(), content_type="application/zip")
+    resp["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
+    return resp
+

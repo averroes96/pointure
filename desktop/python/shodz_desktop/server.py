@@ -123,6 +123,15 @@ def run_server(port: int = 8745):
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.desktop")
 
     status("Chargement des modules...")
+
+    # Check for and apply any pending database restore before initializing Django
+    try:
+        from apps.core.desktop.restore import apply_pending_restore_if_needed
+        if apply_pending_restore_if_needed(get_data_dir()):
+            status("Sauvegarde restaurée avec succès. Démarrage de la base...")
+    except Exception as e:
+        logger.error("Error checking pending restore: %s", e, exc_info=True)
+
     import django
     django.setup()  # configures LOGGING → logs/shodz.log
 

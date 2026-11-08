@@ -259,13 +259,14 @@ function createMainWindow(port) {
       return;
     }
 
-    // Handle Alt+P (Paramètres), Alt+S (Settings), Alt+V (Versement), Alt+M (Mouvements), or Ctrl+, (Settings standard)
+    // Handle Alt+P (Paramètres), Alt+S (Settings), Alt+V (Versement), Alt+M (Mouvements), Alt+H (Held sales), or Ctrl+, (Settings standard)
     if (
       (input.alt && !input.control && (
         key === 'p' || key === 'P' ||
         key === 's' || key === 'S' ||
         key === 'v' || key === 'V' ||
-        key === 'm' || key === 'M'
+        key === 'm' || key === 'M' ||
+        key === 'h' || key === 'H'
       )) ||
       (input.control && !input.alt && (key === ',' || input.code === 'Comma'))
     ) {
@@ -426,9 +427,31 @@ function spawnBackend(port, bridgePort, token) {
     backendExited = true;
   });
 
-  backendProcess.on('exit', (code, signal) => {
+  backendProcess.on('exit', async (code, signal) => {
     backendExited = true;
     log.warn(`[Backend] Process exited code=${code} signal=${signal}`);
+
+    if (code === 100 && !isQuitting) {
+      log.info(`[Backend] Restart requested (exit code 100). Relaunching backend on port ${port}...`);
+      try {
+        spawnBackend(port, bridgePort, token);
+        await waitForBackend(port);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          log.info('[Backend] Backend successfully restarted. Reloading window...');
+          mainWindow.webContents.reloadIgnoringCache();
+        }
+      } catch (err) {
+        log.error('[Backend] Failed to restart backend:', err);
+        if (mainWindow) {
+          dialog.showErrorBox(
+            'ShoeDZ - Erreur de redémarrage',
+            `Le service n'a pas pu redémarrer après la restauration.\n\n${err.message}`
+          );
+        }
+      }
+      return;
+    }
+
     if (!isQuitting && mainWindow) {
       dialog.showErrorBox(
         'ShoeDZ - Service arrêté',

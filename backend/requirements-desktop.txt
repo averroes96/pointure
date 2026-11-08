@@ -9,6 +9,7 @@ celery==5.4.0
 
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
+cryptography==50.0.0
 
 # Config Management
 python-decouple==3.8

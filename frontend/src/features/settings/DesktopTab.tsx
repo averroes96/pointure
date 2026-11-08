@@ -21,12 +21,16 @@ import {
   Info,
   X,
   ShieldAlert,
+  RotateCcw,
+  Upload,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTimeSyncStatus } from "@/lib/time";
 import { useAuth } from "@/features/auth/AuthContext";
 import FactoryResetModal from "./components/FactoryResetModal";
+import ExternalBackupModal, { type ExternalBackupConfig } from "./components/ExternalBackupModal";
+import RestoreBackupModal from "./components/RestoreBackupModal";
 import type { UpdateStatusData } from "@/vite-env";
 
 interface BackupItem {
@@ -43,6 +47,7 @@ interface BackupsResponse {
   db_path: string;
   max_copies: number;
   last_backup: string | null;
+  external_config?: ExternalBackupConfig;
 }
 
 export default function DesktopTab() {
@@ -59,6 +64,8 @@ export default function DesktopTab() {
 
   // Backup State
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [downloadingDiagnostics, setDownloadingDiagnostics] = useState<boolean>(false);
+  const [includeDatabaseInDiagnostic, setIncludeDatabaseInDiagnostic] = useState<boolean>(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -66,6 +73,9 @@ export default function DesktopTab() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showExternalBackupModal, setShowExternalBackupModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<string | null>(null);
 
   const handleSuccessPurge = (backupName: string | null) => {
     queryClient.invalidateQueries();
@@ -225,6 +235,53 @@ export default function DesktopTab() {
     }
   };
 
+  const handleDownloadDiagnostics = async () => {
+    try {
+      setDownloadingDiagnostics(true);
+      const params = isOwner && includeDatabaseInDiagnostic ? { include_database: "true" } : {};
+      const response = await api.get("/desktop/diagnostics/", {
+        params,
+        responseType: "blob",
+      });
+
+      let filename = `shodz_diagnostic_${new Date().toISOString().slice(0, 10)}.zip`;
+      const disposition = response.headers?.["content-disposition"];
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setToast({
+        type: "success",
+        message: t(
+          "desktop.diagnostics_success_toast",
+          "Pack diagnostic téléchargé. Vous pouvez le transmettre à l'assistance technique."
+        ),
+      });
+    } catch (err: any) {
+      setToast({
+        type: "error",
+        message:
+          err?.response?.data?.detail ||
+          t("desktop.diagnostics_error_toast", "Échec de la génération du pack diagnostic."),
+      });
+    } finally {
+      setDownloadingDiagnostics(false);
+    }
+  };
+
   const handleCheckForUpdates = async () => {
     if (!window.electronAPI?.checkForUpdates) return;
     setChecking(true);
@@ -255,6 +312,7 @@ export default function DesktopTab() {
   const isDesktop = !!window.electronAPI?.isDesktop;
   const backups = backupsData?.backups ?? [];
   const latestBackup = backupsData?.last_backup;
+  const externalConfig = backupsData?.external_config;
 
   const formatRelativeTime = (dateStr?: string | null) => {
     if (!dateStr) return "Aucune sauvegarde";
@@ -362,6 +420,20 @@ export default function DesktopTab() {
               >
                 <FolderArchive size={13} className="text-slate-500" />
                 <span>{t("desktop.open_folder")}</span>
+              </button>
+            )}
+
+            {isOwner && (
+              <button
+                onClick={() => {
+                  setRestoreTarget(null);
+                  setShowRestoreModal(true);
+                }}
+                className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                title={t("desktop.restore_from_file", "Restaurer depuis un fichier...")}
+              >
+                <Upload size={13} className="text-slate-500" />
+                <span>{t("desktop.restore_from_file_short", "Restaurer un fichier...")}</span>
               </button>
             )}
 
@@ -519,6 +591,20 @@ export default function DesktopTab() {
                         </td>
                         <td className="py-3.5 px-4 text-end">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Restore Button (Owner only) */}
+                            {isOwner && (
+                              <button
+                                onClick={() => {
+                                  setRestoreTarget(b.filename);
+                                  setShowRestoreModal(true);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-transparent hover:border-amber-200 dark:hover:border-amber-800 transition-colors cursor-pointer"
+                                title={t("desktop.restore_button", "Restaurer cette sauvegarde")}
+                              >
+                                <RotateCcw size={15} />
+                              </button>
+                            )}
+
                             {/* Download Button */}
                             <button
                               onClick={() => handleDownloadBackup(b.filename)}
@@ -574,12 +660,125 @@ export default function DesktopTab() {
           )}
         </div>
 
+        {/* External Backup (USB / External Drive) Card */}
+        <div className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-900/50 flex items-center justify-center shrink-0">
+                <HardDrive size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    {t("desktop.external_backup_title", "Sauvegarde Externe (Support Amovible / USB)")}
+                  </h4>
+                  {externalConfig?.is_destination_connected ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <CheckCircle2 size={11} />
+                      {t("desktop.external_status_connected", "Connecté")}
+                    </span>
+                  ) : externalConfig?.destination_dir ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      <AlertCircle size={11} />
+                      {t("desktop.external_status_disconnected", "Déconnecté")}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                      {t("desktop.external_status_not_configured", "Non configuré")}
+                    </span>
+                  )}
+                  {externalConfig?.encrypt && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      <ShieldCheck size={11} />
+                      {t("desktop.external_encryption_enabled", "Chiffré AES-256")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t(
+                    "desktop.external_backup_desc",
+                    "Copie automatique de sécurité vers un support amovible lors de chaque sauvegarde."
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {isOwner && (
+              <button
+                onClick={() => setShowExternalBackupModal(true)}
+                className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <span>{t("desktop.configure_external_backup", "Configurer la sauvegarde externe")}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-2xs font-medium text-slate-400 uppercase tracking-wider block">
+                {t("desktop.external_dest_label", "Dossier de destination :")}
+              </span>
+              <span
+                className="font-mono font-semibold text-slate-800 dark:text-slate-200 mt-1 block truncate"
+                title={externalConfig?.destination_dir || ""}
+              >
+                {externalConfig?.destination_dir || t("desktop.external_status_not_configured", "Non configuré")}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-2xs font-medium text-slate-400 uppercase tracking-wider block">
+                {t("desktop.external_last_backup", "Dernière copie externe :")}
+              </span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 mt-1 block">
+                {externalConfig?.last_external_backup_at
+                  ? formatDateTime(externalConfig.last_external_backup_at)
+                  : t("desktop.external_never", "Aucune copie")}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-2xs font-medium text-slate-400 uppercase tracking-wider block">
+                {t("desktop.external_retention_label", "Conservation :")}
+              </span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 mt-1 block">
+                {t("desktop.external_retention_copies", {
+                  count: externalConfig?.keep_external ?? 30,
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Warning / Error alerts */}
+          {externalConfig?.is_older_than_3_days && (
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+              <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                {t(
+                  "desktop.external_alert_outdated",
+                  "Attention : Aucune sauvegarde externe n'a été réalisée depuis plus de 3 jours. Branchez votre support amovible pour sécuriser votre activité."
+                )}
+              </span>
+            </div>
+          )}
+
+          {externalConfig?.last_external_error && (
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+              <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+              <span>
+                {t("desktop.external_alert_error", { error: externalConfig.last_external_error })}
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Security / Safety Advice Card */}
-        <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-start gap-3.5 text-xs text-amber-900">
-          <ShieldCheck size={20} className="text-amber-700 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-3.5 text-xs text-amber-900 dark:text-amber-200">
+          <ShieldCheck size={20} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold">{t("desktop.security_practices")}</p>
-            <p className="text-amber-800 leading-relaxed">
+            <p className="font-bold text-slate-900 dark:text-white">{t("desktop.security_practices")}</p>
+            <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
               {t(
                 "settings.backup_safety_tip",
                 "Copiez régulièrement une sauvegarde récente sur une clé USB ou un disque externe. En cas de panne matérielle de votre PC, vous pourrez restaurer immédiatement l'intégralité de vos ventes, crédits clients et stocks."
@@ -819,6 +1018,59 @@ export default function DesktopTab() {
               <span>{resyncingClock ? "Synchronisation..." : "Recaler l'horloge"}</span>
             </button>
           </div>
+
+          {/* Pack Diagnostic & Logs Card */}
+          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 shadow-2xs">
+                <FolderArchive size={18} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                  {t("desktop.diagnostics_pack_title", "Pack Diagnostic & Logs")}
+                </p>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 max-w-xl">
+                  {t(
+                    "desktop.diagnostics_pack_desc",
+                    "Générez une archive ZIP contenant les journaux d'activité récents (logs, requêtes lentes), les métadonnées système et l'état SQLite pour le support technique."
+                  )}
+                </p>
+                {isOwner && (
+                  <label className="inline-flex items-center gap-2 pt-1 text-2xs text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={includeDatabaseInDiagnostic}
+                      onChange={(e) => setIncludeDatabaseInDiagnostic(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                    />
+                    <span>{t("desktop.diagnostics_include_db", "Inclure une copie de la base de données")}</span>
+                    <span className="text-2xs text-slate-400 font-normal">
+                      ({t("desktop.diagnostics_include_db_hint", "contient les données commerciales")})
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleDownloadDiagnostics}
+              disabled={downloadingDiagnostics}
+              className="btn-secondary py-2 px-3 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-2xs self-stretch md:self-auto justify-center cursor-pointer disabled:opacity-50 shrink-0"
+              title={t("desktop.diagnostics_download_tooltip", "Télécharger l'archive ZIP de diagnostic")}
+            >
+              {downloadingDiagnostics ? (
+                <>
+                  <Loader2 size={13} className="animate-spin text-primary-600" />
+                  <span>{t("desktop.diagnostics_downloading", "Génération...")}</span>
+                </>
+              ) : (
+                <>
+                  <Download size={13} />
+                  <span>{t("desktop.diagnostics_download_btn", "Télécharger le pack (.zip)")}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* ── 4. Zone de Danger : Réinitialisation ────────────────────────── */}
@@ -859,6 +1111,31 @@ export default function DesktopTab() {
         isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
         onSuccessPurge={handleSuccessPurge}
+      />
+
+      {/* External Backup Modal */}
+      <ExternalBackupModal
+        isOpen={showExternalBackupModal}
+        onClose={() => setShowExternalBackupModal(false)}
+        config={externalConfig}
+        onSuccess={(updatedConfig) => {
+          queryClient.invalidateQueries({ queryKey: ["desktop", "backups"] });
+          setToast({
+            type: "success",
+            message: t("desktop.external_config_saved_success", "Configuration de sauvegarde externe enregistrée avec succès !"),
+          });
+        }}
+      />
+
+      {/* Restore Backup Modal */}
+      <RestoreBackupModal
+        isOpen={showRestoreModal}
+        onClose={() => {
+          setShowRestoreModal(false);
+          setRestoreTarget(null);
+        }}
+        initialFilename={restoreTarget}
+        availableBackups={backups}
       />
     </div>
   );

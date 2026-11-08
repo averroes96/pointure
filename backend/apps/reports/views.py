@@ -178,6 +178,10 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             })
 
         # Top products for the same window
+        line_revenue_expr = ExpressionWrapper(
+            F("quantity") * F("unit_price") - F("discount_amount"),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
         top_products = list(
             SaleItem.objects.filter(sale__in=qs)
             .values(
@@ -185,7 +189,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 product_name=F("variant__product__name"),
                 brand=F("variant__product__brand"),
             )
-            .annotate(units_sold=Sum("quantity"), revenue=Sum("unit_price"))
+            .annotate(units_sold=Sum("quantity"), revenue=Sum(line_revenue_expr))
             .order_by("-units_sold")[:10]
         )
 
@@ -225,7 +229,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=["get"], url_path="best-sellers")
     def best_sellers(self, request):
         from apps.sales.models import SaleItem
-        from django.db.models import F
+        from django.db.models import F, Sum, ExpressionWrapper, DecimalField
 
         qs = SaleItem.objects.filter(sale__tenant=request.tenant, sale__status="completed")
         from_date = request.query_params.get("from")
@@ -235,13 +239,18 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         if to_date:
             qs = qs.filter(sale__created_at__date__lte=to_date)
 
+        line_revenue_expr = ExpressionWrapper(
+            F("quantity") * F("unit_price") - F("discount_amount"),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
+
         data = (
             qs.values(
                 product_id=F("variant__product__id"),
                 product_name=F("variant__product__name"),
                 brand=F("variant__product__brand"),
             )
-            .annotate(units_sold=Sum("quantity"), revenue=Sum("unit_price"))
+            .annotate(units_sold=Sum("quantity"), revenue=Sum(line_revenue_expr))
             .order_by("-units_sold")[:20]
         )
 
@@ -300,7 +309,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({"date": "Format attendu: YYYY-MM-DD"})
         else:
-            target_date = timezone.now().date()
+            target_date = timezone.localdate()
 
         tenant = request.tenant
         sales_qs = Sale.objects.filter(
@@ -340,14 +349,18 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         ]
 
         # Top 5 products
-        from django.db.models import F
+        from django.db.models import F, ExpressionWrapper, DecimalField
+        line_revenue_expr = ExpressionWrapper(
+            F("quantity") * F("unit_price") - F("discount_amount"),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
         top_products = list(
             SaleItem.objects.filter(sale__in=sales_qs)
             .values(
                 name=F("variant__product__name"),
                 brand=F("variant__product__brand"),
             )
-            .annotate(units=Sum("quantity"), revenue=Sum("unit_price"))
+            .annotate(units=Sum("quantity"), revenue=Sum(line_revenue_expr))
             .order_by("-units")[:5]
         )
 
@@ -428,15 +441,16 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             .order_by("p")
         )
 
-        # COGS by period (via SaleItems -> Variant -> Product.pamp / purchase_price)
+        # COGS by period (via SaleItems -> unit_cost, fallback to Variant -> Product.pamp / purchase_price)
         cogs_by_period = {}
         if can_see_costs:
             from django.db.models import Case, When
-            item_cost_expr = Case(
+            fallback_cost_expr = Case(
                 When(variant__product__pamp__gt=0, then=F("variant__product__pamp")),
                 default=Coalesce(F("variant__product__purchase_price"), Decimal("0")),
                 output_field=DecimalField(max_digits=14, decimal_places=2),
             )
+            item_cost_expr = Coalesce(F("unit_cost"), fallback_cost_expr)
             cogs_rows = (
                 SaleItem.objects.filter(sale__in=sale_qs)
                 .annotate(p=trunc_fn("sale__created_at"))

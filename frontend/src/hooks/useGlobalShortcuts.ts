@@ -130,6 +130,16 @@ export function useGlobalShortcuts() {
           break;
         }
 
+        // Alt+H: Ventes en attente (Park & Resume) sur le POS (/sales/new)
+        case "Alt+h":
+        case "Alt+H": {
+          e?.preventDefault?.();
+          if (isSalesNew) {
+            window.dispatchEvent(new CustomEvent("app-shortcut-held-sales"));
+          }
+          break;
+        }
+
         // F6 or Alt+6: Bons de livraison / Vouchers (Shift+F6: Nouveau bon)
         case "F6":
         case "Alt+6": {
@@ -285,12 +295,13 @@ export function useGlobalShortcuts() {
       const isAltNumber = e.altKey && !e.ctrlKey && /^[1-9]$/.test(e.key);
       const isAltM = (e.altKey || e.ctrlKey) && !e.metaKey && (e.key === "m" || e.key === "M" || e.code === "KeyM");
       const isAltV = e.altKey && !e.ctrlKey && (e.key === "v" || e.key === "V" || e.code === "KeyV");
+      const isAltH = e.altKey && !e.ctrlKey && (e.key === "h" || e.key === "H" || e.code === "KeyH");
       const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P" || e.code === "KeyP");
       const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S" || e.code === "KeyS");
       const isCtrlComma = (e.ctrlKey || e.metaKey) && (e.key === "," || e.code === "Comma");
 
       // Never ignore Function keys or Alt shortcuts or Ctrl+, or Escape, even when typing inside an input or textarea!
-      if (!isFKey && !isAltNumber && !isAltM && !isAltV && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
+      if (!isFKey && !isAltNumber && !isAltM && !isAltV && !isAltH && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
         }
@@ -304,6 +315,8 @@ export function useGlobalShortcuts() {
         executeShortcut("Alt+M", e);
       } else if (isAltV) {
         executeShortcut("Alt+V", e);
+      } else if (isAltH) {
+        executeShortcut("Alt+H", e);
       } else if (isAltP) {
         executeShortcut("Alt+P", e);
       } else if (isAltS) {

@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Search,
   CheckCircle2,
+  PauseCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +166,26 @@ export default function PosShortcutsCoachmark() {
                 </div>
               </div>
               <Search size={14} className="text-primary-500 shrink-0 mt-1" />
+            </div>
+          </div>
+
+          {/* ── Alt+H: Held Sales / Park & Resume ── */}
+          <div className="p-2.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors">
+            <div className="flex items-start justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-1 text-2xs font-mono font-black bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white shadow-2xs shrink-0">
+                  Alt+H
+                </kbd>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    {t("sales.coachmark.alth_title", "Mettre en attente / Reprendre")}
+                  </h4>
+                  <p className="text-3xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {t("sales.coachmark.alth_desc", "Parquer la vente courante ou reprendre un ticket en attente.")}
+                  </p>
+                </div>
+              </div>
+              <PauseCircle size={14} className="text-amber-500 shrink-0 mt-1" />
             </div>
           </div>
 
