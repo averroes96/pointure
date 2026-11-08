@@ -546,12 +546,30 @@ import tempfile
 import zipfile
 import shutil
 import os
+import logging
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.translation import gettext as _
+from rest_framework import serializers as drf_serializers
 from apps.core.services.legacy_dbf import LegacyDBFImporter
 from rest_framework.parsers import MultiPartParser
 
+logger = logging.getLogger(__name__)
+
+
+def _parse_bool_flag(raw_value, default=False) -> bool:
+    if raw_value is None or raw_value == "":
+        return default
+    try:
+        return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
+    except drf_serializers.ValidationError:
+        return default
+
+
 class LegacyDBFImportView(APIView):
     """
-    Import DBF files via a ZIP upload. (Managers only).
+    Import DBF files via a ZIP upload. (Managers and Owners only).
+    Supports dry_run=true (in form data, options JSON, or query params) to preview counts,
+    totals, and warnings inside a transaction that is rolled back before returning.
     """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
@@ -559,30 +577,24 @@ class LegacyDBFImportView(APIView):
     def post(self, request):
         from apps.core.models import RoleChoices
         if request.user.role not in [RoleChoices.OWNER, RoleChoices.MANAGER]:
-            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": _("Accès non autorisé.")}, status=status.HTTP_403_FORBIDDEN)
             
         request.tenant = getattr(request.user, "tenant", None)
         if not request.tenant:
-            return Response({"error": "No tenant associated with this user."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": _("Aucun magasin associé à cet utilisateur.")}, status=status.HTTP_400_BAD_REQUEST)
             
         zip_file = request.FILES.get("zip_file")
         if not zip_file:
-            return Response({"error": "No ZIP file provided in 'zip_file' field."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": _("Aucun fichier ZIP fourni dans le champ 'zip_file'.")}, status=status.HTTP_400_BAD_REQUEST)
             
         branch_id = request.data.get("branch_id")
         if branch_id:
             try:
-                branch = Branch.objects.get(id=int(branch_id), tenant=request.tenant)
-            except (ValueError, Branch.DoesNotExist):
-                return Response({"error": "Invalid branch_id"}, status=status.HTTP_400_BAD_REQUEST)
+                branch = Branch.objects.get(id=branch_id, tenant=request.tenant)
+            except (ValueError, DjangoValidationError, Branch.DoesNotExist):
+                return Response({"error": _("Identifiant de succursale invalide.")}, status=status.HTTP_400_BAD_REQUEST)
         else:
             branch = Branch.objects.filter(tenant=request.tenant).first()
-            if not branch:
-                branch = Branch.objects.create(
-                    tenant=request.tenant,
-                    name="Primary Branch",
-                    is_headquarters=True
-                )
             
         temp_dir = tempfile.mkdtemp()
         
@@ -590,10 +602,20 @@ class LegacyDBFImportView(APIView):
         options = {}
         options_data = request.data.get("options")
         if options_data:
-            try:
-                options = json.loads(options_data)
-            except Exception:
-                pass
+            if isinstance(options_data, dict):
+                options = dict(options_data)
+            else:
+                try:
+                    options = json.loads(options_data)
+                except Exception:
+                    pass
+
+        raw_dry_run = request.data.get("dry_run")
+        if raw_dry_run is None:
+            raw_dry_run = request.query_params.get("dry_run")
+        if raw_dry_run is None and isinstance(options, dict):
+            raw_dry_run = options.get("dry_run")
+        dry_run = _parse_bool_flag(raw_dry_run, default=False)
                 
         try:
             # Save uploaded zip
@@ -606,12 +628,32 @@ class LegacyDBFImportView(APIView):
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(temp_dir)
                 
-            importer = LegacyDBFImporter(path=temp_dir, tenant=request.tenant, branch=branch, logger=None, options=options)
-            stats = importer.execute_import()
+            importer = LegacyDBFImporter(
+                path=temp_dir,
+                tenant=request.tenant,
+                branch=branch,
+                logger=None,
+                options=options,
+                dry_run=dry_run,
+            )
+            stats = importer.execute_import(dry_run=dry_run)
             
-            return Response({"message": "Import completed", "stats": stats})
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "message": _("Simulation terminée") if dry_run else _("Importation terminée"),
+                "dry_run": dry_run,
+                "stats": stats,
+            })
+        except zipfile.BadZipFile:
+            return Response(
+                {"error": _("Le fichier fourni n'est pas une archive ZIP valide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            logger.exception("Legacy DBF import failed")
+            return Response(
+                {"error": _("Une erreur est survenue lors de l'importation des fichiers DBF.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         finally:
             shutil.rmtree(temp_dir)
 

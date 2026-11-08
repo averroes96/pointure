@@ -57,20 +57,39 @@ def safe_date(val, default=None):
                 continue
     return default
 
-def parse_pointure_range(val: str, default_sizes: list[int]) -> list[int]:
+def parse_pointure_range_with_meta(val: str, default_sizes: list[int]) -> tuple[list[int], str]:
     """
-    Parses a size range like '36/41', '36-41' into a list of integers.
+    Parses a size range like '36/41', '36-41' or single size '42' into (sizes, status)
+    where status is one of: 'missing', 'parsed', 'unknown'.
     """
     val = safe_str(val)
-    if not val: return default_sizes
-    
+    if not val:
+        return default_sizes, "missing"
+
     match = re.search(r'(\d{2})[/\-\s]+(\d{2})', val)
     if match:
         start = int(match.group(1))
         end = int(match.group(2))
-        if start <= end and end - start <= 20: # Sanity check for reasonable range
-            return list(range(start, end + 1))
-    return default_sizes
+        if 15 <= start <= end <= 60 and end - start <= 20:
+            return list(range(start, end + 1)), "parsed"
+        return default_sizes, "unknown"
+
+    single = re.match(r'^(\d{2})$', val)
+    if single:
+        sz = int(single.group(1))
+        if 15 <= sz <= 60:
+            return [sz], "parsed"
+        return default_sizes, "unknown"
+
+    return default_sizes, "unknown"
+
+
+def parse_pointure_range(val: str, default_sizes: list[int]) -> list[int]:
+    """
+    Parses a size range like '36/41', '36-41' into a list of integers.
+    """
+    sizes, _ = parse_pointure_range_with_meta(val, default_sizes)
+    return sizes
 
 def get_family_details(cat_name: str):
     """
@@ -132,13 +151,18 @@ def distribute_quantity(total_qty: int, sizes: list[int]) -> dict[int, int]:
 
     return distribution
 
+class _DryRunRollback(Exception):
+    """Internal sentinel exception used to roll back dry-run imports cleanly."""
+
+
 class LegacyDBFImporter:
-    def __init__(self, path, tenant, branch, logger=None, options=None):
+    def __init__(self, path, tenant, branch=None, logger=None, options=None, dry_run=False):
         self.path = path
         self.tenant = tenant
         self.branch = branch
         self.logger = logger
         self.options = options or {}
+        self.dry_run = bool(dry_run or self.options.get("dry_run", False))
         self.software_type = self.options.get("software_type", "retail")
         
         # Easy Mode is True by default for Algerian shoe retail shops
@@ -154,6 +178,7 @@ class LegacyDBFImporter:
         self.supplier_map = {}
         self.client_map = {}
         self.stats = {
+            "dry_run": self.dry_run,
             "suppliers_imported": 0,
             "clients_imported": 0,
             "products_imported": 0,
@@ -163,7 +188,36 @@ class LegacyDBFImporter:
             "refunds_imported": 0,
             "defects_imported": 0,
             "store_settings_updated": False,
-            "warnings": []
+            "client_debts_total": Decimal("0.00"),
+            "client_credits_total": Decimal("0.00"),
+            "supplier_debts_total": Decimal("0.00"),
+            "stock_pairs_total": 0,
+            "stock_value_total": Decimal("0.00"),
+            "stock_retail_value_total": Decimal("0.00"),
+            "counts": {
+                "suppliers": 0,
+                "clients": 0,
+                "products": 0,
+                "stock_units": 0,
+                "purchase_orders": 0,
+                "sales": 0,
+                "refunds": 0,
+                "defects": 0,
+            },
+            "totals": {
+                "client_debts": Decimal("0.00"),
+                "client_credits": Decimal("0.00"),
+                "supplier_debts": Decimal("0.00"),
+                "stock_pairs": 0,
+                "stock_value": Decimal("0.00"),
+                "stock_retail_value": Decimal("0.00"),
+            },
+            "warning_counts": {
+                "unknown_sizes": 0,
+                "products_without_price": 0,
+                "guessed_size_ranges": 0,
+            },
+            "warnings": [],
         }
 
     def log(self, message):
@@ -183,21 +237,61 @@ class LegacyDBFImporter:
             self.stats["warnings"].append(f"Error reading {filename}: {str(e)}")
             return []
 
-    def execute_import(self):
-        with transaction.atomic():
-            self._import_store_settings()
-            if self.options.get("suppliers", True):
-                self._import_suppliers()
-            if self.options.get("clients", True):
-                self._import_clients()
-            if self.options.get("products", True):
-                self._import_products()
-            if self.options.get("purchases", True):
-                self._import_purchases()
-            if self.options.get("defects", True):
-                self._import_defects()
-            if self.options.get("sales", True):
-                self._import_sales()
+    def execute_import(self, dry_run=None):
+        is_dry_run = self.dry_run if dry_run is None else bool(dry_run)
+        self.dry_run = is_dry_run
+        self.stats["dry_run"] = is_dry_run
+
+        try:
+            with transaction.atomic():
+                if not self.branch:
+                    self.branch = Branch.objects.filter(tenant=self.tenant).first()
+                    if not self.branch:
+                        self.branch = Branch.objects.create(
+                            tenant=self.tenant,
+                            name="Primary Branch",
+                            is_headquarters=True,
+                        )
+
+                self._import_store_settings()
+                if self.options.get("suppliers", True):
+                    self._import_suppliers()
+                if self.options.get("clients", True):
+                    self._import_clients()
+                if self.options.get("products", True):
+                    self._import_products()
+                if self.options.get("purchases", True):
+                    self._import_purchases()
+                if self.options.get("defects", True):
+                    self._import_defects()
+                if self.options.get("sales", True):
+                    self._import_sales()
+
+                self.stats["stock_pairs_total"] = self.stats["stock_units_imported"]
+                self.stats["counts"] = {
+                    "suppliers": self.stats["suppliers_imported"],
+                    "clients": self.stats["clients_imported"],
+                    "products": self.stats["products_imported"],
+                    "stock_units": self.stats["stock_units_imported"],
+                    "purchase_orders": self.stats["purchase_orders_imported"],
+                    "sales": self.stats["sales_imported"],
+                    "refunds": self.stats["refunds_imported"],
+                    "defects": self.stats["defects_imported"],
+                }
+                self.stats["totals"] = {
+                    "client_debts": self.stats["client_debts_total"].quantize(Decimal("0.01")),
+                    "client_credits": self.stats["client_credits_total"].quantize(Decimal("0.01")),
+                    "supplier_debts": self.stats["supplier_debts_total"].quantize(Decimal("0.01")),
+                    "stock_pairs": self.stats["stock_units_imported"],
+                    "stock_value": self.stats["stock_value_total"].quantize(Decimal("0.01")),
+                    "stock_retail_value": self.stats["stock_retail_value_total"].quantize(Decimal("0.01")),
+                }
+
+                if is_dry_run:
+                    raise _DryRunRollback()
+        except _DryRunRollback:
+            pass
+
         return self.stats
 
     def _import_store_settings(self):
@@ -235,15 +329,18 @@ class LegacyDBFImporter:
         for r in records:
             name = safe_str(r.get("RAISON"))
             if not name: continue
+            supp_debt = safe_decimal(r.get("MT_RESTE"))
             supp, _ = Supplier.objects.update_or_create(
                 tenant=self.tenant,
                 name=name,
                 defaults={
-                    "phone": safe_str(r.get("TELEPHONE")),
+                    "phone": safe_str(r.get("TELEPHONE"))[:20],
                     "address": safe_str(r.get("ADRESSE")),
-                    "outstanding_balance": safe_decimal(r.get("MT_RESTE"))
+                    "outstanding_balance": supp_debt
                 }
             )
+            if supp_debt > 0:
+                self.stats["supplier_debts_total"] += supp_debt
             code = safe_str(r.get("CODE_FOURN"))
             if code:
                 self.supplier_map[code] = supp
@@ -323,26 +420,30 @@ class LegacyDBFImporter:
 
             debt = safe_decimal(r.get("MT_RESTE"))
             entry_date = safe_date(r.get("JOUR"), default=timezone.localdate())
-            if debt > 0 and created:
-                ClientLedger.objects.create(
-                    client=client,
-                    entry_type="debit",
-                    amount=debt,
-                    date=entry_date,
-                    description="Opening Balance (Imported from Legacy)",
-                    reference_type="LegacyOpening",
-                    reference_id=legacy_client_id[:50],
-                )
-            elif debt < 0 and created:
-                ClientLedger.objects.create(
-                    client=client,
-                    entry_type="credit",
-                    amount=abs(debt),
-                    date=entry_date,
-                    description="Opening Credit (Imported from Legacy)",
-                    reference_type="LegacyOpening",
-                    reference_id=legacy_client_id[:50],
-                )
+            if debt > 0:
+                self.stats["client_debts_total"] += debt
+                if created:
+                    ClientLedger.objects.create(
+                        client=client,
+                        entry_type="debit",
+                        amount=debt,
+                        date=entry_date,
+                        description="Opening Balance (Imported from Legacy)",
+                        reference_type="LegacyOpening",
+                        reference_id=legacy_client_id[:50],
+                    )
+            elif debt < 0:
+                self.stats["client_credits_total"] += abs(debt)
+                if created:
+                    ClientLedger.objects.create(
+                        client=client,
+                        entry_type="credit",
+                        amount=abs(debt),
+                        date=entry_date,
+                        description="Opening Credit (Imported from Legacy)",
+                        reference_type="LegacyOpening",
+                        reference_id=legacy_client_id[:50],
+                    )
             self.stats["clients_imported"] += 1
 
     def _import_products(self):
@@ -395,6 +496,22 @@ class LegacyDBFImporter:
             if sale_price <= 0:
                 sale_price = safe_decimal(r.get("PV_TARIF1"))
 
+            legacy_id = safe_str(r.get("ARTICLE"))
+
+            if sale_price <= 0:
+                self.stats["warning_counts"]["products_without_price"] += 1
+                self.stats["warnings"].append(
+                    f"Produit sans prix de vente : '{name}' (Réf: {ref or legacy_id})"
+                )
+
+            raw_pointure = safe_str(r.get("POINTURE"))
+            parsed_sizes, pointure_status = parse_pointure_range_with_meta(raw_pointure, default_sizes)
+            if pointure_status == "unknown":
+                self.stats["warning_counts"]["unknown_sizes"] += 1
+                self.stats["warnings"].append(
+                    f"Pointure inconnue ou invalide '{raw_pointure}' pour l'article '{name}' (Réf: {ref or legacy_id})"
+                )
+
             prod = existing_products.get(ref)
             if not prod:
                 prod = Product.objects.create(
@@ -423,7 +540,7 @@ class LegacyDBFImporter:
             if st_bl <= 0:
                 st_bl = safe_int(r.get("ST_ACTUEL"))
 
-            legacy_id = safe_str(r.get("ARTICLE"))
+            unit_cost_basis = purchase_price if purchase_price > 0 else sale_price
 
             if self.easy_mode:
                 # ── Easy Mode: Exactly 1 default variant per product (size_eu=0, colour='Standard') ──
@@ -448,14 +565,20 @@ class LegacyDBFImporter:
                         notes=f"Stock initial importé de l'ancienne base ({st_bl} paires)"
                     )
                     self.stats["stock_units_imported"] += st_bl
+                    self.stats["stock_value_total"] += Decimal(st_bl) * unit_cost_basis
+                    self.stats["stock_retail_value_total"] += Decimal(st_bl) * sale_price
 
                 self.product_map[legacy_id] = var
                 self.stats["products_imported"] += 1
             else:
                 # ── Matrix Mode: Distribute stock across size range ──
-                sizes = default_sizes
-                if self.software_type == "wholesale":
-                    sizes = parse_pointure_range(r.get("POINTURE"), default_sizes)
+                sizes = parsed_sizes if (self.software_type == "wholesale" or raw_pointure) else default_sizes
+
+                if st_bl > 0 and len(sizes) > 1:
+                    self.stats["warning_counts"]["guessed_size_ranges"] += 1
+                    self.stats["warnings"].append(
+                        f"Plage de pointures répartie par estimation (distribute_quantity) pour '{name}' ({st_bl} paires sur {sizes[0]}–{sizes[-1]})"
+                    )
 
                 stock_distribution = distribute_quantity(st_bl, sizes)
                 middle_variant = None
@@ -487,6 +610,8 @@ class LegacyDBFImporter:
                             notes=f"Imported from Legacy ST_BL (Size {sz})"
                         )
                         self.stats["stock_units_imported"] += qty
+                        self.stats["stock_value_total"] += Decimal(qty) * unit_cost_basis
+                        self.stats["stock_retail_value_total"] += Decimal(qty) * sale_price
                 
                 self.product_map[legacy_id] = middle_variant or var
                 self.stats["products_imported"] += 1

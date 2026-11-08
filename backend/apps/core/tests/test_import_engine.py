@@ -335,3 +335,231 @@ class TestLegacyDBFClientOpeningBalances:
         assert c2.cached_balance == Decimal("-12000.00")
         assert ClientLedger.objects.filter(client=c1).count() == 1
         assert ClientLedger.objects.filter(client=c2).count() == 1
+
+
+@pytest.mark.django_db
+class TestLegacyDBFDryRun:
+    def test_dry_run_report_counts_totals_warnings_and_no_database_changes(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Client, ClientLedger
+        from apps.suppliers.models import Supplier
+        from apps.inventory.models import Product, Variant, StockMovement
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "FOURNISS.DBF": [
+                {
+                    "RAISON": "Fournisseur Alger",
+                    "TELEPHONE": "021223344",
+                    "ADRESSE": "Alger",
+                    "MT_RESTE": Decimal("50000.00"),
+                    "CODE_FOURN": "F01",
+                },
+                {
+                    "RAISON": "Fournisseur Oran",
+                    "TELEPHONE": "041556677",
+                    "ADRESSE": "Oran",
+                    "MT_RESTE": Decimal("15000.00"),
+                    "CODE_FOURN": "F02",
+                },
+            ],
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "C100",
+                    "DESIGNAT": "Client Gros Blida",
+                    "TEL1": "0550112233",
+                    "ADRESSE": "Blida",
+                    "MT_RESTE": Decimal("30000.00"),
+                    "JOUR": datetime.date(2025, 12, 1),
+                },
+                {
+                    "CLIENT": "C200",
+                    "DESIGNAT": "Client Avoir Setif",
+                    "TEL1": "0661445566",
+                    "ADRESSE": "Setif",
+                    "MT_RESTE": Decimal("-5000.00"),
+                    "JOUR": None,
+                },
+            ],
+            "FAMILLE.DBF": [
+                {"FAMILLE": "HOM", "LIBELLE": "Homme Classique"},
+            ],
+            "ARTICLEB.DBF": [
+                {
+                    "ARTICLE": "A001",
+                    "REFERENCE": "MOC-400",
+                    "LIBELLE": "Mocassin Cuir Noir",
+                    "FAMILLE": "HOM",
+                    "PRIX_ACHAT": Decimal("2000.00"),
+                    "BTARIF1": Decimal("3500.00"),
+                    "ST_BL": 12,
+                    "POINTURE": "40/43",
+                },
+                {
+                    "ARTICLE": "A002",
+                    "REFERENCE": "FREE-ITEM",
+                    "LIBELLE": "Article Échantillon Sans Prix",
+                    "FAMILLE": "HOM",
+                    "PRIX_ACHAT": Decimal("0.00"),
+                    "BTARIF1": Decimal("0.00"),
+                    "PV_TARIF1": Decimal("0.00"),
+                    "ST_BL": 4,
+                    "POINTURE": "41",
+                },
+                {
+                    "ARTICLE": "A003",
+                    "REFERENCE": "BAD-SZ",
+                    "LIBELLE": "Article Pointure Invalide",
+                    "FAMILLE": "HOM",
+                    "PRIX_ACHAT": Decimal("1500.00"),
+                    "BTARIF1": Decimal("2500.00"),
+                    "ST_BL": 6,
+                    "POINTURE": "INVALID_SIZE",
+                },
+            ],
+            "GCPARAM.DBF": [],
+        }
+
+        def fake_get_dbf(self, filename):
+            return synthetic_data.get(filename.upper(), [])
+
+        monkeypatch.setattr(LegacyDBFImporter, "get_dbf", fake_get_dbf)
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            dry_run=True,
+            options={
+                "suppliers": True,
+                "clients": True,
+                "products": True,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "easy_mode": False,  # Trigger size range estimation warnings
+            },
+        )
+
+        stats = importer.execute_import(dry_run=True)
+
+        assert stats["dry_run"] is True
+        assert stats["counts"]["suppliers"] == 4  # 2 from FOURNISS.DBF + 2 wholesale client vendors from CLIENT.DBF
+        assert stats["counts"]["clients"] == 2
+        assert stats["counts"]["products"] == 3
+        assert stats["counts"]["stock_units"] == 22
+
+        # Financial totals
+        assert stats["totals"]["client_debts"] == Decimal("30000.00")
+        assert stats["totals"]["client_credits"] == Decimal("5000.00")
+        assert stats["totals"]["supplier_debts"] == Decimal("65000.00")
+        assert stats["totals"]["stock_pairs"] == 22
+        # Cost value: (12 * 2000) + (4 * 0) + (6 * 1500) = 24000 + 0 + 9000 = 33000
+        assert stats["totals"]["stock_value"] == Decimal("33000.00")
+        # Retail value: (12 * 3500) + (4 * 0) + (6 * 2500) = 42000 + 0 + 15000 = 57000
+        assert stats["totals"]["stock_retail_value"] == Decimal("57000.00")
+
+        # Warnings verification
+        assert stats["warning_counts"]["products_without_price"] >= 1
+        assert stats["warning_counts"]["unknown_sizes"] >= 1
+        assert stats["warning_counts"]["guessed_size_ranges"] >= 1
+        assert any("sans prix" in w.lower() for w in stats["warnings"])
+        assert any("inconnue" in w.lower() for w in stats["warnings"])
+        assert any("distribute_quantity" in w for w in stats["warnings"])
+
+        # Strictly verify that NO rows were created in the database during dry run
+        assert Supplier.objects.filter(tenant=tenant).count() == 0
+        assert Client.objects.filter(tenant=tenant).count() == 0
+        assert ClientLedger.objects.filter(client__tenant=tenant).count() == 0
+        assert Product.objects.filter(tenant=tenant).count() == 0
+        assert Variant.objects.filter(tenant=tenant).count() == 0
+        assert StockMovement.objects.filter(tenant=tenant).count() == 0
+
+    def test_legacy_import_view_dry_run_and_execution(self, auth_client, tenant, branch, monkeypatch):
+        import io
+        import zipfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from apps.clients.models import Client
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        # Synthetic importer DBF loader
+        def fake_get_dbf(self, filename):
+            if filename.upper() == "CLIENT.DBF":
+                return [
+                    {
+                        "CLIENT": "PREVIEW_01",
+                        "DESIGNAT": "Client Simulation",
+                        "TEL1": "0550000000",
+                        "ADRESSE": "Tipaza",
+                        "MT_RESTE": Decimal("15000.00"),
+                    }
+                ]
+            return []
+
+        monkeypatch.setattr(LegacyDBFImporter, "get_dbf", fake_get_dbf)
+
+        # Build in-memory zip
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zf:
+            zf.writestr("CLIENT.DBF", b"placeholder")
+        zip_buffer.seek(0)
+        uploaded_zip = SimpleUploadedFile("legacy.zip", zip_buffer.read(), content_type="application/zip")
+
+        # 1. Post with dry_run = true
+        res_dry = auth_client.post(
+            "/api/v1/core/legacy-import/",
+            {"zip_file": uploaded_zip, "dry_run": "true"},
+            format="multipart",
+        )
+        assert res_dry.status_code == 200
+        assert res_dry.data["dry_run"] is True
+        assert res_dry.data["stats"]["counts"]["clients"] == 1
+        assert res_dry.data["stats"]["totals"]["client_debts"] == Decimal("15000.00")
+        assert Client.objects.filter(tenant=tenant, name="Client Simulation").count() == 0
+
+        # 2. Post with dry_run = false (real execution)
+        zip_buffer.seek(0)
+        uploaded_zip_live = SimpleUploadedFile("legacy.zip", zip_buffer.read(), content_type="application/zip")
+        res_live = auth_client.post(
+            "/api/v1/core/legacy-import/",
+            {"zip_file": uploaded_zip_live, "dry_run": "false"},
+            format="multipart",
+        )
+        assert res_live.status_code == 200
+        assert res_live.data["dry_run"] is False
+        assert Client.objects.filter(tenant=tenant, name="Client Simulation").count() == 1
+
+    def test_management_command_dry_run(self, tenant, branch, monkeypatch):
+        import io
+        from django.core.management import call_command
+        from apps.clients.models import Client
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        def fake_get_dbf(self, filename):
+            if filename.upper() == "CLIENT.DBF":
+                return [
+                    {
+                        "CLIENT": "CMD_01",
+                        "DESIGNAT": "Client Commande Test",
+                        "TEL1": "0550111222",
+                        "ADRESSE": "Boumerdes",
+                        "MT_RESTE": Decimal("9000.00"),
+                    }
+                ]
+            return []
+
+        monkeypatch.setattr(LegacyDBFImporter, "get_dbf", fake_get_dbf)
+
+        out = io.StringIO()
+        call_command(
+            "import_legacy_dbf",
+            "/tmp/fake_dir",
+            tenant_id=str(tenant.id),
+            branch_id=str(branch.id),
+            dry_run=True,
+            stdout=out,
+        )
+        output = out.getvalue()
+        assert "DRY-RUN" in output
+        assert "Dry-run completed" in output
+        assert Client.objects.filter(tenant=tenant, name="Client Commande Test").count() == 0
