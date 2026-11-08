@@ -11,43 +11,43 @@ export interface HelpRouteMapping {
 
 export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   // POS & Sales
-  { prefix: "/sales/new", cashierAnchor: "encaisser", ownerAnchor: "encaisser" },
-  { prefix: "/sales/history", cashierAnchor: "retour-echange", ownerAnchor: "clotures-rapports" },
-  { prefix: "/sales", cashierAnchor: "encaisser", ownerAnchor: "encaisser" },
+  { prefix: "/sales/new", cashierAnchor: "encaisser", ownerAnchor: "rapports" },
+  { prefix: "/sales/history", cashierAnchor: "retour-echange", ownerAnchor: "rapports" },
+  { prefix: "/sales", cashierAnchor: "encaisser", ownerAnchor: "rapports" },
 
   // Inventory, Stocks & Products
-  { prefix: "/inventory/stocktake", cashierAnchor: "connexion", ownerAnchor: "stocks-inventaire" },
-  { prefix: "/inventory/transfer", cashierAnchor: "connexion", ownerAnchor: "stocks-inventaire" },
-  { prefix: "/inventory/movements", cashierAnchor: "connexion", ownerAnchor: "stocks-inventaire" },
-  { prefix: "/inventory/low-stock", cashierAnchor: "connexion", ownerAnchor: "stocks-inventaire" },
-  { prefix: "/inventory/defects", cashierAnchor: "connexion", ownerAnchor: "stocks-inventaire" },
-  { prefix: "/inventory", cashierAnchor: "connexion", ownerAnchor: "articles-variantes" },
-  { prefix: "/products", cashierAnchor: "connexion", ownerAnchor: "articles-variantes" },
+  { prefix: "/inventory/stocktake", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/transfer", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/movements", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/low-stock", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory/defects", cashierAnchor: "connexion", ownerAnchor: "inventaire" },
+  { prefix: "/inventory", cashierAnchor: "connexion", ownerAnchor: "produits" },
+  { prefix: "/products", cashierAnchor: "connexion", ownerAnchor: "produits" },
 
   // Cash sessions & Closing
-  { prefix: "/closing", cashierAnchor: "fermer-caisse", ownerAnchor: "clotures-rapports" },
+  { prefix: "/closing", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
 
   // Clients & Layaway / Versements
-  { prefix: "/clients", cashierAnchor: "versement-reservation", ownerAnchor: "facturation-b2b" },
+  { prefix: "/clients", cashierAnchor: "versement-reservation", ownerAnchor: "clients-credit" },
 
   // Suppliers & Purchases
-  { prefix: "/suppliers", cashierAnchor: "connexion", ownerAnchor: "fournisseurs-achats" },
-  { prefix: "/purchase-orders", cashierAnchor: "connexion", ownerAnchor: "fournisseurs-achats" },
+  { prefix: "/suppliers", cashierAnchor: "connexion", ownerAnchor: "achats-reception" },
+  { prefix: "/purchase-orders", cashierAnchor: "connexion", ownerAnchor: "achats-reception" },
 
   // Invoicing & Delivery Notes
-  { prefix: "/invoices", cashierAnchor: "connexion", ownerAnchor: "facturation-b2b" },
-  { prefix: "/delivery-notes", cashierAnchor: "connexion", ownerAnchor: "facturation-b2b" },
-  { prefix: "/credit-notes", cashierAnchor: "retour-echange", ownerAnchor: "facturation-b2b" },
+  { prefix: "/invoices", cashierAnchor: "connexion", ownerAnchor: "facturation" },
+  { prefix: "/delivery-notes", cashierAnchor: "connexion", ownerAnchor: "facturation" },
+  { prefix: "/credit-notes", cashierAnchor: "retour-echange", ownerAnchor: "facturation" },
 
   // Reports
-  { prefix: "/reports", cashierAnchor: "fermer-caisse", ownerAnchor: "clotures-rapports" },
+  { prefix: "/reports", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
 
   // Settings & Desktop
-  { prefix: "/settings/desktop", cashierAnchor: "connexion", ownerAnchor: "sauvegardes-securite" },
-  { prefix: "/settings", cashierAnchor: "connexion", ownerAnchor: "configuration-initiale" },
+  { prefix: "/settings/desktop", cashierAnchor: "connexion", ownerAnchor: "sauvegardes" },
+  { prefix: "/settings", cashierAnchor: "connexion", ownerAnchor: "premier-demarrage" },
 
   // Auth / Login
-  { prefix: "/login", cashierAnchor: "connexion", ownerAnchor: "connexion" },
+  { prefix: "/login", cashierAnchor: "connexion", ownerAnchor: "premier-demarrage" },
 ];
 
 /**
@@ -92,4 +92,3 @@ export function openHelp(pathname: string, role?: string, lang?: string): void {
   const url = getHelpUrl(pathname, role, lang);
   window.open(url, "_blank");
 }
-

@@ -35,10 +35,10 @@ describe("helpLinks", () => {
     });
 
     it("routes manager or owner to owner.html with context anchor", () => {
-      expect(getHelpUrl("/inventory/stocktake", "manager", "fr")).toBe("/manual/fr/owner.html#stocks-inventaire");
-      expect(getHelpUrl("/inventory", "owner", "ar")).toBe("/manual/ar/owner.html#articles-variantes");
-      expect(getHelpUrl("/settings/desktop", "owner", "en")).toBe("/manual/en/owner.html#sauvegardes-securite");
-      expect(getHelpUrl("/settings", "manager", "fr")).toBe("/manual/fr/owner.html#configuration-initiale");
+      expect(getHelpUrl("/inventory/stocktake", "manager", "fr")).toBe("/manual/fr/owner.html#inventaire");
+      expect(getHelpUrl("/inventory", "owner", "ar")).toBe("/manual/ar/owner.html#produits");
+      expect(getHelpUrl("/settings/desktop", "owner", "en")).toBe("/manual/en/owner.html#sauvegardes");
+      expect(getHelpUrl("/settings", "manager", "fr")).toBe("/manual/fr/owner.html#premier-demarrage");
     });
 
     it("defaults unknown paths to the guide cover anchor", () => {
@@ -48,4 +48,3 @@ describe("helpLinks", () => {
     });
   });
 });
-
