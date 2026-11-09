@@ -41,6 +41,7 @@ from .services import (
     expand_imported_order_lines,
     parse_supplier_order_file,
     reconcile_with_catalog,
+    scan_purchase_order_image,
 )
 
 
@@ -791,6 +792,57 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             "purchase_order": PurchaseOrderSerializer(po).data,
             "stats": stats,
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="scan-image")
+    def scan_image(self, request):
+        """
+        POST /suppliers/purchase-orders/scan-image/
+        Offline OpenCV + RapidOCR image/photo scanner using PURCHASE_ORDER_PROFILE.
+        Extracts spatial tokens, table rows, supplier metadata, and reconciles with catalog.
+        """
+        import logging
+        from django.utils.translation import gettext as _
+
+        self.require_manager()
+        uploaded_file = request.FILES.get("file") or request.FILES.get("image")
+        if not uploaded_file:
+            return Response(
+                {"detail": _("Veuillez fournir une image ou photo du bon fournisseur.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        filename = (uploaded_file.name or "").lower()
+        allowed_exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+        if filename and not any(filename.endswith(ext) for ext in allowed_exts):
+            return Response(
+                {"detail": _("Format d'image non supporté. Utilisez PNG, JPG, WEBP ou BMP.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_bytes = uploaded_file.read()
+        if not raw_bytes:
+            return Response(
+                {"detail": _("Le fichier image est vide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = scan_purchase_order_image(raw_bytes, tenant=request.tenant)
+        except ImportError as e:
+            logging.getLogger(__name__).warning("OCR module unavailable: %s", e)
+            return Response(
+                {"detail": _("Le module de reconnaissance optique n'est pas disponible sur ce serveur (dépendances système OpenCV/libGL manquantes).")},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception("Error scanning purchase order image")
+            return Response(
+                {"detail": _("Impossible d'analyser cette image. Vérifiez que le fichier est une image valide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
 
 
     def create(self, request, *args, **kwargs):

@@ -13,13 +13,14 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, ShoppingBag, Plus, AlertCircle, Loader2,
-  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil, FileDown, Upload,
+  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil, FileDown, Upload, Camera,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier, PurchaseOrder, SupplierInvoice, SupplierPayment } from "@/types";
 import { cn } from "@/lib/utils";
 import { PurchaseOrderImportModal } from "./components/PurchaseOrderImportModal";
+import { ImagePOImportModal } from "./components/ImagePOImportModal";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -294,6 +295,7 @@ function OrdersTab({ supplierId }: { supplierId: number | string }) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [imageScanModalOpen, setImageScanModalOpen] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<PurchaseOrder>>({
     queryKey: ["supplier-orders", supplierId, page],
@@ -305,16 +307,24 @@ function OrdersTab({ supplierId }: { supplierId: number | string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setImageScanModalOpen(true)}
+          className="btn-secondary btn-sm flex items-center gap-1.5 whitespace-nowrap hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+        >
+          <Camera size={14} className="text-indigo-500" />
+          <span>{t("scanner.btn_scan_photo", "Scanner photo / bon")}</span>
+        </button>
         <button
           type="button"
           onClick={() => setImportModalOpen(true)}
-          className="btn-secondary btn-sm flex items-center gap-1.5"
+          className="btn-secondary btn-sm flex items-center gap-1.5 whitespace-nowrap hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
         >
-          <Upload size={14} />
-          {t("supplier.import_order", "Importer un bon de commande")}
+          <Upload size={14} className="text-emerald-500" />
+          <span>{t("supplier.import_order", "Importer un bon de commande")}</span>
         </button>
-        <Link to={`/purchase-orders/new?supplier=${supplierId}`} className="btn-primary btn-sm">
+        <Link to={`/purchase-orders/new?supplier=${supplierId}`} className="btn-primary btn-sm flex items-center gap-1.5 whitespace-nowrap">
           <Plus size={14} />{t("supplier.new_order")}
         </Link>
       </div>
@@ -374,6 +384,16 @@ function OrdersTab({ supplierId }: { supplierId: number | string }) {
       <PurchaseOrderImportModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
+        preselectedSupplierId={supplierId}
+        onSuccess={(po) => {
+          queryClient.invalidateQueries({ queryKey: ["supplier-orders", supplierId] });
+          navigate(`/purchase-orders/${po.id}`);
+        }}
+      />
+
+      <ImagePOImportModal
+        isOpen={imageScanModalOpen}
+        onClose={() => setImageScanModalOpen(false)}
         preselectedSupplierId={supplierId}
         onSuccess={(po) => {
           queryClient.invalidateQueries({ queryKey: ["supplier-orders", supplierId] });

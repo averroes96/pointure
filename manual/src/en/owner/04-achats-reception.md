@@ -83,4 +83,21 @@ ShoeDZ provides an intelligent import engine to directly convert procurement spr
    - The auto-create option instantly registers missing products and size variants into your store catalog.
    - Check **Save as template** to store this supplier's format for streamlined one-click imports in the future.
 
+---
+
+### G. Optical Recognition & Supplier Slip Scanner (Photos & Images) {#fournisseurs-scan-ocr}
+
+When your supplier delivers a handwritten paper delivery note, printed receipt, or physical order slip, you can scan and digitize it directly using the offline scanning utility:
+1. In the purchase order form or from the supplier's Orders tab, click **Scan photo / slip**.
+2. Select a photo or image file (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`) taken with your smartphone or a flatbed scanner.
+3. **Autonomous Optical Processing (100% Offline):**
+   - The OpenCV vision pipeline automatically deskews tilted documents (up to $\pm 45^\circ$) and normalizes uneven camera lighting/shadows.
+   - The embedded neural OCR engine (RapidOCR) extracts text tokens, references, footwear sizes, and unit prices in under 500 ms without needing an internet connection.
+   - **Footwear-Specific Grammars:** The engine automatically detects footwear size runs (e.g. `37-41`, `40/45`), carton/pair ratios (e.g. `12c/20p` for 12 cartons of 20 pairs), and Algerian supplier phone numbers (`05`, `06`, `07`) to auto-select the supplier.
+4. **Split-Screen Review Interface:**
+   - The left pane displays the document image with pan/zoom navigation and interactive SVG bounding box highlights.
+   - The right pane provides an editable review table where you can adjust extracted values, remove noise lines, or manually bind items to existing catalog products.
+5. Click **Generate purchase order** to create the draft purchase order with pre-filled line items.
+
+
 

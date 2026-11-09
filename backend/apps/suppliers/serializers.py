@@ -235,6 +235,7 @@ class POImportLineItemSerializer(serializers.Serializer):
     row_index = serializers.IntegerField(required=False, default=0)
     reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     description = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    size = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
     size_eu = serializers.IntegerField(min_value=0, max_value=60, required=False, default=0)
     colour = serializers.CharField(max_length=50, required=False, allow_blank=True, default="Standard")
     brand = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")

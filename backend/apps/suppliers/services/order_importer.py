@@ -748,23 +748,41 @@ def execute_po_import(
             ref = (item.get("reference") or "").strip()
             desc = (item.get("description") or ref or "Article").strip()
             colour = (item.get("colour") or "Standard").strip()
+            size_str = str(item.get("size") or "").strip()
             size_eu = item.get("size_eu") or 0
+            if not size_eu and size_str.isdigit():
+                sz_int = int(size_str)
+                if 15 <= sz_int <= 60:
+                    size_eu = sz_int
+            elif size_str and not size_str.isdigit() and size_str not in desc:
+                desc = f"{desc} ({size_str})"
+
             qty = parse_integer_value(item.get("quantity"), default=1)
             cartons = parse_integer_value(item.get("cartons"), default=0)
             ppc = parse_integer_value(item.get("pairs_per_carton"), default=10)
             price = parse_decimal_value(item.get("unit_price")) or Decimal("0.00")
 
             variant = None
+            explicit_variant_id = item.get("variant_id")
+            explicit_product_id = item.get("product_id")
 
-            if quick_create_products:
+            if explicit_variant_id:
+                variant = Variant.objects.filter(tenant=tenant, id=explicit_variant_id).first()
+
+            if not variant and (quick_create_products or explicit_product_id):
+                product = None
+                if explicit_product_id:
+                    product = Product.objects.filter(tenant=tenant, id=explicit_product_id).first()
+
                 cache_key = ref.lower() if ref else desc.lower()
-                product = txn_product_cache.get(cache_key)
                 if not product:
-                    product = Product.objects.filter(tenant=tenant, reference__iexact=ref).first() if ref else None
+                    product = txn_product_cache.get(cache_key)
+                if not product and ref:
+                    product = Product.objects.filter(tenant=tenant, reference__iexact=ref).first()
                 if not product and desc:
                     product = Product.objects.filter(tenant=tenant, name__iexact=desc).first()
 
-                if not product:
+                if not product and quick_create_products:
                     product = _resolve_product(tenant, {
                         "reference": ref,
                         "product_name": desc,
@@ -775,12 +793,12 @@ def execute_po_import(
                         "pairs_per_carton": ppc,
                     })
                     created_products_count += 1
-                txn_product_cache[cache_key] = product
 
-                # Resolve or create variant
-                variant = _resolve_variant(tenant, product, size_eu=size_eu, colour=colour)
-                if variant:
-                    created_variants_count += 1
+                if product:
+                    txn_product_cache[cache_key] = product
+                    variant = _resolve_variant(tenant, product, size_eu=size_eu, colour=colour)
+                    if variant:
+                        created_variants_count += 1
 
             line = POLine.objects.create(
                 order=po,

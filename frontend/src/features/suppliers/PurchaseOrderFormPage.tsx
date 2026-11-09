@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
-  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload, FileSpreadsheet,
+  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload, FileSpreadsheet, Camera,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Supplier, StoreSettings } from "@/types";
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, distributeCartonQuantities } from "./components/CartonPanel";
 import { useBranch } from "@/features/auth/BranchContext";
 import { PurchaseOrderImportModal } from "./components/PurchaseOrderImportModal";
+import { ImagePOImportModal } from "./components/ImagePOImportModal";
 
 // ── Supplier search dropdown ───────────────────────────────────────────────────
 
@@ -294,6 +295,7 @@ export default function PurchaseOrderFormPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImageScanModalOpen, setIsImageScanModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -505,14 +507,24 @@ export default function PurchaseOrderFormPage() {
           <h1 className="text-xl font-bold text-text-primary">{t("supplier.po_new_title")}</h1>
           <p className="text-sm text-text-muted">{t("supplier.po_new_desc")}</p>
         </div>
-        <div className="ms-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setIsImageScanModalOpen(true)}
+            title={t("scanner.btn_scan_photo", "Scanner photo / bon")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition"
+          >
+            <Camera size={14} className="text-indigo-500 shrink-0" />
+            <span>{t("scanner.btn_scan_photo", "Scanner photo / bon")}</span>
+          </button>
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
-            className="btn btn-outline flex items-center gap-2"
+            title={t("po_import.btn_open_modal", "Importer (Excel / CSV)")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 transition"
           >
-            <FileSpreadsheet size={16} />
-            {t("po_import.btn_open_modal", "Importer (Excel / CSV)")}
+            <FileSpreadsheet size={14} className="text-emerald-500 shrink-0" />
+            <span>{t("po_import.btn_open_modal", "Importer (Excel / CSV)")}</span>
           </button>
           <input
             type="file"
@@ -525,10 +537,15 @@ export default function PurchaseOrderFormPage() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="btn btn-outline flex items-center gap-2"
+            title={t("supplier.import_pdf", "Importer un PDF")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-700 transition disabled:opacity-50"
           >
-            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            Importer un PDF
+            {isUploading ? (
+              <Loader2 size={14} className="animate-spin text-rose-500 shrink-0" />
+            ) : (
+              <Upload size={14} className="text-rose-500 shrink-0" />
+            )}
+            <span>{t("supplier.import_pdf", "Importer un PDF")}</span>
           </button>
         </div>
       </div>
@@ -865,6 +882,15 @@ export default function PurchaseOrderFormPage() {
       <PurchaseOrderImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        preselectedSupplierId={selectedSupplier?.id}
+        onSuccess={(createdPO) => {
+          navigate(`/purchase-orders/${createdPO.id}`);
+        }}
+      />
+
+      <ImagePOImportModal
+        isOpen={isImageScanModalOpen}
+        onClose={() => setIsImageScanModalOpen(false)}
         preselectedSupplierId={selectedSupplier?.id}
         onSuccess={(createdPO) => {
           navigate(`/purchase-orders/${createdPO.id}`);

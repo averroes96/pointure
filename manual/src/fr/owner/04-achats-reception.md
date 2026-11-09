@@ -83,4 +83,21 @@ ShoeDZ intègre un module d'importation intelligent pour convertir directement l
    - L'option de création automatique génère instantanément les fiches produits et déclinaisons en catalogue.
    - Vous pouvez cocher **Enregistrer comme modèle d'import** pour mémoriser le format de ce fournisseur et accélérer les réapprovisionnements futurs.
 
+---
+
+### G. Reconnaissance optique et scan de bons fournisseurs papier (Photos & Images) {#fournisseurs-scan-ocr}
+
+Lorsque votre fournisseur vous remet un bon de livraison papier manuscrit, un ticket de caisse ou une facture imprimée, vous pouvez le numériser directement à l'aide de l'outil de scan hors-ligne :
+1. Dans l'écran de création d'une commande ou depuis la fiche fournisseur, cliquez sur **Scanner photo / bon**.
+2. Sélectionnez une photo ou un fichier image (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`) pris depuis votre smartphone ou un scanner de bureau.
+3. **Traitement optique autonome (100% hors-ligne) :**
+   - Le moteur de vision OpenCV redresse automatiquement l'angle d'inclinaison de l'image (jusqu'à $\pm 45^\circ$) et normalise l'éclairage pour éliminer les zones d'ombres.
+   - Le réseau neuronal embarqué (RapidOCR) extrait le texte, les références, les pointures et les montants en moins d'une demi-seconde sans aucune connexion Internet.
+   - **Détection spécialisée de la chaussure :** Le système reconnaît automatiquement les plages de pointures (ex : `37-41`, `40/45`), les notations de colisage (ex : `12c/20p` pour 12 cartons de 20 paires), ainsi que les numéros de téléphone algériens (`05`, `06`, `07`) pour identifier automatiquement le fournisseur.
+4. **Interface de révision en écran partagé :**
+   - Le volet de gauche présente l'image avec zoom interactif et surbrillance des zones détectées.
+   - Le volet de droite propose un tableau dynamique éditable : vous pouvez corriger une valeur, supprimer des lignes parasites ou lier un article à une fiche catalogue existante.
+5. Cliquez sur **Générer le bon de commande** pour enregistrer la commande brouillon avec les lignes pré-remplies.
+
+
 
