@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { unitPriceStringFor } from "@/lib/pricing";
+import type { PriceTier } from "@/types";
 
 export interface VariantData {
   id: number;
@@ -17,9 +19,11 @@ export interface ProductResult {
   name: string;
   brand: string;
   sale_price: string;
-  wholesale_price?: string;
+  semi_wholesale_price?: string | null;
+  wholesale_price?: string | null;
   purchase_price?: string;
   pairs_per_carton?: number;
+  carton_breakdown?: Record<string, number> | null;
   variants: VariantData[];
 }
 
@@ -137,10 +141,12 @@ function ProductSearch({
 
 export function InvoiceProductMatrix({
   config,
+  priceTier = "gros",
   onChange,
   onRemove,
 }: {
   config: MatrixConfig;
+  priceTier?: PriceTier;
   onChange: (c: MatrixConfig) => void;
   onRemove: () => void;
 }) {
@@ -171,6 +177,24 @@ export function InvoiceProductMatrix({
     const s = Array.from(new Set(p.variants.map((v: any) => v.size_eu))).sort((a: any, b: any) => (a as number) - (b as number));
     if (c.length === 0 || s.length === 0) return {};
     
+    // If carton breakdown is defined on the product, distribute using the exact series
+    if (p.carton_breakdown && Object.keys(p.carton_breakdown).length > 0) {
+      const newQty: any = {};
+      const cartonsPerCol = Math.floor(cCount / c.length);
+      let remCartons = cCount % c.length;
+
+      c.forEach((col: any) => {
+        newQty[col] = {};
+        const colCartons = cartonsPerCol + (remCartons > 0 ? 1 : 0);
+        if (remCartons > 0) remCartons--;
+        s.forEach((sz: any) => {
+          const perCtn = Number(p.carton_breakdown[String(sz)] ?? p.carton_breakdown[sz] ?? 0);
+          newQty[col][sz] = perCtn * colCartons;
+        });
+      });
+      return newQty;
+    }
+
     const total = cCount * ppc;
     const perCell = Math.floor(total / (c.length * s.length));
     let remainder = total % (c.length * s.length);
@@ -209,7 +233,7 @@ export function InvoiceProductMatrix({
               product: p,
               pairs_per_carton: ppc,
               quantities: getDistributedQty(p, config.cartons, ppc),
-              unit_price: (p.wholesale_price && parseFloat(p.wholesale_price) > 0) ? p.wholesale_price : (p.purchase_price && parseFloat(p.purchase_price) > 0) ? p.purchase_price : p.sale_price,
+              unit_price: unitPriceStringFor(p, priceTier),
               discount_pct: "0"
             });
           }}
@@ -250,6 +274,16 @@ export function InvoiceProductMatrix({
             <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
               {t("invoice.total_pairs_calc", { total: config.cartons * config.pairs_per_carton })}
             </div>
+            {product.carton_breakdown && Object.keys(product.carton_breakdown).length > 0 && (
+              <div className="px-3 py-1.5 bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-lg text-xs font-medium text-brand-700 dark:text-brand-300">
+                <span className="font-semibold">{t("carton.series_badge", "Série :")} </span>
+                <span className="font-mono">
+                  {Object.entries(product.carton_breakdown)
+                    .map(([sz, q]) => `${sz}×${q}`)
+                    .join(", ")}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Pricing Controls */}

@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, ShoppingCart, History, FileText, Truck, FileX,
+  LayoutDashboard, ShoppingCart, History, FileText, FileSpreadsheet, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart, BookOpen,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
@@ -63,6 +63,7 @@ function useNavSections(): NavSection[] {
       items: [
         { to: "/invoices/new", labelKey: "nav.new_invoice", icon: FileText, managerOnly: true, minPlan: "pro_wholesale" },
         { to: "/invoices", labelKey: "nav.invoice_list", icon: FileText, managerOnly: true, minPlan: "pro_wholesale" },
+        { to: "/quotes", labelKey: "nav.quotes", icon: FileSpreadsheet, managerOnly: true, minPlan: "pro_wholesale" },
         { to: "/delivery-notes", labelKey: "nav.delivery_notes", icon: Truck, managerOnly: true, minPlan: "pro_wholesale" },
         { to: "/credit-notes", labelKey: "nav.credit_notes", icon: FileX, managerOnly: true, minPlan: "pro_wholesale" },
       ],

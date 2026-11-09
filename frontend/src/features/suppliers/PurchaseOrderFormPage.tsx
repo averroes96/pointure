@@ -14,13 +14,15 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
-  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload,
+  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload, FileSpreadsheet, Camera,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Supplier, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, distributeCartonQuantities } from "./components/CartonPanel";
 import { useBranch } from "@/features/auth/BranchContext";
+import { PurchaseOrderImportModal } from "./components/PurchaseOrderImportModal";
+import { ImagePOImportModal } from "./components/ImagePOImportModal";
 
 // ── Supplier search dropdown ───────────────────────────────────────────────────
 
@@ -292,6 +294,8 @@ export default function PurchaseOrderFormPage() {
   }, [isPOLoaded, poToEdit]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImageScanModalOpen, setIsImageScanModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -408,6 +412,8 @@ export default function PurchaseOrderFormPage() {
                     purchase_price: unitPrice,
                     sale_price: parseFloat(cfg.sale_price) || 0,
                     pairs_per_carton: cfg.pairs_per_carton || 10,
+                    location: cfg.location || "",
+                    size_range: cfg.size_range || "",
                   },
                 },
               ];
@@ -431,11 +437,30 @@ export default function PurchaseOrderFormPage() {
                       purchase_price: unitPrice,
                       sale_price: parseFloat(cfg.sale_price) || 0,
                       pairs_per_carton: cfg.pairs_per_carton || 10,
+                      location: cfg.location || "",
+                      size_range: cfg.size_range || "",
                     },
                   }))
               );
             }
           }
+          const lineNewVariant =
+            l.is_carton && !l.variant_id
+              ? {
+                  product_id: l.carton_config.product_id ?? null,
+                  product_name: l.carton_config.product_name || l.description,
+                  reference: l.carton_config.reference || "",
+                  brand: l.carton_config.brand,
+                  category: l.carton_config.category,
+                  size_eu: 0,
+                  colour: "Standard",
+                  purchase_price: unitPrice,
+                  sale_price: parseFloat(l.carton_config.sale_price) || 0,
+                  pairs_per_carton: l.carton_config.pairs_per_carton || 10,
+                  location: l.carton_config.location || "",
+                  size_range: l.carton_config.size_range || "",
+                }
+              : undefined;
           return {
             variant: l.variant_id,
             description:
@@ -450,6 +475,7 @@ export default function PurchaseOrderFormPage() {
             cartons: l.is_carton ? l.carton_config.cartons_received : 0,
             pairs_per_carton: l.is_carton ? l.carton_config.pairs_per_carton : 10,
             carton_sizes: carton_sizes.length > 0 ? carton_sizes : undefined,
+            new_variant: lineNewVariant,
           };
         }),
       };
@@ -503,7 +529,25 @@ export default function PurchaseOrderFormPage() {
           <h1 className="text-xl font-bold text-text-primary">{t("supplier.po_new_title")}</h1>
           <p className="text-sm text-text-muted">{t("supplier.po_new_desc")}</p>
         </div>
-        <div className="ms-auto">
+        <div className="ms-auto flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setIsImageScanModalOpen(true)}
+            title={t("scanner.btn_scan_photo", "Scanner photo / bon")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition"
+          >
+            <Camera size={14} className="text-indigo-500 shrink-0" />
+            <span>{t("scanner.btn_scan_photo", "Scanner photo / bon")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            title={t("po_import.btn_open_modal", "Importer (Excel / CSV)")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 transition"
+          >
+            <FileSpreadsheet size={14} className="text-emerald-500 shrink-0" />
+            <span>{t("po_import.btn_open_modal", "Importer (Excel / CSV)")}</span>
+          </button>
           <input
             type="file"
             accept="application/pdf"
@@ -515,10 +559,15 @@ export default function PurchaseOrderFormPage() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="btn btn-outline flex items-center gap-2"
+            title={t("supplier.import_pdf", "Importer un PDF")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-700 transition disabled:opacity-50"
           >
-            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            Importer un PDF
+            {isUploading ? (
+              <Loader2 size={14} className="animate-spin text-rose-500 shrink-0" />
+            ) : (
+              <Upload size={14} className="text-rose-500 shrink-0" />
+            )}
+            <span>{t("supplier.import_pdf", "Importer un PDF")}</span>
           </button>
         </div>
       </div>
@@ -771,6 +820,7 @@ export default function PurchaseOrderFormPage() {
                           <CartonPanel
                             description={`Article ${idx + 1}${enableVariants ? " (Assortiment)" : ""}`}
                             config={line.carton_config}
+                            branchId={currentBranch?.id}
                             onChange={(cfg) => {
                               const total = enableVariants
                                 ? (() => {
@@ -851,6 +901,24 @@ export default function PurchaseOrderFormPage() {
           </button>
         </div>
       </form>
+
+      <PurchaseOrderImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        preselectedSupplierId={selectedSupplier?.id}
+        onSuccess={(createdPO) => {
+          navigate(`/purchase-orders/${createdPO.id}`);
+        }}
+      />
+
+      <ImagePOImportModal
+        isOpen={isImageScanModalOpen}
+        onClose={() => setIsImageScanModalOpen(false)}
+        preselectedSupplierId={selectedSupplier?.id}
+        onSuccess={(createdPO) => {
+          navigate(`/purchase-orders/${createdPO.id}`);
+        }}
+      />
     </div>
   );
 }

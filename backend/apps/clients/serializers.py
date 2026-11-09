@@ -9,15 +9,38 @@ from .models import Cheque, Client, ClientLedger
 
 class ClientSerializer(serializers.ModelSerializer):
     is_over_credit_limit = serializers.BooleanField(read_only=True)
+    risk_grade = serializers.SerializerMethodField()
+    risk_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Client
         fields = [
             "id", "name", "phone", "email", "address", "wilaya",
-            "client_type", "nif", "rc", "credit_limit", "cached_balance",
-            "is_over_credit_limit", "is_active", "notes", "created_at",
+            "client_type", "price_tier", "nif", "rc", "credit_limit", "cached_balance",
+            "is_over_credit_limit", "is_active", "is_blocked", "risk_grade", "risk_details",
+            "notes", "created_at",
         ]
-        read_only_fields = ["id", "cached_balance", "is_over_credit_limit", "created_at"]
+        read_only_fields = [
+            "id", "cached_balance", "is_over_credit_limit", "risk_grade", "risk_details", "created_at"
+        ]
+
+    def get_risk_grade(self, obj) -> str:
+        bulk_map = self.context.get("bulk_risk_map")
+        if bulk_map and obj.id in bulk_map:
+            return bulk_map[obj.id]["grade"]
+        from .services.risk import client_risk
+        return client_risk(obj)["grade"]
+
+    def get_risk_details(self, obj) -> dict:
+        bulk_map = self.context.get("bulk_risk_map")
+        if bulk_map and obj.id in bulk_map:
+            res = bulk_map[obj.id].copy()
+            res["overdue_amount"] = str(res["overdue_amount"])
+            return res
+        from .services.risk import client_risk
+        res = client_risk(obj).copy()
+        res["overdue_amount"] = str(res["overdue_amount"])
+        return res
 
     def _is_manager_or_owner(self) -> bool:
         request = self.context.get("request")
@@ -33,6 +56,15 @@ class ClientSerializer(serializers.ModelSerializer):
                 raise PermissionDenied(
                     "Seul un manager ou le propriétaire peut définir le plafond de crédit d'un client."
                 )
+        if validated_data.get("is_blocked"):
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut bloquer un client."
+                )
+        if "price_tier" not in validated_data and validated_data.get("client_type") == "wholesale":
+            validated_data["price_tier"] = "gros"
+        elif "client_type" not in validated_data and validated_data.get("price_tier") in ("demi_gros", "gros"):
+            validated_data["client_type"] = "wholesale"
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -40,6 +72,11 @@ class ClientSerializer(serializers.ModelSerializer):
             if not self._is_manager_or_owner():
                 raise PermissionDenied(
                     "Seul un manager ou le propriétaire peut modifier le plafond de crédit d'un client."
+                )
+        if "is_blocked" in validated_data and validated_data["is_blocked"] != instance.is_blocked:
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut modifier l'état de blocage d'un client."
                 )
         return super().update(instance, validated_data)
 

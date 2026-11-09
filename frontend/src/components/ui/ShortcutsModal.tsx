@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Keyboard, ShoppingCart, Package, Sparkles, BookOpen } from "lucide-react";
+import { X, Keyboard, ShoppingCart, Package, Sparkles, BookOpen, Boxes } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { openHelp } from "@/lib/helpLinks";
 
@@ -51,6 +51,15 @@ export default function ShortcutsModal() {
     { key: "F7", label: t("shortcuts.daily_report", "Rapport journalier & Clôture de caisse"), desc: "Alt + 7" },
     { key: "F8", label: t("shortcuts.products", "Catalogue stock & Produits"), desc: "Alt + 8" },
     { key: "F9", label: t("shortcuts.new_product", "Créer un nouveau produit"), desc: "Alt + 9" },
+  ];
+
+  const wholesaleShortcuts: ShortcutItem[] = [
+    { key: "Ctrl + K", label: t("shortcuts.quick_search", "Recherche universelle & Commandes"), desc: t("shortcuts.quick_search_desc", "Rechercher partout : articles, clients, devis, factures, actions") },
+    { key: "Alt + G", label: t("shortcuts.toggle_price_tier", "Tarifs Gros / Demi-gros / Détail"), desc: t("shortcuts.toggle_price_tier_desc", "Basculer la grille tarifaire active sur la vente") },
+    { key: "Alt + C", label: t("shortcuts.add_cartons", "Vente au carton (Série & Colisage)"), desc: t("shortcuts.add_cartons_desc", "Ouvrir la saisie rapide par cartons complets") },
+    { key: "Alt + D", label: t("shortcuts.quotes", "Devis & Factures proforma"), desc: "Shift+Alt+D : Nouveau devis" },
+    { key: "Alt + B", label: t("shortcuts.purchase_orders", "Bons de commande fournisseurs"), desc: "Shift+Alt+B : Nouveau bon de commande" },
+    { key: "Alt + R", label: t("shortcuts.client_statement", "Relevés de compte clients"), desc: t("shortcuts.client_statement_desc", "Consulter soldes, créances et grands livres") },
   ];
 
   const generalShortcuts: ShortcutItem[] = [
@@ -131,6 +140,30 @@ export default function ShortcutsModal() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {managementShortcuts.map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary-200 dark:hover:border-primary-800 transition-colors shadow-2xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{item.label}</p>
+                    {item.desc && <p className="text-2xs text-slate-500 dark:text-slate-400">{item.desc}</p>}
+                  </div>
+                  <kbd className="shrink-0 px-2.5 py-1 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-primary-700 dark:text-primary-300 shadow-xs">
+                    {item.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Wholesale & Quick Operations */}
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-3">
+              <Boxes size={15} className="text-primary-500" />
+              <span>{t("shortcuts.section_wholesale", "Opérations de Gros (Wholesale) & Recherche")}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {wholesaleShortcuts.map((item) => (
                 <div
                   key={item.key}
                   className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary-200 dark:hover:border-primary-800 transition-colors shadow-2xs"

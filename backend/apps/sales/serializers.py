@@ -405,6 +405,12 @@ class CreateSaleSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"client_id": "Un client doit être sélectionné pour un versement."}
                 )
+            if data.get("client_id"):
+                client_obj = Client.objects.filter(pk=data["client_id"], tenant=tenant).first()
+                if client_obj and client_obj.is_blocked:
+                    raise serializers.ValidationError(
+                        {"client_id": "Ce client est bloqué pour les achats à crédit (versement impossible)."}
+                    )
             # Stash for create_sale
             data["_versement_due_days"] = due_days
 
@@ -445,9 +451,14 @@ class CreateSaleSerializer(serializers.Serializer):
         if user and getattr(user, "role", None) == "cashier":
             # 1. Price Modification Check
             if not getattr(user, "can_modify_price", False):
+                from apps.inventory.services.pricing import unit_price_for
+                sale_client = None
+                if data.get("client_id"):
+                    sale_client = Client.objects.filter(pk=data["client_id"], tenant=tenant).first()
+                client_tier = sale_client.price_tier if sale_client else "detail"
                 for item_data in data["items"]:
                     variant = item_data["variant"]
-                    catalog_price = variant.product.sale_price
+                    catalog_price = unit_price_for(variant, client_tier)
                     if item_data["unit_price"] != catalog_price:
                         if not authorized_mgr:
                             authorized_mgr = verify_manager_pin_helper(tenant, pin, user=user)
@@ -494,6 +505,10 @@ class CreateSaleSerializer(serializers.Serializer):
             if not client_obj:
                 raise serializers.ValidationError({
                     "client_id": "Client introuvable."
+                })
+            if client_obj.is_blocked:
+                raise serializers.ValidationError({
+                    "client_id": "Ce client est bloqué pour les achats à crédit."
                 })
             cleared_payments = sum(
                 p["amount"] for p in data["payments"] if p.get("method") != "account"

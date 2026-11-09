@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import CreditNote, DeliveryNote, DeliveryNoteLine, Invoice, InvoiceLine, InvoicePayment
+from .models import CreditNote, DeliveryNote, DeliveryNoteLine, Invoice, InvoiceLine, InvoicePayment, Quote, QuoteLine
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
@@ -89,9 +89,7 @@ class CreateInvoiceSerializer(serializers.Serializer):
     date = serializers.DateField()
     due_date = serializers.DateField()
     series_prefix = serializers.CharField(default="FA", max_length=20)
-    apply_tva = serializers.BooleanField(default=True)
-    is_formal = serializers.BooleanField(default=True)
-    is_paid_in_cash = serializers.BooleanField(default=False)
+    apply_tva = serializers.BooleanField(required=False, default=None)
     is_formal = serializers.BooleanField(default=True)
     is_paid_in_cash = serializers.BooleanField(default=False)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
@@ -99,6 +97,32 @@ class CreateInvoiceSerializer(serializers.Serializer):
     lines = InvoiceLineSerializer(many=True, min_length=1)
     confirm = serializers.BooleanField(default=False, help_text="If true, assign number (FA-2026-00001) and set status to sent.")
     payment = InitialPaymentInput(required=False, allow_null=True)
+
+    def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+
+        client_id = data.get("client_id")
+        if client_id:
+            from apps.clients.models import Client
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            qs = Client.objects.filter(pk=client_id)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            client = qs.first()
+            if client and client.is_blocked:
+                raise serializers.ValidationError(
+                    {"client_id": "Ce client est bloqué. Impossible d'émettre une facture."}
+                )
+        return data
 
 
 
@@ -138,14 +162,24 @@ class RegrouperBLsSerializer(serializers.Serializer):
     date = serializers.DateField()
     due_date = serializers.DateField()
     series_prefix = serializers.CharField(default="FA", max_length=20)
-    apply_tva = serializers.BooleanField(default=True)
-    is_formal = serializers.BooleanField(default=True)
-    is_paid_in_cash = serializers.BooleanField(default=False)
+    apply_tva = serializers.BooleanField(required=False, default=None)
     is_formal = serializers.BooleanField(default=True)
     is_paid_in_cash = serializers.BooleanField(default=False)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
     notes = serializers.CharField(required=False, allow_blank=True)
     confirm = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+        return data
 
 
 
@@ -169,3 +203,93 @@ class CreditNoteSerializer(serializers.ModelSerializer):
             "number", "reason", "total_ht", "tva_amount", "total_ttc", "date", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+# ─────────────────────────────────────────────
+# Quote Serializers
+# ─────────────────────────────────────────────
+
+class QuoteLineSerializer(serializers.ModelSerializer):
+    line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    product_id = serializers.UUIDField(source="variant.product_id", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    colour = serializers.CharField(source="variant.colour", read_only=True)
+    size_eu = serializers.CharField(source="variant.size_eu", read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from apps.inventory.serializers import _can_see_costs
+        if not _can_see_costs(self.context.get("request")):
+            data.pop("unit_cost", None)
+            data.pop("unit_cost_estimated", None)
+        return data
+
+    class Meta:
+        model = QuoteLine
+        fields = [
+            "id", "variant", "product_id", "product_name", "colour", "size_eu",
+            "description", "quantity", "unit_price", "discount_pct", "cartons", "line_total", "order",
+            "unit_cost", "unit_cost_estimated",
+        ]
+        read_only_fields = ["id", "line_total", "unit_cost", "unit_cost_estimated"]
+
+
+class QuoteSerializer(serializers.ModelSerializer):
+    lines = QuoteLineSerializer(many=True, read_only=True)
+    client_name = serializers.CharField(source="client.name", read_only=True, default="")
+    converted_invoice_number = serializers.CharField(source="converted_invoice.number", read_only=True, default="")
+    converted_delivery_note_number = serializers.CharField(source="converted_delivery_note.number", read_only=True, default="")
+    has_pdf = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quote
+        fields = [
+            "id", "client", "client_name", "branch", "number",
+            "date", "valid_until", "status", "total_ht", "tva_rate", "tva_amount",
+            "total_ttc", "apply_tva", "notes",
+            "converted_invoice", "converted_invoice_number",
+            "converted_delivery_note", "converted_delivery_note_number",
+            "lines", "has_pdf", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "number", "total_ht", "tva_amount", "total_ttc", "created_at", "updated_at"]
+
+    def get_has_pdf(self, obj):
+        return bool(obj.pdf_file)
+
+
+class QuoteListSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source="client.name", read_only=True, default="")
+    converted_invoice_number = serializers.CharField(source="converted_invoice.number", read_only=True, default="")
+    converted_delivery_note_number = serializers.CharField(source="converted_delivery_note.number", read_only=True, default="")
+
+    class Meta:
+        model = Quote
+        fields = [
+            "id", "number", "client", "client_name", "date", "valid_until",
+            "status", "total_ttc", "converted_invoice", "converted_invoice_number",
+            "converted_delivery_note", "converted_delivery_note_number", "created_at",
+        ]
+
+
+class CreateQuoteSerializer(serializers.Serializer):
+    client_id = serializers.UUIDField(required=False, allow_null=True)
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
+    date = serializers.DateField()
+    valid_until = serializers.DateField(required=False, allow_null=True)
+    apply_tva = serializers.BooleanField(required=False, default=None)
+    tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
+    notes = serializers.CharField(required=False, allow_blank=True)
+    lines = QuoteLineSerializer(many=True, min_length=1)
+
+    def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+        return data
+

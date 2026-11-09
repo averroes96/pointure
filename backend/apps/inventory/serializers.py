@@ -29,6 +29,12 @@ class VariantSerializer(serializers.ModelSerializer):
     product_sale_price = serializers.DecimalField(
         source="product.sale_price", max_digits=12, decimal_places=2, read_only=True
     )
+    product_semi_wholesale_price = serializers.DecimalField(
+        source="product.semi_wholesale_price", max_digits=12, decimal_places=2, read_only=True
+    )
+    product_wholesale_price = serializers.DecimalField(
+        source="product.wholesale_price", max_digits=12, decimal_places=2, read_only=True
+    )
     purchase_price = serializers.DecimalField(
         source="product.purchase_price", max_digits=12, decimal_places=2, read_only=True
     )
@@ -70,6 +76,7 @@ class VariantSerializer(serializers.ModelSerializer):
         model = Variant
         fields = [
             "id", "product", "product_name", "product_brand", "product_reference", "product_sale_price",
+            "product_semi_wholesale_price", "product_wholesale_price",
             "purchase_price", "size_eu", "colour", "barcode",
             "stock_qty", "alert_threshold", "is_active", "is_low_stock", "is_out_of_stock",
         ]
@@ -90,12 +97,28 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
-            "purchase_price", "sale_price", "margin_pct", "image", "description",
-            "is_active", "is_demo", "alert_threshold", "pairs_per_carton", "total_stock",
+            "purchase_price", "sale_price", "semi_wholesale_price", "wholesale_price",
+            "margin_pct", "image", "description",
+            "is_active", "is_demo", "alert_threshold", "pairs_per_carton", "carton_breakdown", "size_range", "total_stock",
             "has_low_stock", "is_total_low_stock", "variants", "created_at",
             "location", "barcode", "default_variant_id",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        carton_breakdown = data.get("carton_breakdown")
+        pairs_per_carton = data.get("pairs_per_carton")
+        if carton_breakdown:
+            if pairs_per_carton is None and self.instance:
+                pairs_per_carton = self.instance.pairs_per_carton
+            if pairs_per_carton is not None:
+                total_breakdown = sum(int(qty) for qty in carton_breakdown.values() if qty)
+                if total_breakdown > 0 and total_breakdown != int(pairs_per_carton):
+                    raise serializers.ValidationError({
+                        "carton_breakdown": f"La somme des paires par pointure ({total_breakdown}) doit être égale à pairs_per_carton ({pairs_per_carton})."
+                    })
+        return data
 
     def get_barcode(self, obj):
         v = obj.variants.first()
@@ -207,8 +230,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
-            "sale_price", "wholesale_price", "purchase_price", "pamp", "total_stock",
-            "has_low_stock", "is_total_low_stock", "alert_threshold", "pairs_per_carton",
+            "sale_price", "semi_wholesale_price", "wholesale_price", "purchase_price", "pamp", "total_stock",
+            "has_low_stock", "is_total_low_stock", "alert_threshold", "pairs_per_carton", "carton_breakdown", "size_range",
             "image", "is_active", "is_demo", "variants", "location", "barcode", "default_variant_id",
         ]
 
@@ -249,10 +272,26 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
-            "purchase_price", "sale_price", "image", "description", "is_active",
+            "purchase_price", "sale_price", "semi_wholesale_price", "wholesale_price",
+            "pairs_per_carton", "carton_breakdown", "size_range", "image", "description", "is_active",
             "alert_threshold", "variants", "location", "barcode", "initial_stock",
         ]
         read_only_fields = ["id"]
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        carton_breakdown = data.get("carton_breakdown")
+        pairs_per_carton = data.get("pairs_per_carton")
+        if carton_breakdown:
+            if pairs_per_carton is None and self.instance:
+                pairs_per_carton = self.instance.pairs_per_carton
+            if pairs_per_carton is not None:
+                total_breakdown = sum(int(qty) for qty in carton_breakdown.values() if qty)
+                if total_breakdown > 0 and total_breakdown != int(pairs_per_carton):
+                    raise serializers.ValidationError({
+                        "carton_breakdown": f"La somme des paires par pointure ({total_breakdown}) doit être égale à pairs_per_carton ({pairs_per_carton})."
+                    })
+        return data
 
 
 class StockMovementSerializer(serializers.ModelSerializer):

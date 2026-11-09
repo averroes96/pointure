@@ -18,7 +18,17 @@ from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.core.utils.task_runner import run_task
 from apps.inventory.services.costing import current_unit_cost
-from .models import CreditNote, DeliveryNote, Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
+from .models import (
+    CreditNote,
+    DeliveryNote,
+    Invoice,
+    InvoiceLine,
+    InvoicePayment,
+    InvoiceStatusChoices,
+    Quote,
+    QuoteLine,
+    QuoteStatusChoices,
+)
 from .serializers import (
     CreateDeliveryNoteSerializer,
     RegrouperBLsSerializer,
@@ -29,8 +39,12 @@ from .serializers import (
     InvoiceListSerializer,
     InvoicePaymentSerializer,
     InvoiceSerializer,
+    QuoteSerializer,
+    QuoteListSerializer,
+    CreateQuoteSerializer,
 )
-from .tasks import generate_invoice_pdf
+from .pdf import render_quote_pdf
+from .tasks import generate_invoice_pdf, generate_quote_pdf, generate_delivery_note_pdf
 
 
 class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -60,7 +74,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         self.require_manager()
-        serializer = CreateInvoiceSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -75,6 +89,12 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if data.get("client_id"):
                 from apps.clients.models import Client
                 client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
+
+            if client and client.is_blocked:
+                from rest_framework.exceptions import ValidationError as DRFValidationError
+                raise DRFValidationError({
+                    "client_id": "Ce client est bloqué. Impossible d'émettre une facture."
+                })
 
             branch = None
             if data.get("branch_id"):
@@ -187,7 +207,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"detail": "Impossible de modifier une facture annulée."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = CreateInvoiceSerializer(data=request.data)
+        serializer = CreateInvoiceSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -515,7 +535,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def regrouper(self, request):
         self.require_manager()
         from .serializers import RegrouperBLsSerializer
-        serializer = RegrouperBLsSerializer(data=request.data)
+        serializer = RegrouperBLsSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -549,6 +569,10 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     Branch.objects.filter(tenant=request.tenant, is_headquarters=True).first()
                     or Branch.objects.filter(tenant=request.tenant).first()
                 )
+
+            if client.is_blocked:
+                from rest_framework.exceptions import ValidationError as DRFValidationError
+                raise DRFValidationError({"error": "client_blocked", "client_id": "Ce client est bloqué. Impossible d'émettre une facture."})
 
             # Check credit limit
             estimated_total = sum(
@@ -626,5 +650,244 @@ class CreditNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         self.require_manager()
         serializer.save(tenant=self.request.tenant)
+
+
+class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = Quote.objects.select_related(
+        "client", "branch", "converted_invoice", "converted_delivery_note"
+    ).prefetch_related("lines__variant__product")
+    permission_classes = [IsAuthenticated, PlanRequired("pro_wholesale"), RolePermission]
+    role_permissions = {
+        "create": MANAGER_OR_OWNER,
+        "update": MANAGER_OR_OWNER,
+        "partial_update": MANAGER_OR_OWNER,
+        "destroy": MANAGER_OR_OWNER,
+        "send": MANAGER_OR_OWNER,
+        "accept": MANAGER_OR_OWNER,
+        "cancel": MANAGER_OR_OWNER,
+        "convert_to_invoice": MANAGER_OR_OWNER,
+        "convert_to_delivery_note": MANAGER_OR_OWNER,
+        "default": ALL_ROLES,
+    }
+    filterset_fields = ["status", "client", "branch"]
+    search_fields = ["number", "client__name"]
+    ordering_fields = ["date", "valid_until", "total_ttc", "number", "created_at"]
+    ordering = ["-created_at"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return QuoteListSerializer
+        if self.action in ["create", "update", "partial_update"]:
+            return CreateQuoteSerializer
+        return QuoteSerializer
+
+    def create(self, request, *args, **kwargs):
+        self.require_manager()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        with transaction.atomic():
+            client = None
+            if data.get("client_id"):
+                from apps.clients.models import Client
+                client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
+
+            branch = None
+            if data.get("branch_id"):
+                from apps.core.models import Branch
+                branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant)
+
+            quote = Quote.objects.create(
+                tenant=request.tenant,
+                client=client,
+                branch=branch,
+                date=data["date"],
+                valid_until=data.get("valid_until"),
+                apply_tva=data.get("apply_tva", True),
+                tva_rate=data.get("tva_rate", Decimal("19.00")),
+                notes=data.get("notes", ""),
+                created_by=request.user,
+                status=QuoteStatusChoices.DRAFT,
+            )
+
+            for i, line_data in enumerate(data["lines"]):
+                variant = line_data.get("variant")
+                QuoteLine.objects.create(
+                    quote=quote,
+                    variant=variant,
+                    description=line_data.get("description", ""),
+                    quantity=line_data["quantity"],
+                    unit_price=line_data["unit_price"],
+                    discount_pct=line_data.get("discount_pct", Decimal("0")),
+                    cartons=line_data.get("cartons", 0),
+                    order=i,
+                    unit_cost=current_unit_cost(variant),
+                    unit_cost_estimated=False,
+                )
+
+            quote.compute_totals()
+            quote.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
+            transaction.on_commit(lambda: run_task(generate_quote_pdf, quote.pk))
+
+        return Response(QuoteSerializer(quote).data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        self.require_manager()
+        quote = self.get_object()
+        if quote.status in [QuoteStatusChoices.CONVERTED, QuoteStatusChoices.CANCELLED]:
+            return Response(
+                {"error": {"code": "invalid_state", "message": "Cannot modify converted or cancelled quote."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CreateQuoteSerializer(data=request.data, partial=kwargs.get("partial", False), context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        with transaction.atomic():
+            if "client_id" in data:
+                from apps.clients.models import Client
+                quote.client = Client.objects.get(pk=data["client_id"], tenant=request.tenant) if data.get("client_id") else None
+            if "branch_id" in data:
+                from apps.core.models import Branch
+                quote.branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant) if data.get("branch_id") else None
+            if "date" in data:
+                quote.date = data["date"]
+            if "valid_until" in data:
+                quote.valid_until = data["valid_until"]
+            if "apply_tva" in data:
+                quote.apply_tva = data["apply_tva"]
+            if "tva_rate" in data:
+                quote.tva_rate = data["tva_rate"]
+            if "notes" in data:
+                quote.notes = data["notes"]
+
+            if "lines" in data:
+                quote.lines.all().delete()
+                for i, line_data in enumerate(data["lines"]):
+                    variant = line_data.get("variant")
+                    QuoteLine.objects.create(
+                        quote=quote,
+                        variant=variant,
+                        description=line_data.get("description", ""),
+                        quantity=line_data["quantity"],
+                        unit_price=line_data["unit_price"],
+                        discount_pct=line_data.get("discount_pct", Decimal("0")),
+                        cartons=line_data.get("cartons", 0),
+                        order=i,
+                        unit_cost=current_unit_cost(variant),
+                        unit_cost_estimated=False,
+                    )
+
+            quote.compute_totals()
+            quote.save()
+            transaction.on_commit(lambda: run_task(generate_quote_pdf, quote.pk))
+
+        return Response(QuoteSerializer(quote).data)
+
+    def destroy(self, request, *args, **kwargs):
+        self.require_manager()
+        quote = self.get_object()
+        if quote.status == QuoteStatusChoices.CONVERTED:
+            return Response(
+                {"error": {"code": "invalid_state", "message": "Cannot delete a converted quote."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=["post"])
+    def send(self, request, pk=None):
+        self.require_manager()
+        quote = self.get_object()
+        quote.send(user=request.user)
+        return Response(QuoteSerializer(quote).data)
+
+    @action(detail=True, methods=["post"])
+    def accept(self, request, pk=None):
+        self.require_manager()
+        quote = self.get_object()
+        quote.accept(user=request.user)
+        return Response(QuoteSerializer(quote).data)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        self.require_manager()
+        quote = self.get_object()
+        try:
+            quote.cancel(user=request.user)
+        except Exception as e:
+            return Response(
+                {"error": {"code": "invalid_action", "message": str(e)}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(QuoteSerializer(quote).data)
+
+    @action(detail=True, methods=["post"], url_path="convert-to-invoice")
+    def convert_to_invoice(self, request, pk=None):
+        self.require_manager()
+        quote = self.get_object()
+        try:
+            invoice = quote.convert_to_invoice(user=request.user)
+        except Exception as e:
+            return Response(
+                {"error": {"code": "conversion_failed", "message": str(e)}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
+        return Response({
+            "quote": QuoteSerializer(quote).data,
+            "invoice_id": invoice.id,
+            "invoice_number": invoice.number,
+        })
+
+    @action(detail=True, methods=["post"], url_path="convert-to-delivery-note")
+    def convert_to_delivery_note(self, request, pk=None):
+        self.require_manager()
+        quote = self.get_object()
+        try:
+            dn = quote.convert_to_delivery_note(user=request.user)
+        except Exception as e:
+            return Response(
+                {"error": {"code": "conversion_failed", "message": str(e)}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        transaction.on_commit(lambda: run_task(generate_delivery_note_pdf, dn.pk))
+        return Response({
+            "quote": QuoteSerializer(quote).data,
+            "delivery_note_id": dn.id,
+            "delivery_note_number": dn.number,
+        })
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        quote = self.get_object()
+        from apps.core.desktop.pdf_client import is_placeholder_pdf
+
+        if request.query_params.get("regenerate") == "1":
+            try:
+                if quote.pdf_file:
+                    quote.pdf_file.delete(save=False)
+                Quote.objects.filter(pk=quote.pk).update(pdf_file=None)
+                quote.pdf_file = None
+            except Exception:
+                pass
+
+        lang = request.query_params.get("lang", "fr")
+        pdf_bytes = render_quote_pdf(quote, language=lang)
+        if not is_placeholder_pdf(pdf_bytes):
+            filename = f"quotes/pdf/quote-{quote.number or quote.pk}.pdf"
+            try:
+                from django.core.files.base import ContentFile
+                quote.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+                Quote.objects.filter(pk=quote.pk).update(pdf_file=quote.pdf_file.name)
+            except Exception:
+                pass
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="quote-{quote.number or quote.pk}.pdf"'
+        )
+        return response
+
 
 

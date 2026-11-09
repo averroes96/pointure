@@ -2,7 +2,9 @@
 from decimal import Decimal
 
 from django.db import models, transaction
+from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -18,6 +20,12 @@ from .serializers import (
     DebtAgeingRowSerializer,
     RecordPaymentSerializer,
 )
+from .services.statement import (
+    get_client_statement_data,
+    render_client_statement_pdf,
+    render_client_statement_xlsx,
+    render_bulk_statements_zip,
+)
 
 
 class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -30,12 +38,48 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "record_payment": MANAGER_OR_OWNER,
         "ageing": MANAGER_OR_OWNER,
         "ageing_csv": MANAGER_OR_OWNER,
+        "statements_zip": MANAGER_OR_OWNER,
+        "toggle_block": MANAGER_OR_OWNER,
+        "risk": ALL_ROLES,
         "default": ALL_ROLES,
     }
-    filterset_fields = ["wilaya", "is_active", "client_type"]
+    filterset_fields = ["wilaya", "is_active", "client_type", "price_tier"]
     search_fields = ["name", "phone", "nif", "rc"]
     ordering_fields = ["name", "cached_balance", "created_at"]
     ordering = ["name"]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        target_objs = list(page) if page is not None else list(queryset)
+
+        from .services.risk import bulk_client_risk
+        bulk_map = bulk_client_risk(target_objs)
+
+        context = self.get_serializer_context()
+        context["bulk_risk_map"] = bulk_map
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(target_objs, many=True, context=context)
+        return Response(serializer.data)
+
+    def perform_content_negotiation(self, request, force=False):
+        fmt = request.query_params.get("format", "").lower()
+        if fmt in ("pdf", "xlsx", "zip", "csv"):
+            from rest_framework.renderers import BaseRenderer
+
+            class BinaryPassthroughRenderer(BaseRenderer):
+                media_type = "*/*"
+                format = fmt
+
+                def render(self, data, accepted_media_type=None, renderer_context=None):
+                    return data
+
+            return (BinaryPassthroughRenderer(), "*/*")
+        return super().perform_content_negotiation(request, force=force)
 
     def perform_create(self, serializer):
         from apps.core.plan_permissions import check_quota
@@ -170,6 +214,106 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         serializer = ClientLedgerSerializer(qs, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="toggle-block")
+    def toggle_block(self, request, pk=None):
+        """Toggle is_blocked status (manager or owner only)."""
+        self.require_manager()
+        client = self.get_object()
+        client.is_blocked = not client.is_blocked
+        client.save(update_fields=["is_blocked"])
+        return Response({
+            "id": client.pk,
+            "is_blocked": client.is_blocked,
+            "detail": _("Client bloqué avec succès.") if client.is_blocked else _("Client débloqué avec succès."),
+        })
+
+    @action(detail=True, methods=["get"], url_path="risk")
+    def risk(self, request, pk=None):
+        """Get detailed risk scoring profile for a client."""
+        client = self.get_object()
+        from .services.risk import client_risk
+        data = client_risk(client)
+        data_copy = data.copy()
+        data_copy["overdue_amount"] = str(data_copy["overdue_amount"])
+        return Response(data_copy)
+
+    @action(detail=True, methods=["get"], url_path="statement")
+    def statement(self, request, pk=None):
+        """
+        Client account statement ("relevé de compte").
+        GET /api/v1/clients/{id}/statement/?from=&to=&format=pdf|xlsx|json
+        """
+        client = self.get_object()
+        from_str = request.query_params.get("from")
+        to_str = request.query_params.get("to")
+        fmt = request.query_params.get("format", "json").lower()
+        language = (
+            request.query_params.get("lang")
+            or getattr(request.user, "language_preference", "fr")
+            or "fr"
+        )
+
+        data = get_client_statement_data(client, from_date=from_str, to_date=to_str)
+
+        if fmt == "pdf":
+            pdf_bytes = render_client_statement_pdf(data, language=language)
+            resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+            safe_name = (client.name or "client").replace(" ", "_")
+            resp["Content-Disposition"] = f'inline; filename="releve-compte-{safe_name}.pdf"'
+            return resp
+
+        if fmt == "xlsx":
+            xlsx_bytes = render_client_statement_xlsx(data, language=language)
+            resp = HttpResponse(
+                xlsx_bytes,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            safe_name = (client.name or "client").replace(" ", "_")
+            resp["Content-Disposition"] = f'attachment; filename="releve-compte-{safe_name}.xlsx"'
+            return resp
+
+        # Default: JSON
+        return Response({
+            "client_id": str(client.id),
+            "client_name": client.name,
+            "from_date": str(data["from_date"]) if data["from_date"] else None,
+            "to_date": str(data["to_date"]) if data["to_date"] else None,
+            "opening_balance": str(data["opening_balance"]),
+            "period_debits": str(data["period_debits"]),
+            "period_credits": str(data["period_credits"]),
+            "closing_balance": str(data["closing_balance"]),
+            "total_overdue": str(data["total_overdue"]),
+            "entries": [
+                {
+                    "id": e["id"],
+                    "date": str(e["date"]),
+                    "description": e["description"],
+                    "reference_type": e["reference_type"],
+                    "reference_id": e["reference_id"],
+                    "entry_type": e["entry_type"],
+                    "debit": str(e["debit"]),
+                    "credit": str(e["credit"]),
+                    "running_balance": str(e["running_balance"]),
+                }
+                for e in data["entries"]
+            ],
+            "open_invoices": [
+                {
+                    "id": inv["id"],
+                    "number": inv["number"],
+                    "date": str(inv["date"]) if inv["date"] else None,
+                    "due_date": str(inv["due_date"]) if inv["due_date"] else None,
+                    "total_ttc": str(inv["total_ttc"]),
+                    "total_paid": str(inv["total_paid"]),
+                    "balance_due": str(inv["balance_due"]),
+                    "days_old": inv["days_old"],
+                    "bucket": inv["bucket"],
+                    "is_overdue": inv["is_overdue"],
+                }
+                for inv in data["open_invoices"]
+            ],
+        })
 
     @action(detail=True, methods=["post"], url_path="record-payment")
     def record_payment(self, request, pk=None):
@@ -315,6 +459,32 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         response["Content-Disposition"] = (
             f'attachment; filename="vieillissement-creances-{today_str}.csv"'
         )
+        return response
+
+    @action(detail=False, methods=["get"], url_path="statements-zip")
+    def statements_zip(self, request):
+        """
+        Bulk download statements as a ZIP archive for all clients with outstanding balance.
+        GET /api/v1/clients/statements-zip/?from=&to=
+        """
+        self.require_manager()
+        from_str = request.query_params.get("from")
+        to_str = request.query_params.get("to")
+        language = (
+            request.query_params.get("lang")
+            or getattr(request.user, "language_preference", "fr")
+            or "fr"
+        )
+
+        zip_bytes = render_bulk_statements_zip(
+            tenant=request.tenant,
+            from_date=from_str,
+            to_date=to_str,
+            language=language,
+        )
+        today_str = timezone.localdate().isoformat()
+        response = HttpResponse(zip_bytes, content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="releves-clients-{today_str}.zip"'
         return response
 
     def _compute_ageing(self, today):

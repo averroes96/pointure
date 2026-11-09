@@ -1,0 +1,148 @@
+"""
+Tests for carton breakdown (série) and expand-cartons endpoint.
+"""
+from decimal import Decimal
+import pytest
+from rest_framework.test import APIClient
+from django.core.exceptions import ValidationError
+
+from apps.core.models import PlanChoices, RoleChoices, Tenant, User
+from apps.inventory.models import Product, Variant
+from apps.inventory.serializers import ProductSerializer
+
+
+def _make_client(user) -> APIClient:
+    c = APIClient()
+    c.force_authenticate(user=user)
+    return c
+
+
+@pytest.mark.django_db
+class TestCartonBreakdown:
+    @pytest.fixture(autouse=True)
+    def setup(self, db):
+        self.tenant = Tenant.objects.create(name="Wholesale Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.manager = User.objects.create_user(
+            email="manager@carton.com",
+            password="testpass123",
+            tenant=self.tenant,
+            role=RoleChoices.MANAGER,
+        )
+        self.client = _make_client(self.manager)
+
+    def test_carton_breakdown_validation(self):
+        # Valid breakdown: 2 + 2 + 2 = 6, pairs_per_carton = 6
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Derby Classic",
+            sale_price=Decimal("4000.00"),
+            wholesale_price=Decimal("3200.00"),
+            pairs_per_carton=6,
+            carton_breakdown={"40": 2, "41": 2, "42": 2},
+        )
+        assert product.carton_breakdown == {"40": 2, "41": 2, "42": 2}
+
+        # Invalid breakdown: 2 + 2 = 4 != 6 -> raises ValidationError on save
+        with pytest.raises(ValidationError):
+            Product.objects.create(
+                tenant=self.tenant,
+                name="Derby Invalid",
+                sale_price=Decimal("4000.00"),
+                pairs_per_carton=6,
+                carton_breakdown={"40": 2, "41": 2},
+            )
+
+        # Serializer validation also rejects invalid breakdown
+        serializer = ProductSerializer(
+            data={
+                "name": "Sneaker Sport",
+                "sale_price": "5000.00",
+                "pairs_per_carton": 8,
+                "carton_breakdown": {"40": 2, "41": 2},  # sum is 4 != 8
+            }
+        )
+        assert not serializer.is_valid()
+        assert "carton_breakdown" in serializer.errors
+
+    def test_expand_cartons_endpoint(self):
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Mocassin Cuir",
+            sale_price=Decimal("5000.00"),
+            wholesale_price=Decimal("4000.00"),
+            pairs_per_carton=6,
+            carton_breakdown={"40": 2, "41": 2, "42": 2},
+        )
+        # Create variants:
+        # size 40 with 10 pairs in stock
+        # size 41 with 4 pairs in stock (will be insufficient for 3 cartons = 6 pairs)
+        # size 42 with 20 pairs in stock
+        Variant.objects.create(
+            tenant=self.tenant,
+            product=product,
+            size_eu=40,
+            colour="Noir",
+            stock_qty=10,
+        )
+        Variant.objects.create(
+            tenant=self.tenant,
+            product=product,
+            size_eu=41,
+            colour="Noir",
+            stock_qty=4,
+        )
+        Variant.objects.create(
+            tenant=self.tenant,
+            product=product,
+            size_eu=42,
+            colour="Noir",
+            stock_qty=20,
+        )
+
+        resp = self.client.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"colour": "Noir", "cartons": 3},
+            format="json",
+        )
+        assert resp.status_code == 200, resp.data
+        data = resp.data
+
+        assert data["cartons"] == 3
+        assert data["total_pairs"] == 18  # 6 pairs per carton * 3 cartons
+        assert len(data["lines"]) == 3
+
+        # Each size gets 2 * 3 = 6 pairs
+        line_40 = next(l for l in data["lines"] if l["size_eu"] == 40)
+        line_41 = next(l for l in data["lines"] if l["size_eu"] == 41)
+        line_42 = next(l for l in data["lines"] if l["size_eu"] == 42)
+
+        assert line_40["quantity"] == 6
+        assert line_40["available_stock"] == 10
+        assert line_40["is_sufficient_stock"] is True
+
+        assert line_41["quantity"] == 6
+        assert line_41["available_stock"] == 4
+        assert line_41["is_sufficient_stock"] is False  # Insufficient stock reported!
+
+        assert line_42["quantity"] == 6
+        assert line_42["available_stock"] == 20
+        assert line_42["is_sufficient_stock"] is True
+
+        assert data["all_stock_sufficient"] is False
+
+    def test_expand_cartons_without_breakdown_fails(self):
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Produit Simple",
+            sale_price=Decimal("2000.00"),
+            pairs_per_carton=10,
+            carton_breakdown={},
+        )
+        resp = self.client.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": 1},
+            format="json",
+        )
+        assert resp.status_code == 400
+        assert resp.data["error"]["code"] == "no_carton_breakdown"
+

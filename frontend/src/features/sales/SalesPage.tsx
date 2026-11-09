@@ -14,11 +14,13 @@ import { printReceipt } from "@/lib/receipt";
 import { printBonVersement, printBonReservation } from "@/lib/versement";
 import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession, HeldSale } from "@/types";
+import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession, HeldSale, PriceTier } from "@/types";
 import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils";
+import { unitPriceFor } from "@/lib/pricing";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
+import { ClientRiskBadge } from "@/components/ClientRiskBadge";
 import PosShortcutsCoachmark from "./PosShortcutsCoachmark";
 import HeldSalesModal from "./HeldSalesModal";
 
@@ -219,9 +221,10 @@ function ClientSelector({
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-800">
         <UserCircle size={15} className="text-primary-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 flex-1 truncate">{selected.name}</span>
+        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 truncate">{selected.name}</span>
+        <ClientRiskBadge grade={selected.risk_grade} isBlocked={selected.is_blocked} compact />
         {selected.phone && (
-          <span className="text-xs text-primary-400">{selected.phone}</span>
+          <span className="text-xs text-primary-400 ms-auto">{selected.phone}</span>
         )}
         <button onClick={onClear} className="text-primary-400 hover:text-primary-600 dark:hover:text-primary-200">
           <X size={13} />
@@ -277,6 +280,7 @@ function ClientSelector({
                   >
                     <UserCircle size={14} className="text-text-muted flex-shrink-0" />
                     <span className="text-sm font-medium text-text-primary dark:text-slate-100">{c.name}</span>
+                    <ClientRiskBadge grade={c.risk_grade} isBlocked={c.is_blocked} compact />
                     {c.phone && <span className="text-xs text-text-muted dark:text-slate-400 ml-auto">{c.phone}</span>}
                   </button>
                 ))}
@@ -333,6 +337,34 @@ export default function SalesPage() {
   const [cashTendered, setCashTendered] = useState<string>("");
   const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const selectedClientRef = useRef<Client | null>(null);
+  const [activePriceTier, setActivePriceTier] = useState<PriceTier>("detail");
+  const activePriceTierRef = useRef<PriceTier>("detail");
+  const prevPriceTierRef = useRef<PriceTier>("detail");
+
+  useEffect(() => {
+    selectedClientRef.current = selectedClient;
+    const nextTier = (selectedClient?.price_tier as PriceTier) || "detail";
+    setActivePriceTier(nextTier);
+  }, [selectedClient]);
+
+  useEffect(() => {
+    activePriceTierRef.current = activePriceTier;
+    const nextTier = activePriceTier;
+    const prevTier = prevPriceTierRef.current;
+    if (nextTier !== prevTier) {
+      setCart((prev) =>
+        prev.map((item) => {
+          const prevCatalog = unitPriceFor(item.product, prevTier);
+          if (Math.abs(item.unit_price - prevCatalog) < 0.01) {
+            return { ...item, unit_price: unitPriceFor(item.product, nextTier) };
+          }
+          return item;
+        }),
+      );
+      prevPriceTierRef.current = nextTier;
+    }
+  }, [activePriceTier]);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
   const [isLayaway, setIsLayaway] = useState(false);
@@ -554,7 +586,16 @@ export default function SalesPage() {
           i.variant.id === variant.id ? { ...i, quantity: newQty } : i
         );
       }
-      return [...prev, { variant, product, quantity: 1, unit_price: parseFloat(product.sale_price), discount: 0 }];
+      return [
+        ...prev,
+        {
+          variant,
+          product,
+          quantity: 1,
+          unit_price: unitPriceFor(product, activePriceTierRef.current),
+          discount: 0,
+        },
+      ];
     });
     setSearch("");
     setSelectedProduct(null);
@@ -799,6 +840,12 @@ export default function SalesPage() {
       }
     }
 
+    if (isVersement && selectedClient?.is_blocked) {
+      setStockWarningToast(t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit."));
+      setTimeout(() => setStockWarningToast(null), 4000);
+      return;
+    }
+
     // Underpaid POS sale (on account): require client and check credit limit (D1)
     if (!quickMode && !isVersement && !isLayaway && total > 0 && paymentTotal < total) {
       if (!selectedClient) {
@@ -806,6 +853,16 @@ export default function SalesPage() {
           t(
             "pos.on_account_client_required",
             "Veuillez sélectionner un client pour enregistrer un solde sur compte.",
+          ),
+        );
+        setTimeout(() => setStockWarningToast(null), 4000);
+        return;
+      }
+      if (selectedClient.is_blocked) {
+        setStockWarningToast(
+          t(
+            "pos.blocked_client_credit_error",
+            "Ce client est bloqué pour les achats à crédit.",
           ),
         );
         setTimeout(() => setStockWarningToast(null), 4000);
@@ -864,9 +921,10 @@ export default function SalesPage() {
 
       if (user.can_modify_price === false) {
         const altered = cart.find(
-          (i) => Math.abs(Number(i.unit_price) - parseFloat(i.product.sale_price)) > 0.01
+          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, activePriceTier)) > 0.01
         );
         if (altered) {
+          const catalogPrice = unitPriceFor(altered.product, activePriceTier);
           setManagerPinPrompt({
             isOpen: true,
             reason: t(
@@ -875,7 +933,7 @@ export default function SalesPage() {
               {
                 product: altered.product.name,
                 price: Number(altered.unit_price).toFixed(2),
-                originalPrice: parseFloat(altered.product.sale_price).toFixed(2),
+                originalPrice: catalogPrice.toFixed(2),
               }
             ),
             actionDescription: t(
@@ -940,6 +998,9 @@ export default function SalesPage() {
     }
     if (!selectedClient) {
       setShowVersementClientModal(true);
+    } else if (selectedClient.is_blocked) {
+      setStockWarningToast(t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit."));
+      setTimeout(() => setStockWarningToast(null), 3000);
     } else {
       setIsVersement(true);
       setIsLayaway(false);
@@ -1149,8 +1210,14 @@ export default function SalesPage() {
     const onVersementEvent = () => handleVersementShortcut();
     const onMovementEvent = () => handleMovementShortcut();
     const onHeldSalesEvent = () => setShowHeldSalesModal((prev) => !prev);
+    const onTogglePriceTierEvent = () => {
+      const tiers: PriceTier[] = ["detail", "demi_gros", "gros"];
+      const currentIndex = tiers.indexOf(activePriceTierRef.current);
+      const nextTier = tiers[(currentIndex + 1) % tiers.length];
+      setActivePriceTier(nextTier);
+    };
 
-    // Note: F1, F2, F10, Alt+V, Alt+M, Alt+H are handled globally by useGlobalShortcuts and dispatched as custom events below.
+    // Note: F1, F2, F10, Alt+V, Alt+M, Alt+H, Alt+G are handled globally by useGlobalShortcuts and dispatched as custom events below.
     window.addEventListener("app-shortcut-search", onSearch);
     window.addEventListener("app-shortcut-confirm", onConfirm);
     window.addEventListener("app-shortcut-new-sale", onNewSale);
@@ -1158,6 +1225,7 @@ export default function SalesPage() {
     window.addEventListener("app-shortcut-versement", onVersementEvent);
     window.addEventListener("app-shortcut-movement", onMovementEvent);
     window.addEventListener("app-shortcut-held-sales", onHeldSalesEvent);
+    window.addEventListener("app-shortcut-toggle-price-tier", onTogglePriceTierEvent);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
@@ -1168,6 +1236,7 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-versement", onVersementEvent);
       window.removeEventListener("app-shortcut-movement", onMovementEvent);
       window.removeEventListener("app-shortcut-held-sales", onHeldSalesEvent);
+      window.removeEventListener("app-shortcut-toggle-price-tier", onTogglePriceTierEvent);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [
@@ -1662,7 +1731,7 @@ export default function SalesPage() {
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 px-2.5 py-0.5 rounded-lg border border-primary-100 dark:border-primary-800">
-                            {formatDZD(product.sale_price)} DZD
+                            {formatDZD(unitPriceFor(product, activePriceTier))} DZD
                           </span>
                           <span className="text-slate-300 dark:text-slate-700">·</span>
                           <span className={cn(
@@ -1903,6 +1972,50 @@ export default function SalesPage() {
                 )}
               </div>
             )}
+
+            {/* Wholesale / Retail Price Tier Selector */}
+            <div className="mt-2.5 flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <Tag size={13} className="text-slate-400 dark:text-slate-500" />
+                <span>{t("pos.price_tier_label", "Tarif")} :</span>
+              </div>
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs">
+                {(["detail", "demi_gros", "gros"] as PriceTier[]).map((tier) => (
+                  <button
+                    key={tier}
+                    type="button"
+                    onClick={() => setActivePriceTier(tier)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-semibold transition-all text-xs flex items-center gap-1 cursor-pointer",
+                      activePriceTier === tier
+                        ? "bg-white dark:bg-slate-700 text-primary-700 dark:text-primary-300 shadow-xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    )}
+                    title={
+                      tier === "detail"
+                        ? t("pos.tier_detail_desc", "Tarif Détail (Alt+G)")
+                        : tier === "demi_gros"
+                        ? t("pos.tier_demi_gros_desc", "Tarif Demi-gros (Alt+G)")
+                        : t("pos.tier_gros_desc", "Tarif Gros (Alt+G)")
+                    }
+                  >
+                    <span>
+                      {tier === "detail"
+                        ? t("pos.tier_detail", "Détail")
+                        : tier === "demi_gros"
+                        ? t("pos.tier_demi_gros", "Demi-gros")
+                        : t("pos.tier_gros", "Gros")}
+                    </span>
+                  </button>
+                ))}
+                <span
+                  className="ml-1 px-1.5 py-0.5 text-3xs font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-600 cursor-help"
+                  title="Alt+G"
+                >
+                  Alt+G
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Cart items list (prominent cards with large Pointure tag) */}
@@ -2483,6 +2596,14 @@ export default function SalesPage() {
               );
             })()}
 
+            {/* Blocked client credit warning */}
+            {selectedClient?.is_blocked && (isVersement || (!isLayaway && total > 0 && paymentTotal < total)) && (
+              <div className="text-xs px-3 py-2.5 rounded-xl border font-semibold bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 flex items-center gap-2">
+                <AlertTriangle size={15} className="shrink-0 text-red-600 dark:text-red-400" />
+                <span>{t("pos.blocked_client_credit_error", "Ce client est bloqué pour les achats à crédit.")}</span>
+              </div>
+            )}
+
             {/* Underpaid on-account warning & info (D1) */}
             {!isVersement && !isLayaway && total > 0 && paymentTotal < total && (
               <div
@@ -2575,7 +2696,8 @@ export default function SalesPage() {
                 saleMutation.isPending ||
                 (isVersement && paymentTotal < total * (storeSettings?.min_versement_pct ?? 30) / 100) ||
                 (isLayaway && paymentTotal < total * (storeSettings?.min_layaway_deposit_pct ?? 20) / 100) ||
-                (!isVersement && !isLayaway && total > 0 && paymentTotal < total && !selectedClient)
+                (!isVersement && !isLayaway && total > 0 && paymentTotal < total && !selectedClient) ||
+                (Boolean(selectedClient?.is_blocked) && (isVersement || paymentTotal < total))
               }
               className={cn(
                 "w-full py-4 px-5 rounded-2xl font-extrabold text-base tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer",

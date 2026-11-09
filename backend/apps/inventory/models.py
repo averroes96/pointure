@@ -7,6 +7,7 @@ Direct mutation of stock_qty is forbidden — use StockMovement exclusively.
 """
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Sum
@@ -93,12 +94,22 @@ class Product(TenantScopedModel):
     sale_price = models.DecimalField(
         _("Sale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
+    semi_wholesale_price = models.DecimalField(
+        _("Semi-Wholesale Price (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
     wholesale_price = models.DecimalField(
         _("Wholesale Price (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     image = models.ImageField(_("Photo"), upload_to="products/", blank=True, null=True)
     description = models.TextField(_("Description"), blank=True)
     pairs_per_carton = models.PositiveIntegerField(_("Pairs per Carton"), default=10)
+    carton_breakdown = models.JSONField(_("Carton Breakdown"), null=True, blank=True, default=dict)
+    size_range = models.CharField(
+        _("Size Range"),
+        max_length=50,
+        blank=True,
+        help_text="Plage ou série de pointures (ex: 37/41, 40-45). Utilisé en mode simple sans générer de variantes.",
+    )
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)
     is_active = models.BooleanField(_("Active"), default=True)
     is_demo = models.BooleanField(_("Demo Product"), default=False, db_index=True)
@@ -120,7 +131,24 @@ class Product(TenantScopedModel):
     def __str__(self):
         return f"{self.brand} {self.name}".strip()
 
+    def _validate_carton_breakdown(self):
+        if self.carton_breakdown:
+            if not isinstance(self.carton_breakdown, dict):
+                raise ValidationError({"carton_breakdown": _("Le découpage par carton doit être un objet JSON.")})
+            total_pairs = sum(int(qty) for qty in self.carton_breakdown.values() if qty)
+            if total_pairs > 0 and self.pairs_per_carton and total_pairs != self.pairs_per_carton:
+                raise ValidationError({
+                    "carton_breakdown": _(
+                        f"La somme des paires par pointure ({total_pairs}) doit être égale au nombre de paires par carton ({self.pairs_per_carton})."
+                    )
+                })
+
+    def clean(self):
+        super().clean()
+        self._validate_carton_breakdown()
+
     def save(self, *args, **kwargs):
+        self._validate_carton_breakdown()
         try:
             pp = Decimal(str(self.purchase_price)) if self.purchase_price is not None else Decimal("0.00")
         except Exception:

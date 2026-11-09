@@ -16,6 +16,12 @@ class ClientTypeChoices(models.TextChoices):
     WHOLESALE = "wholesale", _("Wholesale")
 
 
+class PriceTierChoices(models.TextChoices):
+    DETAIL = "detail", _("Détail")
+    DEMI_GROS = "demi_gros", _("Demi-Gros")
+    GROS = "gros", _("Gros")
+
+
 class ChequeStatusChoices(models.TextChoices):
     PENDING = "pending", _("Pending")
     DEPOSITED = "deposited", _("Deposited")
@@ -46,6 +52,12 @@ class Client(TenantScopedModel):
         default=ClientTypeChoices.RETAIL,
         db_index=True,
     )
+    price_tier = models.CharField(
+        _("Price Tier"), max_length=15,
+        choices=PriceTierChoices.choices,
+        default=PriceTierChoices.DETAIL,
+        db_index=True,
+    )
 
     # Professional info (for wholesale clients)
     nif = models.CharField(_("NIF"), max_length=20, blank=True)
@@ -59,6 +71,7 @@ class Client(TenantScopedModel):
         _("Outstanding Balance (DZD)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     is_active = models.BooleanField(_("Active"), default=True)
+    is_blocked = models.BooleanField(_("Blocked"), default=False, db_index=True)
     notes = models.TextField(_("Notes"), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

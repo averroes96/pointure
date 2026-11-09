@@ -8,8 +8,10 @@
   <div>
     <div class="company-name">{{ tenant.name }}</div>
     <div class="company-details">
-      {% if tenant.nif %}NIF: {{ tenant.nif }}{% endif %}
-      {% if tenant.rc %} &nbsp;|&nbsp; RC: {{ tenant.rc }}{% endif %}
+      {% if tenant.nif %}NIF: {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC: {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI: {{ tenant.ai }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.nis %}NIS: {{ tenant.nis }}{% endif %}
     </div>
   </div>
   <div>
@@ -50,7 +52,10 @@
     {% for item in grouped_lines %}
     <tr>
       <td>{{ forloop.counter }}</td>
-      <td>{{ item.name }}</td>
+      <td>
+        {{ item.name }}
+        {% if item.sizes_str %}<br><small style="color:#555; font-size:8pt;">({{ item.sizes_str }})</small>{% endif %}
+      </td>
       <td class="num">{% if item.cartons > 0 %}{{ item.cartons }}{% else %}—{% endif %}</td>
       <td class="num">{{ item.quantity }}</td>
     </tr>

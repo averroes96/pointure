@@ -233,6 +233,64 @@ export function useGlobalShortcuts() {
           break;
         }
 
+        // Ctrl+K / Cmd+K : Recherche rapide universelle
+        case "Ctrl+k":
+        case "Ctrl+K":
+        case "Cmd+k":
+        case "Cmd+K": {
+          e?.preventDefault?.();
+          window.dispatchEvent(new CustomEvent("app-toggle-quick-search"));
+          break;
+        }
+
+        // Alt+G : Bascule grille tarifaire Gros / Demi-gros / Détail
+        case "Alt+g":
+        case "Alt+G": {
+          e?.preventDefault?.();
+          window.dispatchEvent(new CustomEvent("app-shortcut-toggle-price-tier"));
+          break;
+        }
+
+        // Alt+C : Vente / Ajout de cartons complets
+        case "Alt+c":
+        case "Alt+C": {
+          e?.preventDefault?.();
+          window.dispatchEvent(new CustomEvent("app-shortcut-carton-modal"));
+          break;
+        }
+
+        // Alt+D : Devis & Proforma (Shift+Alt+D: Nouveau devis)
+        case "Alt+d":
+        case "Alt+D": {
+          e?.preventDefault?.();
+          if (isShift) {
+            navigate("/quotes/new");
+          } else {
+            navigate("/quotes");
+          }
+          break;
+        }
+
+        // Alt+B : Bons de commande fournisseurs (Shift+Alt+B: Nouveau bon)
+        case "Alt+b":
+        case "Alt+B": {
+          e?.preventDefault?.();
+          if (isShift) {
+            navigate("/purchase-orders/new");
+          } else {
+            navigate("/purchase-orders");
+          }
+          break;
+        }
+
+        // Alt+R : Relevé de compte client / Balances
+        case "Alt+r":
+        case "Alt+R": {
+          e?.preventDefault?.();
+          navigate("/clients");
+          break;
+        }
+
         // Escape: Fermer modale ou effacer recherche
         case "Escape": {
           window.dispatchEvent(new CustomEvent("app-shortcut-escape"));
@@ -298,10 +356,33 @@ export function useGlobalShortcuts() {
       const isAltH = e.altKey && !e.ctrlKey && (e.key === "h" || e.key === "H" || e.code === "KeyH");
       const isAltP = e.altKey && !e.ctrlKey && (e.key === "p" || e.key === "P" || e.code === "KeyP");
       const isAltS = e.altKey && !e.ctrlKey && (e.key === "s" || e.key === "S" || e.code === "KeyS");
+      const isAltG = e.altKey && !e.ctrlKey && (e.key === "g" || e.key === "G" || e.code === "KeyG");
+      const isAltC = e.altKey && !e.ctrlKey && (e.key === "c" || e.key === "C" || e.code === "KeyC");
+      const isAltD = e.altKey && !e.ctrlKey && (e.key === "d" || e.key === "D" || e.code === "KeyD");
+      const isAltB = e.altKey && !e.ctrlKey && (e.key === "b" || e.key === "B" || e.code === "KeyB");
+      const isAltR = e.altKey && !e.ctrlKey && (e.key === "r" || e.key === "R" || e.code === "KeyR");
       const isCtrlComma = (e.ctrlKey || e.metaKey) && (e.key === "," || e.code === "Comma");
+      const isCtrlK = (e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K" || e.code === "KeyK");
 
-      // Never ignore Function keys or Alt shortcuts or Ctrl+, or Escape, even when typing inside an input or textarea!
-      if (!isFKey && !isAltNumber && !isAltM && !isAltV && !isAltH && !isAltP && !isAltS && !isCtrlComma && e.key !== "Escape") {
+      const isSpecialShortcut =
+        isFKey ||
+        isAltNumber ||
+        isAltM ||
+        isAltV ||
+        isAltH ||
+        isAltP ||
+        isAltS ||
+        isAltG ||
+        isAltC ||
+        isAltD ||
+        isAltB ||
+        isAltR ||
+        isCtrlComma ||
+        isCtrlK ||
+        e.key === "Escape";
+
+      // Never ignore Function keys or Alt shortcuts or Ctrl+K/Ctrl+, or Escape, even when typing inside an input or textarea!
+      if (!isSpecialShortcut) {
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
           return;
         }
@@ -321,8 +402,20 @@ export function useGlobalShortcuts() {
         executeShortcut("Alt+P", e);
       } else if (isAltS) {
         executeShortcut("Alt+S", e);
+      } else if (isAltG) {
+        executeShortcut("Alt+G", e);
+      } else if (isAltC) {
+        executeShortcut("Alt+C", e);
+      } else if (isAltD) {
+        executeShortcut("Alt+D", e);
+      } else if (isAltB) {
+        executeShortcut("Alt+B", e);
+      } else if (isAltR) {
+        executeShortcut("Alt+R", e);
       } else if (isCtrlComma) {
         executeShortcut("Ctrl+,", e);
+      } else if (isCtrlK) {
+        executeShortcut("Ctrl+K", e);
       } else if (e.key === "Escape") {
         executeShortcut("Escape", e);
       }

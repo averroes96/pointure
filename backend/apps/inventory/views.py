@@ -769,6 +769,111 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         return Response(result)
 
+    @action(detail=True, methods=["post"], url_path="expand-cartons")
+    def expand_cartons(self, request, pk=None):
+        """
+        Expand cartons into lines per variant according to product.carton_breakdown.
+        Takes {colour, cartons, branch_id}.
+        Returns lines per variant (size × pairs × cartons) with stock availability per size.
+        """
+        product = self.get_object()
+        if not product.carton_breakdown or not isinstance(product.carton_breakdown, dict):
+            return Response(
+                {"error": {"code": "no_carton_breakdown", "message": "Le produit n'a pas de répartition de carton configurée."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            cartons = int(request.data.get("cartons") or 1)
+        except (ValueError, TypeError):
+            cartons = 0
+
+        if cartons < 1:
+            return Response(
+                {"error": {"code": "invalid_cartons", "message": "Le nombre de cartons doit être supérieur ou égal à 1."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        colour = request.data.get("colour", "").strip()
+        if not colour:
+            first_variant = product.variants.filter(is_active=True).first()
+            colour = first_variant.colour if first_variant and first_variant.colour else "Standard"
+
+        branch = None
+        branch_id = request.data.get("branch_id") or request.query_params.get("branch_id")
+        if branch_id:
+            from apps.core.models import Branch
+            branch = Branch.objects.filter(pk=branch_id, tenant=request.tenant).first()
+
+        def _parse_size(s):
+            try:
+                return int(s)
+            except Exception:
+                return 0
+
+        sorted_items = sorted(product.carton_breakdown.items(), key=lambda x: _parse_size(x[0]))
+        lines = []
+        for size_str, pairs_in_carton in sorted_items:
+            size_eu = _parse_size(size_str)
+            try:
+                pairs_in_carton = int(pairs_in_carton)
+            except (ValueError, TypeError):
+                pairs_in_carton = 0
+
+            if pairs_in_carton <= 0:
+                continue
+
+            qty = pairs_in_carton * cartons
+
+            variant = product.variants.filter(
+                size_eu=size_eu, colour__iexact=colour, is_active=True
+            ).first()
+            if not variant and colour in ("Standard", "N/A", ""):
+                variant = product.variants.filter(size_eu=size_eu, is_active=True).first()
+
+            available_stock = 0
+            if variant:
+                if branch:
+                    from django.db.models import Sum
+                    from apps.inventory.models import StockMovement
+                    available_stock = StockMovement.objects.filter(
+                        variant=variant, branch=branch
+                    ).aggregate(t=Sum("quantity_delta"))["t"] or 0
+                else:
+                    available_stock = variant.stock_qty
+
+            is_sufficient = available_stock >= qty
+
+            desc = f"{product.name} EU{size_eu}"
+            if colour and colour not in ("Standard", "N/A", ""):
+                desc += f" {colour}"
+
+            lines.append({
+                "variant_id": str(variant.id) if variant else None,
+                "product_id": str(product.id),
+                "product_name": product.name,
+                "size_eu": size_eu,
+                "colour": colour,
+                "description": desc,
+                "pairs_per_carton": pairs_in_carton,
+                "cartons": cartons,
+                "quantity": qty,
+                "unit_price": str(product.wholesale_price if product.wholesale_price > 0 else product.sale_price),
+                "available_stock": available_stock,
+                "is_sufficient_stock": is_sufficient,
+            })
+
+        return Response({
+            "product_id": str(product.id),
+            "product_name": product.name,
+            "colour": colour,
+            "cartons": cartons,
+            "pairs_per_carton": product.pairs_per_carton,
+            "total_pairs": sum(l["quantity"] for l in lines),
+            "all_stock_sufficient": all(l["is_sufficient_stock"] for l in lines),
+            "lines": lines,
+        })
+
     @action(detail=True, methods=["get"], url_path="barcode-labels")
     def barcode_labels(self, request, pk=None):
         """
@@ -1611,7 +1716,17 @@ def _render_shelf_label(
     t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
 
     ref_text = (product.reference or "").strip() or (product.name or "").strip()
-    loc_text = location.strip() if (location and location.strip()) else "—"
+    loc_part = location.strip() if (location and location.strip()) else ""
+    range_part = (getattr(product, "size_range", "") or "").strip()
+    if loc_part and range_part:
+        loc_text = f"{loc_part} ({range_part})"
+    elif loc_part:
+        loc_text = loc_part
+    elif range_part:
+        loc_text = f"({range_part})"
+    else:
+        loc_text = "—"
+
     price_text = f"{product.sale_price:,.0f}".replace(",", " ")
 
     ref_pt = _fit_pt(ref_text, 13 * s, int(13 * width_factor))

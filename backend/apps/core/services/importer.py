@@ -28,7 +28,7 @@ from apps.inventory.models import (
     Variant,
 )
 from apps.suppliers.models import Supplier
-from apps.clients.models import Client, ClientTypeChoices
+from apps.clients.models import Client, ClientTypeChoices, PriceTierChoices
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +71,11 @@ PRODUCT_SYNONYMS: Dict[str, List[str]] = {
         "sale_price", "selling_price", "prix_vente", "prix_de_vente", "prix vente",
         "prix", "price", "pv", "prix de vente", "prix_detail", "prix détail",
         "سعر البيع", "سعر البيع بالتجزئة", "الثمن", "السعر", "سعر التجزئة", "سعر البيع دج"
+    ],
+    "semi_wholesale_price": [
+        "semi_wholesale_price", "prix_demi_gros", "prix demi gros", "prix demi-gros",
+        "demi_gros", "demi-gros", "demi gros", "pvdg", "pv_tarif2", "btarif2", "semi wholesale price",
+        "سعر نصف الجملة", "نصف الجملة", "ثمن نصف الجملة", "سعر نصف الجملة دج"
     ],
     "wholesale_price": [
         "wholesale_price", "prix_gros", "prix_de_gros", "prix gros", "pvg",
@@ -168,6 +173,10 @@ CLIENT_SYNONYMS: Dict[str, List[str]] = {
     "client_type": [
         "client_type", "type_client", "type", "nature", "categorie_client",
         "نوع العميل", "فئة الزبون", "نوع الزبون", "النوع"
+    ],
+    "price_tier": [
+        "price_tier", "tarif", "code_tarif", "grille_tarifaire", "tier", "tarification",
+        "التسعيرة", "فئة السعر", "نظام التسعير"
     ],
     "nif": [
         "nif", "identifiant_fiscal", "nif_client",
@@ -467,9 +476,22 @@ def normalize_client_type(val: Any) -> str:
     if not val:
         return ClientTypeChoices.RETAIL
     s = _clean_header(val)
-    if "gros" in s or "wholesale" in s or "pro" in s or "b2b" in s or "جملة" in s:
+    if "gros" in s or "demi" in s or "semi" in s or "wholesale" in s or "pro" in s or "b2b" in s or "جملة" in s:
         return ClientTypeChoices.WHOLESALE
     return ClientTypeChoices.RETAIL
+
+
+def normalize_price_tier(val: Any, client_type: Optional[str] = None) -> str:
+    if not val:
+        if client_type == ClientTypeChoices.WHOLESALE:
+            return PriceTierChoices.GROS
+        return PriceTierChoices.DETAIL
+    s = _clean_header(val)
+    if "demi" in s or "semi" in s or "نصف" in s or s in ("2", "t2", "tarif 2", "tarif2"):
+        return PriceTierChoices.DEMI_GROS
+    if "gros" in s or "wholesale" in s or "جملة" in s or s in ("3", "t3", "tarif 3", "tarif3"):
+        return PriceTierChoices.GROS
+    return PriceTierChoices.DETAIL
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -596,6 +618,9 @@ class DataImportEngine:
 
             wholesale_price, wp_err = parse_decimal_safe(mapped.get("wholesale_price"), Decimal("0.00"))
             mapped["wholesale_price"] = str(wholesale_price)
+
+            semi_wholesale_price, swp_err = parse_decimal_safe(mapped.get("semi_wholesale_price"), Decimal("0.00"))
+            mapped["semi_wholesale_price"] = str(semi_wholesale_price) if semi_wholesale_price > Decimal("0.00") else None
 
             stock_qty, stock_err = parse_integer_safe(mapped.get("initial_stock"), default=0, min_val=0)
             if stock_err:
@@ -831,7 +856,9 @@ class DataImportEngine:
                 row_warnings.append(str(_("Limite de crédit invalide, initialisée à 0.")))
             mapped["credit_limit"] = str(credit_limit)
 
-            mapped["client_type"] = normalize_client_type(mapped.get("client_type"))
+            raw_tier_or_type = mapped.get("price_tier") or mapped.get("client_type")
+            mapped["client_type"] = normalize_client_type(mapped.get("client_type") or raw_tier_or_type)
+            mapped["price_tier"] = normalize_price_tier(raw_tier_or_type, mapped["client_type"])
 
             is_duplicate = False
             clean_name = name.lower()
@@ -955,6 +982,13 @@ class DataImportEngine:
                 sale_price, _sp_err = parse_decimal_safe(mapped.get("sale_price"), Decimal("0.00"))
                 purchase_price, _pp_err = parse_decimal_safe(mapped.get("purchase_price"), Decimal("0.00"))
                 wholesale_price, _wp_err = parse_decimal_safe(mapped.get("wholesale_price"), Decimal("0.00"))
+                raw_swp = mapped.get("semi_wholesale_price")
+                semi_wholesale_val, _swp_err = parse_decimal_safe(raw_swp, Decimal("0.00"))
+                semi_wholesale_price = (
+                    semi_wholesale_val
+                    if raw_swp is not None and str(raw_swp).strip() != "" and semi_wholesale_val > Decimal("0.00")
+                    else None
+                )
                 pairs_per_carton, _pc_err = parse_integer_safe(mapped.get("pairs_per_carton"), default=10, min_val=1)
                 alert_threshold, _at_err = parse_integer_safe(mapped.get("alert_threshold"), default=10, min_val=0)
                 stock_qty, _sq_err = parse_integer_safe(mapped.get("initial_stock"), default=0, min_val=0)
@@ -982,6 +1016,7 @@ class DataImportEngine:
                         purchase_price=purchase_price,
                         pamp=purchase_price,
                         sale_price=sale_price,
+                        semi_wholesale_price=semi_wholesale_price,
                         wholesale_price=wholesale_price,
                         pairs_per_carton=pairs_per_carton,
                         alert_threshold=alert_threshold,
@@ -994,6 +1029,8 @@ class DataImportEngine:
                         product.sale_price = sale_price
                     if purchase_price > 0:
                         product.purchase_price = purchase_price
+                    if semi_wholesale_price is not None and semi_wholesale_price > 0:
+                        product.semi_wholesale_price = semi_wholesale_price
                     if wholesale_price > 0:
                         product.wholesale_price = wholesale_price
                     if description:
@@ -1153,7 +1190,9 @@ class DataImportEngine:
                 email = str(mapped.get("email") or "").strip()
                 address = str(mapped.get("address") or "").strip()
                 wilaya, _w_err = normalize_wilaya(mapped.get("wilaya"))
-                client_type = normalize_client_type(mapped.get("client_type"))
+                raw_tier_or_type = mapped.get("price_tier") or mapped.get("client_type")
+                client_type = normalize_client_type(mapped.get("client_type") or raw_tier_or_type)
+                price_tier = normalize_price_tier(raw_tier_or_type, client_type)
                 nif = str(mapped.get("nif") or "").strip()
                 rc = str(mapped.get("rc") or "").strip()
                 credit_limit, _cl_err = parse_decimal_safe(mapped.get("credit_limit"), Decimal("0.00"))
@@ -1174,6 +1213,7 @@ class DataImportEngine:
                         address=address,
                         wilaya=wilaya,
                         client_type=client_type,
+                        price_tier=price_tier,
                         nif=nif,
                         rc=rc,
                         credit_limit=credit_limit,
@@ -1186,6 +1226,7 @@ class DataImportEngine:
                     if address: client.address = address
                     if wilaya: client.wilaya = wilaya
                     if client_type: client.client_type = client_type
+                    if raw_tier_or_type: client.price_tier = price_tier
                     if nif: client.nif = nif
                     if rc: client.rc = rc
                     if credit_limit > 0: client.credit_limit = credit_limit
@@ -1221,32 +1262,32 @@ class DataImportEngine:
         templates_config = {
             "products": {
                 "fr": {
-                    "headers": ["Nom *", "Marque", "Référence", "Catégorie", "Genre", "Pointure", "Couleur", "Prix Achat (DZD)", "Prix Vente (DZD) *", "Prix Gros (DZD)", "Stock Initial", "Code-barres", "Paires par Carton", "Seuil Alerte", "Description"],
+                    "headers": ["Nom *", "Marque", "Référence", "Catégorie", "Genre", "Pointure", "Couleur", "Prix Achat (DZD)", "Prix Vente (DZD) *", "Prix Demi-Gros (DZD)", "Prix Gros (DZD)", "Stock Initial", "Code-barres", "Paires par Carton", "Seuil Alerte", "Description"],
                     "samples": [
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Noir", "4500", "6500", "5500", "12", "", "10", "3", "Modèle running homme confortable"],
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Noir", "4500", "6500", "5500", "15", "", "10", "3", "Modèle running homme confortable"],
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Blanc", "4500", "6500", "5500", "8", "", "10", "3", "Modèle running homme blanc"],
-                        ["Mocassin Cuir Prestige", "Clarks", "CLK-MC-02", "formal", "M", "41", "Marron", "6000", "8900", "7500", "6", "", "8", "2", "Cuir véritable fait main"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Noir", "4500", "6500", "6000", "5500", "12", "", "10", "3", "Modèle running homme confortable"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Noir", "4500", "6500", "6000", "5500", "15", "", "10", "3", "Modèle running homme confortable"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Blanc", "4500", "6500", "6000", "5500", "8", "", "10", "3", "Modèle running homme blanc"],
+                        ["Mocassin Cuir Prestige", "Clarks", "CLK-MC-02", "formal", "M", "41", "Marron", "6000", "8900", "8200", "7500", "6", "", "8", "2", "Cuir véritable fait main"],
                     ],
                     "filename": "modele_import_produits_shoedz",
                 },
                 "en": {
-                    "headers": ["Product Name *", "Brand", "Reference / SKU", "Category", "Gender", "EU Size", "Colour", "Purchase Price (DZD)", "Sale Price (DZD) *", "Wholesale Price (DZD)", "Initial Stock", "Barcode", "Pairs per Box", "Alert Threshold", "Description"],
+                    "headers": ["Product Name *", "Brand", "Reference / SKU", "Category", "Gender", "EU Size", "Colour", "Purchase Price (DZD)", "Sale Price (DZD) *", "Semi-Wholesale Price (DZD)", "Wholesale Price (DZD)", "Initial Stock", "Barcode", "Pairs per Box", "Alert Threshold", "Description"],
                     "samples": [
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Black", "4500", "6500", "5500", "12", "", "10", "3", "Comfortable men running shoes"],
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Black", "4500", "6500", "5500", "15", "", "10", "3", "Comfortable men running shoes"],
-                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "White", "4500", "6500", "5500", "8", "", "10", "3", "White edition"],
-                        ["Leather Loafer", "Clarks", "CLK-MC-02", "formal", "M", "41", "Brown", "6000", "8900", "7500", "6", "", "8", "2", "Handmade genuine leather"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "Black", "4500", "6500", "6000", "5500", "12", "", "10", "3", "Comfortable men running shoes"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "43", "Black", "4500", "6500", "6000", "5500", "15", "", "10", "3", "Comfortable men running shoes"],
+                        ["Air Max Runner", "Nike", "NK-AM-01", "sneakers", "M", "42", "White", "4500", "6500", "6000", "5500", "8", "", "10", "3", "White edition"],
+                        ["Leather Loafer", "Clarks", "CLK-MC-02", "formal", "M", "41", "Brown", "6000", "8900", "8200", "7500", "6", "", "8", "2", "Handmade genuine leather"],
                     ],
                     "filename": "products_import_template_shoedz",
                 },
                 "ar": {
-                    "headers": ["اسم المنتج *", "الماركة", "المرجع", "التصنيف", "الفئة", "المقاس", "اللون", "سعر الشراء (دج)", "سعر البيع (دج) *", "سعر الجملة (دج)", "المخزون الأولي", "الباركود", "أزواج الكرتون", "حد التنبيه", "الوصف"],
+                    "headers": ["اسم المنتج *", "الماركة", "المرجع", "التصنيف", "الفئة", "المقاس", "اللون", "سعر الشراء (دج)", "سعر البيع (دج) *", "سعر نصف الجملة (دج)", "سعر الجملة (دج)", "المخزون الأولي", "الباركود", "أزواج الكرتون", "حد التنبيه", "الوصف"],
                     "samples": [
-                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "42", "أسود", "4500", "6500", "5500", "12", "", "10", "3", "حذاء رياضي مريح للرجال"],
-                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "43", "أسود", "4500", "6500", "5500", "15", "", "10", "3", "حذاء رياضي مريح للرجال"],
-                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "42", "أبيض", "4500", "6500", "5500", "8", "", "10", "3", "نسخة بيضاء مميزة"],
-                        ["حذاء كلاسيكي جلد أصلي", "Clarks", "CLK-MC-02", "formal", "M", "41", "بني", "6000", "8900", "7500", "6", "", "8", "2", "جلد أصلي عالي الجودة"],
+                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "42", "أسود", "4500", "6500", "6000", "5500", "12", "", "10", "3", "حذاء رياضي مريح للرجال"],
+                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "43", "أسود", "4500", "6500", "6000", "5500", "15", "", "10", "3", "حذاء رياضي مريح للرجال"],
+                        ["حذاء رياضي إير ماكس", "Nike", "NK-AM-01", "sneakers", "M", "42", "أبيض", "4500", "6500", "6000", "5500", "8", "", "10", "3", "نسخة بيضاء مميزة"],
+                        ["حذاء كلاسيكي جلد أصلي", "Clarks", "CLK-MC-02", "formal", "M", "41", "بني", "6000", "8900", "8200", "7500", "6", "", "8", "2", "جلد أصلي عالي الجودة"],
                     ],
                     "filename": "نموذج_استيراد_المنتجات_شوز_ديزاد",
                 },

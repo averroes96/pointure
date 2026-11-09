@@ -40,6 +40,11 @@ class BusinessModeChoices(models.TextChoices):
     MIXED = "mixed", _("Mixte (Détail & Gros)")
 
 
+class TaxRegimeChoices(models.TextChoices):
+    REEL = "reel", _("Régime du réel")
+    IFU = "ifu", _("Impôt Forfaitaire Unique (IFU)")
+
+
 WILAYA_CHOICES = [
     ("01", "Adrar"), ("02", "Chlef"), ("03", "Laghouat"), ("04", "Oum El Bouaghi"),
     ("05", "Batna"), ("06", "Béjaïa"), ("07", "Biskra"), ("08", "Béchar"),
@@ -114,6 +119,7 @@ class Tenant(models.Model):
     nif = models.CharField(_("NIF"), max_length=20, blank=True)
     rc = models.CharField(_("RC"), max_length=30, blank=True)
     ai = models.CharField(_("AI"), max_length=30, blank=True)
+    nis = models.CharField(_("NIS"), max_length=30, blank=True)
     phone = models.CharField(_("Phone"), max_length=20, blank=True)
     address = models.TextField(_("Address"), blank=True)
     wilaya = models.CharField(_("Wilaya"), max_length=2, choices=WILAYA_CHOICES, blank=True)
@@ -413,6 +419,18 @@ class StoreSettings(TenantScopedModel):
         _("Activer les intégrations de livraison"),
         default=False,
         help_text="Active les transporteurs dzship, les commandes brouillons et les webhooks Meta.",
+    )
+    tax_regime = models.CharField(
+        _("Tax Regime"),
+        max_length=10,
+        choices=TaxRegimeChoices.choices,
+        default=TaxRegimeChoices.REEL,
+        help_text="Régime fiscal de l'entreprise (Réel ou IFU).",
+    )
+    invoice_legal_mentions = models.TextField(
+        _("Invoice Legal Mentions"),
+        blank=True,
+        help_text="Mentions légales personnalisées imprimées sur les factures (ex: mention d'exonération TVA / IFU).",
     )
 
     class Meta:

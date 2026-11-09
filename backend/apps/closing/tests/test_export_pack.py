@@ -292,16 +292,24 @@ class TestAccountantExportPack:
         assert ws_cheques.cell(row=2, column=1).value == "CHQ-98765"
         assert Decimal(str(ws_cheques.cell(row=2, column=6).value)) == Decimal("12000.00")
 
-    def test_summary_pdf_endpoint(self):
+    def test_summary_pdf_endpoint(self, monkeypatch):
         """GET /api/v1/closing/years/{id}/summary-pdf/ returns valid 1-page PDF."""
+        monkeypatch.setattr(
+            "apps.closing.services.export_pack.render_to_pdf",
+            lambda *args, **kwargs: b"%PDF-1.4 mock summary pdf",
+        )
         self.client.force_authenticate(user=self.manager)
         resp = self.client.get(f"/api/v1/closing/years/{self.fy.id}/summary-pdf/")
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/pdf"
         assert resp.content.startswith(b"%PDF-")
 
-    def test_export_with_format_pdf_query_param(self):
+    def test_export_with_format_pdf_query_param(self, monkeypatch):
         """GET /api/v1/closing/years/{id}/export/?format=pdf returns PDF summary."""
+        monkeypatch.setattr(
+            "apps.closing.services.export_pack.render_to_pdf",
+            lambda *args, **kwargs: b"%PDF-1.4 mock summary pdf",
+        )
         self.client.force_authenticate(user=self.owner)
         resp = self.client.get(f"/api/v1/closing/years/{self.fy.id}/export/?format=pdf")
         assert resp.status_code == 200

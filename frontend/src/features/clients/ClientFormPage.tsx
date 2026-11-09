@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
-import type { Client, ClientType } from "@/types";
+import type { Client, ClientType, PriceTier } from "@/types";
 import { cn } from "@/lib/utils";
 import { wilayaLabel, parseWilayaCode } from "@/lib/wilayas";
 import { useWilayas } from "@/hooks/useLocationData";
@@ -38,6 +38,7 @@ interface FormState {
   address: string;
   wilaya: string;
   client_type: ClientType;
+  price_tier: PriceTier;
   nif: string;
   rc: string;
   credit_limit: string;
@@ -52,6 +53,7 @@ const EMPTY_FORM: FormState = {
   address: "",
   wilaya: "",
   client_type: "retail",
+  price_tier: "detail",
   nif: "",
   rc: "",
   credit_limit: "0",
@@ -123,6 +125,9 @@ export default function ClientFormPage() {
       address: existingClient.address ?? "",
       wilaya: existingClient.wilaya ?? "",
       client_type: existingClient.client_type ?? "retail",
+      price_tier:
+        existingClient.price_tier ??
+        (existingClient.client_type === "wholesale" ? "gros" : "detail"),
       nif: existingClient.nif ?? "",
       rc: existingClient.rc ?? "",
       credit_limit: existingClient.credit_limit ?? "0",
@@ -348,7 +353,18 @@ export default function ClientFormPage() {
                     <button
                       key={tVal}
                       type="button"
-                      onClick={() => setForm((f) => ({ ...f, client_type: tVal }))}
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          client_type: tVal,
+                          price_tier:
+                            tVal === "retail"
+                              ? "detail"
+                              : f.price_tier === "detail"
+                                ? "gros"
+                                : f.price_tier,
+                        }))
+                      }
                       className={cn(
                         "flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all text-xs",
                         form.client_type === tVal
@@ -364,6 +380,36 @@ export default function ClientFormPage() {
                   {form.client_type === "retail"
                     ? t("client.retail_loyalty_hint")
                     : t("client.wholesale_loyalty_hint")}
+                </p>
+              </div>
+
+              {/* Price tier selector */}
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <CreditCard size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                  {t("client.price_tier", "Grille tarifaire")}
+                </label>
+                <select
+                  value={form.price_tier}
+                  onChange={(e) => {
+                    const nextTier = e.target.value as PriceTier;
+                    setForm((f) => ({
+                      ...f,
+                      price_tier: nextTier,
+                      client_type: nextTier === "detail" ? "retail" : "wholesale",
+                    }));
+                  }}
+                  className="form-input rounded-xl border-slate-200/90 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-2xs focus:ring-primary-500/20 text-xs font-medium"
+                >
+                  <option value="detail">{t("client.tier_detail", "Détail")}</option>
+                  <option value="demi_gros">{t("client.tier_demi_gros", "Demi-gros")}</option>
+                  <option value="gros">{t("client.tier_gros", "Gros")}</option>
+                </select>
+                <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                  {t(
+                    "client.price_tier_hint",
+                    "Applique automatiquement ce tarif en caisse et lors de la facturation.",
+                  )}
                 </p>
               </div>
 

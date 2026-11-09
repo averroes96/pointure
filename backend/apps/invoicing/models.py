@@ -22,6 +22,15 @@ class InvoiceStatusChoices(models.TextChoices):
     CANCELLED = "cancelled", _("Cancelled")
 
 
+class QuoteStatusChoices(models.TextChoices):
+    DRAFT = "draft", _("Draft")
+    SENT = "sent", _("Sent")
+    ACCEPTED = "accepted", _("Accepted")
+    EXPIRED = "expired", _("Expired")
+    CONVERTED = "converted", _("Converted")
+    CANCELLED = "cancelled", _("Cancelled")
+
+
 class InvoicePaymentMethodChoices(models.TextChoices):
     CASH = "cash", _("Cash")
     CHEQUE = "cheque", _("Cheque")
@@ -502,3 +511,234 @@ class CreditNote(TenantScopedModel):
                 "date": self.date,
             }
         )
+
+
+# ─────────────────────────────────────────────
+# Quote (Devis / Facture Proforma)
+# ─────────────────────────────────────────────
+
+class Quote(TenantScopedModel):
+    """
+    Wholesale quotation / proforma invoice.
+    Purely commercial proposal: never affects stock or client ledger balances.
+    """
+    client = models.ForeignKey(
+        "clients.Client", on_delete=models.SET_NULL, null=True, blank=True, related_name="quotes"
+    )
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="quotes"
+    )
+    number = models.CharField(_("Quote Number"), max_length=30, blank=True, db_index=True)
+    date = models.DateField(_("Quote Date"), db_index=True)
+    valid_until = models.DateField(_("Valid Until"))
+    status = models.CharField(
+        _("Status"),
+        max_length=15,
+        choices=QuoteStatusChoices.choices,
+        default=QuoteStatusChoices.DRAFT,
+        db_index=True,
+    )
+
+    total_ht = models.DecimalField(
+        _("Total HT (ex-TVA)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    tva_rate = models.DecimalField(
+        _("TVA Rate %"), max_digits=5, decimal_places=2, default=Decimal("19.00")
+    )
+    tva_amount = models.DecimalField(
+        _("TVA Amount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    total_ttc = models.DecimalField(
+        _("Total TTC (incl. TVA)"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    apply_tva = models.BooleanField(_("Apply TVA"), default=True)
+
+    notes = models.TextField(_("Notes"), blank=True)
+    converted_invoice = models.ForeignKey(
+        Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="converted_quotes"
+    )
+    converted_delivery_note = models.ForeignKey(
+        DeliveryNote, on_delete=models.SET_NULL, null=True, blank=True, related_name="converted_quotes"
+    )
+    pdf_file = models.FileField(_("PDF File"), upload_to="quotes/pdf/", blank=True, null=True)
+    created_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="quotes_created"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Quote")
+        verbose_name_plural = _("Quotes")
+        ordering = ["-date", "-number"]
+
+    def __str__(self):
+        return f"Quote {self.number or self.pk}"
+
+    def save(self, *args, **kwargs):
+        from datetime import timedelta
+        if not self.number:
+            self.number = InvoiceCounter.next_number(self.tenant, "PF", date=self.date)
+        if not self.valid_until and self.date:
+            self.valid_until = self.date + timedelta(days=15)
+        if self.pk:
+            self.compute_totals()
+        super().save(*args, **kwargs)
+
+    def compute_totals(self):
+        total_ht = sum(line.line_total for line in self.lines.all())
+        self.total_ht = total_ht
+        if self.apply_tva:
+            self.tva_amount = (total_ht * self.tva_rate / 100).quantize(Decimal("0.01"))
+        else:
+            self.tva_amount = Decimal("0.00")
+        self.total_ttc = self.total_ht + self.tva_amount
+
+    def send(self, user=None):
+        if self.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
+            self.status = QuoteStatusChoices.SENT
+            self.save(update_fields=["status"])
+
+    def accept(self, user=None):
+        if self.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
+            self.status = QuoteStatusChoices.ACCEPTED
+            self.save(update_fields=["status"])
+
+    def cancel(self, user=None):
+        if self.status == QuoteStatusChoices.CONVERTED:
+            raise ValueError(_("Impossible d'annuler un devis déjà converti."))
+        self.status = QuoteStatusChoices.CANCELLED
+        self.save(update_fields=["status"])
+
+    def convert_to_invoice(self, user=None, target_date=None):
+        if self.status == QuoteStatusChoices.CANCELLED:
+            raise ValueError(_("Un devis annulé ne peut pas être converti."))
+        if self.converted_invoice:
+            raise ValueError(_("Ce devis a déjà été converti en facture."))
+
+        from datetime import timedelta
+        from django.utils import timezone
+        from apps.closing.services.lock import assert_period_open
+
+        if self.client and self.client.is_blocked:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
+
+        inv_date = target_date or timezone.localdate()
+        assert_period_open(self.tenant, inv_date)
+
+        with transaction.atomic():
+            invoice = Invoice.objects.create(
+                tenant=self.tenant,
+                client=self.client,
+                branch=self.branch,
+                date=inv_date,
+                due_date=inv_date + timedelta(days=30),
+                series_prefix="FA",
+                apply_tva=self.apply_tva,
+                tva_rate=self.tva_rate,
+                is_formal=True,
+                notes=self.notes or f"Créée depuis le devis {self.number}",
+                created_by=user or self.created_by,
+                status=InvoiceStatusChoices.DRAFT,
+            )
+
+            for i, line in enumerate(self.lines.all()):
+                InvoiceLine.objects.create(
+                    invoice=invoice,
+                    variant=line.variant,
+                    description=line.description,
+                    quantity=line.quantity,
+                    unit_price=line.unit_price,
+                    discount_pct=line.discount_pct,
+                    cartons=line.cartons,
+                    order=line.order if line.order else i,
+                    unit_cost=line.unit_cost,
+                    unit_cost_estimated=line.unit_cost_estimated,
+                )
+
+            invoice.compute_totals()
+            invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc", "timbre_fiscal"])
+
+            self.converted_invoice = invoice
+            self.status = QuoteStatusChoices.CONVERTED
+            self.save(update_fields=["converted_invoice", "status"])
+
+        return invoice
+
+    def convert_to_delivery_note(self, user=None, target_date=None):
+        if self.status == QuoteStatusChoices.CANCELLED:
+            raise ValueError(_("Un devis annulé ne peut pas être converti."))
+        if self.converted_delivery_note:
+            raise ValueError(_("Ce devis a déjà été converti en bon de livraison."))
+
+        from django.utils import timezone
+        from apps.closing.services.lock import assert_period_open
+
+        dn_date = target_date or timezone.localdate()
+        assert_period_open(self.tenant, dn_date)
+
+        with transaction.atomic():
+            bl_number = InvoiceCounter.next_number(self.tenant, "BL", date=dn_date)
+            dn = DeliveryNote.objects.create(
+                tenant=self.tenant,
+                client=self.client,
+                number=bl_number,
+                date=dn_date,
+                notes=self.notes or f"Créé depuis le devis {self.number}",
+            )
+
+            for i, line in enumerate(self.lines.all()):
+                DeliveryNoteLine.objects.create(
+                    delivery_note=dn,
+                    variant=line.variant,
+                    description=line.description,
+                    quantity=line.quantity,
+                    unit_price=line.unit_price,
+                    discount_pct=line.discount_pct,
+                    cartons=line.cartons,
+                    order=line.order if line.order else i,
+                )
+
+            self.converted_delivery_note = dn
+            self.status = QuoteStatusChoices.CONVERTED
+            self.save(update_fields=["converted_delivery_note", "status"])
+
+        return dn
+
+
+class QuoteLine(models.Model):
+    """One line item on a quotation / proforma invoice."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name="lines")
+    variant = models.ForeignKey(
+        "inventory.Variant", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="quote_lines"
+    )
+    description = models.CharField(_("Description"), max_length=300)
+    quantity = models.DecimalField(_("Quantity"), max_digits=10, decimal_places=2)
+    unit_price = models.DecimalField(_("Unit Price HT"), max_digits=12, decimal_places=2)
+    discount_pct = models.DecimalField(
+        _("Discount %"), max_digits=5, decimal_places=2, default=Decimal("0.00")
+    )
+    cartons = models.PositiveIntegerField(_("Cartons"), default=0)
+    order = models.PositiveSmallIntegerField(_("Order"), default=0)
+    unit_cost = models.DecimalField(
+        _("Unit Cost HT"), max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    unit_cost_estimated = models.BooleanField(
+        _("Unit Cost Estimated"), default=False
+    )
+
+    class Meta:
+        ordering = ["order", "pk"]
+
+    @property
+    def line_total(self):
+        subtotal = self.unit_price * self.quantity
+        discount = subtotal * self.discount_pct / 100
+        return subtotal - discount
+
+    def __str__(self):
+        return f"{self.description} × {self.quantity}"
+

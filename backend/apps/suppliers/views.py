@@ -10,32 +10,47 @@ from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.permissions import IsManagerOrOwner
 from .models import (
     ClaimStatusChoices,
+    ImportSizeModeChoices,
     POLine,
     POStatusChoices,
     PurchaseOrder,
     Supplier,
+    SupplierImportTemplate,
     SupplierInvoice,
     SupplierPayment,
     SupplierReturnClaim,
 )
 from .serializers import (
     CreatePurchaseOrderSerializer,
+    POImportConfirmRequestSerializer,
     POLineInputSerializer,
     PurchaseOrderListSerializer,
     PurchaseOrderSerializer,
     ReceiveLinesSerializer,
+    SupplierImportTemplateSerializer,
     SupplierInvoiceSerializer,
     SupplierPaymentSerializer,
     SupplierReturnClaimSerializer,
     SupplierSerializer,
 )
+from .services import (
+    auto_map_headers,
+    detect_encoding_and_decode,
+    detect_header_row_and_headers,
+    execute_po_import,
+    expand_imported_order_lines,
+    parse_supplier_order_file,
+    reconcile_with_catalog,
+    scan_purchase_order_image,
+)
 
 
-def _resolve_product(tenant, nv: dict):
+def _resolve_product(tenant, nv: dict, branch=None):
     """
     Find or create a Product from a new_variant payload.
     If nv["product_id"] is set, returns the existing product directly.
     Otherwise, searches by name+brand or creates a new one.
+    Also persists size_range on the product and upserts ProductLocation if branch is provided.
     """
     from decimal import Decimal
     from apps.inventory.models import Product
@@ -72,21 +87,38 @@ def _resolve_product(tenant, nv: dict):
         if ref and not product.reference:
             product.reference = ref
             update_fields.append("reference")
+        size_range = (nv.get("size_range") or "").strip()
+        if size_range and product.size_range != size_range:
+            product.size_range = size_range
+            update_fields.append("size_range")
         if update_fields:
             product.save(update_fields=update_fields)
-        return product
+    else:
+        product = Product.objects.create(
+            tenant=tenant,
+            name=nv.get("product_name", "") or nv.get("reference", "Article"),
+            reference=(nv.get("reference") or "").strip(),
+            brand=nv.get("brand", ""),
+            category=nv.get("category", "other"),
+            purchase_price=nv.get("purchase_price", 0),
+            sale_price=nv.get("sale_price", 0),
+            pairs_per_carton=nv.get("pairs_per_carton", 10),
+            size_range=(nv.get("size_range") or "").strip(),
+            is_active=True,
+        )
 
-    return Product.objects.create(
-        tenant=tenant,
-        name=nv.get("product_name", "") or nv.get("reference", "Article"),
-        reference=(nv.get("reference") or "").strip(),
-        brand=nv.get("brand", ""),
-        category=nv.get("category", "other"),
-        purchase_price=nv.get("purchase_price", 0),
-        sale_price=nv.get("sale_price", 0),
-        pairs_per_carton=nv.get("pairs_per_carton", 10),
-        is_active=True,
-    )
+    # Persist / update ProductLocation if location is provided and tenant has non-free plan
+    location = (nv.get("location") or "").strip()
+    if location and branch and getattr(tenant, "plan", "free") != "free":
+        from apps.inventory.models import ProductLocation
+        ProductLocation.objects.update_or_create(
+            tenant=tenant,
+            branch=branch,
+            product=product,
+            defaults={"location": location},
+        )
+
+    return product
 
 
 def _resolve_variant(tenant, product, size_eu: int, colour: str):
@@ -359,7 +391,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         ).first()
                     elif cs.get("new_variant"):
                         nv = cs["new_variant"]
-                        product = _resolve_product(tenant, nv)
+                        product = _resolve_product(tenant, nv, branch=target_branch)
                         if product:
                             cs_variant = _resolve_variant(
                                 tenant, product, cs["size_eu"], nv.get("colour", "")
@@ -430,7 +462,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         line.save(update_fields=["variant"])
 
                 elif not line.variant_id and new_variant_data:
-                    product = _resolve_product(tenant, new_variant_data)
+                    product = _resolve_product(tenant, new_variant_data, branch=target_branch)
                     if product:
                         variant = _resolve_variant(
                             tenant,
@@ -600,6 +632,237 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
+    @action(detail=False, methods=["post"], url_path="import-preview")
+    def import_preview(self, request):
+        """
+        POST /suppliers/purchase-orders/import-preview/
+        Accepts:
+          - multipart 'file' (CSV or Excel) OR JSON with 'data_rows' + 'headers'
+          - optional 'supplier_id'
+          - optional 'template_id'
+          - optional overrides: 'column_map', 'size_mode', 'header_row', 'default_colour', 'default_pairs_per_carton'
+        Returns preview of detected columns, auto mapping, applied template, expanded lines and match summary.
+        """
+        self.require_manager()
+        file_obj = request.FILES.get("file")
+
+        raw_rows = []
+        encoding = "utf-8"
+        delimiter = ";"
+
+        if file_obj:
+            raw_bytes = file_obj.read()
+            raw_rows, encoding, delimiter, parse_err = parse_supplier_order_file(raw_bytes, file_obj.name)
+            if parse_err:
+                return Response({"detail": str(parse_err)}, status=status.HTTP_400_BAD_REQUEST)
+        elif "raw_rows" in request.data:
+            raw_rows = request.data.get("raw_rows") or []
+        else:
+            return Response({"detail": "Aucun fichier ou données fournis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not raw_rows:
+            return Response({"detail": "Le fichier ou les données sont vides."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Supplier and Template lookup
+        supplier_id = request.data.get("supplier_id")
+        template_id = request.data.get("template_id")
+        applied_template = None
+
+        if template_id:
+            applied_template = SupplierImportTemplate.objects.filter(tenant=request.tenant, id=template_id).first()
+        elif supplier_id:
+            applied_template = SupplierImportTemplate.objects.filter(
+                tenant=request.tenant, supplier_id=supplier_id
+            ).first()
+
+        # Available templates for this supplier / global
+        available_templates_qs = SupplierImportTemplate.objects.filter(tenant=request.tenant)
+        if supplier_id:
+            from django.db.models import Q
+            available_templates_qs = available_templates_qs.filter(
+                Q(supplier_id=supplier_id) | Q(supplier__isnull=True)
+            )
+        templates_data = SupplierImportTemplateSerializer(available_templates_qs, many=True).data
+
+        # Determine header row
+        req_header_row = request.data.get("header_row")
+        if req_header_row:
+            try:
+                header_row_idx = max(1, int(req_header_row))
+            except (ValueError, TypeError):
+                header_row_idx = 1
+        elif applied_template and applied_template.header_row:
+            header_row_idx = applied_template.header_row
+        else:
+            header_row_idx, _, _ = detect_header_row_and_headers(raw_rows)
+
+        # Slice headers and data rows based on header_row_idx
+        best_header_row_idx, auto_headers, auto_data_rows = detect_header_row_and_headers(raw_rows)
+        if header_row_idx == best_header_row_idx:
+            headers = auto_headers
+            data_rows = auto_data_rows
+        else:
+            actual_idx = header_row_idx - 1
+            if actual_idx < len(raw_rows):
+                headers = [str(c or "").strip() or f"Colonne {i+1}" for i, c in enumerate(raw_rows[actual_idx])]
+                data_rows = raw_rows[actual_idx + 1:]
+            else:
+                headers = auto_headers
+                data_rows = auto_data_rows
+
+        # Auto-mapping and size columns
+        auto_mapping, size_matrix_cols, suggested_size_mode = auto_map_headers(headers)
+
+        # Column map to use
+        req_col_map = request.data.get("column_map")
+        if isinstance(req_col_map, dict) and req_col_map:
+            column_map = req_col_map
+        elif applied_template and applied_template.column_map:
+            column_map = applied_template.column_map
+        else:
+            column_map = {k: v for k, v in auto_mapping.items() if v}
+
+        # Size mode to use
+        size_mode = (
+            request.data.get("size_mode")
+            or (applied_template.size_mode if applied_template else None)
+            or suggested_size_mode
+        )
+
+        default_colour = (
+            request.data.get("default_colour")
+            or (applied_template.default_colour if applied_template else "")
+            or ""
+        )
+        default_ppc = (
+            request.data.get("default_pairs_per_carton")
+            or (applied_template.default_pairs_per_carton if applied_template else None)
+        )
+
+        # Expand rows into lines
+        expanded_lines = expand_imported_order_lines(
+            headers=headers,
+            data_rows=data_rows,
+            column_map=column_map,
+            size_mode=size_mode,
+            default_colour=default_colour,
+            default_pairs_per_carton=default_ppc,
+            tenant=request.tenant,
+        )
+
+        # Reconcile lines with catalog
+        preview_lines, summary = reconcile_with_catalog(expanded_lines, tenant=request.tenant)
+
+        return Response({
+            "detected_encoding": encoding,
+            "detected_delimiter": delimiter,
+            "header_row": header_row_idx,
+            "headers": headers,
+            "auto_mapping": auto_mapping,
+            "column_map": column_map,
+            "size_mode": size_mode,
+            "size_matrix_columns": size_matrix_cols,
+            "default_colour": default_colour,
+            "default_pairs_per_carton": default_ppc,
+            "templates": templates_data,
+            "applied_template_id": str(applied_template.id) if applied_template else None,
+            "raw_rows": raw_rows[:50],
+            "total_raw_rows": len(raw_rows),
+            "preview_lines": preview_lines,
+            "summary": summary,
+        })
+
+    @action(detail=False, methods=["post"], url_path="import-confirm")
+    def import_confirm(self, request):
+        """
+        POST /suppliers/purchase-orders/import-confirm/
+        Confirms import, creates PurchaseOrder(status="draft") and POLines.
+        Optionally saves a SupplierImportTemplate for this supplier.
+        """
+        self.require_manager()
+        ser = POImportConfirmRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        supplier = Supplier.objects.filter(tenant=request.tenant, id=data["supplier_id"]).first()
+        if not supplier:
+            return Response({"detail": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        lines = data["lines"]
+        if not lines:
+            return Response({"detail": "Aucune ligne à importer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        po, stats = execute_po_import(
+            tenant=request.tenant,
+            user=request.user,
+            supplier=supplier,
+            lines=lines,
+            reference=data.get("reference", ""),
+            expected_date=data.get("expected_date"),
+            notes=data.get("notes", ""),
+            quick_create_products=data.get("quick_create_products", True),
+            save_as_template=data.get("save_as_template", False),
+            template_name=data.get("template_name", ""),
+            template_data=data.get("template_data", {}),
+        )
+
+        return Response({
+            "purchase_order": PurchaseOrderSerializer(po).data,
+            "stats": stats,
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="scan-image")
+    def scan_image(self, request):
+        """
+        POST /suppliers/purchase-orders/scan-image/
+        Offline OpenCV + RapidOCR image/photo scanner using PURCHASE_ORDER_PROFILE.
+        Extracts spatial tokens, table rows, supplier metadata, and reconciles with catalog.
+        """
+        import logging
+        from django.utils.translation import gettext as _
+
+        self.require_manager()
+        uploaded_file = request.FILES.get("file") or request.FILES.get("image")
+        if not uploaded_file:
+            return Response(
+                {"detail": _("Veuillez fournir une image ou photo du bon fournisseur.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        filename = (uploaded_file.name or "").lower()
+        allowed_exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+        if filename and not any(filename.endswith(ext) for ext in allowed_exts):
+            return Response(
+                {"detail": _("Format d'image non supporté. Utilisez PNG, JPG, WEBP ou BMP.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_bytes = uploaded_file.read()
+        if not raw_bytes:
+            return Response(
+                {"detail": _("Le fichier image est vide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = scan_purchase_order_image(raw_bytes, tenant=request.tenant)
+        except ImportError as e:
+            logging.getLogger(__name__).warning("OCR module unavailable: %s", e)
+            return Response(
+                {"detail": _("Le module de reconnaissance optique n'est pas disponible sur ce serveur (dépendances système OpenCV/libGL manquantes).")},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception("Error scanning purchase order image")
+            return Response(
+                {"detail": _("Impossible d'analyser cette image. Vérifiez que le fichier est une image valide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+
     def create(self, request, *args, **kwargs):
         input_ser = CreatePurchaseOrderSerializer(data=request.data)
         input_ser.is_valid(raise_exception=True)
@@ -611,6 +874,16 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         from decimal import Decimal
         with transaction.atomic():
+            target_branch = None
+            if data.get("branch"):
+                from apps.core.models import Branch
+                target_branch = Branch.objects.filter(tenant=request.tenant, id=data["branch"]).first()
+            elif hasattr(request, "branch") and request.branch:
+                target_branch = request.branch
+            else:
+                from apps.core.models import Branch
+                target_branch = Branch.objects.filter(tenant=request.tenant, is_headquarters=True).first()
+
             po = PurchaseOrder.objects.create(
                 tenant=request.tenant,
                 supplier=supplier,
@@ -626,7 +899,8 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             for line_data in data["lines"]:
                 variant_id = line_data.get("variant")
                 carton_sizes = line_data.get("carton_sizes") or []
-                
+                new_variant_data = line_data.get("new_variant")
+
                 qty_ordered = line_data.get("quantity_ordered")
                 if carton_sizes:
                     qty_ordered = sum(cs.get("quantity", 0) for cs in carton_sizes)
@@ -635,6 +909,20 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 if variant_id:
                     from apps.inventory.models import Variant
                     variant = Variant.objects.filter(tenant=request.tenant, id=variant_id).first()
+                elif new_variant_data:
+                    product = _resolve_product(request.tenant, new_variant_data, branch=target_branch)
+                    if product:
+                        variant = _resolve_variant(
+                            request.tenant,
+                            product,
+                            new_variant_data.get("size_eu", 0),
+                            new_variant_data.get("colour", ""),
+                        )
+                        variant_id = variant.id
+                elif carton_sizes:
+                    for cs in carton_sizes:
+                        if cs.get("new_variant"):
+                            _resolve_product(request.tenant, cs["new_variant"], branch=target_branch)
 
                 line = POLine.objects.create(
                     order=po,
@@ -646,12 +934,12 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     pairs_per_carton=line_data.get("pairs_per_carton", 10),
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
-                
+
                 lines_data_for_receive.append({
                     "id": line.id,
                     "quantity_received": qty_ordered,
                     "variant_id": variant_id,
-                    "new_variant": None,
+                    "new_variant": new_variant_data,
                     "carton_sizes": carton_sizes
                 })
 
@@ -1003,4 +1291,25 @@ class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet
             f'inline; filename="bon-retour-{claim.claim_number}.pdf"'
         )
         return response
+
+
+class SupplierImportTemplateViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """
+    CRUD for saved supplier order import configuration templates.
+    """
+    queryset = SupplierImportTemplate.objects.select_related("supplier").all()
+    serializer_class = SupplierImportTemplateSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
+    search_fields = ["name", "supplier__name"]
+    ordering_fields = ["name", "updated_at", "created_at"]
+    ordering = ["-updated_at"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        supplier_id = self.request.query_params.get("supplier")
+        if supplier_id:
+            from django.db.models import Q
+            qs = qs.filter(Q(supplier_id=supplier_id) | Q(supplier__isnull=True))
+        return qs
+
 

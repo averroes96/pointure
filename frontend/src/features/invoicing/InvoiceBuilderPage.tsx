@@ -12,13 +12,17 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, X, ChevronDown, Save, ArrowLeft, AlertCircle, AlertTriangle, Layers } from "lucide-react";
 import api, { formatDZD, getApiError, type PaginatedResponse } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
+import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
 import { InvoiceProductMatrix, type MatrixConfig, createEmptyMatrix } from "./components/InvoiceProductMatrix";
+import { ClientSelector } from "./components/ClientSelector";
+import { AddCartonsModal } from "./components/AddCartonsModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,117 +57,6 @@ const PAYMENT_METHODS = [
   { value: "cheque", label: "Chèque" },
 ] as const;
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** Searchable client dropdown */
-function ClientSelector({
-  value,
-  onChange,
-}: {
-  value: Client | null;
-  onChange: (c: Client | null) => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const { data, isFetching } = useQuery<PaginatedResponse<Client>>({
-    queryKey: ["clients-search", query],
-    queryFn: () =>
-      api
-        .get(`/clients/?search=${encodeURIComponent(query)}&page_size=10`)
-        .then((r) => r.data),
-    enabled: open,
-  });
-
-  const clients = data?.results ?? [];
-
-  // Close on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={wrapperRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "input w-full flex items-center justify-between gap-2 text-start rounded-xl border-slate-200 text-sm",
-          !value && "text-slate-400"
-        )}
-      >
-        <span className="truncate">{value ? value.name : t("invoice.select_client")}</span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {value && (
-            <span
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(null);
-              }}
-              className="p-0.5 hover:text-rose-600 transition-colors"
-            >
-              <X size={14} />
-            </span>
-          )}
-          <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-200", open && "rotate-180")} />
-        </div>
-      </button>
-
-      {open && (
-        <div className="absolute z-50 top-full mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60">
-            <div className="relative">
-              <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                autoFocus
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="input w-full ps-8 py-1.5 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                placeholder={t("common.search")}
-              />
-            </div>
-          </div>
-          <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-            {isFetching && (
-              <div className="px-3 py-2 text-xs text-slate-400">{t("app.loading")}</div>
-            )}
-            {!isFetching && clients.length === 0 && (
-              <div className="px-3 py-2 text-xs text-slate-400">{t("invoice.no_client_found")}</div>
-            )}
-            {clients.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  onChange(c);
-                  setOpen(false);
-                  setQuery("");
-                }}
-                className="w-full text-start px-3.5 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-              >
-                <div className="font-semibold text-slate-900 dark:text-white">{c.name}</div>
-                {c.phone && (
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{c.phone}</div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function InvoiceBuilderPage() {
@@ -171,6 +64,7 @@ export default function InvoiceBuilderPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentBranch } = useBranch();
+  const { settings } = useBusinessMode();
 
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
@@ -193,8 +87,35 @@ export default function InvoiceBuilderPage() {
   const [isPaidInCash, setIsPaidInCash] = useState(false);
   const [notes, setNotes] = useState("");
 
+  // Default applyTva to false when store settings are under IFU regime (new invoices)
+  useEffect(() => {
+    if (!isEditMode && settings?.tax_regime === "ifu") {
+      setApplyTva(false);
+    }
+  }, [isEditMode, settings?.tax_regime]);
+
   // ── Matrices ──
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
+  const [isCartonModalOpen, setIsCartonModalOpen] = useState(false);
+  const prevInvoiceTierRef = useRef<string>("gros");
+  useEffect(() => {
+    const nextTier = client?.price_tier ?? "gros";
+    const prevTier = prevInvoiceTierRef.current;
+    if (nextTier !== prevTier) {
+      setMatrices((prev) =>
+        prev.map((m) => {
+          if (!m.product) return m;
+          const prevCatalog = unitPriceFor(m.product, prevTier);
+          const curPrice = parseFloat(m.unit_price || "0") || 0;
+          if (Math.abs(curPrice - prevCatalog) < 0.01) {
+            return { ...m, unit_price: unitPriceStringFor(m.product, nextTier) };
+          }
+          return m;
+        }),
+      );
+      prevInvoiceTierRef.current = nextTier;
+    }
+  }, [client]);
 
   // Hydrate edit state
   useEffect(() => {
@@ -276,6 +197,12 @@ export default function InvoiceBuilderPage() {
 
   // ── Error ──
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleCartonShortcut = () => setIsCartonModalOpen(true);
+    window.addEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+    return () => window.removeEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+  }, []);
 
   // ── Credit limit warning ──
   const [creditLimitWarning, setCreditLimitWarning] = useState<{
@@ -423,6 +350,11 @@ export default function InvoiceBuilderPage() {
       return;
     }
 
+    if (client.is_blocked) {
+      setFormError(t("invoice.client_blocked_warning", "Ce client est bloqué. Impossible d'émettre une facture pour ce client."));
+      return;
+    }
+
     const flatLines = getFlatLines();
     if (flatLines.length === 0) {
       setFormError(t("invoice.add_one_line_error"));
@@ -461,7 +393,8 @@ export default function InvoiceBuilderPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pb-12">
+    <>
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pb-12">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -488,7 +421,7 @@ export default function InvoiceBuilderPage() {
           <button
             type="button"
             onClick={(e) => handleSubmit(e, false)}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !!client?.is_blocked}
             className="btn-secondary px-3.5 py-2 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5"
           >
             <Save size={14} />
@@ -497,7 +430,7 @@ export default function InvoiceBuilderPage() {
           <button
             type="button"
             onClick={(e) => handleSubmit(e, true)}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !!client?.is_blocked}
             className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl shadow-xs"
           >
             <Save size={15} />
@@ -568,6 +501,12 @@ export default function InvoiceBuilderPage() {
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t("invoice.client")}</label>
                 <ClientSelector value={client} onChange={setClient} />
+                {client?.is_blocked && (
+                  <div className="mt-2 text-xs px-3 py-2 rounded-xl border font-semibold bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0 text-red-600 dark:text-red-400" />
+                    <span>{t("invoice.client_blocked_warning", "Ce client est bloqué. Impossible d'émettre une facture pour ce client.")}</span>
+                  </div>
+                )}
               </div>
 
               {/* Date */}
@@ -686,18 +625,28 @@ export default function InvoiceBuilderPage() {
                 <InvoiceProductMatrix
                   key={m.id}
                   config={m}
+                  priceTier={client?.price_tier ?? "gros"}
                   onChange={(newConfig) => setMatrices(prev => prev.map(old => old.id === m.id ? newConfig : old))}
                   onRemove={() => setMatrices(prev => prev.length > 1 ? prev.filter(old => old.id !== m.id) : prev)}
                 />
               ))}
 
-              <button
-                type="button"
-                onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
-                className="w-full py-2.5 px-3 border border-dashed border-primary-300 dark:border-primary-700/60 hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 text-primary-600 dark:text-primary-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus size={15} /> Ajouter un autre produit
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCartonModalOpen(true)}
+                  className="py-2.5 px-3 border border-brand-300 dark:border-brand-700/60 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-brand-600 dark:text-brand-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Layers size={15} /> {t("carton.add_cartons_btn", "Ajouter cartons (Série)")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMatrices(prev => [...prev, createEmptyMatrix()])}
+                  className="py-2.5 px-3 border border-dashed border-primary-300 dark:border-primary-700/60 hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 text-primary-600 dark:text-primary-400 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus size={15} /> {t("invoice.add_another_product", "Ajouter un autre produit")}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -852,7 +801,7 @@ export default function InvoiceBuilderPage() {
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || !!client?.is_blocked}
                 className="btn-primary w-full justify-center py-2.5 rounded-xl font-semibold shadow-xs"
               >
                 <Save size={15} />
@@ -870,6 +819,16 @@ export default function InvoiceBuilderPage() {
         </div>
       </div>
     </form>
+
+    <AddCartonsModal
+      isOpen={isCartonModalOpen}
+      onClose={() => setIsCartonModalOpen(false)}
+      priceTier={client?.price_tier ?? "gros"}
+      onAddCartons={(newMatrix) => {
+        setMatrices((prev) => [...prev.filter((m) => m.product !== null), newMatrix]);
+      }}
+    />
+  </>
   );
 }
 

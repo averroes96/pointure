@@ -546,12 +546,30 @@ import tempfile
 import zipfile
 import shutil
 import os
+import logging
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.translation import gettext as _
+from rest_framework import serializers as drf_serializers
 from apps.core.services.legacy_dbf import LegacyDBFImporter
 from rest_framework.parsers import MultiPartParser
 
+logger = logging.getLogger(__name__)
+
+
+def _parse_bool_flag(raw_value, default=False) -> bool:
+    if raw_value is None or raw_value == "":
+        return default
+    try:
+        return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
+    except drf_serializers.ValidationError:
+        return default
+
+
 class LegacyDBFImportView(APIView):
     """
-    Import DBF files via a ZIP upload. (Managers only).
+    Import DBF files via a ZIP upload. (Managers and Owners only).
+    Supports dry_run=true (in form data, options JSON, or query params) to preview counts,
+    totals, and warnings inside a transaction that is rolled back before returning.
     """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
@@ -559,30 +577,24 @@ class LegacyDBFImportView(APIView):
     def post(self, request):
         from apps.core.models import RoleChoices
         if request.user.role not in [RoleChoices.OWNER, RoleChoices.MANAGER]:
-            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": _("Accès non autorisé.")}, status=status.HTTP_403_FORBIDDEN)
             
         request.tenant = getattr(request.user, "tenant", None)
         if not request.tenant:
-            return Response({"error": "No tenant associated with this user."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": _("Aucun magasin associé à cet utilisateur.")}, status=status.HTTP_400_BAD_REQUEST)
             
         zip_file = request.FILES.get("zip_file")
         if not zip_file:
-            return Response({"error": "No ZIP file provided in 'zip_file' field."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": _("Aucun fichier ZIP fourni dans le champ 'zip_file'.")}, status=status.HTTP_400_BAD_REQUEST)
             
         branch_id = request.data.get("branch_id")
         if branch_id:
             try:
-                branch = Branch.objects.get(id=int(branch_id), tenant=request.tenant)
-            except (ValueError, Branch.DoesNotExist):
-                return Response({"error": "Invalid branch_id"}, status=status.HTTP_400_BAD_REQUEST)
+                branch = Branch.objects.get(id=branch_id, tenant=request.tenant)
+            except (ValueError, DjangoValidationError, Branch.DoesNotExist):
+                return Response({"error": _("Identifiant de succursale invalide.")}, status=status.HTTP_400_BAD_REQUEST)
         else:
             branch = Branch.objects.filter(tenant=request.tenant).first()
-            if not branch:
-                branch = Branch.objects.create(
-                    tenant=request.tenant,
-                    name="Primary Branch",
-                    is_headquarters=True
-                )
             
         temp_dir = tempfile.mkdtemp()
         
@@ -590,10 +602,20 @@ class LegacyDBFImportView(APIView):
         options = {}
         options_data = request.data.get("options")
         if options_data:
-            try:
-                options = json.loads(options_data)
-            except Exception:
-                pass
+            if isinstance(options_data, dict):
+                options = dict(options_data)
+            else:
+                try:
+                    options = json.loads(options_data)
+                except Exception:
+                    pass
+
+        raw_dry_run = request.data.get("dry_run")
+        if raw_dry_run is None:
+            raw_dry_run = request.query_params.get("dry_run")
+        if raw_dry_run is None and isinstance(options, dict):
+            raw_dry_run = options.get("dry_run")
+        dry_run = _parse_bool_flag(raw_dry_run, default=False)
                 
         try:
             # Save uploaded zip
@@ -606,12 +628,32 @@ class LegacyDBFImportView(APIView):
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(temp_dir)
                 
-            importer = LegacyDBFImporter(path=temp_dir, tenant=request.tenant, branch=branch, logger=None, options=options)
-            stats = importer.execute_import()
+            importer = LegacyDBFImporter(
+                path=temp_dir,
+                tenant=request.tenant,
+                branch=branch,
+                logger=None,
+                options=options,
+                dry_run=dry_run,
+            )
+            stats = importer.execute_import(dry_run=dry_run)
             
-            return Response({"message": "Import completed", "stats": stats})
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "message": _("Simulation terminée") if dry_run else _("Importation terminée"),
+                "dry_run": dry_run,
+                "stats": stats,
+            })
+        except zipfile.BadZipFile:
+            return Response(
+                {"error": _("Le fichier fourni n'est pas une archive ZIP valide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            logger.exception("Legacy DBF import failed")
+            return Response(
+                {"error": _("Une erreur est survenue lors de l'importation des fichiers DBF.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         finally:
             shutil.rmtree(temp_dir)
 
@@ -629,4 +671,133 @@ class SystemTimeView(APIView):
         force_resync = request.query_params.get("resync", "").lower() in ("1", "true", "yes")
         status_data = sync_time(force=force_resync)
         return Response(status_data)
+
+
+class QuickSearchView(APIView):
+    """
+    GET /api/v1/core/quick-search/?q=...
+    Multi-entity quick search across Products, Clients, Suppliers, and Invoices.
+    Offline-first, scoped to request.tenant, returns compact results for command palette.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response({"products": [], "clients": [], "suppliers": [], "invoices": []})
+
+        tenant = getattr(request, "tenant", None) or getattr(request.user, "tenant", None)
+        if not tenant:
+            return Response({"products": [], "clients": [], "suppliers": [], "invoices": []})
+
+        role = getattr(request.user, "role", "cashier")
+
+        from apps.inventory.models import Product
+        from apps.clients.models import Client
+        from apps.suppliers.models import Supplier
+        from apps.invoicing.models import Invoice
+        from django.db.models import Q
+
+        # 1. Products
+        prod_qs = (
+            Product.objects.filter(tenant=tenant)
+            .filter(
+                Q(name__icontains=query)
+                | Q(reference__icontains=query)
+                | Q(brand__icontains=query)
+                | Q(variants__barcode__icontains=query)
+            )
+            .distinct()
+            .prefetch_related("branch_locations", "variants")[:6]
+        )
+        products = []
+        for p in prod_qs:
+            loc = p.branch_locations.first()
+            loc_str = loc.location if loc else ""
+            if loc_str and getattr(p, "size_range", ""):
+                full_loc = f"{loc_str} ({p.size_range})"
+            elif loc_str:
+                full_loc = loc_str
+            elif getattr(p, "size_range", ""):
+                full_loc = f"({p.size_range})"
+            else:
+                full_loc = ""
+
+            total_stock = sum(v.stock_qty for v in p.variants.all())
+            products.append({
+                "id": p.id,
+                "name": p.name,
+                "reference": p.reference or "",
+                "brand": p.brand or "",
+                "sale_price": str(p.sale_price),
+                "location": full_loc,
+                "stock_qty": total_stock,
+            })
+
+        # 2. Clients
+        client_qs = (
+            Client.objects.filter(tenant=tenant)
+            .filter(
+                Q(name__icontains=query)
+                | Q(phone__icontains=query)
+                | Q(nif__icontains=query)
+                | Q(rc__icontains=query)
+            )[:6]
+        )
+        clients = [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "phone": c.phone or "",
+                "wilaya": c.wilaya or "",
+                "price_tier": c.price_tier,
+                "outstanding_balance": str(c.cached_balance),
+            }
+            for c in client_qs
+        ]
+
+        # 3. Suppliers (Owner and Manager only)
+        suppliers = []
+        if role in ("owner", "manager"):
+            sup_qs = (
+                Supplier.objects.filter(tenant=tenant)
+                .filter(Q(name__icontains=query) | Q(phone__icontains=query))[:5]
+            )
+            suppliers = [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "phone": s.phone or "",
+                    "outstanding_balance": str(s.outstanding_balance),
+                }
+                for s in sup_qs
+            ]
+
+        # 4. Invoices
+        invoice_qs = (
+            Invoice.objects.filter(tenant=tenant)
+            .filter(
+                Q(number__icontains=query)
+                | Q(client__name__icontains=query)
+            )
+            .select_related("client")[:6]
+        )
+        invoices = [
+            {
+                "id": str(inv.id),
+                "number": inv.number,
+                "client_name": inv.client.name if inv.client else "",
+                "total_ttc": str(inv.total_ttc),
+                "status": inv.status,
+                "date": str(inv.date),
+            }
+            for inv in invoice_qs
+        ]
+
+        return Response({
+            "products": products,
+            "clients": clients,
+            "suppliers": suppliers,
+            "invoices": invoices,
+        })
 

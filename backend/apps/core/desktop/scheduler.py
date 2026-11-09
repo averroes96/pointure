@@ -163,6 +163,12 @@ def _run_scheduler_loop():
             except Exception:
                 logger.warning("Scheduled cleanup_held_sales failed", exc_info=True)
 
+            try:
+                from apps.invoicing.tasks import expire_outdated_quotes
+                expire_outdated_quotes()
+            except Exception:
+                logger.warning("Scheduled expire_outdated_quotes failed", exc_info=True)
+
         # Always close thread-local DB connections to prevent holding SQLite locks
         try:
             from django.db import connections

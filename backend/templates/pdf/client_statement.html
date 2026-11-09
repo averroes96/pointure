@@ -1,0 +1,181 @@
+{% extends "pdf/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Client Statement" %} — {{ client.name }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="company-name">{{ tenant.name }}</div>
+    <div class="company-details">
+      {% if tenant.address %}{{ tenant.address }}<br>{% endif %}
+      {% if tenant.wilaya %}Wilaya {{ tenant.wilaya }}<br>{% endif %}
+      {% if tenant.phone %}{% trans "Phone" %}: {{ tenant.phone }}<br>{% endif %}
+      {% if tenant.nif %}NIF: {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC: {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI: {{ tenant.ai }}{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="doc-title">{% trans "ACCOUNT STATEMENT" %} / كشف الحساب</div>
+    <div class="doc-meta">
+      <strong>{{ client.name }}</strong><br>
+      {% if from_date %}
+        {% trans "Period" %}: {{ from_date|date:"d/m/Y" }} &rarr; {{ to_date|date:"d/m/Y" }}<br>
+      {% else %}
+        {% trans "As of" %}: {{ to_date|date:"d/m/Y" }}<br>
+      {% endif %}
+      <span style="font-size:8pt; color:#64748B;">{% trans "Generated on" %}: {{ generated_at|date:"d/m/Y H:i" }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Parties -->
+<div class="parties">
+  <div class="party-block">
+    <div class="party-label">{% trans "Issuer" %} / المؤسسة</div>
+    <div class="party-name">{{ tenant.name }}</div>
+    {% if tenant.address %}<div>{{ tenant.address }}</div>{% endif %}
+    {% if tenant.phone %}<div>{{ tenant.phone }}</div>{% endif %}
+  </div>
+  <div class="party-block">
+    <div class="party-label">{% trans "Client Account" %} / حساب الزبون</div>
+    <div class="party-name">{{ client.name }}</div>
+    {% if client.phone %}<div>{% trans "Phone" %}: {{ client.phone }}</div>{% endif %}
+    {% if client.address %}<div>{{ client.address }}</div>{% endif %}
+    {% if client.wilaya %}<div>Wilaya: {{ client.wilaya }}</div>{% endif %}
+    {% if client.nif %}<div>NIF: {{ client.nif }}</div>{% endif %}
+    {% if client.rc %}<div>RC: {{ client.rc }}</div>{% endif %}
+  </div>
+</div>
+
+<!-- Statement Summary Box -->
+<div style="margin-bottom:6mm; background-color:#F8FAFC; border:1px solid #CBD5E1; border-radius:4px; padding:3mm 4mm;">
+  <div style="display:flex; justify-content:space-between; text-align:center;">
+    <div style="flex:1; border-right:1px solid #E2E8F0; padding:1mm 2mm;">
+      <div style="font-size:8pt; text-transform:uppercase; color:#64748B; font-weight:600;">{% trans "Opening Balance" %}</div>
+      <div style="font-size:11pt; font-weight:700; font-family:monospace; margin-top:1mm;">{{ opening_balance|floatformat:2 }} <span style="font-size:8pt; font-weight:normal;">DZD</span></div>
+    </div>
+    <div style="flex:1; border-right:1px solid #E2E8F0; padding:1mm 2mm;">
+      <div style="font-size:8pt; text-transform:uppercase; color:#0284C7; font-weight:600;">{% trans "Debits (Purchases)" %}</div>
+      <div style="font-size:11pt; font-weight:700; font-family:monospace; color:#0369A1; margin-top:1mm;">+{{ period_debits|floatformat:2 }} <span style="font-size:8pt; font-weight:normal;">DZD</span></div>
+    </div>
+    <div style="flex:1; border-right:1px solid #E2E8F0; padding:1mm 2mm;">
+      <div style="font-size:8pt; text-transform:uppercase; color:#059669; font-weight:600;">{% trans "Credits (Payments)" %}</div>
+      <div style="font-size:11pt; font-weight:700; font-family:monospace; color:#047857; margin-top:1mm;">-{{ period_credits|floatformat:2 }} <span style="font-size:8pt; font-weight:normal;">DZD</span></div>
+    </div>
+    <div style="flex:1.2; padding:1mm 2mm; background-color:#EFF6FF; border-radius:3px;">
+      <div style="font-size:8pt; text-transform:uppercase; color:#1E3A8A; font-weight:700;">{% trans "Closing Balance Due" %}</div>
+      <div style="font-size:12pt; font-weight:800; font-family:monospace; color:{% if closing_balance > 0 %}#B91C1C{% else %}#047857{% endif %}; margin-top:1mm;">
+        {{ closing_balance|floatformat:2 }} <span style="font-size:8pt; font-weight:normal;">DZD</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ledger Movements Table -->
+<table>
+  <thead>
+    <tr>
+      <th style="width:14%;">{% trans "Date" %}</th>
+      <th style="width:40%;">{% trans "Description" %}</th>
+      <th style="width:16%;">{% trans "Reference" %}</th>
+      <th class="num" style="width:10%;">{% trans "Debit" %}</th>
+      <th class="num" style="width:10%;">{% trans "Credit" %}</th>
+      <th class="num" style="width:10%;">{% trans "Balance" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Opening balance row -->
+    <tr style="background-color:#F1F5F9; font-weight:bold;">
+      <td>{% if from_date %}{{ from_date|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+      <td colspan="4">{% trans "SOLDE INITIAL AU DÉBUT DE PÉRIODE" %}</td>
+      <td class="num">{{ opening_balance|floatformat:2 }}</td>
+    </tr>
+
+    {% for entry in entries %}
+    <tr>
+      <td>{{ entry.date|date:"d/m/Y" }}</td>
+      <td>{{ entry.description }}</td>
+      <td><small style="color:#64748B;">{{ entry.reference_type }} {{ entry.reference_id }}</small></td>
+      <td class="num">{% if entry.debit > 0 %}{{ entry.debit|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="num">{% if entry.credit > 0 %}{{ entry.credit|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="num" style="font-weight:600;">{{ entry.running_balance|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" style="text-align:center; color:#64748B; padding:4mm;">{% trans "No movements in this period." %}</td>
+    </tr>
+    {% endfor %}
+
+    <!-- Summary row -->
+    <tr style="background-color:#E2E8F0; font-weight:bold; border-top:2px solid #94A3B8;">
+      <td colspan="3">{% trans "TOTAUX MOUVEMENTS & SOLDE RESTANT DÛ" %}</td>
+      <td class="num">{{ period_debits|floatformat:2 }}</td>
+      <td class="num">{{ period_credits|floatformat:2 }}</td>
+      <td class="num" style="color:{% if closing_balance > 0 %}#B91C1C{% else %}#047857{% endif %}; font-size:10pt;">
+        {{ closing_balance|floatformat:2 }}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Open Invoices (Ageing) Table if any -->
+{% if open_invoices %}
+<div style="margin-top:6mm; margin-bottom:2mm; font-size:10pt; font-weight:700; color:#1E3A8A;">
+  {% trans "FACTURES NON SOLDÉES & ÉCHÉANCES" %} ({{ open_invoices|length }})
+</div>
+<table>
+  <thead>
+    <tr style="background-color:#334155;">
+      <th>{% trans "Invoice No." %}</th>
+      <th>{% trans "Date" %}</th>
+      <th>{% trans "Due Date" %}</th>
+      <th class="num">{% trans "Total TTC" %}</th>
+      <th class="num">{% trans "Paid" %}</th>
+      <th class="num">{% trans "Balance Due" %}</th>
+      <th style="text-align:center;">{% trans "Ageing" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in open_invoices %}
+    <tr>
+      <td><strong>{{ inv.number }}</strong></td>
+      <td>{{ inv.date|date:"d/m/Y" }}</td>
+      <td>
+        {{ inv.due_date|date:"d/m/Y" }}
+        {% if inv.is_overdue %}<span style="color:#DC2626; font-size:7.5pt; font-weight:bold;"> ({% trans "Overdue" %})</span>{% endif %}
+      </td>
+      <td class="num">{{ inv.total_ttc|floatformat:2 }}</td>
+      <td class="num">{{ inv.total_paid|floatformat:2 }}</td>
+      <td class="num" style="font-weight:700; color:#B91C1C;">{{ inv.balance_due|floatformat:2 }}</td>
+      <td style="text-align:center;">
+        <span style="display:inline-block; padding:1px 5px; border-radius:3px; font-size:8pt; font-weight:600;
+          {% if inv.bucket == '0-30j' %}background:#DBEAFE; color:#1E40AF;
+          {% elif inv.bucket == '31-60j' %}background:#FEF3C7; color:#92400E;
+          {% elif inv.bucket == '61-90j' %}background:#FFEDD5; color:#9A3412;
+          {% else %}background:#FEE2E2; color:#991B1B;{% endif %}">
+          {{ inv.bucket }}
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<div style="margin-top:6mm; display:flex; justify-content:space-between; align-items:flex-end;">
+  <div style="font-size:8pt; color:#64748B;">
+    {% trans "Document generated for reconciliation purposes. All amounts in DZD." %}
+  </div>
+  <div style="text-align:center; width:60mm; border-top:1px dashed #94A3B8; padding-top:2mm; font-size:8pt; color:#475569;">
+    {% trans "Cachet et Signature" %}
+  </div>
+</div>
+
+<div class="footer">
+  {{ tenant.name }} &mdash; {% if tenant.phone %}{{ tenant.phone }} &mdash; {% endif %}{% trans "Generated by ShoeDZ" %}
+</div>
+{% endblock %}
+

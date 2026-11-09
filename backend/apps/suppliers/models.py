@@ -141,6 +141,7 @@ class SupplierInvoice(TenantScopedModel):
         super().save(*args, **kwargs)
 
 
+
 class SupplierPayment(TenantScopedModel):
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="payments")
     supplier_invoice = models.ForeignKey(SupplierInvoice, on_delete=models.SET_NULL, null=True, blank=True)
@@ -161,3 +162,54 @@ class SupplierPayment(TenantScopedModel):
             from apps.closing.services.lock import assert_period_open
             assert_period_open(self.tenant, self.date)
         super().save(*args, **kwargs)
+
+
+class ImportSizeModeChoices(models.TextChoices):
+    SINGLE = "single", _("Single Size per Row")
+    RANGE = "range", _("Size Range (e.g. 37-41)")
+    MATRIX = "matrix", _("Size Matrix (Sizes as Columns)")
+
+
+class SupplierImportTemplate(TenantScopedModel):
+    """
+    Saved configuration template for importing purchase orders from supplier spreadsheets.
+    Can be supplier-specific or global (supplier=None).
+    """
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="import_templates",
+        help_text=_("Associated supplier, or null for a global tenant template."),
+    )
+    name = models.CharField(_("Template Name"), max_length=150)
+    header_row = models.PositiveIntegerField(_("Header Row"), default=1)
+    column_map = models.JSONField(
+        _("Column Map"),
+        default=dict,
+        blank=True,
+        help_text=_("Mapping of canonical fields to column headers or letters."),
+    )
+    size_mode = models.CharField(
+        _("Size Mode"),
+        max_length=20,
+        choices=ImportSizeModeChoices.choices,
+        default=ImportSizeModeChoices.SINGLE,
+    )
+    default_colour = models.CharField(_("Default Colour"), max_length=50, blank=True, default="")
+    default_pairs_per_carton = models.PositiveIntegerField(
+        _("Default Pairs Per Carton"), null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Supplier Import Template")
+        verbose_name_plural = _("Supplier Import Templates")
+        ordering = ["-updated_at", "name"]
+
+    def __str__(self):
+        prefix = f"{self.supplier.name} — " if self.supplier else "Global — "
+        return f"{prefix}{self.name} ({self.get_size_mode_display()})"
+

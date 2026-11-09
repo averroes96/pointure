@@ -61,12 +61,15 @@ interface FormState {
   gender: Gender;
   season: Season;
   sale_price: string;
+  semi_wholesale_price: string;
   wholesale_price: string;
   purchase_price: string;
   is_active: boolean;
   alert_threshold: number;
   pairs_per_carton: number;
+  carton_breakdown: Record<string, number>;
   location: string;
+  size_range: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -80,12 +83,15 @@ const EMPTY_FORM: FormState = {
   gender: "U",
   season: "all",
   sale_price: "",
+  semi_wholesale_price: "",
   wholesale_price: "",
   purchase_price: "",
   is_active: true,
   alert_threshold: 10,
   pairs_per_carton: 10,
+  carton_breakdown: {},
   location: "",
+  size_range: "",
 };
 
 // ── Field wrapper component ────────────────────────────────────────────────────
@@ -191,11 +197,14 @@ export default function ProductFormPage() {
       gender: existingProduct.gender,
       season: existingProduct.season,
       sale_price: existingProduct.sale_price ?? "",
+      semi_wholesale_price: existingProduct.semi_wholesale_price ?? "",
       wholesale_price: existingProduct.wholesale_price ?? "",
       purchase_price: existingProduct.purchase_price ?? "",
       is_active: existingProduct.is_active,
       alert_threshold: existingProduct.alert_threshold ?? 10,
       pairs_per_carton: existingProduct.pairs_per_carton ?? 10,
+      carton_breakdown: existingProduct.carton_breakdown ?? {},
+      size_range: existingProduct.size_range ?? "",
     });
     if (existingProduct.image) setImagePreview(existingProduct.image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,6 +279,18 @@ export default function ProductFormPage() {
       (isNaN(parseFloat(form.purchase_price)) || parseFloat(form.purchase_price) < 0)
     )
       return "Le prix d'achat doit être un nombre positif.";
+
+    const breakdownEntries = Object.entries(form.carton_breakdown || {});
+    if (breakdownEntries.length > 0) {
+      const totalPairs = breakdownEntries.reduce((sum, [, qty]) => sum + (Number(qty) || 0), 0);
+      if (totalPairs > 0 && totalPairs !== form.pairs_per_carton) {
+        return t("product.error_carton_breakdown_mismatch", {
+          defaultValue: `La répartition par pointure (${totalPairs} paires) ne correspond pas au total du carton (${form.pairs_per_carton} paires).`,
+          total: totalPairs,
+          pairs: form.pairs_per_carton,
+        });
+      }
+    }
     return null;
   }
 
@@ -285,6 +306,8 @@ export default function ProductFormPage() {
             if (k !== "initial_stock") {
               if (k === "barcode") {
                 fd.append("barcode", String(v).trim());
+              } else if (k === "carton_breakdown") {
+                fd.append("carton_breakdown", JSON.stringify(v || {}));
               } else {
                 fd.append(k, String(v));
               }
@@ -298,6 +321,8 @@ export default function ProductFormPage() {
         }
         const payload: Record<string, unknown> = { ...form };
         delete payload.initial_stock;
+        payload.semi_wholesale_price = form.semi_wholesale_price ? form.semi_wholesale_price : null;
+        if (!form.wholesale_price) payload.wholesale_price = "0.00";
         if (payload.barcode !== undefined) payload.barcode = String(payload.barcode).trim();
         if (currentBranch) payload.branch_id = currentBranch.id;
         if (clearImage) payload.image = null;
@@ -316,6 +341,8 @@ export default function ProductFormPage() {
               if (!isNaN(num) && num > 0) fd.append(k, String(num));
             } else if (k === "barcode") {
               if (String(v).trim()) fd.append("barcode", String(v).trim());
+            } else if (k === "carton_breakdown") {
+              fd.append("carton_breakdown", JSON.stringify(v || {}));
             } else {
               fd.append(k, String(v));
             }
@@ -342,6 +369,8 @@ export default function ProductFormPage() {
 
       // JSON payload with inline variants or simple mode
       const payload: Record<string, unknown> = { ...form };
+      payload.semi_wholesale_price = form.semi_wholesale_price ? form.semi_wholesale_price : null;
+      if (!form.wholesale_price) payload.wholesale_price = "0.00";
       if (payload.initial_stock) {
         const num = parseInt(String(payload.initial_stock), 10);
         if (!isNaN(num) && num > 0) payload.initial_stock = num;
@@ -516,23 +545,35 @@ export default function ProductFormPage() {
               )}
             </div>
 
-            <Field label={t("inventory.shelf_location_label", "Rayonnage / Emplacement")} hint={canUseLocation ? t("inventory.storage_location_hint", "Lieu de stockage pour l'agence actuelle") : t("inventory.pro_plan_hint", "Disponible à partir du plan PRO")}>
-              <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t("inventory.shelf_location_label", "Rayonnage / Emplacement")} hint={canUseLocation ? t("inventory.storage_location_hint", "Lieu de stockage pour l'agence actuelle") : t("inventory.pro_plan_hint", "Disponible à partir du plan PRO")}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                    className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
+                    placeholder={t("inventory.form_location_placeholder")}
+                    disabled={!canUseLocation}
+                  />
+                  {!canUseLocation && (
+                     <span className="absolute right-3 top-1/2 -translate-y-1/2 badge badge-neutral text-[10px]">
+                       PRO
+                     </span>
+                  )}
+                </div>
+              </Field>
+
+              <Field label={t("inventory.size_range_label", "Plage de pointures (série)")} hint={t("inventory.size_range_hint", "Ex: 37/41, 40-45 (utilisé en mode simple et sur les étiquettes)")}>
                 <input
                   type="text"
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
-                  placeholder={t("inventory.form_location_placeholder")}
-                  disabled={!canUseLocation}
+                  value={form.size_range}
+                  onChange={(e) => setForm((f) => ({ ...f, size_range: e.target.value }))}
+                  className="form-input font-mono"
+                  placeholder={t("inventory.size_range_placeholder", "37/41")}
                 />
-                {!canUseLocation && (
-                   <span className="absolute right-3 top-1/2 -translate-y-1/2 badge badge-neutral text-[10px]">
-                     PRO
-                   </span>
-                )}
-              </div>
-            </Field>
+              </Field>
+            </div>
 
             <Field label={t("inventory.description")}>
               <textarea
@@ -643,6 +684,125 @@ export default function ProductFormPage() {
                   />
                 </Field>
               </div>
+
+              {/* Carton breakdown (Série) */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {t("product.carton_breakdown", "Répartition par carton (Série / Assortiment)")}
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {t("product.carton_breakdown_hint", "Nombre de paires par pointure dans un carton standard.")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sizes = selectedSizes.length > 0
+                          ? selectedSizes
+                          : existingProduct?.variants?.length
+                          ? Array.from(new Set(existingProduct.variants.map((v) => v.size_eu))).sort((a, b) => a - b)
+                          : [39, 40, 41, 42, 43, 44, 45, 46];
+                        if (sizes.length === 0) return;
+                        const total = form.pairs_per_carton;
+                        const base = Math.floor(total / sizes.length);
+                        let rem = total % sizes.length;
+                        const next: Record<string, number> = {};
+                        sizes.forEach((sz) => {
+                          next[sz] = base + (rem > 0 ? 1 : 0);
+                          if (rem > 0) rem--;
+                        });
+                        setForm((f) => ({ ...f, carton_breakdown: next }));
+                      }}
+                      className="px-2.5 py-1 text-2xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                    >
+                      {t("product.distribute_equally", "Répartir également")}
+                    </button>
+                    {Object.keys(form.carton_breakdown || {}).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, carton_breakdown: {} }))}
+                        className="px-2 py-1 text-2xs font-medium rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
+                      >
+                        {t("product.clear_breakdown", "Vider")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Size inputs grid */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {(selectedSizes.length > 0
+                    ? selectedSizes
+                    : existingProduct?.variants?.length
+                    ? Array.from(new Set(existingProduct.variants.map((v) => v.size_eu))).sort((a, b) => a - b)
+                    : [39, 40, 41, 42, 43, 44, 45, 46]
+                  ).map((sz) => (
+                    <div
+                      key={sz}
+                      className="flex flex-col items-center bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 rounded-xl p-2 min-w-[56px]"
+                    >
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mb-1">
+                        {sz}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.carton_breakdown?.[sz] ?? ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setForm((f) => {
+                            const next = { ...f.carton_breakdown };
+                            if (val > 0) next[sz] = val;
+                            else delete next[sz];
+                            return { ...f, carton_breakdown: next };
+                          });
+                        }}
+                        className="input w-12 text-center py-1 px-1 text-xs font-mono font-bold rounded-lg border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total indicator */}
+                <div className="flex items-center gap-2 pt-1 text-xs font-medium">
+                  {(() => {
+                    const total = Object.values(form.carton_breakdown || {}).reduce(
+                      (s, v) => s + (Number(v) || 0),
+                      0
+                    );
+                    if (total === 0) {
+                      return (
+                        <span className="text-slate-400 text-2xs italic">
+                          {t("product.no_breakdown_set", "Aucune répartition définie (facultatif).")}
+                        </span>
+                      );
+                    }
+                    if (total === form.pairs_per_carton) {
+                      return (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-2xs">
+                          ✓ {t("product.breakdown_valid", "Répartition valide : {{total}} / {{pairs}} paires", {
+                            total,
+                            pairs: form.pairs_per_carton,
+                          })}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 text-2xs">
+                        ⚠️ {t("product.breakdown_mismatch", "Total : {{total}} / {{pairs}} paires (écart : {{diff}})", {
+                          total,
+                          pairs: form.pairs_per_carton,
+                          diff: Math.abs(form.pairs_per_carton - total),
+                        })}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* Pricing */}
@@ -656,6 +816,18 @@ export default function ProductFormPage() {
                   type="number"
                   value={form.sale_price}
                   onChange={(e) => setForm((f) => ({ ...f, sale_price: e.target.value }))}
+                  className="form-input"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </Field>
+
+              <Field label={`${t("inventory.semi_wholesale_price", "Prix demi-gros")} (DZD)`}>
+                <input
+                  type="number"
+                  value={form.semi_wholesale_price}
+                  onChange={(e) => setForm((f) => ({ ...f, semi_wholesale_price: e.target.value }))}
                   className="form-input"
                   placeholder="0.00"
                   min="0"

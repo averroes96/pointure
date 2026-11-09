@@ -18,6 +18,7 @@ export interface Tenant {
   nif: string;
   rc: string;
   ai: string;
+  nis?: string;
   phone: string;
   address: string;
   wilaya: string;
@@ -69,6 +70,8 @@ export interface Variant {
   product: number;
   product_name: string;
   product_sale_price: string;
+  product_semi_wholesale_price?: string | null;
+  product_wholesale_price?: string | null;
   size_eu: number;
   colour: string;
   barcode: string;
@@ -90,7 +93,8 @@ export interface Product {
   purchase_price?: string; // Hidden from cashiers
   pamp?: string; // Weighted Average Purchase Price (Coût Moyen Pondéré)
   sale_price: string;
-  wholesale_price?: string;
+  semi_wholesale_price?: string | null;
+  wholesale_price?: string | null;
   margin_pct?: string;
   image: string | null;
   description: string;
@@ -98,6 +102,8 @@ export interface Product {
   is_demo?: boolean;
   alert_threshold: number;
   pairs_per_carton?: number;
+  carton_breakdown?: Record<string, number> | null;
+  size_range?: string;
   total_stock: number;
   has_low_stock: boolean;
   is_total_low_stock: boolean;
@@ -391,6 +397,8 @@ export interface StoreSettings {
   min_layaway_deposit_pct?: number;
   layaway_duration_days?: number;
   enable_delivery_integrations?: boolean;
+  tax_regime?: "reel" | "ifu";
+  invoice_legal_mentions?: string;
 }
 
 // ─────────────────────────────────────────────
@@ -551,6 +559,23 @@ export type ChequeStatus = "pending" | "deposited" | "bounced" | "cancelled";
 export type ChequeDirection = "receivable" | "payable";
 
 export type ClientType = "retail" | "wholesale";
+export type PriceTier = "detail" | "demi_gros" | "gros";
+
+export type ClientRiskGrade = "A" | "B" | "C" | "D";
+
+export interface ClientRiskDetails {
+  grade: ClientRiskGrade;
+  avg_days_to_pay: number | null;
+  overdue_amount: string;
+  bounced_cheques_12m: number;
+  last_payment_date: string | null;
+  buckets?: {
+    current: string;
+    days_30: string;
+    days_60: string;
+    days_90_plus: string;
+  };
+}
 
 export interface Client {
   id: number;
@@ -560,12 +585,16 @@ export interface Client {
   address: string;
   wilaya: string;
   client_type: ClientType;
+  price_tier?: PriceTier;
   nif: string;
   rc: string;
   credit_limit: string;
   cached_balance: string;
   is_over_credit_limit: boolean;
   is_active: boolean;
+  is_blocked?: boolean;
+  risk_grade?: ClientRiskGrade;
+  risk_details?: ClientRiskDetails;
   notes: string;
   created_at: string;
 }
@@ -604,6 +633,51 @@ export interface Cheque {
 // ─────────────────────────────────────────────
 
 export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "overdue" | "cancelled";
+
+export type QuoteStatus = "draft" | "sent" | "accepted" | "expired" | "converted" | "cancelled";
+
+export interface QuoteLine {
+  id: string;
+  variant: number | string | null;
+  product_id?: string | number | null;
+  product_name?: string;
+  colour?: string;
+  size_eu?: number;
+  description: string;
+  quantity: string;
+  unit_price: string;
+  discount_pct: string;
+  cartons: number;
+  line_total: string;
+  order: number;
+  unit_cost?: string | null;
+  unit_cost_estimated?: boolean;
+}
+
+export interface Quote {
+  id: string;
+  client: string | null;
+  client_name: string;
+  branch: string | null;
+  number: string;
+  date: string;
+  valid_until: string;
+  status: QuoteStatus;
+  total_ht: string;
+  tva_rate: string;
+  tva_amount: string;
+  total_ttc: string;
+  apply_tva: boolean;
+  notes: string;
+  converted_invoice: string | null;
+  converted_invoice_number: string;
+  converted_delivery_note: string | null;
+  converted_delivery_note_number: string;
+  lines: QuoteLine[];
+  has_pdf: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface DeliveryNote {
   id: number;
@@ -728,6 +802,68 @@ export interface PurchaseOrder {
   created_by: number | null;
   lines: POLine[];
   created_at: string;
+}
+
+export type ImportSizeMode = "single" | "range" | "matrix";
+
+export interface SupplierImportTemplate {
+  id: string;
+  supplier: string | null;
+  supplier_name?: string;
+  name: string;
+  header_row: number;
+  column_map: Record<string, string>;
+  size_mode: ImportSizeMode;
+  size_mode_display?: string;
+  default_colour: string;
+  default_pairs_per_carton: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface POImportLineItem {
+  row_index: number;
+  reference: string;
+  description: string;
+  size_eu: number;
+  colour: string;
+  brand: string;
+  location: string;
+  quantity: number;
+  cartons: number;
+  pairs_per_carton: number;
+  unit_price: string;
+  match_status: "matched" | "missing_variant" | "new_product";
+  product_id: string | null;
+  product_name: string | null;
+  variant_id: string | null;
+}
+
+export interface POImportPreviewResponse {
+  detected_encoding: string;
+  detected_delimiter: string;
+  header_row: number;
+  headers: string[];
+  auto_mapping: Record<string, string | null>;
+  column_map: Record<string, string>;
+  size_mode: ImportSizeMode;
+  size_matrix_columns: Record<string, number>;
+  default_colour: string;
+  default_pairs_per_carton: number | null;
+  templates: SupplierImportTemplate[];
+  applied_template_id: string | null;
+  raw_rows: any[][];
+  total_raw_rows: number;
+  preview_lines: POImportLineItem[];
+  summary: {
+    total_lines: number;
+    total_cartons: number;
+    total_pairs: number;
+    total_estimated_amount: string | number;
+    matched_count: number;
+    missing_variants_count: number;
+    new_products_count: number;
+  };
 }
 
 export interface SupplierInvoice {

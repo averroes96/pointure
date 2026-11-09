@@ -22,6 +22,7 @@ const MANAGER_PREFIXES = [
   "/promotions",
   "/deliveries",
   "/invoices",
+  "/quotes",
   "/delivery-notes",
   "/credit-notes",
   "/clients/ledger",
