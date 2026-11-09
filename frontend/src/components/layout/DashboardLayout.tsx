@@ -6,6 +6,7 @@ import Topbar from "./Topbar";
 import { cn } from "@/lib/utils";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import ShortcutsModal from "@/components/ui/ShortcutsModal";
+import QuickSearchModal from "@/components/ui/QuickSearchModal";
 import TimeAnomalyBanner from "@/components/ui/TimeAnomalyBanner";
 
 export default function DashboardLayout() {
@@ -85,6 +86,7 @@ export default function DashboardLayout() {
         </div>
       </main>
       <ShortcutsModal />
+      <QuickSearchModal />
     </div>
   );
 }

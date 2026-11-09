@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Bell, Building2, ChevronDown, Globe, LogOut, CreditCard, AlertTriangle, FileX, Calendar,
-  Menu, Keyboard, HelpCircle, Download, ArrowRight, Trash2, Sun, Moon, Monitor, type LucideIcon,
+  Menu, Keyboard, HelpCircle, Download, ArrowRight, Trash2, Sun, Moon, Monitor, Search, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
@@ -174,6 +174,32 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
           )}
         </div>
       </div>
+
+      {/* Quick Search trigger (Ctrl+K) */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent("app-open-quick-search"))}
+        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs transition-all shadow-2xs hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer max-w-xs w-60 mx-2"
+        title={t("quick_search.btn_title", "Recherche rapide (Ctrl + K)")}
+      >
+        <Search size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+        <span className="truncate text-slate-400 dark:text-slate-500 flex-1 text-start">
+          {t("quick_search.topbar_placeholder", "Rechercher partout…")}
+        </span>
+        <kbd className="hidden md:inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shadow-2xs">
+          Ctrl K
+        </kbd>
+      </button>
+
+      {/* Mobile search icon button */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent("app-open-quick-search"))}
+        className="sm:hidden p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+        title={t("quick_search.btn_title", "Recherche rapide")}
+      >
+        <Search size={17} />
+      </button>
 
       {/* Branch selector — only visible when tenant has multiple branches */}
       {branches.length > 1 && (

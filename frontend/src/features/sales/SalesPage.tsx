@@ -14,7 +14,7 @@ import { printReceipt } from "@/lib/receipt";
 import { printBonVersement, printBonReservation } from "@/lib/versement";
 import { getPrinterConfig } from "@/lib/printerConfig";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession, HeldSale } from "@/types";
+import type { Client, Product, Sale, StoreSettings, Variant, LoyaltyAccountSummary, LoyaltyProgram, CashSession, HeldSale, PriceTier } from "@/types";
 import { cn, normalizeNumericInput, extractDigitFromKeyEvent } from "@/lib/utils";
 import { unitPriceFor } from "@/lib/pricing";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -338,11 +338,20 @@ export default function SalesPage() {
   const [receipt, setReceipt] = useState<(Sale & { points_earned?: number; points_redeemed?: number }) | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const selectedClientRef = useRef<Client | null>(null);
-  const prevClientTierRef = useRef<string>("detail");
+  const [activePriceTier, setActivePriceTier] = useState<PriceTier>("detail");
+  const activePriceTierRef = useRef<PriceTier>("detail");
+  const prevPriceTierRef = useRef<PriceTier>("detail");
+
   useEffect(() => {
     selectedClientRef.current = selectedClient;
-    const nextTier = selectedClient?.price_tier ?? "detail";
-    const prevTier = prevClientTierRef.current;
+    const nextTier = (selectedClient?.price_tier as PriceTier) || "detail";
+    setActivePriceTier(nextTier);
+  }, [selectedClient]);
+
+  useEffect(() => {
+    activePriceTierRef.current = activePriceTier;
+    const nextTier = activePriceTier;
+    const prevTier = prevPriceTierRef.current;
     if (nextTier !== prevTier) {
       setCart((prev) =>
         prev.map((item) => {
@@ -353,9 +362,9 @@ export default function SalesPage() {
           return item;
         }),
       );
-      prevClientTierRef.current = nextTier;
+      prevPriceTierRef.current = nextTier;
     }
-  }, [selectedClient]);
+  }, [activePriceTier]);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [isVersement, setIsVersement] = useState(false);
   const [isLayaway, setIsLayaway] = useState(false);
@@ -583,7 +592,7 @@ export default function SalesPage() {
           variant,
           product,
           quantity: 1,
-          unit_price: unitPriceFor(product, selectedClientRef.current?.price_tier),
+          unit_price: unitPriceFor(product, activePriceTierRef.current),
           discount: 0,
         },
       ];
@@ -912,10 +921,10 @@ export default function SalesPage() {
 
       if (user.can_modify_price === false) {
         const altered = cart.find(
-          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, selectedClient?.price_tier)) > 0.01
+          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, activePriceTier)) > 0.01
         );
         if (altered) {
-          const catalogPrice = unitPriceFor(altered.product, selectedClient?.price_tier);
+          const catalogPrice = unitPriceFor(altered.product, activePriceTier);
           setManagerPinPrompt({
             isOpen: true,
             reason: t(
@@ -1201,8 +1210,14 @@ export default function SalesPage() {
     const onVersementEvent = () => handleVersementShortcut();
     const onMovementEvent = () => handleMovementShortcut();
     const onHeldSalesEvent = () => setShowHeldSalesModal((prev) => !prev);
+    const onTogglePriceTierEvent = () => {
+      const tiers: PriceTier[] = ["detail", "demi_gros", "gros"];
+      const currentIndex = tiers.indexOf(activePriceTierRef.current);
+      const nextTier = tiers[(currentIndex + 1) % tiers.length];
+      setActivePriceTier(nextTier);
+    };
 
-    // Note: F1, F2, F10, Alt+V, Alt+M, Alt+H are handled globally by useGlobalShortcuts and dispatched as custom events below.
+    // Note: F1, F2, F10, Alt+V, Alt+M, Alt+H, Alt+G are handled globally by useGlobalShortcuts and dispatched as custom events below.
     window.addEventListener("app-shortcut-search", onSearch);
     window.addEventListener("app-shortcut-confirm", onConfirm);
     window.addEventListener("app-shortcut-new-sale", onNewSale);
@@ -1210,6 +1225,7 @@ export default function SalesPage() {
     window.addEventListener("app-shortcut-versement", onVersementEvent);
     window.addEventListener("app-shortcut-movement", onMovementEvent);
     window.addEventListener("app-shortcut-held-sales", onHeldSalesEvent);
+    window.addEventListener("app-shortcut-toggle-price-tier", onTogglePriceTierEvent);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
@@ -1220,6 +1236,7 @@ export default function SalesPage() {
       window.removeEventListener("app-shortcut-versement", onVersementEvent);
       window.removeEventListener("app-shortcut-movement", onMovementEvent);
       window.removeEventListener("app-shortcut-held-sales", onHeldSalesEvent);
+      window.removeEventListener("app-shortcut-toggle-price-tier", onTogglePriceTierEvent);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [
@@ -1714,7 +1731,7 @@ export default function SalesPage() {
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 px-2.5 py-0.5 rounded-lg border border-primary-100 dark:border-primary-800">
-                            {formatDZD(unitPriceFor(product, selectedClient?.price_tier))} DZD
+                            {formatDZD(unitPriceFor(product, activePriceTier))} DZD
                           </span>
                           <span className="text-slate-300 dark:text-slate-700">·</span>
                           <span className={cn(
@@ -1955,6 +1972,50 @@ export default function SalesPage() {
                 )}
               </div>
             )}
+
+            {/* Wholesale / Retail Price Tier Selector */}
+            <div className="mt-2.5 flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <Tag size={13} className="text-slate-400 dark:text-slate-500" />
+                <span>{t("pos.price_tier_label", "Tarif")} :</span>
+              </div>
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs">
+                {(["detail", "demi_gros", "gros"] as PriceTier[]).map((tier) => (
+                  <button
+                    key={tier}
+                    type="button"
+                    onClick={() => setActivePriceTier(tier)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-semibold transition-all text-xs flex items-center gap-1 cursor-pointer",
+                      activePriceTier === tier
+                        ? "bg-white dark:bg-slate-700 text-primary-700 dark:text-primary-300 shadow-xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    )}
+                    title={
+                      tier === "detail"
+                        ? t("pos.tier_detail_desc", "Tarif Détail (Alt+G)")
+                        : tier === "demi_gros"
+                        ? t("pos.tier_demi_gros_desc", "Tarif Demi-gros (Alt+G)")
+                        : t("pos.tier_gros_desc", "Tarif Gros (Alt+G)")
+                    }
+                  >
+                    <span>
+                      {tier === "detail"
+                        ? t("pos.tier_detail", "Détail")
+                        : tier === "demi_gros"
+                        ? t("pos.tier_demi_gros", "Demi-gros")
+                        : t("pos.tier_gros", "Gros")}
+                    </span>
+                  </button>
+                ))}
+                <span
+                  className="ml-1 px-1.5 py-0.5 text-3xs font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-600 cursor-help"
+                  title="Alt+G"
+                >
+                  Alt+G
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Cart items list (prominent cards with large Pointure tag) */}

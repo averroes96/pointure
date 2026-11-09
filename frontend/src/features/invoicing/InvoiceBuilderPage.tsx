@@ -198,6 +198,12 @@ export default function InvoiceBuilderPage() {
   // ── Error ──
   const [formError, setFormError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleCartonShortcut = () => setIsCartonModalOpen(true);
+    window.addEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+    return () => window.removeEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+  }, []);
+
   // ── Credit limit warning ──
   const [creditLimitWarning, setCreditLimitWarning] = useState<{
     credit_limit: string;

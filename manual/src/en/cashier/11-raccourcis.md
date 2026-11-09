@@ -30,6 +30,19 @@ All function keys and shortcuts listed below operate continuously across the Win
 
 ---
 
+### Wholesale Operations & Quick Actions
+
+| Key | Associated Action | Practical Usage |
+| :---: | :--- | :--- |
+| <kbd>Ctrl + K</kbd> | **Universal Search & Commands** | Command palette and global lookup: products, customers, suppliers, invoices. |
+| <kbd>Alt + G</kbd> | **Wholesale Price Tier** | Cycle instantly between Retail, Semi-wholesale, and Wholesale tiers on active sale. |
+| <kbd>Alt + C</kbd> | **Sell by Carton** | Open carton & case-pack rapid entry dialog (shoe size series). |
+| <kbd>Alt + D</kbd> | **Quotes & Proforma** | Access quotes list (<kbd>Shift + Alt + D</kbd> to create a new quote). |
+| <kbd>Alt + B</kbd> | **Purchase Orders** | Access supplier purchase orders (<kbd>Shift + Alt + B</kbd> for a new order). |
+| <kbd>Alt + R</kbd> | **Customer Ledger / Balances** | View customer receivables, balances, and statement ledger. |
+
+---
+
 ### General Navigation & System
 
 | Key | Associated Action | Practical Usage |

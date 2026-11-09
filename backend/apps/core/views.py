@@ -672,3 +672,132 @@ class SystemTimeView(APIView):
         status_data = sync_time(force=force_resync)
         return Response(status_data)
 
+
+class QuickSearchView(APIView):
+    """
+    GET /api/v1/core/quick-search/?q=...
+    Multi-entity quick search across Products, Clients, Suppliers, and Invoices.
+    Offline-first, scoped to request.tenant, returns compact results for command palette.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response({"products": [], "clients": [], "suppliers": [], "invoices": []})
+
+        tenant = getattr(request, "tenant", None) or getattr(request.user, "tenant", None)
+        if not tenant:
+            return Response({"products": [], "clients": [], "suppliers": [], "invoices": []})
+
+        role = getattr(request.user, "role", "cashier")
+
+        from apps.inventory.models import Product
+        from apps.clients.models import Client
+        from apps.suppliers.models import Supplier
+        from apps.invoicing.models import Invoice
+        from django.db.models import Q
+
+        # 1. Products
+        prod_qs = (
+            Product.objects.filter(tenant=tenant)
+            .filter(
+                Q(name__icontains=query)
+                | Q(reference__icontains=query)
+                | Q(brand__icontains=query)
+                | Q(variants__barcode__icontains=query)
+            )
+            .distinct()
+            .prefetch_related("branch_locations", "variants")[:6]
+        )
+        products = []
+        for p in prod_qs:
+            loc = p.branch_locations.first()
+            loc_str = loc.location if loc else ""
+            if loc_str and getattr(p, "size_range", ""):
+                full_loc = f"{loc_str} ({p.size_range})"
+            elif loc_str:
+                full_loc = loc_str
+            elif getattr(p, "size_range", ""):
+                full_loc = f"({p.size_range})"
+            else:
+                full_loc = ""
+
+            total_stock = sum(v.stock_qty for v in p.variants.all())
+            products.append({
+                "id": p.id,
+                "name": p.name,
+                "reference": p.reference or "",
+                "brand": p.brand or "",
+                "sale_price": str(p.sale_price),
+                "location": full_loc,
+                "stock_qty": total_stock,
+            })
+
+        # 2. Clients
+        client_qs = (
+            Client.objects.filter(tenant=tenant)
+            .filter(
+                Q(name__icontains=query)
+                | Q(phone__icontains=query)
+                | Q(nif__icontains=query)
+                | Q(rc__icontains=query)
+            )[:6]
+        )
+        clients = [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "phone": c.phone or "",
+                "wilaya": c.wilaya or "",
+                "price_tier": c.price_tier,
+                "outstanding_balance": str(c.cached_balance),
+            }
+            for c in client_qs
+        ]
+
+        # 3. Suppliers (Owner and Manager only)
+        suppliers = []
+        if role in ("owner", "manager"):
+            sup_qs = (
+                Supplier.objects.filter(tenant=tenant)
+                .filter(Q(name__icontains=query) | Q(phone__icontains=query))[:5]
+            )
+            suppliers = [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "phone": s.phone or "",
+                    "outstanding_balance": str(s.outstanding_balance),
+                }
+                for s in sup_qs
+            ]
+
+        # 4. Invoices
+        invoice_qs = (
+            Invoice.objects.filter(tenant=tenant)
+            .filter(
+                Q(number__icontains=query)
+                | Q(client__name__icontains=query)
+            )
+            .select_related("client")[:6]
+        )
+        invoices = [
+            {
+                "id": str(inv.id),
+                "number": inv.number,
+                "client_name": inv.client.name if inv.client else "",
+                "total_ttc": str(inv.total_ttc),
+                "status": inv.status,
+                "date": str(inv.date),
+            }
+            for inv in invoice_qs
+        ]
+
+        return Response({
+            "products": products,
+            "clients": clients,
+            "suppliers": suppliers,
+            "invoices": invoices,
+        })
+

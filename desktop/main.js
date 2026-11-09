@@ -259,22 +259,35 @@ function createMainWindow(port) {
       return;
     }
 
-    // Handle Alt+P (Paramètres), Alt+S (Settings), Alt+V (Versement), Alt+M (Mouvements), Alt+H (Held sales), or Ctrl+, (Settings standard)
+    // Handle Alt shortcuts: P (Paramètres), S (Settings), V (Versement), M (Mouvements), H (Held sales),
+    // and Wholesale shortcuts: G (Grille gros), C (Cartons), D (Devis), B (Bons commande), R (Relevé compte)
+    // and Ctrl+, (Settings), Ctrl+K (Quick Search)
     if (
       (input.alt && !input.control && (
         key === 'p' || key === 'P' ||
         key === 's' || key === 'S' ||
         key === 'v' || key === 'V' ||
         key === 'm' || key === 'M' ||
-        key === 'h' || key === 'H'
+        key === 'h' || key === 'H' ||
+        key === 'g' || key === 'G' ||
+        key === 'c' || key === 'C' ||
+        key === 'd' || key === 'D' ||
+        key === 'b' || key === 'B' ||
+        key === 'r' || key === 'R'
       )) ||
-      (input.control && !input.alt && (key === ',' || input.code === 'Comma'))
+      (input.control && !input.alt && (key === ',' || input.code === 'Comma')) ||
+      ((input.control || input.meta) && !input.alt && (key === 'k' || key === 'K' || input.code === 'KeyK'))
     ) {
       event.preventDefault();
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.focus();
       }
-      const shortcutKey = input.control ? 'Ctrl+,' : `Alt+${key.toUpperCase()}`;
+      let shortcutKey = `Alt+${key.toUpperCase()}`;
+      if ((input.control || input.meta) && (key === 'k' || key === 'K' || input.code === 'KeyK')) {
+        shortcutKey = 'Ctrl+K';
+      } else if (input.control) {
+        shortcutKey = 'Ctrl+,';
+      }
       mainWindow.webContents.send('keyboard-shortcut', {
         key: shortcutKey,
         altKey: input.alt,

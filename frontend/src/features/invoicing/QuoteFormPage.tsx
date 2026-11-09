@@ -123,6 +123,12 @@ export default function QuoteFormPage() {
     }
   }, [isQuoteLoaded, quoteToEdit]);
 
+  useEffect(() => {
+    const handleCartonShortcut = () => setIsCartonModalOpen(true);
+    window.addEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+    return () => window.removeEventListener("app-shortcut-carton-modal", handleCartonShortcut);
+  }, []);
+
   // When client changes, update matrix prices if unset or newly matched
   function handleClientChange(c: Client | null) {
     setClient(c);

@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AuditLogViewSet, BranchViewSet, MeView, StoreSettingsView, 
     TenantSettingsView, UserViewSet,
-    WilayaViewSet, CommuneViewSet, LegacyDBFImportView, SystemTimeView
+    WilayaViewSet, CommuneViewSet, LegacyDBFImportView, SystemTimeView, QuickSearchView
 )
 
 router = DefaultRouter()
@@ -26,6 +26,7 @@ from .import_views import (
 )
 
 urlpatterns = [
+    path("quick-search/", QuickSearchView.as_view(), name="quick-search"),
     path("time/", SystemTimeView.as_view(), name="system-time"),
     # Route "sync/push/" disabled pending cloud-backup design (Task 3.2).
     path("legacy-import/", LegacyDBFImportView.as_view(), name="legacy-import"),
