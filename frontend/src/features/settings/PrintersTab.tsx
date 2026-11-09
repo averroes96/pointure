@@ -543,7 +543,7 @@ export default function PrintersTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Imprimante assignée aux étiquettes
@@ -635,6 +635,31 @@ export default function PrintersTab() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              {t("printers.label_copies_label", "Exemplaires par étiquette par défaut")}
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={config.labels.copies ?? 1}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  labels: {
+                    ...config.labels,
+                    copies: Math.max(1, Math.min(200, Number(e.target.value) || 1)),
+                  },
+                })
+              }
+              className="input w-full text-xs font-medium rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <p className="text-2xs text-slate-400 mt-1">
+              {t("printers.label_copies_hint", "Nombre d'exemplaires pré-sélectionné lors de l'impression de codes-barres ou d'étiquettes rayon.")}
+            </p>
           </div>
         </div>
 

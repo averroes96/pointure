@@ -17,13 +17,13 @@ export function usePrintLabels() {
   const [isPrinting, setIsPrinting] = useState(false);
 
   const printLabels = useCallback(
-    async (variantId: number | string, copies = 1) => {
+    async (variantId: number | string, copies?: number) => {
       if (isPrinting) return;
       setIsPrinting(true);
       try {
-        const n = Math.max(1, Math.min(Math.round(Number(copies)), 200));
+        const n = copies !== undefined ? Math.max(1, Math.min(Math.round(Number(copies)), 200)) : undefined;
         await triggerLabelPrint({
-          title: `Étiquettes code-barres (${n})`,
+          title: n ? `Étiquettes code-barres (${n})` : "Étiquettes code-barres",
           defaultCopies: n,
           fetchHtml: async ({ w, h, copies: count }) => {
             const res = await api.get(
