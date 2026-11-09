@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Save, AlertCircle, FileSpreadsheet, Layers } from "luc
 import api, { formatDZD, getApiError } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Quote } from "@/types";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { cn } from "@/lib/utils";
 import { unitPriceStringFor } from "@/lib/pricing";
 import { ClientSelector } from "./components/ClientSelector";
@@ -29,6 +30,7 @@ export default function QuoteFormPage() {
   const isEditMode = Boolean(id);
   const queryClient = useQueryClient();
   const { currentBranch } = useBranch();
+  const { settings } = useBusinessMode();
 
   // Form states
   const [client, setClient] = useState<Client | null>(null);
@@ -40,6 +42,12 @@ export default function QuoteFormPage() {
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isCartonModalOpen, setIsCartonModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isEditMode && settings?.tax_regime === "ifu") {
+      setApplyTva(false);
+    }
+  }, [isEditMode, settings?.tax_regime]);
 
   // Fetch quote in edit mode
   const { data: quoteToEdit, isSuccess: isQuoteLoaded } = useQuery<Quote>({

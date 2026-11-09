@@ -49,6 +49,11 @@ Pour que vos factures formelles, devis et bons de livraison soient conformes à 
 - **NIF :** Numéro d'Identification Fiscale (15 chiffres).
 - **RC :** Numéro du Registre de Commerce (ex : `16/00-1234567B16`).
 - **AI :** Article d'Imposition (11 chiffres).
+- **NIS :** Numéro d'Identification Statistique.
+
+Dans **Paramètres → Politiques & Mode**, vous pouvez également choisir votre **Régime fiscal** :
+- **Régime du réel :** La TVA (19%) est appliquée par défaut lors de la création de factures.
+- **Impôt Forfaitaire Unique (IFU) :** La TVA est désactivée par défaut et la colonne TVA est masquée sur les factures imprimées. Vous pouvez aussi définir vos **Mentions légales sur factures** personnalisées (ex: exonération TVA / IFU) qui seront imprimées au bas de vos factures et devis.
 
 Ces mentions obligatoires apparaîtront automatiquement sur l'en-tête de vos documents d'impression grand format (A4) et sur les tickets de caisse légaux.
 

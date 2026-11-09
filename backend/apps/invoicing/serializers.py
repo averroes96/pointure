@@ -89,7 +89,7 @@ class CreateInvoiceSerializer(serializers.Serializer):
     date = serializers.DateField()
     due_date = serializers.DateField()
     series_prefix = serializers.CharField(default="FA", max_length=20)
-    apply_tva = serializers.BooleanField(default=True)
+    apply_tva = serializers.BooleanField(required=False, default=None)
     is_formal = serializers.BooleanField(default=True)
     is_paid_in_cash = serializers.BooleanField(default=False)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
@@ -99,6 +99,16 @@ class CreateInvoiceSerializer(serializers.Serializer):
     payment = InitialPaymentInput(required=False, allow_null=True)
 
     def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+
         client_id = data.get("client_id")
         if client_id:
             from apps.clients.models import Client
@@ -152,14 +162,24 @@ class RegrouperBLsSerializer(serializers.Serializer):
     date = serializers.DateField()
     due_date = serializers.DateField()
     series_prefix = serializers.CharField(default="FA", max_length=20)
-    apply_tva = serializers.BooleanField(default=True)
-    is_formal = serializers.BooleanField(default=True)
-    is_paid_in_cash = serializers.BooleanField(default=False)
+    apply_tva = serializers.BooleanField(required=False, default=None)
     is_formal = serializers.BooleanField(default=True)
     is_paid_in_cash = serializers.BooleanField(default=False)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
     notes = serializers.CharField(required=False, allow_blank=True)
     confirm = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+        return data
 
 
 
@@ -256,8 +276,20 @@ class CreateQuoteSerializer(serializers.Serializer):
     branch_id = serializers.UUIDField(required=False, allow_null=True)
     date = serializers.DateField()
     valid_until = serializers.DateField(required=False, allow_null=True)
-    apply_tva = serializers.BooleanField(default=True)
+    apply_tva = serializers.BooleanField(required=False, default=None)
     tva_rate = serializers.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
     notes = serializers.CharField(required=False, allow_blank=True)
     lines = QuoteLineSerializer(many=True, min_length=1)
+
+    def validate(self, data):
+        if data.get("apply_tva") is None:
+            request = self.context.get("request")
+            tenant = getattr(request, "tenant", None)
+            from apps.core.models import StoreSettings
+            store_settings = StoreSettings.objects.filter(tenant=tenant).first() if tenant else None
+            if store_settings and store_settings.tax_regime == "ifu":
+                data["apply_tva"] = False
+            else:
+                data["apply_tva"] = True
+        return data
 

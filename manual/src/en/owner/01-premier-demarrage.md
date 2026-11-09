@@ -49,6 +49,11 @@ To ensure your official invoices, quotes, and delivery notes comply with Algeria
 - **NIF:** Tax Identification Number (15 digits).
 - **RC:** Commercial Register Number (e.g., `16/00-1234567B16`).
 - **AI:** Tax Article Number (11 digits).
+- **NIS:** Statistical Identification Number.
+
+In **Settings → Policies & Business Mode**, configure your **Tax Regime**:
+- **Standard (Réel):** VAT (19%) is enabled by default when drafting invoices.
+- **Single Flat Tax (IFU):** VAT is disabled by default and the VAT row is omitted from printed PDF invoices. You can also specify custom **Invoice Legal Mentions** (e.g., tax exemption clause) printed automatically at the bottom of invoices and quotes.
 
 These mandatory legal mentions automatically populate invoice headers and receipt printouts.
 

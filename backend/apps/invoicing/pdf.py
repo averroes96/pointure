@@ -87,35 +87,45 @@ def group_lines_by_product(lines):
 
 def render_invoice_pdf(invoice, language: str = "fr") -> bytes:
     lines = list(invoice.lines.select_related("variant__product"))
+    from apps.core.models import StoreSettings
+    store_settings = StoreSettings.objects.filter(tenant=invoice.tenant).first()
     context = {
         "invoice": invoice,
         "grouped_lines": group_lines_by_product(lines),
         "tenant": invoice.tenant,
         "client": invoice.client,
         "branch": invoice.branch,
+        "store_settings": store_settings,
     }
     return render_to_pdf("pdf/invoice.html", context, language)
 
 
 def render_quote_pdf(quote, language: str = "fr") -> bytes:
     lines = list(quote.lines.select_related("variant__product"))
+    from apps.core.models import StoreSettings
+    store_settings = StoreSettings.objects.filter(tenant=quote.tenant).first()
     context = {
         "quote": quote,
         "grouped_lines": group_lines_by_product(lines),
         "tenant": quote.tenant,
         "client": quote.client,
         "branch": quote.branch,
+        "store_settings": store_settings,
     }
     return render_to_pdf("pdf/quote.html", context, language)
 
 
 def render_delivery_note_pdf(delivery_note, language: str = "fr") -> bytes:
     lines = list(delivery_note.invoice.lines.select_related("variant__product")) if delivery_note.invoice else []
+    tenant = delivery_note.invoice.tenant if delivery_note.invoice else delivery_note.tenant
+    from apps.core.models import StoreSettings
+    store_settings = StoreSettings.objects.filter(tenant=tenant).first()
     context = {
         "dn": delivery_note,
         "invoice": delivery_note.invoice,
-        "tenant": delivery_note.invoice.tenant if delivery_note.invoice else delivery_note.tenant,
+        "tenant": tenant,
         "grouped_lines": group_lines_by_product(lines),
+        "store_settings": store_settings,
     }
     return render_to_pdf("pdf/delivery_note.html", context, language)
 

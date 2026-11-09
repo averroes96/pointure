@@ -74,7 +74,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         self.require_manager()
-        serializer = CreateInvoiceSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -207,7 +207,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"detail": "Impossible de modifier une facture annulée."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = CreateInvoiceSerializer(data=request.data)
+        serializer = CreateInvoiceSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -535,7 +535,7 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def regrouper(self, request):
         self.require_manager()
         from .serializers import RegrouperBLsSerializer
-        serializer = RegrouperBLsSerializer(data=request.data)
+        serializer = RegrouperBLsSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -683,7 +683,7 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         self.require_manager()
-        serializer = CreateQuoteSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -741,7 +741,7 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = CreateQuoteSerializer(data=request.data, partial=kwargs.get("partial", False))
+        serializer = CreateQuoteSerializer(data=request.data, partial=kwargs.get("partial", False), context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 

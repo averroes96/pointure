@@ -8,8 +8,10 @@
   <div>
     <div class="company-name">{{ tenant.name }}</div>
     <div class="company-details">
-      {% if tenant.nif %}NIF: {{ tenant.nif }}{% endif %}
-      {% if tenant.rc %} &nbsp;|&nbsp; RC: {{ tenant.rc }}{% endif %}
+      {% if tenant.nif %}NIF: {{ tenant.nif }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.rc %}RC: {{ tenant.rc }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.ai %}AI: {{ tenant.ai }} &nbsp;|&nbsp; {% endif %}
+      {% if tenant.nis %}NIS: {{ tenant.nis }}{% endif %}
     </div>
   </div>
   <div>

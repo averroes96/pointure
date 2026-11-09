@@ -18,6 +18,7 @@ export interface Tenant {
   nif: string;
   rc: string;
   ai: string;
+  nis?: string;
   phone: string;
   address: string;
   wilaya: string;
@@ -395,6 +396,8 @@ export interface StoreSettings {
   min_layaway_deposit_pct?: number;
   layaway_duration_days?: number;
   enable_delivery_integrations?: boolean;
+  tax_regime?: "reel" | "ifu";
+  invoice_legal_mentions?: string;
 }
 
 // ─────────────────────────────────────────────

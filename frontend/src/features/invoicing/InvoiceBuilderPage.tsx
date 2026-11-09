@@ -18,6 +18,7 @@ import { useBranch } from "@/features/auth/BranchContext";
 import type { Client, Product, Variant } from "@/types";
 import { cn } from "@/lib/utils";
 import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
+import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { UpgradeBanner } from "@/components/ui/PlanGate";
 import { InvoiceProductMatrix, type MatrixConfig, createEmptyMatrix } from "./components/InvoiceProductMatrix";
 import { ClientSelector } from "./components/ClientSelector";
@@ -63,6 +64,7 @@ export default function InvoiceBuilderPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentBranch } = useBranch();
+  const { settings } = useBusinessMode();
 
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
@@ -84,6 +86,13 @@ export default function InvoiceBuilderPage() {
   const [applyTva, setApplyTva] = useState(true);
   const [isPaidInCash, setIsPaidInCash] = useState(false);
   const [notes, setNotes] = useState("");
+
+  // Default applyTva to false when store settings are under IFU regime (new invoices)
+  useEffect(() => {
+    if (!isEditMode && settings?.tax_regime === "ifu") {
+      setApplyTva(false);
+    }
+  }, [isEditMode, settings?.tax_regime]);
 
   // ── Matrices ──
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
