@@ -800,6 +800,68 @@ export interface PurchaseOrder {
   created_at: string;
 }
 
+export type ImportSizeMode = "single" | "range" | "matrix";
+
+export interface SupplierImportTemplate {
+  id: string;
+  supplier: string | null;
+  supplier_name?: string;
+  name: string;
+  header_row: number;
+  column_map: Record<string, string>;
+  size_mode: ImportSizeMode;
+  size_mode_display?: string;
+  default_colour: string;
+  default_pairs_per_carton: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface POImportLineItem {
+  row_index: number;
+  reference: string;
+  description: string;
+  size_eu: number;
+  colour: string;
+  brand: string;
+  location: string;
+  quantity: number;
+  cartons: number;
+  pairs_per_carton: number;
+  unit_price: string;
+  match_status: "matched" | "missing_variant" | "new_product";
+  product_id: string | null;
+  product_name: string | null;
+  variant_id: string | null;
+}
+
+export interface POImportPreviewResponse {
+  detected_encoding: string;
+  detected_delimiter: string;
+  header_row: number;
+  headers: string[];
+  auto_mapping: Record<string, string | null>;
+  column_map: Record<string, string>;
+  size_mode: ImportSizeMode;
+  size_matrix_columns: Record<string, number>;
+  default_colour: string;
+  default_pairs_per_carton: number | null;
+  templates: SupplierImportTemplate[];
+  applied_template_id: string | null;
+  raw_rows: any[][];
+  total_raw_rows: number;
+  preview_lines: POImportLineItem[];
+  summary: {
+    total_lines: number;
+    total_cartons: number;
+    total_pairs: number;
+    total_estimated_amount: string | number;
+    matched_count: number;
+    missing_variants_count: number;
+    new_products_count: number;
+  };
+}
+
 export interface SupplierInvoice {
   id: number;
   supplier: number;

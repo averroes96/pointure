@@ -66,3 +66,21 @@ ShoeDZ utilise la méthode du **PAMP** recommandée par le Système Comptable Fi
 
 Chaque vente de ce mocassin déduira un coût de revient de `3 250 DZD`, garantissant un calcul d'une précision totale de votre marge brute réelle.
 
+---
+
+### F. Import intelligent de bons de commande (Excel & CSV multilingue)
+
+ShoeDZ intègre un module d'importation intelligent pour convertir directement les listes d'achats transmises par vos fournisseurs sous forme de fichiers Excel (`.xlsx`, `.xls`) ou CSV :
+1. Dans l'écran de création de commande ou depuis l'onglet Commandes d'un fournisseur, cliquez sur **Importer (Excel / CSV)**.
+2. Déposez votre fichier : le moteur détecte automatiquement l'encodage (UTF-8, Windows Arabe CP1256, Français CP1252), le séparateur (`;`, `,`, tabulation) et la ligne des en-têtes.
+3. **Reconnaissance des colonnes et pointures :**
+   - **Dictionnaire trilingue :** Les en-têtes en Français (*Réf, Désignation, Pointure, Prix*), en Arabe (*المرجع، التعيين، المقاس، سعر الشراء*) et en Anglais sont automatiquement reconnus et mappés.
+   - **Mode 1 pointure par ligne :** Chaque ligne correspond à une pointure et quantité unique.
+   - **Mode Plage de pointures :** Détecte les plages (ex : `37-41`) et répartit automatiquement les paires selon la répartition configurée sur le produit ou par distribution équilibrée.
+   - **Mode Grille matricielle :** Détecte les colonnes de pointures (`36` à `46`) et transpose le tableau en lignes d'articles par taille.
+4. **Rapprochement catalogue et validation :**
+   - Le tableau d'aperçu affiche le total des colis, paires et montants estimés, ainsi que l'état de rapprochement (produits existants, variantes à ajouter, nouveaux articles).
+   - L'option de création automatique génère instantanément les fiches produits et déclinaisons en catalogue.
+   - Vous pouvez cocher **Enregistrer comme modèle d'import** pour mémoriser le format de ce fournisseur et accélérer les réapprovisionnements futurs.
+
+

@@ -10,24 +10,37 @@ from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.permissions import IsManagerOrOwner
 from .models import (
     ClaimStatusChoices,
+    ImportSizeModeChoices,
     POLine,
     POStatusChoices,
     PurchaseOrder,
     Supplier,
+    SupplierImportTemplate,
     SupplierInvoice,
     SupplierPayment,
     SupplierReturnClaim,
 )
 from .serializers import (
     CreatePurchaseOrderSerializer,
+    POImportConfirmRequestSerializer,
     POLineInputSerializer,
     PurchaseOrderListSerializer,
     PurchaseOrderSerializer,
     ReceiveLinesSerializer,
+    SupplierImportTemplateSerializer,
     SupplierInvoiceSerializer,
     SupplierPaymentSerializer,
     SupplierReturnClaimSerializer,
     SupplierSerializer,
+)
+from .services import (
+    auto_map_headers,
+    detect_encoding_and_decode,
+    detect_header_row_and_headers,
+    execute_po_import,
+    expand_imported_order_lines,
+    parse_supplier_order_file,
+    reconcile_with_catalog,
 )
 
 
@@ -600,6 +613,186 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
+    @action(detail=False, methods=["post"], url_path="import-preview")
+    def import_preview(self, request):
+        """
+        POST /suppliers/purchase-orders/import-preview/
+        Accepts:
+          - multipart 'file' (CSV or Excel) OR JSON with 'data_rows' + 'headers'
+          - optional 'supplier_id'
+          - optional 'template_id'
+          - optional overrides: 'column_map', 'size_mode', 'header_row', 'default_colour', 'default_pairs_per_carton'
+        Returns preview of detected columns, auto mapping, applied template, expanded lines and match summary.
+        """
+        self.require_manager()
+        file_obj = request.FILES.get("file")
+
+        raw_rows = []
+        encoding = "utf-8"
+        delimiter = ";"
+
+        if file_obj:
+            raw_bytes = file_obj.read()
+            raw_rows, encoding, delimiter, parse_err = parse_supplier_order_file(raw_bytes, file_obj.name)
+            if parse_err:
+                return Response({"detail": str(parse_err)}, status=status.HTTP_400_BAD_REQUEST)
+        elif "raw_rows" in request.data:
+            raw_rows = request.data.get("raw_rows") or []
+        else:
+            return Response({"detail": "Aucun fichier ou données fournis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not raw_rows:
+            return Response({"detail": "Le fichier ou les données sont vides."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Supplier and Template lookup
+        supplier_id = request.data.get("supplier_id")
+        template_id = request.data.get("template_id")
+        applied_template = None
+
+        if template_id:
+            applied_template = SupplierImportTemplate.objects.filter(tenant=request.tenant, id=template_id).first()
+        elif supplier_id:
+            applied_template = SupplierImportTemplate.objects.filter(
+                tenant=request.tenant, supplier_id=supplier_id
+            ).first()
+
+        # Available templates for this supplier / global
+        available_templates_qs = SupplierImportTemplate.objects.filter(tenant=request.tenant)
+        if supplier_id:
+            from django.db.models import Q
+            available_templates_qs = available_templates_qs.filter(
+                Q(supplier_id=supplier_id) | Q(supplier__isnull=True)
+            )
+        templates_data = SupplierImportTemplateSerializer(available_templates_qs, many=True).data
+
+        # Determine header row
+        req_header_row = request.data.get("header_row")
+        if req_header_row:
+            try:
+                header_row_idx = max(1, int(req_header_row))
+            except (ValueError, TypeError):
+                header_row_idx = 1
+        elif applied_template and applied_template.header_row:
+            header_row_idx = applied_template.header_row
+        else:
+            header_row_idx, _, _ = detect_header_row_and_headers(raw_rows)
+
+        # Slice headers and data rows based on header_row_idx
+        best_header_row_idx, auto_headers, auto_data_rows = detect_header_row_and_headers(raw_rows)
+        if header_row_idx == best_header_row_idx:
+            headers = auto_headers
+            data_rows = auto_data_rows
+        else:
+            actual_idx = header_row_idx - 1
+            if actual_idx < len(raw_rows):
+                headers = [str(c or "").strip() or f"Colonne {i+1}" for i, c in enumerate(raw_rows[actual_idx])]
+                data_rows = raw_rows[actual_idx + 1:]
+            else:
+                headers = auto_headers
+                data_rows = auto_data_rows
+
+        # Auto-mapping and size columns
+        auto_mapping, size_matrix_cols, suggested_size_mode = auto_map_headers(headers)
+
+        # Column map to use
+        req_col_map = request.data.get("column_map")
+        if isinstance(req_col_map, dict) and req_col_map:
+            column_map = req_col_map
+        elif applied_template and applied_template.column_map:
+            column_map = applied_template.column_map
+        else:
+            column_map = {k: v for k, v in auto_mapping.items() if v}
+
+        # Size mode to use
+        size_mode = (
+            request.data.get("size_mode")
+            or (applied_template.size_mode if applied_template else None)
+            or suggested_size_mode
+        )
+
+        default_colour = (
+            request.data.get("default_colour")
+            or (applied_template.default_colour if applied_template else "")
+            or ""
+        )
+        default_ppc = (
+            request.data.get("default_pairs_per_carton")
+            or (applied_template.default_pairs_per_carton if applied_template else None)
+        )
+
+        # Expand rows into lines
+        expanded_lines = expand_imported_order_lines(
+            headers=headers,
+            data_rows=data_rows,
+            column_map=column_map,
+            size_mode=size_mode,
+            default_colour=default_colour,
+            default_pairs_per_carton=default_ppc,
+            tenant=request.tenant,
+        )
+
+        # Reconcile lines with catalog
+        preview_lines, summary = reconcile_with_catalog(expanded_lines, tenant=request.tenant)
+
+        return Response({
+            "detected_encoding": encoding,
+            "detected_delimiter": delimiter,
+            "header_row": header_row_idx,
+            "headers": headers,
+            "auto_mapping": auto_mapping,
+            "column_map": column_map,
+            "size_mode": size_mode,
+            "size_matrix_columns": size_matrix_cols,
+            "default_colour": default_colour,
+            "default_pairs_per_carton": default_ppc,
+            "templates": templates_data,
+            "applied_template_id": str(applied_template.id) if applied_template else None,
+            "raw_rows": raw_rows[:50],
+            "total_raw_rows": len(raw_rows),
+            "preview_lines": preview_lines,
+            "summary": summary,
+        })
+
+    @action(detail=False, methods=["post"], url_path="import-confirm")
+    def import_confirm(self, request):
+        """
+        POST /suppliers/purchase-orders/import-confirm/
+        Confirms import, creates PurchaseOrder(status="draft") and POLines.
+        Optionally saves a SupplierImportTemplate for this supplier.
+        """
+        self.require_manager()
+        ser = POImportConfirmRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        supplier = Supplier.objects.filter(tenant=request.tenant, id=data["supplier_id"]).first()
+        if not supplier:
+            return Response({"detail": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        lines = data["lines"]
+        if not lines:
+            return Response({"detail": "Aucune ligne à importer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        po, stats = execute_po_import(
+            tenant=request.tenant,
+            user=request.user,
+            supplier=supplier,
+            lines=lines,
+            reference=data.get("reference", ""),
+            expected_date=data.get("expected_date"),
+            notes=data.get("notes", ""),
+            quick_create_products=data.get("quick_create_products", True),
+            save_as_template=data.get("save_as_template", False),
+            template_name=data.get("template_name", ""),
+            template_data=data.get("template_data", {}),
+        )
+
+        return Response({
+            "purchase_order": PurchaseOrderSerializer(po).data,
+            "stats": stats,
+        }, status=status.HTTP_201_CREATED)
+
+
     def create(self, request, *args, **kwargs):
         input_ser = CreatePurchaseOrderSerializer(data=request.data)
         input_ser.is_valid(raise_exception=True)
@@ -1003,4 +1196,25 @@ class SupplierReturnClaimViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet
             f'inline; filename="bon-retour-{claim.claim_number}.pdf"'
         )
         return response
+
+
+class SupplierImportTemplateViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
+    """
+    CRUD for saved supplier order import configuration templates.
+    """
+    queryset = SupplierImportTemplate.objects.select_related("supplier").all()
+    serializer_class = SupplierImportTemplateSerializer
+    permission_classes = [IsAuthenticated, IsManagerOrOwner]
+    search_fields = ["name", "supplier__name"]
+    ordering_fields = ["name", "updated_at", "created_at"]
+    ordering = ["-updated_at"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        supplier_id = self.request.query_params.get("supplier")
+        if supplier_id:
+            from django.db.models import Q
+            qs = qs.filter(Q(supplier_id=supplier_id) | Q(supplier__isnull=True))
+        return qs
+
 

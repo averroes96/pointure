@@ -1,6 +1,14 @@
 from decimal import Decimal
 from rest_framework import serializers
-from .models import POLine, PurchaseOrder, Supplier, SupplierInvoice, SupplierPayment, SupplierReturnClaim
+from .models import (
+    POLine,
+    PurchaseOrder,
+    Supplier,
+    SupplierImportTemplate,
+    SupplierInvoice,
+    SupplierPayment,
+    SupplierReturnClaim,
+)
 
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -204,4 +212,52 @@ class SupplierReturnClaimSerializer(serializers.ModelSerializer):
             "notes", "items_count", "created_by", "created_by_email", "created_at",
         ]
         read_only_fields = ["id", "claim_number", "created_at", "created_by"]
+
+
+# ── Supplier Import Templates & PO Import ─────────────────────────────────────
+
+class SupplierImportTemplateSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    size_mode_display = serializers.CharField(source="get_size_mode_display", read_only=True)
+
+    class Meta:
+        model = SupplierImportTemplate
+        fields = [
+            "id", "supplier", "supplier_name", "name", "header_row",
+            "column_map", "size_mode", "size_mode_display",
+            "default_colour", "default_pairs_per_carton",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class POImportLineItemSerializer(serializers.Serializer):
+    row_index = serializers.IntegerField(required=False, default=0)
+    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    description = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    size_eu = serializers.IntegerField(min_value=0, max_value=60, required=False, default=0)
+    colour = serializers.CharField(max_length=50, required=False, allow_blank=True, default="Standard")
+    brand = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    location = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    quantity = serializers.IntegerField(min_value=1, default=1)
+    cartons = serializers.IntegerField(min_value=0, required=False, default=0)
+    pairs_per_carton = serializers.IntegerField(min_value=1, required=False, default=10)
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"))
+    match_status = serializers.CharField(required=False, default="new_product")
+    product_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    product_name = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)
+    variant_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+
+class POImportConfirmRequestSerializer(serializers.Serializer):
+    supplier_id = serializers.UUIDField(required=True)
+    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    expected_date = serializers.DateField(required=False, allow_null=True, default=None)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    lines = POImportLineItemSerializer(many=True)
+    quick_create_products = serializers.BooleanField(required=False, default=True)
+    save_as_template = serializers.BooleanField(required=False, default=False)
+    template_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    template_data = serializers.DictField(required=False, default=dict)
+
 

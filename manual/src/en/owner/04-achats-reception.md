@@ -66,3 +66,21 @@ ShoeDZ uses the **PAMP** standard recommended by the Algerian Financial Accounti
 
 When any pair of this loafer is subsequently sold, the software deducts a cost of `3 250 DZD`, guaranteeing accurate profit margins.
 
+---
+
+### F. Smart Purchase Order Import (Multi-language Excel & CSV)
+
+ShoeDZ provides an intelligent import engine to directly convert procurement spreadsheets received from footwear suppliers (`.xlsx`, `.xls`, `.csv`) into official purchase orders:
+1. In the purchase order form or from a supplier's Orders tab, click **Import (Excel / CSV)**.
+2. Upload the file: the engine automatically detects encoding (UTF-8, Arabic Windows CP1256, French CP1252), delimiter (`;`, `,`, tab), and header rows.
+3. **Column Mapping and Footwear Sizing Modes:**
+   - **Trilingual Synonym Dictionary:** Headers in French (*Réf, Désignation, Pointure, Prix*), Arabic (*المرجع، المقاس، الكمية، سعر الشراء*), and English are automatically recognized and mapped.
+   - **Single Size per Row:** Each row corresponds to a single shoe size and quantity.
+   - **Size Range Mode:** Detects ranges (e.g., `37-41`) and distributes carton pairs based on the product's configured carton breakdown or balanced distribution.
+   - **Matrix Grid Mode:** Detects size column headers (`36` through `46`) and transposes them into individual order line items.
+4. **Catalog Reconciliation & Confirmation:**
+   - The preview table summarizes total cartons, total pairs, and estimated total cost, flagging matched products, missing size variants, and new models.
+   - The auto-create option instantly registers missing products and size variants into your store catalog.
+   - Check **Save as template** to store this supplier's format for streamlined one-click imports in the future.
+
+

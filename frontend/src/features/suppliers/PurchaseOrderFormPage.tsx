@@ -14,13 +14,14 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle,
-  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload,
+  X, Search, Plus, Trash2, ShoppingBag, Factory, Upload, FileSpreadsheet,
 } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import type { Supplier, StoreSettings } from "@/types";
 import { cn } from "@/lib/utils";
 import { CartonPanel, CartonConfig, DEFAULT_CARTON, getSizeRange, distributeCartonQuantities } from "./components/CartonPanel";
 import { useBranch } from "@/features/auth/BranchContext";
+import { PurchaseOrderImportModal } from "./components/PurchaseOrderImportModal";
 
 // ── Supplier search dropdown ───────────────────────────────────────────────────
 
@@ -292,6 +293,7 @@ export default function PurchaseOrderFormPage() {
   }, [isPOLoaded, poToEdit]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -503,7 +505,15 @@ export default function PurchaseOrderFormPage() {
           <h1 className="text-xl font-bold text-text-primary">{t("supplier.po_new_title")}</h1>
           <p className="text-sm text-text-muted">{t("supplier.po_new_desc")}</p>
         </div>
-        <div className="ms-auto">
+        <div className="ms-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            <FileSpreadsheet size={16} />
+            {t("po_import.btn_open_modal", "Importer (Excel / CSV)")}
+          </button>
           <input
             type="file"
             accept="application/pdf"
@@ -851,6 +861,15 @@ export default function PurchaseOrderFormPage() {
           </button>
         </div>
       </form>
+
+      <PurchaseOrderImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        preselectedSupplierId={selectedSupplier?.id}
+        onSuccess={(createdPO) => {
+          navigate(`/purchase-orders/${createdPO.id}`);
+        }}
+      />
     </div>
   );
 }

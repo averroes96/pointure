@@ -13,12 +13,13 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, ShoppingBag, Plus, AlertCircle, Loader2,
-  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil, FileDown,
+  Phone, Mail, MapPin, Globe, FileText, CreditCard, X, Save, Pencil, FileDown, Upload,
   type LucideIcon,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from "@/lib/api";
 import type { Supplier, PurchaseOrder, SupplierInvoice, SupplierPayment } from "@/types";
 import { cn } from "@/lib/utils";
+import { PurchaseOrderImportModal } from "./components/PurchaseOrderImportModal";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -289,7 +290,10 @@ function InfoTab({ supplier }: { supplier: Supplier }) {
 
 function OrdersTab({ supplierId }: { supplierId: number | string }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<PurchaseOrder>>({
     queryKey: ["supplier-orders", supplierId, page],
@@ -301,9 +305,18 @@ function OrdersTab({ supplierId }: { supplierId: number | string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setImportModalOpen(true)}
+          className="btn-secondary btn-sm flex items-center gap-1.5"
+        >
+          <Upload size={14} />
+          {t("supplier.import_order", "Importer un bon de commande")}
+        </button>
         <Link to={`/purchase-orders/new?supplier=${supplierId}`} className="btn-primary btn-sm">
-          <Plus size={14} />{t("supplier.new_order")}</Link>
+          <Plus size={14} />{t("supplier.new_order")}
+        </Link>
       </div>
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -357,6 +370,16 @@ function OrdersTab({ supplierId }: { supplierId: number | string }) {
           </div>
         )}
       </div>
+
+      <PurchaseOrderImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        preselectedSupplierId={supplierId}
+        onSuccess={(po) => {
+          queryClient.invalidateQueries({ queryKey: ["supplier-orders", supplierId] });
+          navigate(`/purchase-orders/${po.id}`);
+        }}
+      />
     </div>
   );
 }
