@@ -99,7 +99,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "name", "brand", "reference", "category", "gender", "season",
             "purchase_price", "sale_price", "semi_wholesale_price", "wholesale_price",
             "margin_pct", "image", "description",
-            "is_active", "is_demo", "alert_threshold", "pairs_per_carton", "carton_breakdown", "total_stock",
+            "is_active", "is_demo", "alert_threshold", "pairs_per_carton", "carton_breakdown", "size_range", "total_stock",
             "has_low_stock", "is_total_low_stock", "variants", "created_at",
             "location", "barcode", "default_variant_id",
         ]
@@ -231,7 +231,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "brand", "reference", "category", "gender",
             "sale_price", "semi_wholesale_price", "wholesale_price", "purchase_price", "pamp", "total_stock",
-            "has_low_stock", "is_total_low_stock", "alert_threshold", "pairs_per_carton", "carton_breakdown",
+            "has_low_stock", "is_total_low_stock", "alert_threshold", "pairs_per_carton", "carton_breakdown", "size_range",
             "image", "is_active", "is_demo", "variants", "location", "barcode", "default_variant_id",
         ]
 
@@ -273,7 +273,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "brand", "reference", "category", "gender", "season",
             "purchase_price", "sale_price", "semi_wholesale_price", "wholesale_price",
-            "pairs_per_carton", "carton_breakdown", "image", "description", "is_active",
+            "pairs_per_carton", "carton_breakdown", "size_range", "image", "description", "is_active",
             "alert_threshold", "variants", "location", "barcode", "initial_stock",
         ]
         read_only_fields = ["id"]

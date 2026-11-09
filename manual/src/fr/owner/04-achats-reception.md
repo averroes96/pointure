@@ -19,8 +19,10 @@ Une gestion d'approvisionnement rigoureuse garantit des stocks optimaux et une p
 2. Sélectionnez le fournisseur concerné.
 3. Ajoutez les modèles de chaussures commandés :
    - Vous pouvez commander par **Cartons assortis** (ex : 10 cartons de 12 paires, soit 120 paires avec répartition standard des pointures 39 à 45) ou par **Paires unitaires**.
+   - **Emplacement & Série (Plage de pointures) :** Pour chaque article, vous pouvez définir son emplacement de stockage (ex : `C20`) et sa série de pointures (ex : `37/41`, `40-45`). En mode simple (sans déclinaison matricielle), cette plage est enregistrée comme métadonnée du produit sans créer inutilement de multiples variantes.
 4. Saisissez le prix d'achat convenu par paire ou par carton.
 5. Validez le bon : son statut passe en *Confirmé*, en attente de livraison.
+   - Les étiquettes de rayon intègrent immédiatement la série sous le format `EMPLACEMENT (SÉRIE)`, par exemple `C20 (37/41)`.
 
 > 📷 **Capture d'écran :** *Bon de commande fournisseur avec répartition des pointures par carton.*
 

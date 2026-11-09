@@ -19,8 +19,10 @@ Rigorous procurement management ensures balanced inventory and accurate cost tra
 2. Select the relevant supplier.
 3. Add the shoe models being ordered:
    - You can order by **Assorted Cartons** (e.g., 10 cartons of 12 pairs each, totaling 120 pairs with standard size breakdown 39 to 45) or by **Single Pairs**.
+   - **Location & Size Range (Series):** For each item, you can specify its shelf location (e.g., `C20`) and commercial size series (e.g., `37/41`, `40-45`). In simple mode (without matrix breakdown), this range is stored as product metadata without generating multiple unnecessary variants.
 4. Enter the agreed purchase price per pair or per carton.
 5. Confirm the order: status advances to *Confirmed*, awaiting delivery.
+   - Shelf labels automatically format the location and series as `LOCATION (RANGE)`, e.g., `C20 (37/41)`.
 
 > 📷 **Screenshot:** *Supplier purchase order showing size distribution per carton.*
 

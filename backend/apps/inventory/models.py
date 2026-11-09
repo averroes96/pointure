@@ -104,6 +104,12 @@ class Product(TenantScopedModel):
     description = models.TextField(_("Description"), blank=True)
     pairs_per_carton = models.PositiveIntegerField(_("Pairs per Carton"), default=10)
     carton_breakdown = models.JSONField(_("Carton Breakdown"), null=True, blank=True, default=dict)
+    size_range = models.CharField(
+        _("Size Range"),
+        max_length=50,
+        blank=True,
+        help_text="Plage ou série de pointures (ex: 37/41, 40-45). Utilisé en mode simple sans générer de variantes.",
+    )
     alert_threshold = models.IntegerField(_("Low Stock Alert Threshold"), default=10)
     is_active = models.BooleanField(_("Active"), default=True)
     is_demo = models.BooleanField(_("Demo Product"), default=False, db_index=True)

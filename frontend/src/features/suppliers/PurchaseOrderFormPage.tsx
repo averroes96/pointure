@@ -412,6 +412,8 @@ export default function PurchaseOrderFormPage() {
                     purchase_price: unitPrice,
                     sale_price: parseFloat(cfg.sale_price) || 0,
                     pairs_per_carton: cfg.pairs_per_carton || 10,
+                    location: cfg.location || "",
+                    size_range: cfg.size_range || "",
                   },
                 },
               ];
@@ -435,11 +437,30 @@ export default function PurchaseOrderFormPage() {
                       purchase_price: unitPrice,
                       sale_price: parseFloat(cfg.sale_price) || 0,
                       pairs_per_carton: cfg.pairs_per_carton || 10,
+                      location: cfg.location || "",
+                      size_range: cfg.size_range || "",
                     },
                   }))
               );
             }
           }
+          const lineNewVariant =
+            l.is_carton && !l.variant_id
+              ? {
+                  product_id: l.carton_config.product_id ?? null,
+                  product_name: l.carton_config.product_name || l.description,
+                  reference: l.carton_config.reference || "",
+                  brand: l.carton_config.brand,
+                  category: l.carton_config.category,
+                  size_eu: 0,
+                  colour: "Standard",
+                  purchase_price: unitPrice,
+                  sale_price: parseFloat(l.carton_config.sale_price) || 0,
+                  pairs_per_carton: l.carton_config.pairs_per_carton || 10,
+                  location: l.carton_config.location || "",
+                  size_range: l.carton_config.size_range || "",
+                }
+              : undefined;
           return {
             variant: l.variant_id,
             description:
@@ -454,6 +475,7 @@ export default function PurchaseOrderFormPage() {
             cartons: l.is_carton ? l.carton_config.cartons_received : 0,
             pairs_per_carton: l.is_carton ? l.carton_config.pairs_per_carton : 10,
             carton_sizes: carton_sizes.length > 0 ? carton_sizes : undefined,
+            new_variant: lineNewVariant,
           };
         }),
       };
@@ -798,6 +820,7 @@ export default function PurchaseOrderFormPage() {
                           <CartonPanel
                             description={`Article ${idx + 1}${enableVariants ? " (Assortiment)" : ""}`}
                             config={line.carton_config}
+                            branchId={currentBranch?.id}
                             onChange={(cfg) => {
                               const total = enableVariants
                                 ? (() => {

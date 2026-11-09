@@ -82,6 +82,8 @@ interface NewVariantForm {
   colour: string;
   purchase_price: string;
   sale_price: string;
+  location?: string;
+  size_range?: string;
 }
 
 interface LineResolution {
@@ -94,6 +96,7 @@ interface LineResolution {
 const EMPTY_NEW_VARIANT: NewVariantForm = {
   product_name: "", brand: "", category: "sneakers",
   size_eu: "", colour: "", purchase_price: "", sale_price: "",
+  location: "", size_range: "",
 };
 
 const CATEGORIES = [
@@ -252,6 +255,30 @@ function LineResolutionRow({
               className="col-span-1"
             />
           )}
+          <input
+            type="text"
+            placeholder={t("inventory.shelf_location_label", "Emplacement / Rayon")}
+            className="form-input text-xs py-1.5 uppercase font-mono"
+            value={resolution?.newVariant?.location ?? ""}
+            onChange={(e) =>
+              onChange({
+                mode: "create",
+                newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, location: e.target.value },
+              })
+            }
+          />
+          <input
+            type="text"
+            placeholder={t("inventory.size_range_label", "Plage de pointures (série)")}
+            className="form-input text-xs py-1.5 font-mono"
+            value={resolution?.newVariant?.size_range ?? ""}
+            onChange={(e) =>
+              onChange({
+                mode: "create",
+                newVariant: { ...EMPTY_NEW_VARIANT, ...resolution?.newVariant, size_range: e.target.value },
+              })
+            }
+          />
           <select
             className="form-input text-xs py-1.5 col-span-2"
             value={resolution?.newVariant?.category ?? "sneakers"}
@@ -347,6 +374,8 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                   purchase_price: parseFloat(cfg.purchase_price) || Number(l.agreed_unit_price) || 0,
                   sale_price: parseFloat(cfg.sale_price) || 0,
                   pairs_per_carton: cfg.pairs_per_carton || 10,
+                  location: cfg.location || "",
+                  size_range: cfg.size_range || "",
                 },
               },
             ];
@@ -370,6 +399,8 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                     purchase_price: parseFloat(cfg.purchase_price) || Number(l.agreed_unit_price) || 0,
                     sale_price: parseFloat(cfg.sale_price) || 0,
                     pairs_per_carton: cfg.pairs_per_carton || 10,
+                    location: cfg.location || "",
+                    size_range: cfg.size_range || "",
                   },
                 }))
             );

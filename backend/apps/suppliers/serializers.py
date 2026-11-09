@@ -102,6 +102,8 @@ class NewVariantInputSerializer(serializers.Serializer):
     purchase_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
     sale_price     = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0"))
     pairs_per_carton = serializers.IntegerField(min_value=1, required=False, default=10)
+    location       = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    size_range     = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
 
 
 class CartonSizeInputSerializer(serializers.Serializer):
@@ -119,6 +121,7 @@ class CartonSizeInputSerializer(serializers.Serializer):
 
 class POLineInputSerializer(serializers.Serializer):
     variant = serializers.UUIDField(required=False, allow_null=True, default=None)
+    new_variant = NewVariantInputSerializer(required=False, allow_null=True, default=None)
     description = serializers.CharField(max_length=300)
     quantity_ordered = serializers.IntegerField(min_value=1, required=False)
     cartons = serializers.IntegerField(min_value=0, required=False, default=0)

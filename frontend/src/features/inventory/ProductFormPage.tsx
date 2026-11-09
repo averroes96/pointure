@@ -69,6 +69,7 @@ interface FormState {
   pairs_per_carton: number;
   carton_breakdown: Record<string, number>;
   location: string;
+  size_range: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -90,6 +91,7 @@ const EMPTY_FORM: FormState = {
   pairs_per_carton: 10,
   carton_breakdown: {},
   location: "",
+  size_range: "",
 };
 
 // ── Field wrapper component ────────────────────────────────────────────────────
@@ -202,6 +204,7 @@ export default function ProductFormPage() {
       alert_threshold: existingProduct.alert_threshold ?? 10,
       pairs_per_carton: existingProduct.pairs_per_carton ?? 10,
       carton_breakdown: existingProduct.carton_breakdown ?? {},
+      size_range: existingProduct.size_range ?? "",
     });
     if (existingProduct.image) setImagePreview(existingProduct.image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -542,23 +545,35 @@ export default function ProductFormPage() {
               )}
             </div>
 
-            <Field label={t("inventory.shelf_location_label", "Rayonnage / Emplacement")} hint={canUseLocation ? t("inventory.storage_location_hint", "Lieu de stockage pour l'agence actuelle") : t("inventory.pro_plan_hint", "Disponible à partir du plan PRO")}>
-              <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t("inventory.shelf_location_label", "Rayonnage / Emplacement")} hint={canUseLocation ? t("inventory.storage_location_hint", "Lieu de stockage pour l'agence actuelle") : t("inventory.pro_plan_hint", "Disponible à partir du plan PRO")}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                    className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
+                    placeholder={t("inventory.form_location_placeholder")}
+                    disabled={!canUseLocation}
+                  />
+                  {!canUseLocation && (
+                     <span className="absolute right-3 top-1/2 -translate-y-1/2 badge badge-neutral text-[10px]">
+                       PRO
+                     </span>
+                  )}
+                </div>
+              </Field>
+
+              <Field label={t("inventory.size_range_label", "Plage de pointures (série)")} hint={t("inventory.size_range_hint", "Ex: 37/41, 40-45 (utilisé en mode simple et sur les étiquettes)")}>
                 <input
                   type="text"
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  className={cn("form-input", !canUseLocation && "bg-bg-muted opacity-60 cursor-not-allowed")}
-                  placeholder={t("inventory.form_location_placeholder")}
-                  disabled={!canUseLocation}
+                  value={form.size_range}
+                  onChange={(e) => setForm((f) => ({ ...f, size_range: e.target.value }))}
+                  className="form-input font-mono"
+                  placeholder={t("inventory.size_range_placeholder", "37/41")}
                 />
-                {!canUseLocation && (
-                   <span className="absolute right-3 top-1/2 -translate-y-1/2 badge badge-neutral text-[10px]">
-                     PRO
-                   </span>
-                )}
-              </div>
-            </Field>
+              </Field>
+            </div>
 
             <Field label={t("inventory.description")}>
               <textarea

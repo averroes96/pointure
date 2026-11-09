@@ -1716,7 +1716,17 @@ def _render_shelf_label(
     t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
 
     ref_text = (product.reference or "").strip() or (product.name or "").strip()
-    loc_text = location.strip() if (location and location.strip()) else "—"
+    loc_part = location.strip() if (location and location.strip()) else ""
+    range_part = (getattr(product, "size_range", "") or "").strip()
+    if loc_part and range_part:
+        loc_text = f"{loc_part} ({range_part})"
+    elif loc_part:
+        loc_text = loc_part
+    elif range_part:
+        loc_text = f"({range_part})"
+    else:
+        loc_text = "—"
+
     price_text = f"{product.sale_price:,.0f}".replace(",", " ")
 
     ref_pt = _fit_pt(ref_text, 13 * s, int(13 * width_factor))

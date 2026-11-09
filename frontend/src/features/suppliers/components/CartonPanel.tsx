@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
 import api, { formatDZD } from "@/lib/api";
+import { useBranch } from "@/features/auth/BranchContext";
 import type { StoreSettings } from "@/types";
 
 export interface ProductResult {
@@ -17,6 +18,8 @@ export interface ProductResult {
   sale_price: string;
   pairs_per_carton?: number;
   total_stock?: number;
+  location?: string;
+  size_range?: string;
   variants?: Array<{
     id: number;
     size_eu: number;
@@ -30,12 +33,14 @@ export function ProductSearch({
   selectedId,
   selectedLabel,
   selectedReference,
+  branchId,
   onSelect,
   onClear,
 }: {
   selectedId: number | null;
   selectedLabel: string | null;
   selectedReference?: string;
+  branchId?: number | string | null;
   onSelect: (p: ProductResult) => void;
   onClear: () => void;
 }) {
@@ -44,9 +49,15 @@ export function ProductSearch({
   const [open, setOpen] = useState(false);
 
   const { data, isFetching } = useQuery<{ results: ProductResult[] }>({
-    queryKey: ["products-search", query],
+    queryKey: ["products-search", query, branchId],
     queryFn: () =>
-      api.get(`/inventory/products/?search=${encodeURIComponent(query)}&page_size=8`).then((r) => r.data),
+      api
+        .get(
+          `/inventory/products/?search=${encodeURIComponent(query)}&page_size=8${
+            branchId ? `&branch_id=${branchId}` : ""
+          }`
+        )
+        .then((r) => r.data),
     enabled: query.length >= 2,
   });
 
@@ -163,6 +174,8 @@ export interface CartonConfig {
   pairs_per_carton: number;
   total_quantity?: number;
   quantities: Record<string, Record<number, number>>;
+  location?: string;
+  size_range?: string;
 }
 
 export function getSizeRange(from: number, to: number): number[] {
@@ -211,6 +224,8 @@ export const DEFAULT_CARTON: CartonConfig = {
   pairs_per_carton: 10,
   total_quantity: 10,
   quantities: distributeCartonQuantities([], getSizeRange(36, 41), 1, 10),
+  location: "",
+  size_range: "36/41",
 };
 
 export const CATEGORIES = [
@@ -228,20 +243,37 @@ export function CartonPanel({
   description,
   line,
   config,
+  branchId,
   onChange,
 }: {
   description?: string;
   line?: { description: string };
   config: CartonConfig;
+  branchId?: number | string | null;
   onChange: (c: CartonConfig) => void;
 }) {
   const { t } = useTranslation();
+  const { currentBranch } = useBranch();
+  const effectiveBranchId = branchId ?? currentBranch?.id;
+
   const { data: storeSettings } = useQuery<StoreSettings>({
     queryKey: ["store-settings"],
     queryFn: () => api.get("/core/store-settings/current/").then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
   const enableVariants = storeSettings?.enable_variants ?? false;
+
+  const { data: locationsData } = useQuery<string[]>({
+    queryKey: ["product-locations", effectiveBranchId],
+    queryFn: () =>
+      api
+        .get<string[]>(
+          `/inventory/products/locations/${effectiveBranchId ? `?branch=${effectiveBranchId}` : ""}`
+        )
+        .then((r) => (Array.isArray(r.data) ? r.data : []))
+        .catch(() => []),
+    staleTime: 60 * 1000,
+  });
 
   const title = description || line?.description || "Article";
   const sizes = getSizeRange(config.size_from, config.size_to);
@@ -326,9 +358,12 @@ export function CartonPanel({
     const newFrom = field === "size_from" ? val : config.size_from;
     const newTo = field === "size_to" ? val : config.size_to;
     const newSizes = getSizeRange(newFrom, newTo);
+    const oldRangeStr = `${config.size_from}/${config.size_to}`;
+    const shouldUpdateRange = !config.size_range || config.size_range === oldRangeStr;
     onChange({
       ...config,
       [field]: val,
+      size_range: shouldUpdateRange ? `${newFrom}/${newTo}` : config.size_range,
       quantities: distributeCartonQuantities(colours, newSizes, config.cartons_received, config.pairs_per_carton),
     });
   }
@@ -351,6 +386,7 @@ export function CartonPanel({
         selectedId={config.product_id}
         selectedLabel={config.product_id ? config.product_name : null}
         selectedReference={config.reference}
+        branchId={effectiveBranchId}
         onSelect={(p: ProductResult) => {
           let newCols = colours;
           let newFrom = config.size_from || 36;
@@ -380,6 +416,8 @@ export function CartonPanel({
             category: p.category || "other",
             purchase_price: p.purchase_price && Number(p.purchase_price) > 0 ? String(p.purchase_price) : config.purchase_price,
             sale_price: p.sale_price && Number(p.sale_price) > 0 ? String(p.sale_price) : config.sale_price,
+            location: p.location ?? config.location ?? "",
+            size_range: p.size_range || config.size_range || `${newFrom}/${newTo}`,
             colours: newCols,
             size_from: newFrom,
             size_to: newTo,
@@ -482,6 +520,38 @@ export function CartonPanel({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-2xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+            {t("inventory.shelf_location_label", "Emplacement / Rayon")}
+          </label>
+          <input
+            type="text"
+            list="carton-locations-list"
+            placeholder={t("inventory.shelf_location_placeholder", "Ex: Rayon A, B12…")}
+            value={config.location ?? ""}
+            onChange={(e) => updateField("location", e.target.value)}
+            className="form-input text-xs py-1.5 uppercase font-mono bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
+          />
+          <datalist id="carton-locations-list">
+            {(locationsData ?? []).map((loc) => (
+              <option key={loc} value={loc} />
+            ))}
+          </datalist>
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-2xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+            {t("inventory.size_range_label", "Plage de pointures (série)")}
+          </label>
+          <input
+            type="text"
+            placeholder={t("inventory.size_range_placeholder", "Ex: 37/41, 40-45…")}
+            value={config.size_range ?? ""}
+            onChange={(e) => updateField("size_range", e.target.value)}
+            className="form-input text-xs py-1.5 font-mono bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
+          />
         </div>
       </div>
 

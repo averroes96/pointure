@@ -45,11 +45,12 @@ from .services import (
 )
 
 
-def _resolve_product(tenant, nv: dict):
+def _resolve_product(tenant, nv: dict, branch=None):
     """
     Find or create a Product from a new_variant payload.
     If nv["product_id"] is set, returns the existing product directly.
     Otherwise, searches by name+brand or creates a new one.
+    Also persists size_range on the product and upserts ProductLocation if branch is provided.
     """
     from decimal import Decimal
     from apps.inventory.models import Product
@@ -86,21 +87,38 @@ def _resolve_product(tenant, nv: dict):
         if ref and not product.reference:
             product.reference = ref
             update_fields.append("reference")
+        size_range = (nv.get("size_range") or "").strip()
+        if size_range and product.size_range != size_range:
+            product.size_range = size_range
+            update_fields.append("size_range")
         if update_fields:
             product.save(update_fields=update_fields)
-        return product
+    else:
+        product = Product.objects.create(
+            tenant=tenant,
+            name=nv.get("product_name", "") or nv.get("reference", "Article"),
+            reference=(nv.get("reference") or "").strip(),
+            brand=nv.get("brand", ""),
+            category=nv.get("category", "other"),
+            purchase_price=nv.get("purchase_price", 0),
+            sale_price=nv.get("sale_price", 0),
+            pairs_per_carton=nv.get("pairs_per_carton", 10),
+            size_range=(nv.get("size_range") or "").strip(),
+            is_active=True,
+        )
 
-    return Product.objects.create(
-        tenant=tenant,
-        name=nv.get("product_name", "") or nv.get("reference", "Article"),
-        reference=(nv.get("reference") or "").strip(),
-        brand=nv.get("brand", ""),
-        category=nv.get("category", "other"),
-        purchase_price=nv.get("purchase_price", 0),
-        sale_price=nv.get("sale_price", 0),
-        pairs_per_carton=nv.get("pairs_per_carton", 10),
-        is_active=True,
-    )
+    # Persist / update ProductLocation if location is provided and tenant has non-free plan
+    location = (nv.get("location") or "").strip()
+    if location and branch and getattr(tenant, "plan", "free") != "free":
+        from apps.inventory.models import ProductLocation
+        ProductLocation.objects.update_or_create(
+            tenant=tenant,
+            branch=branch,
+            product=product,
+            defaults={"location": location},
+        )
+
+    return product
 
 
 def _resolve_variant(tenant, product, size_eu: int, colour: str):
@@ -373,7 +391,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         ).first()
                     elif cs.get("new_variant"):
                         nv = cs["new_variant"]
-                        product = _resolve_product(tenant, nv)
+                        product = _resolve_product(tenant, nv, branch=target_branch)
                         if product:
                             cs_variant = _resolve_variant(
                                 tenant, product, cs["size_eu"], nv.get("colour", "")
@@ -444,7 +462,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         line.save(update_fields=["variant"])
 
                 elif not line.variant_id and new_variant_data:
-                    product = _resolve_product(tenant, new_variant_data)
+                    product = _resolve_product(tenant, new_variant_data, branch=target_branch)
                     if product:
                         variant = _resolve_variant(
                             tenant,
@@ -856,6 +874,16 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         from decimal import Decimal
         with transaction.atomic():
+            target_branch = None
+            if data.get("branch"):
+                from apps.core.models import Branch
+                target_branch = Branch.objects.filter(tenant=request.tenant, id=data["branch"]).first()
+            elif hasattr(request, "branch") and request.branch:
+                target_branch = request.branch
+            else:
+                from apps.core.models import Branch
+                target_branch = Branch.objects.filter(tenant=request.tenant, is_headquarters=True).first()
+
             po = PurchaseOrder.objects.create(
                 tenant=request.tenant,
                 supplier=supplier,
@@ -871,7 +899,8 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             for line_data in data["lines"]:
                 variant_id = line_data.get("variant")
                 carton_sizes = line_data.get("carton_sizes") or []
-                
+                new_variant_data = line_data.get("new_variant")
+
                 qty_ordered = line_data.get("quantity_ordered")
                 if carton_sizes:
                     qty_ordered = sum(cs.get("quantity", 0) for cs in carton_sizes)
@@ -880,6 +909,20 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 if variant_id:
                     from apps.inventory.models import Variant
                     variant = Variant.objects.filter(tenant=request.tenant, id=variant_id).first()
+                elif new_variant_data:
+                    product = _resolve_product(request.tenant, new_variant_data, branch=target_branch)
+                    if product:
+                        variant = _resolve_variant(
+                            request.tenant,
+                            product,
+                            new_variant_data.get("size_eu", 0),
+                            new_variant_data.get("colour", ""),
+                        )
+                        variant_id = variant.id
+                elif carton_sizes:
+                    for cs in carton_sizes:
+                        if cs.get("new_variant"):
+                            _resolve_product(request.tenant, cs["new_variant"], branch=target_branch)
 
                 line = POLine.objects.create(
                     order=po,
@@ -891,12 +934,12 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     pairs_per_carton=line_data.get("pairs_per_carton", 10),
                 )
                 total += line.agreed_unit_price * line.quantity_ordered
-                
+
                 lines_data_for_receive.append({
                     "id": line.id,
                     "quantity_received": qty_ordered,
                     "variant_id": variant_id,
-                    "new_variant": None,
+                    "new_variant": new_variant_data,
                     "carton_sizes": carton_sizes
                 })
 
