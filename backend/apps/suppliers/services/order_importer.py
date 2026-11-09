@@ -141,16 +141,23 @@ def parse_decimal_value(val: Any) -> Optional[Decimal]:
 
 
 def parse_integer_value(val: Any, default: int = 0) -> int:
-    """Safely parse integer from string, float, or int."""
+    """Safely parse integer from string, float, or int, guaranteeing an int return."""
+    safe_default = 0
+    if default is not None:
+        try:
+            safe_default = int(default)
+        except (ValueError, TypeError):
+            safe_default = 0
+
     if val is None:
-        return default
+        return safe_default
     try:
         if isinstance(val, (int, float)):
             return int(val)
         cleaned = re.sub(r"[^\d\-]", "", str(val).strip())
-        return int(cleaned) if cleaned else default
+        return int(cleaned) if cleaned else safe_default
     except (ValueError, TypeError):
-        return default
+        return safe_default
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -443,6 +450,10 @@ def expand_imported_order_lines(
 
     expanded_lines: List[Dict[str, Any]] = []
 
+    ppc_default = parse_integer_value(default_pairs_per_carton, default=10)
+    if ppc_default <= 0:
+        ppc_default = 10
+
     # Pre-fetch products by reference if tenant is provided (for range breakdown lookup)
     product_map: Dict[str, Product] = {}
     if tenant and size_mode == "range":
@@ -465,9 +476,9 @@ def expand_imported_order_lines(
         unit_price = parse_decimal_value(price_raw) or Decimal("0.00")
 
         cartons_raw = parse_integer_value(get_val(row, "cartons"), default=0)
-        ppc_val = parse_integer_value(get_val(row, "pairs_per_carton"), default=default_pairs_per_carton or 10)
+        ppc_val = parse_integer_value(get_val(row, "pairs_per_carton"), default=ppc_default)
         if ppc_val <= 0:
-            ppc_val = 10
+            ppc_val = ppc_default
 
         # ── MATRIX MODE: Columns 35..46 Transposed ──────────────────────────
         if size_mode == "matrix":

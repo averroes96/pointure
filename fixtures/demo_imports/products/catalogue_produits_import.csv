@@ -1,0 +1,13 @@
+﻿name,brand,category,gender,purchase_price,sale_price,size_eu,colour,barcode,reference,initial_stock,alert_threshold
+Air Max Pulse,Nike,sneakers,M,4500,8500,40,Noir,2130010001001,NK-AM-PUL-40,15,3
+Air Max Pulse,Nike,sneakers,M,4500,8500,41,Noir,2130010001002,NK-AM-PUL-41,20,3
+Air Max Pulse,Nike,sneakers,M,4500,8500,42,Noir,2130010001003,NK-AM-PUL-42,25,3
+Air Max Pulse,Nike,sneakers,M,4500,8500,43,Noir,2130010001004,NK-AM-PUL-43,20,3
+Ultra Boost Light,Adidas,sport,U,5200,9500,40,Blanc,2130010002001,AD-UB-LGT-40,12,3
+Ultra Boost Light,Adidas,sport,U,5200,9500,41,Blanc,2130010002002,AD-UB-LGT-41,18,3
+Ultra Boost Light,Adidas,sport,U,5200,9500,42,Blanc,2130010002003,AD-UB-LGT-42,22,3
+Bottine Ville Cuir,Geox,formal,M,3800,6900,41,Marron,2130010003001,GX-BOT-VIL-41,10,2
+Bottine Ville Cuir,Geox,formal,M,3800,6900,42,Marron,2130010003002,GX-BOT-VIL-42,15,2
+Sandale Tressée Confort,Clarks,sandals,F,2200,4200,37,Beige,2130010004001,CK-SAN-TRS-37,14,2
+Sandale Tressée Confort,Clarks,sandals,F,2200,4200,38,Beige,2130010004002,CK-SAN-TRS-38,18,2
+Sandale Tressée Confort,Clarks,sandals,F,2200,4200,39,Beige,2130010004003,CK-SAN-TRS-39,12,2

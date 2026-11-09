@@ -39,6 +39,7 @@ from .services import (
     detect_header_row_and_headers,
     execute_po_import,
     expand_imported_order_lines,
+    parse_integer_value,
     parse_supplier_order_file,
     reconcile_with_catalog,
     scan_purchase_order_image,
@@ -734,9 +735,14 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             or (applied_template.default_colour if applied_template else "")
             or ""
         )
-        default_ppc = (
+        default_ppc_raw = (
             request.data.get("default_pairs_per_carton")
             or (applied_template.default_pairs_per_carton if applied_template else None)
+        )
+        default_ppc = (
+            parse_integer_value(default_ppc_raw, default=10)
+            if default_ppc_raw is not None and str(default_ppc_raw).strip() != ""
+            else None
         )
 
         # Expand rows into lines

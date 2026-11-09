@@ -9,6 +9,7 @@ from .order_importer import (
     execute_po_import,
     expand_imported_order_lines,
     parse_decimal_value,
+    parse_integer_value,
     parse_supplier_order_file,
     reconcile_with_catalog,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "detect_encoding_and_decode",
     "detect_delimiter",
     "parse_decimal_value",
+    "parse_integer_value",
     "detect_size_matrix_column",
     "auto_map_headers",
     "detect_header_row_and_headers",

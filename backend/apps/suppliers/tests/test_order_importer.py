@@ -12,6 +12,7 @@ import io
 from decimal import Decimal
 import openpyxl
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -367,4 +368,36 @@ class TestOrderImporter:
             format="multipart",
         )
         assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_import_preview_with_string_default_pairs_per_carton(self):
+        self.client.force_authenticate(user=self.owner)
+        csv_bytes = b"Reference;Designation;Pointure;Quantite;Prix\nART-01;Basket Test;42;10;2500\n"
+        upload = SimpleUploadedFile("commande.csv", csv_bytes, content_type="text/csv")
+
+        # Frontend forms submit string values in multipart form data
+        resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-preview/",
+            {
+                "file": upload,
+                "default_pairs_per_carton": "10",
+            },
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        assert len(resp.data["preview_lines"]) == 1
+        assert resp.data["preview_lines"][0]["pairs_per_carton"] == 10
+
+        # Also test direct expand_imported_order_lines with string & edge case defaults
+        for ppc_arg in ("12", "10", "", "invalid", None):
+            lines = expand_imported_order_lines(
+                headers=["Reference", "Designation", "Pointure", "Quantite", "Prix"],
+                data_rows=[["ART-01", "Basket Test", "42", "10", "2500"]],
+                column_map={"Reference": "reference", "Designation": "description", "Pointure": "size", "Quantite": "quantity", "Prix": "unit_price"},
+                default_pairs_per_carton=ppc_arg,
+                tenant=self.tenant,
+            )
+            assert len(lines) == 1
+            assert isinstance(lines[0]["pairs_per_carton"], int)
+            assert lines[0]["pairs_per_carton"] > 0
+
 
