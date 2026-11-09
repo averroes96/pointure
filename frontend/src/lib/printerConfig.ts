@@ -40,6 +40,7 @@ export interface LabelsPrinterConfig {
   offsetY: number; // mm calibration shift (+ = down)
   landscape: boolean; // rotate page 90° for drivers that expect it
   silent: boolean; // Print instantly, without the integrated preview dialog
+  copies?: number; // Default number of copies (1-200)
 }
 
 export const LABEL_SIZE_PRESETS: { value: LabelSizePreset; label: string; w: number; h: number }[] = [
@@ -81,6 +82,7 @@ export const DEFAULT_PRINTER_CONFIG: PrinterConfig = {
     offsetY: 0,
     landscape: false,
     silent: false,
+    copies: 1,
   },
 };
 

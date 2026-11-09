@@ -202,7 +202,6 @@ export default function ProductDetailPage() {
     try {
       await triggerLabelPrint({
         title: `Étiquettes — ${product?.name || "Produit"}`,
-        defaultCopies: 1,
         fetchHtml: async ({ w, h }) => {
           const res = await api.get(
             `/inventory/products/${id}/barcode-labels/?output=html&w=${w}&h=${h}`,
@@ -219,7 +218,7 @@ export default function ProductDetailPage() {
   }
 
   const [shelfLabelLoading, setShelfLabelLoading] = useState(false);
-  async function handlePrintShelfLabel(copies = 1) {
+  async function handlePrintShelfLabel(copies?: number) {
     if (!id || shelfLabelLoading) return;
     setShelfLabelLoading(true);
     try {

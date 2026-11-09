@@ -39,7 +39,8 @@ export const useLabelPrintStore = create<LabelPrintState>((set, get) => ({
   openDialog: async (req: LabelPrintRequest) => {
     const cfg = getPrinterConfig().labels;
     const { w, h } = getLabelDimensions(cfg);
-    const initialCopies = Math.max(1, req.defaultCopies || 1);
+    const savedCopies = cfg.copies && cfg.copies > 0 ? cfg.copies : 1;
+    const initialCopies = Math.max(1, req.defaultCopies ?? savedCopies);
 
     set({
       isOpen: true,
@@ -89,7 +90,8 @@ export async function triggerLabelPrint(
   showToast?: (msg: string, type?: "success" | "error") => void
 ): Promise<void> {
   const cfg = getPrinterConfig().labels;
-  const copies = Math.max(1, req.defaultCopies || 1);
+  const savedCopies = cfg.copies && cfg.copies > 0 ? cfg.copies : 1;
+  const copies = Math.max(1, req.defaultCopies ?? savedCopies);
 
   if (cfg.silent) {
     // Instant direct print mode

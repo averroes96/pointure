@@ -42,6 +42,7 @@ export default function LabelPrintDialog() {
   const [offsetY, setOffsetY] = useState<number>(0);
   const [landscape, setLandscape] = useState<boolean>(false);
   const [saveAsSilent, setSaveAsSilent] = useState<boolean>(false);
+  const [saveDefaultCopies, setSaveDefaultCopies] = useState<boolean>(false);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -63,6 +64,8 @@ export default function LabelPrintDialog() {
     setOffsetY(lbl.offsetY || 0);
     setLandscape(!!lbl.landscape);
     setSaveAsSilent(!!lbl.silent);
+    const defaultSavedCopies = lbl.copies || 1;
+    setSaveDefaultCopies(copies === defaultSavedCopies && defaultSavedCopies > 1);
     setFeedback(null);
 
     // Load available hardware printers from Electron
@@ -97,12 +100,16 @@ export default function LabelPrintDialog() {
     });
   }, [labelSize, customWidth, customHeight, selectedPrinter, offsetX, offsetY, landscape]);
 
-  // Re-fetch HTML when dimensions change
-  const prevDimsRef = useRef({ w: 45, h: 35 });
+  // Re-fetch HTML when dimensions or copies change
+  const prevDimsRef = useRef({ w: 45, h: 35, copies: 1 });
   useEffect(() => {
     if (!isOpen) return;
-    if (prevDimsRef.current.w !== w || prevDimsRef.current.h !== h) {
-      prevDimsRef.current = { w, h };
+    if (
+      prevDimsRef.current.w !== w ||
+      prevDimsRef.current.h !== h ||
+      prevDimsRef.current.copies !== copies
+    ) {
+      prevDimsRef.current = { w, h, copies };
       refreshHtml({ w, h, copies });
     }
   }, [w, h, isOpen, refreshHtml, copies]);
@@ -169,13 +176,42 @@ export default function LabelPrintDialog() {
 
   if (!isOpen) return null;
 
+  const handleUpdateCopies = (newCopies: number) => {
+    const val = Math.max(1, Math.min(200, newCopies));
+    setCopies(val);
+    if (saveDefaultCopies) {
+      const config = getPrinterConfig();
+      savePrinterConfig({
+        ...config,
+        labels: {
+          ...config.labels,
+          copies: val,
+        },
+      });
+    }
+  };
+
+  const handleToggleSaveDefaultCopies = (checked: boolean) => {
+    setSaveDefaultCopies(checked);
+    if (checked) {
+      const config = getPrinterConfig();
+      savePrinterConfig({
+        ...config,
+        labels: {
+          ...config.labels,
+          copies,
+        },
+      });
+    }
+  };
+
   async function handlePrint() {
     if (isPrinting) return;
     setIsPrinting(true);
     setFeedback(null);
 
     try {
-      // If user checked "Toujours imprimer directement", persist the preferences
+      // If user checked "Toujours imprimer directement" or "Mémoriser les copies", persist the preferences
       const config = getPrinterConfig();
       const updatedConfig = {
         ...config,
@@ -189,6 +225,7 @@ export default function LabelPrintDialog() {
           offsetY,
           landscape,
           silent: saveAsSilent,
+          ...(saveDefaultCopies ? { copies } : {}),
         },
       };
       savePrinterConfig(updatedConfig);
@@ -300,14 +337,14 @@ export default function LabelPrintDialog() {
               {/* Copies Stepper */}
               <div>
                 <label className="block text-2xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
-                  Nombre d'exemplaires
+                  {t("inventory.copies_count", "Nombre d'exemplaires")}
                 </label>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
                     <button
                       type="button"
-                      onClick={() => setCopies(Math.max(1, copies - 1))}
-                      className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                      onClick={() => handleUpdateCopies(Math.max(1, copies - 1))}
+                      className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
                     >
                       <Minus size={14} />
                     </button>
@@ -316,21 +353,36 @@ export default function LabelPrintDialog() {
                       min={1}
                       max={200}
                       value={copies}
-                      onChange={(e) => setCopies(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => handleUpdateCopies(Math.max(1, parseInt(e.target.value) || 1))}
                       className="w-14 text-center bg-transparent text-xs font-bold text-white focus:outline-none"
                     />
                     <button
                       type="button"
-                      onClick={() => setCopies(copies + 1)}
-                      className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                      onClick={() => handleUpdateCopies(copies + 1)}
+                      className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <span className="text-2xs text-slate-400">
-                    {copies > 1 ? `${copies} étiquettes identiques` : "1 étiquette"}
+                    {copies > 1
+                      ? `${copies} ${t("inventory.identical_labels", "étiquettes identiques")}`
+                      : `1 ${t("inventory.single_label", "étiquette")}`}
                   </span>
                 </div>
+
+                {/* Option to save number of copies as default */}
+                <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveDefaultCopies}
+                    onChange={(e) => handleToggleSaveDefaultCopies(e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-800 text-primary-500 focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-2xs text-slate-300">
+                    {t("inventory.save_copies_as_default", "Mémoriser ce nombre d'exemplaires par défaut")}
+                  </span>
+                </label>
               </div>
 
               {/* Label Size Preset */}

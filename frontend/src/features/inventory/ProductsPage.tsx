@@ -201,7 +201,6 @@ export default function ProductsPage() {
     try {
       await triggerLabelPrint({
         title: `Étiquettes Rayon (${ids.length} articles)`,
-        defaultCopies: 1,
         fetchHtml: async ({ w, h, copies }) => {
           const res = await api.post(
             `/inventory/products/shelf-labels/?output=html&w=${w}&h=${h}`,
@@ -226,7 +225,6 @@ export default function ProductsPage() {
     try {
       await triggerLabelPrint({
         title: "Étiquette Rayon",
-        defaultCopies: 1,
         fetchHtml: async ({ w, h, copies }) => {
           const res = await api.get(
             `/inventory/products/${id}/shelf-labels/?output=html&w=${w}&h=${h}&copies=${copies}`,
