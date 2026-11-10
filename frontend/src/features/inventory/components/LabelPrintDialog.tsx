@@ -230,6 +230,10 @@ export default function LabelPrintDialog() {
       };
       savePrinterConfig(updatedConfig);
 
+      // If the HTML was fetched with copies requested or contains multiple pages already,
+      // pass copies: 1 to printLabelHtml so Electron doesn't multiply copies * copies.
+      const printCopies = pageCount >= copies && copies > 1 ? 1 : pageCount === 1 ? copies : 1;
+
       const res = await printLabelHtml(htmlContent, {
         printerName: selectedPrinter,
         labelSize,
@@ -238,23 +242,29 @@ export default function LabelPrintDialog() {
         offsetX,
         offsetY,
         landscape,
-        copies,
+        copies: printCopies,
       });
 
       if (res.success) {
-        setFeedback({ text: "Impression envoyée avec succès !", type: "success" });
+        setFeedback({
+          text: t("inventory.label_print_success", "Impression envoyée avec succès !"),
+          type: "success",
+        });
         request?.onSuccess?.();
         setTimeout(() => {
           closeDialog();
         }, 600);
       } else {
         setFeedback({
-          text: res.failureReason || "Erreur lors de l'impression sur l'imprimante.",
+          text: res.failureReason || t("inventory.label_print_error", "Erreur lors de l'impression sur l'imprimante."),
           type: "error",
         });
       }
     } catch (err: any) {
-      setFeedback({ text: err?.message || "Erreur d'impression", type: "error" });
+      setFeedback({
+        text: err?.message || t("inventory.label_print_error", "Erreur lors de l'impression sur l'imprimante."),
+        type: "error",
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -315,14 +325,14 @@ export default function LabelPrintDialog() {
               {/* Destination Printer */}
               <div>
                 <label className="block text-2xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
-                  Destination / Imprimante
+                  {t("inventory.destination_printer", "Destination / Imprimante")}
                 </label>
                 <select
                   value={selectedPrinter}
                   onChange={(e) => setSelectedPrinter(e.target.value)}
                   className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-primary-500"
                 >
-                  <option value="">(Imprimante par défaut Windows)</option>
+                  <option value="">{t("printers.default_printer", "(Imprimante par défaut Windows)")}</option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
                       {p.displayName || p.name} {p.isDefault ? "★ (Défaut)" : ""}
@@ -330,7 +340,7 @@ export default function LabelPrintDialog() {
                   ))}
                 </select>
                 <p className="text-3xs text-slate-500 mt-1">
-                  Connectée en USB (ex: Gprinter GP-3150TN, GP-80160).
+                  {t("inventory.connected_usb_hint", "Connectée en USB (ex: Gprinter GP-3150TN, GP-80160).")}
                 </p>
               </div>
 
@@ -406,7 +416,9 @@ export default function LabelPrintDialog() {
                 {labelSize === "custom" && (
                   <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800">
                     <div>
-                      <span className="text-3xs text-slate-400 block mb-1">Largeur (mm)</span>
+                      <span className="text-3xs text-slate-400 block mb-1">
+                        {t("inventory.width_mm", "Largeur (mm)")}
+                      </span>
                       <input
                         type="number"
                         min={15}
@@ -417,7 +429,9 @@ export default function LabelPrintDialog() {
                       />
                     </div>
                     <div>
-                      <span className="text-3xs text-slate-400 block mb-1">Hauteur (mm)</span>
+                      <span className="text-3xs text-slate-400 block mb-1">
+                        {t("inventory.height_mm", "Hauteur (mm)")}
+                      </span>
                       <input
                         type="number"
                         min={15}
@@ -434,7 +448,7 @@ export default function LabelPrintDialog() {
               {/* Orientation toggle */}
               <div>
                 <label className="block text-2xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
-                  Orientation
+                  {t("inventory.orientation", "Orientation")}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -447,7 +461,7 @@ export default function LabelPrintDialog() {
                         : "border-slate-800 bg-slate-800/50 text-slate-400 hover:text-white"
                     )}
                   >
-                    Portrait (0°)
+                    {t("inventory.portrait", "Portrait (0°)")}
                   </button>
                   <button
                     type="button"
@@ -459,7 +473,7 @@ export default function LabelPrintDialog() {
                         : "border-slate-800 bg-slate-800/50 text-slate-400 hover:text-white"
                     )}
                   >
-                    Paysage (90°)
+                    {t("inventory.landscape", "Paysage (90°)")}
                   </button>
                 </div>
               </div>
@@ -474,8 +488,8 @@ export default function LabelPrintDialog() {
                   <Sliders size={13} />
                   <span>
                     {showAdvanced
-                      ? "Masquer le calibrage fin"
-                      : "Calibrage tête d'impression (Décalage mm)..."}
+                      ? t("inventory.hide_calibration", "Masquer le calibrage fin")
+                      : t("inventory.advanced_calibration", "Calibrage tête d'impression (Décalage mm)...")}
                   </span>
                   {(offsetX !== 0 || offsetY !== 0) && (
                     <span className="text-3xs px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -487,13 +501,12 @@ export default function LabelPrintDialog() {
                 {showAdvanced && (
                   <div className="mt-2.5 p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-2.5">
                     <p className="text-3xs text-slate-400 leading-relaxed">
-                      Si votre étiquette imprimée est décalée ou coupée par le bord, appliquez un décalage
-                      en millimètres (l'aperçu à droite se met à jour en direct).
+                      {t("inventory.calibration_hint", "Si votre étiquette imprimée est décalée ou coupée par le bord, appliquez un décalage en millimètres (l'aperçu à droite se met à jour en direct).")}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-3xs text-slate-300 block mb-1">
-                          Décalage X (G/D)
+                          {t("inventory.offset_x", "Décalage X (G/D)")}
                         </span>
                         <div className="flex items-center gap-1">
                           <input
@@ -510,7 +523,7 @@ export default function LabelPrintDialog() {
                       </div>
                       <div>
                         <span className="text-3xs text-slate-300 block mb-1">
-                          Décalage Y (H/B)
+                          {t("inventory.offset_y", "Décalage Y (H/B)")}
                         </span>
                         <div className="flex items-center gap-1">
                           <input
@@ -542,10 +555,10 @@ export default function LabelPrintDialog() {
                 />
                 <div className="text-2xs">
                   <span className="font-semibold text-slate-200 block">
-                    Toujours imprimer directement (Mode instantané)
+                    {t("inventory.always_instant_print", "Toujours imprimer directement (Mode instantané)")}
                   </span>
                   <span className="text-slate-500 text-3xs">
-                    Sortie immédiate sans afficher cette fenêtre à chaque fois (comme les tickets de caisse).
+                    {t("inventory.always_instant_print_hint", "Sortie immédiate sans afficher cette fenêtre à chaque fois (comme les tickets de caisse).")}
                   </span>
                 </div>
               </label>
@@ -557,7 +570,7 @@ export default function LabelPrintDialog() {
                   disabled={isPrinting}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
                 >
-                  Annuler
+                  {t("common.cancel", "Annuler")}
                 </button>
                 <button
                   type="button"
@@ -568,7 +581,7 @@ export default function LabelPrintDialog() {
                   {isPrinting ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Impression...</span>
+                      <span>{t("common.printing", "Impression...")}</span>
                     </>
                   ) : (
                     <>
@@ -586,7 +599,7 @@ export default function LabelPrintDialog() {
             {/* Aspect Ratio Live Label Simulator */}
             <div className="flex flex-col items-center justify-center w-full h-full max-h-[520px]">
               <div className="text-2xs text-slate-400 font-mono mb-3 flex items-center gap-2">
-                <span>Aperçu physique réel :</span>
+                <span>{t("inventory.real_physical_preview", "Aperçu physique réel :")}</span>
                 <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                   {w} mm (L) × {h} mm (H)
                 </span>
@@ -606,7 +619,7 @@ export default function LabelPrintDialog() {
                 {isLoadingHtml ? (
                   <div className="flex flex-col items-center justify-center gap-2 text-slate-400 text-xs p-6">
                     <Loader2 size={24} className="animate-spin text-primary-600" />
-                    <span>Génération de l'aperçu...</span>
+                    <span>{t("inventory.generating_preview", "Génération de l'aperçu...")}</span>
                   </div>
                 ) : previewHtml ? (
                   <div
@@ -668,7 +681,7 @@ export default function LabelPrintDialog() {
               {/* Status Note */}
               <div className="mt-4 text-center">
                 <p className="text-3xs text-slate-500 max-w-sm">
-                  Impression native directe aux dimensions réelles. Zéro marge navigateur, zéro découpe.
+                  {t("inventory.native_print_hint", "Impression native directe aux dimensions réelles. Zéro marge navigateur, zéro découpe.")}
                 </p>
               </div>
             </div>

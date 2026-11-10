@@ -889,6 +889,11 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         lang = _get_label_lang(request)
         t = LABEL_TRANSLATIONS.get(lang, LABEL_TRANSLATIONS["fr"])
         product = self.get_object()
+        try:
+            copies = max(1, min(int(request.query_params.get("copies", 1) or 1), 200))
+        except (TypeError, ValueError):
+            copies = 1
+
         variants = list(
             product.variants
             .filter(is_active=True)
@@ -900,9 +905,12 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 v.barcode = generate_barcode(v)
                 Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
 
-        labels_html = "\n".join(
-            _render_label(product, v, w_mm, h_mm, lang=lang) for v in variants if v.barcode
-        )
+        labels_list = []
+        for v in variants:
+            if v.barcode:
+                single_lbl = _render_label(product, v, w_mm, h_mm, lang=lang)
+                labels_list.extend([single_lbl] * copies)
+        labels_html = "\n".join(labels_list)
 
         if not labels_html:
             labels_html = (

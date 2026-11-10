@@ -98,7 +98,10 @@ export async function triggerLabelPrint(
     const { w, h } = getLabelDimensions(cfg);
     try {
       const html = await req.fetchHtml({ w, h, copies });
-      const res = await printLabelHtml(html, { copies });
+      const pageMatches = html.match(/class=["']page["']/g);
+      const pageCount = pageMatches && pageMatches.length > 0 ? pageMatches.length : 1;
+      const printCopies = pageCount >= copies && copies > 1 ? 1 : pageCount === 1 ? copies : 1;
+      const res = await printLabelHtml(html, { copies: printCopies });
       if (res.success) {
         showToast?.(
           `Étiquette(s) envoyée(s) à ${cfg.printerName || "l'imprimante par défaut"}`,
