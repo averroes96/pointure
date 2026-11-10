@@ -2146,7 +2146,9 @@
     "discount_limit_exceeded_reason": "Remise totale ({{discount}}%) supérieure à votre plafond autorisé ({{max}}%)",
     "discount_limit_exceeded_desc": "La validation d'un responsable par code PIN est nécessaire pour accorder cette remise.",
     "price_modified_reason": "Prix unitaire modifié pour « {{product}} » ({{price}} DA vs {{originalPrice}} DA)",
-    "price_modified_desc": "La modification des prix du catalogue nécessite l'approbation d'un responsable."
+    "price_modified_desc": "La modification des prix du catalogue nécessite l'approbation d'un responsable.",
+    "tier_switch_pin_reason": "Passage au tarif « {{tier}} » non autorisé pour ce client sans validation responsable",
+    "tier_switch_pin_desc": "Un code PIN responsable est nécessaire pour appliquer un tarif de gros à un client non grossiste."
   },
   "sales_history": {
     "detailed_report_date": "Date du rapport détaillé",

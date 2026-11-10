@@ -2146,7 +2146,9 @@
     "discount_limit_exceeded_reason": "Total discount ({{discount}}%) exceeds your authorized limit ({{max}}%)",
     "discount_limit_exceeded_desc": "Manager PIN approval is required to apply this discount.",
     "price_modified_reason": "Unit price modified for \"{{product}}\" ({{price}} DZD vs {{originalPrice}} DZD)",
-    "price_modified_desc": "Modifying catalog prices requires manager approval."
+    "price_modified_desc": "Modifying catalog prices requires manager approval.",
+    "tier_switch_pin_reason": "Switching to « {{tier}} » tier requires manager authorization for this client",
+    "tier_switch_pin_desc": "A manager PIN is required to apply wholesale pricing to a retail customer."
   },
   "sales_history": {
     "detailed_report_date": "Detailed report date",

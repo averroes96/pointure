@@ -182,6 +182,56 @@ class CashierPermissionsAndPinTests(TestCase):
         )
         self.assertEqual(res_with_pin.status_code, 201)
 
+    def test_cashier_wholesale_tier_to_retail_client_requires_manager_pin(self):
+        """Cashier selling at wholesale price to walk-in or retail client requires manager PIN (P1-9)."""
+        self.product.wholesale_price = Decimal("9500.00")
+        self.product.semi_wholesale_price = Decimal("10500.00")
+        self.product.save()
+
+        self.client.force_authenticate(user=self.cashier)
+
+        # 1. Retail client without PIN trying to get wholesale tier price (9500.00 vs 12000.00)
+        res_no_pin = self.client.post(
+            "/api/v1/sales/",
+            {
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "9500.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "9500.00", "method": "cash"}],
+            },
+            format="json",
+        )
+        self.assertEqual(res_no_pin.status_code, 400)
+        details = res_no_pin.data.get("error", {}).get("details", res_no_pin.data)
+        self.assertIn("items", details)
+        self.assertIn("Code PIN manager requis", str(details["items"]))
+
+        # 2. Approved with manager PIN -> succeeds with 201 and authorized_by is set
+        res_with_pin = self.client.post(
+            "/api/v1/sales/",
+            {
+                "items": [
+                    {
+                        "variant_id": str(self.variant.id),
+                        "quantity": 1,
+                        "unit_price": "9500.00",
+                        "discount_amount": "0.00",
+                    }
+                ],
+                "payments": [{"amount": "9500.00", "method": "cash"}],
+                "manager_pin": "1234",
+            },
+            format="json",
+        )
+        self.assertEqual(res_with_pin.status_code, 201)
+        created_sale = Sale.objects.get(pk=res_with_pin.data["id"])
+        self.assertEqual(created_sale.authorized_by, self.manager)
+
     def test_cashier_return_requires_manager_pin(self):
         # Create a completed sale first as manager
         sale = Sale.objects.create(

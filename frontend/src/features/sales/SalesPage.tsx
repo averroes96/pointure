@@ -346,7 +346,44 @@ export default function SalesPage() {
     selectedClientRef.current = selectedClient;
     const nextTier = (selectedClient?.price_tier as PriceTier) || "detail";
     setActivePriceTier(nextTier);
+    managerPinRef.current = null;
   }, [selectedClient]);
+
+  const handleRequestPriceTier = useCallback(
+    (targetTier: PriceTier) => {
+      const clientTier = (selectedClient?.price_tier as PriceTier) || "detail";
+      const tierWeights: Record<PriceTier, number> = { detail: 1, demi_gros: 2, gros: 3 };
+      const isEscalation = tierWeights[targetTier] > tierWeights[clientTier];
+
+      if (user?.role === "cashier" && user.can_modify_price === false && isEscalation && !managerPinRef.current) {
+        const tierLabel =
+          targetTier === "demi_gros"
+            ? t("pos.tier_demi_gros", "Demi-gros")
+            : t("pos.tier_gros", "Gros");
+        setManagerPinPrompt({
+          isOpen: true,
+          reason: t(
+            "pos.tier_switch_pin_reason",
+            "Passage au tarif « {{tier}} » non autorisé pour ce client sans validation responsable",
+            { tier: tierLabel }
+          ),
+          actionDescription: t(
+            "pos.tier_switch_pin_desc",
+            "Un code PIN responsable est nécessaire pour appliquer un tarif de gros à un client non grossiste."
+          ),
+          quickMode: false,
+          onVerified: (pin: string) => {
+            managerPinRef.current = pin;
+            setActivePriceTier(targetTier);
+          },
+        });
+        return;
+      }
+
+      setActivePriceTier(targetTier);
+    },
+    [selectedClient, user, t]
+  );
 
   useEffect(() => {
     activePriceTierRef.current = activePriceTier;
@@ -383,6 +420,7 @@ export default function SalesPage() {
     reason: string;
     actionDescription?: string;
     quickMode: boolean;
+    onVerified?: (pin: string) => void;
   }>({
     isOpen: false,
     reason: "",
@@ -920,11 +958,12 @@ export default function SalesPage() {
       }
 
       if (user.can_modify_price === false) {
+        const clientTier = (selectedClient?.price_tier as PriceTier) || "detail";
         const altered = cart.find(
-          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, activePriceTier)) > 0.01
+          (i) => Math.abs(Number(i.unit_price) - unitPriceFor(i.product, clientTier)) > 0.01
         );
         if (altered) {
-          const catalogPrice = unitPriceFor(altered.product, activePriceTier);
+          const catalogPrice = unitPriceFor(altered.product, clientTier);
           setManagerPinPrompt({
             isOpen: true,
             reason: t(
@@ -1214,7 +1253,7 @@ export default function SalesPage() {
       const tiers: PriceTier[] = ["detail", "demi_gros", "gros"];
       const currentIndex = tiers.indexOf(activePriceTierRef.current);
       const nextTier = tiers[(currentIndex + 1) % tiers.length];
-      setActivePriceTier(nextTier);
+      handleRequestPriceTier(nextTier);
     };
 
     // Note: F1, F2, F10, Alt+V, Alt+M, Alt+H, Alt+G are handled globally by useGlobalShortcuts and dispatched as custom events below.
@@ -1258,6 +1297,7 @@ export default function SalesPage() {
     managerPinPrompt.isOpen,
     handleVersementShortcut,
     handleMovementShortcut,
+    handleRequestPriceTier,
   ]);
 
   // React-Query barcode path: fires when the search input contains a full barcode
@@ -1984,7 +2024,7 @@ export default function SalesPage() {
                   <button
                     key={tier}
                     type="button"
-                    onClick={() => setActivePriceTier(tier)}
+                    onClick={() => handleRequestPriceTier(tier)}
                     className={cn(
                       "px-2.5 py-1 rounded-md font-semibold transition-all text-xs flex items-center gap-1 cursor-pointer",
                       activePriceTier === tier
@@ -3193,11 +3233,16 @@ export default function SalesPage() {
         actionDescription={managerPinPrompt.actionDescription}
         onSuccess={(pin) => {
           managerPinRef.current = pin;
-          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false }));
-          executeSaleSubmission(managerPinPrompt.quickMode);
+          const callback = managerPinPrompt.onVerified;
+          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false, onVerified: undefined }));
+          if (callback) {
+            callback(pin);
+          } else {
+            executeSaleSubmission(managerPinPrompt.quickMode);
+          }
         }}
         onCancel={() => {
-          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false }));
+          setManagerPinPrompt((prev) => ({ ...prev, isOpen: false, onVerified: undefined }));
         }}
       />
 

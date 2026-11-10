@@ -2146,7 +2146,9 @@
     "discount_limit_exceeded_reason": "الخصم الإجمالي ({{discount}}%) يتجاوز الحد المسموح به لك ({{max}}%)",
     "discount_limit_exceeded_desc": "يتطلب منح هذا الخصم موافقة المشرف عبر الرمز السري PIN.",
     "price_modified_reason": "تم تعديل سعر الوحدة لـ « {{product}} » ({{price}} دج بدلاً من {{originalPrice}} دج)",
-    "price_modified_desc": "تعديل أسعار الكتالوج يتطلب موافقة المشرف."
+    "price_modified_desc": "تعديل أسعار الكتالوج يتطلب موافقة المشرف.",
+    "tier_switch_pin_reason": "التحويل إلى تسعيرة « {{tier}} » غير مصرح به لهذا العميل بدون موافقة مسؤول",
+    "tier_switch_pin_desc": "رمز PIN للمسؤول مطلوب لتطبيق سعر الجملة على عميل تجزئة."
   },
   "sales_history": {
     "detailed_report_date": "تاريخ التقرير المفصل",
