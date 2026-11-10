@@ -595,55 +595,74 @@ class Quote(TenantScopedModel):
         self.total_ttc = self.total_ht + self.tva_amount
 
     def send(self, user=None):
-        if self.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
-            self.status = QuoteStatusChoices.SENT
-            self.save(update_fields=["status"])
+        if not self.pk:
+            return
+        with transaction.atomic():
+            quote = Quote.objects.select_for_update().get(pk=self.pk)
+            if quote.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
+                quote.status = QuoteStatusChoices.SENT
+                quote.save(update_fields=["status"])
+                self.status = quote.status
 
     def accept(self, user=None):
-        if self.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
-            self.status = QuoteStatusChoices.ACCEPTED
-            self.save(update_fields=["status"])
+        if not self.pk:
+            return
+        with transaction.atomic():
+            quote = Quote.objects.select_for_update().get(pk=self.pk)
+            if quote.status not in (QuoteStatusChoices.CANCELLED, QuoteStatusChoices.CONVERTED):
+                quote.status = QuoteStatusChoices.ACCEPTED
+                quote.save(update_fields=["status"])
+                self.status = quote.status
 
     def cancel(self, user=None):
-        if self.status == QuoteStatusChoices.CONVERTED:
-            raise ValueError(_("Impossible d'annuler un devis déjà converti."))
-        self.status = QuoteStatusChoices.CANCELLED
-        self.save(update_fields=["status"])
+        if not self.pk:
+            return
+        with transaction.atomic():
+            quote = Quote.objects.select_for_update().get(pk=self.pk)
+            if quote.status == QuoteStatusChoices.CONVERTED:
+                raise ValueError(_("Impossible d'annuler un devis déjà converti."))
+            quote.status = QuoteStatusChoices.CANCELLED
+            quote.save(update_fields=["status"])
+            self.status = quote.status
 
     def convert_to_invoice(self, user=None, target_date=None):
-        if self.status == QuoteStatusChoices.CANCELLED:
-            raise ValueError(_("Un devis annulé ne peut pas être converti."))
-        if self.converted_invoice:
-            raise ValueError(_("Ce devis a déjà été converti en facture."))
+        if not self.pk:
+            raise ValueError(_("Le devis doit être enregistré avant d'être converti."))
 
         from datetime import timedelta
         from django.utils import timezone
         from apps.closing.services.lock import assert_period_open
 
-        if self.client and self.client.is_blocked:
-            from django.core.exceptions import ValidationError
-            raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
-
         inv_date = target_date or timezone.localdate()
         assert_period_open(self.tenant, inv_date)
 
         with transaction.atomic():
+            quote = Quote.objects.select_for_update().get(pk=self.pk)
+            if quote.status == QuoteStatusChoices.CANCELLED:
+                raise ValueError(_("Un devis annulé ne peut pas être converti."))
+            if quote.converted_invoice:
+                raise ValueError(_("Ce devis a déjà été converti en facture."))
+
+            if quote.client and quote.client.is_blocked:
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
+
             invoice = Invoice.objects.create(
-                tenant=self.tenant,
-                client=self.client,
-                branch=self.branch,
+                tenant=quote.tenant,
+                client=quote.client,
+                branch=quote.branch,
                 date=inv_date,
                 due_date=inv_date + timedelta(days=30),
                 series_prefix="FA",
-                apply_tva=self.apply_tva,
-                tva_rate=self.tva_rate,
+                apply_tva=quote.apply_tva,
+                tva_rate=quote.tva_rate,
                 is_formal=True,
-                notes=self.notes or f"Créée depuis le devis {self.number}",
-                created_by=user or self.created_by,
+                notes=quote.notes or f"Créée depuis le devis {quote.number}",
+                created_by=user or quote.created_by,
                 status=InvoiceStatusChoices.DRAFT,
             )
 
-            for i, line in enumerate(self.lines.all()):
+            for i, line in enumerate(quote.lines.all()):
                 InvoiceLine.objects.create(
                     invoice=invoice,
                     variant=line.variant,
@@ -660,17 +679,22 @@ class Quote(TenantScopedModel):
             invoice.compute_totals()
             invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc", "timbre_fiscal"])
 
+            if quote.converted_delivery_note:
+                quote.converted_delivery_note.invoice = invoice
+                quote.converted_delivery_note.save(update_fields=["invoice"])
+
+            quote.converted_invoice = invoice
+            quote.status = QuoteStatusChoices.CONVERTED
+            quote.save(update_fields=["converted_invoice", "status"])
+
             self.converted_invoice = invoice
             self.status = QuoteStatusChoices.CONVERTED
-            self.save(update_fields=["converted_invoice", "status"])
 
         return invoice
 
     def convert_to_delivery_note(self, user=None, target_date=None):
-        if self.status == QuoteStatusChoices.CANCELLED:
-            raise ValueError(_("Un devis annulé ne peut pas être converti."))
-        if self.converted_delivery_note:
-            raise ValueError(_("Ce devis a déjà été converti en bon de livraison."))
+        if not self.pk:
+            raise ValueError(_("Le devis doit être enregistré avant d'être converti."))
 
         from django.utils import timezone
         from apps.closing.services.lock import assert_period_open
@@ -679,16 +703,23 @@ class Quote(TenantScopedModel):
         assert_period_open(self.tenant, dn_date)
 
         with transaction.atomic():
-            bl_number = InvoiceCounter.next_number(self.tenant, "BL", date=dn_date)
+            quote = Quote.objects.select_for_update().get(pk=self.pk)
+            if quote.status == QuoteStatusChoices.CANCELLED:
+                raise ValueError(_("Un devis annulé ne peut pas être converti."))
+            if quote.converted_delivery_note:
+                raise ValueError(_("Ce devis a déjà été converti en bon de livraison."))
+
+            bl_number = InvoiceCounter.next_number(quote.tenant, "BL", date=dn_date)
             dn = DeliveryNote.objects.create(
-                tenant=self.tenant,
-                client=self.client,
+                tenant=quote.tenant,
+                client=quote.client,
                 number=bl_number,
                 date=dn_date,
-                notes=self.notes or f"Créé depuis le devis {self.number}",
+                notes=quote.notes or f"Créé depuis le devis {quote.number}",
+                invoice=quote.converted_invoice,
             )
 
-            for i, line in enumerate(self.lines.all()):
+            for i, line in enumerate(quote.lines.all()):
                 DeliveryNoteLine.objects.create(
                     delivery_note=dn,
                     variant=line.variant,
@@ -700,9 +731,12 @@ class Quote(TenantScopedModel):
                     order=line.order if line.order else i,
                 )
 
+            quote.converted_delivery_note = dn
+            quote.status = QuoteStatusChoices.CONVERTED
+            quote.save(update_fields=["converted_delivery_note", "status"])
+
             self.converted_delivery_note = dn
             self.status = QuoteStatusChoices.CONVERTED
-            self.save(update_fields=["converted_delivery_note", "status"])
 
         return dn
 

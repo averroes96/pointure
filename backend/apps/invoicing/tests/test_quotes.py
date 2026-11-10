@@ -243,6 +243,66 @@ class TestQuotes:
         assert dn.lines.count() == 1
         assert dn.lines.first().quantity == Decimal("6.00")
 
+    def test_quote_conversion_locks_and_prevents_duplicate_invoice(self):
+        """Stale second instance of a quote cannot convert again once locked and converted."""
+        quote1 = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote1,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("5.00"),
+            unit_price=Decimal("2000.00"),
+            cartons=1,
+            order=0,
+        )
+        quote1.compute_totals()
+        quote1.save()
+
+        # Simulate concurrent worker/stale memory reference
+        quote2 = Quote.objects.get(pk=quote1.pk)
+
+        inv1 = quote1.convert_to_invoice()
+        assert inv1 is not None
+
+        # Attempting conversion on quote2 must raise ValueError
+        with pytest.raises(ValueError, match="déjà été converti en facture"):
+            quote2.convert_to_invoice()
+
+        # Exactly 1 invoice created
+        assert Invoice.objects.filter(client=self.client).count() == 1
+
+    def test_quote_convert_to_bl_then_invoice_links_delivery_note(self):
+        """Converting a quote to a BL and then to an invoice links the BL to the invoice."""
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("10.00"),
+            unit_price=Decimal("2000.00"),
+            cartons=1,
+            order=0,
+        )
+        quote.compute_totals()
+        quote.save()
+
+        dn = quote.convert_to_delivery_note()
+        assert dn.invoice is None
+
+        inv = quote.convert_to_invoice()
+        dn.refresh_from_db()
+        assert dn.invoice == inv
+
     def test_expire_outdated_quotes(self):
         yesterday = timezone.localdate() - datetime.timedelta(days=1)
         tomorrow = timezone.localdate() + datetime.timedelta(days=1)
