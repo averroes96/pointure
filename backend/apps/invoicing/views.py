@@ -647,7 +647,7 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "cancel": MANAGER_OR_OWNER,
         "convert_to_invoice": MANAGER_OR_OWNER,
         "convert_to_delivery_note": MANAGER_OR_OWNER,
-        "default": ALL_ROLES,
+        "default": MANAGER_OR_OWNER,
     }
     filterset_fields = ["status", "client", "branch"]
     search_fields = ["number", "client__name"]

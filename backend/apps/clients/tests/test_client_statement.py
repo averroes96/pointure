@@ -208,6 +208,17 @@ class TestClientStatement:
         resp = api.get(url)
         assert resp.status_code == 403
 
+    def test_client_statement_permissions(self):
+        cashier_api = _make_api_client(self.cashier)
+        manager_api = _make_api_client(self.manager)
+        url = f"/api/v1/clients/{self.client_obj.id}/statement/"
+
+        resp = cashier_api.get(url)
+        assert resp.status_code == 403
+
+        resp = manager_api.get(url)
+        assert resp.status_code == 200
+
     def test_client_statement_with_open_invoices(self):
         from apps.invoicing.models import Invoice, InvoiceLine
 

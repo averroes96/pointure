@@ -38,6 +38,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "record_payment": MANAGER_OR_OWNER,
         "ageing": MANAGER_OR_OWNER,
         "ageing_csv": MANAGER_OR_OWNER,
+        "statement": MANAGER_OR_OWNER,
         "statements_zip": MANAGER_OR_OWNER,
         "toggle_block": MANAGER_OR_OWNER,
         "risk": ALL_ROLES,
@@ -244,6 +245,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Client account statement ("relevé de compte").
         GET /api/v1/clients/{id}/statement/?from=&to=&format=pdf|xlsx|json
         """
+        self.require_manager()
         client = self.get_object()
         from_str = request.query_params.get("from")
         to_str = request.query_params.get("to")

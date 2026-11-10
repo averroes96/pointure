@@ -368,9 +368,10 @@ class TestQuotes:
             status=QuoteStatusChoices.DRAFT,
         )
 
-        # Cashier can view
+        # Cashier cannot list or view
+        assert cashier_client.get("/api/v1/invoicing/quotes/").status_code == 403
         resp = cashier_client.get(f"/api/v1/invoicing/quotes/{quote.id}/")
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
         # Cashier cannot send/accept/cancel/convert
         assert cashier_client.post(f"/api/v1/invoicing/quotes/{quote.id}/send/").status_code == 403
