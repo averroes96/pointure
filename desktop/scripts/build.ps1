@@ -77,9 +77,24 @@ if (-not (Test-Path $PythonArchMarker)) {
     $GetPipPath = "$DesktopDir\get-pip.py"
     Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile $GetPipPath
     & "$PythonDist\python.exe" $GetPipPath --no-warn-script-location
-    Remove-Item $GetPipPath -Force
+    if ($LASTEXITCODE -ne 0) {
+        Remove-Item $GetPipPath -Force -ErrorAction SilentlyContinue
+        throw "Failed to bootstrap pip in embedded Python environment ($Arch)!"
+    }
+    Remove-Item $GetPipPath -Force -ErrorAction SilentlyContinue
 
+    Write-Host "Installing backend requirements from requirements-desktop.txt..." -ForegroundColor Cyan
     & "$PythonDist\python.exe" -m pip install --no-warn-script-location -r "$BackendDir\requirements-desktop.txt"
+    if ($LASTEXITCODE -ne 0) {
+        throw "pip install failed for requirements-desktop.txt in Python environment ($Arch)!"
+    }
+
+    # Explicit backend smoke test to verify all critical modules load in embedded Python
+    Write-Host "Running backend smoke test in Python environment ($Arch)..." -ForegroundColor Cyan
+    & "$PythonDist\python.exe" -c "import django, rest_framework, openpyxl, dbfread, waitress, cryptography; print('Backend smoke test passed successfully!')"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Backend smoke test failed! Critical packages are missing or broken in Python distribution ($Arch)."
+    }
 
     New-Item -ItemType File -Path $PythonArchMarker | Out-Null
 }
@@ -102,6 +117,9 @@ Remove-Item -Path "$BackendDist\media" -Recurse -Force -ErrorAction SilentlyCont
 Remove-Item -Path "$BackendDist\data" -Recurse -Force -ErrorAction SilentlyContinue
 
 & "$PythonDist\python.exe" -m compileall -b "$BackendDist\apps" "$BackendDist\config"
+if ($LASTEXITCODE -ne 0) {
+    throw "Python bytecode pre-compilation failed for backend distribution ($Arch)!"
+}
 
 # ── 4. Package NSIS Installer with electron-builder ───────────────────
 Write-Host "`n[4/4] Packaging Electron Desktop Installer ($Arch)..." -ForegroundColor Yellow
