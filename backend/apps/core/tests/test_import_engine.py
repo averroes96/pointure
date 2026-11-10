@@ -529,6 +529,18 @@ class TestLegacyDBFDryRun:
         assert res_live.data["dry_run"] is False
         assert Client.objects.filter(tenant=tenant, name="Client Simulation").count() == 1
 
+        # 3. Post with invalid dry_run values must fail-closed with 400 (P1-7)
+        for invalid_val in ["invalid", "2", "foobar", "maybe"]:
+            zip_buffer.seek(0)
+            uploaded_invalid = SimpleUploadedFile("legacy.zip", zip_buffer.read(), content_type="application/zip")
+            res_invalid = auth_client.post(
+                "/api/v1/core/legacy-import/",
+                {"zip_file": uploaded_invalid, "dry_run": invalid_val},
+                format="multipart",
+            )
+            assert res_invalid.status_code == 400
+            assert "error" in res_invalid.data
+
     def test_management_command_dry_run(self, tenant, branch, monkeypatch):
         import io
         from django.core.management import call_command

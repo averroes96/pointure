@@ -1705,7 +1705,8 @@
     "legacy_total_part_payments": "Restes sur versements (VERSECLT)",
     "legacy_total_supplier_credits": "Avances / Avoirs fournisseurs",
     "legacy_cheques_imported": "Chèques en attente importés :",
-    "legacy_part_payments_imported": "Versements en cours importés :"
+    "legacy_part_payments_imported": "Versements en cours importés :",
+    "legacy_sqlite_lock_warning": "Attention : l'importation réelle verrouille l'écriture de la base de données (SQLite) pendant son exécution. Évitez les encaissements simultanés."
   },
   "user": {
     "first_name": "Prénom",

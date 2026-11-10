@@ -556,13 +556,10 @@ from rest_framework.parsers import MultiPartParser
 logger = logging.getLogger(__name__)
 
 
-def _parse_bool_flag(raw_value, default=False) -> bool:
+def _parse_strict_bool(raw_value, default=False) -> bool:
     if raw_value is None or raw_value == "":
         return default
-    try:
-        return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
-    except drf_serializers.ValidationError:
-        return default
+    return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
 
 
 class LegacyDBFImportView(APIView):
@@ -615,7 +612,14 @@ class LegacyDBFImportView(APIView):
             raw_dry_run = request.query_params.get("dry_run")
         if raw_dry_run is None and isinstance(options, dict):
             raw_dry_run = options.get("dry_run")
-        dry_run = _parse_bool_flag(raw_dry_run, default=False)
+
+        try:
+            dry_run = _parse_strict_bool(raw_dry_run, default=False)
+        except (drf_serializers.ValidationError, ValueError, TypeError):
+            return Response(
+                {"error": _("Valeur invalide pour le paramètre 'dry_run'.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
                 
         try:
             # Save uploaded zip

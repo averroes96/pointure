@@ -1705,7 +1705,8 @@
     "legacy_total_part_payments": "Open Part-Payment Balances (VERSECLT)",
     "legacy_total_supplier_credits": "Supplier Advances / Credits",
     "legacy_cheques_imported": "Pending cheques imported:",
-    "legacy_part_payments_imported": "Open part-payments imported:"
+    "legacy_part_payments_imported": "Open part-payments imported:",
+    "legacy_sqlite_lock_warning": "Warning: Live import locks SQLite database writes during execution. Avoid simultaneous till operations."
   },
   "user": {
     "first_name": "First Name",

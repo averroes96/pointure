@@ -1705,7 +1705,8 @@
     "legacy_total_part_payments": "المتبقي من الدفعات الجزئية (VERSECLT)",
     "legacy_total_supplier_credits": "تسبقات / أرصدة دائنة لدى الموردين",
     "legacy_cheques_imported": "الشيكات قيد الانتظار المستوردة:",
-    "legacy_part_payments_imported": "الدفعات الجزئية المستوردة:"
+    "legacy_part_payments_imported": "الدفعات الجزئية المستوردة:",
+    "legacy_sqlite_lock_warning": "تنبيه: الاستيراد الفعلي يقفل قاعدة البيانات (SQLite) مؤقتًا أثناء التنفيذ. يُرجى تجنب عمليات البيع المتزامنة."
   },
   "user": {
     "first_name": "الاسم الأول",
