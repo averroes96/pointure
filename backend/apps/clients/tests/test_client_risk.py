@@ -385,3 +385,68 @@ class BlockedClientEnforcementTests(TestCase):
         self.assertFalse(resp.data["is_blocked"])
         self.blocked_client.refresh_from_db()
         self.assertFalse(self.blocked_client.is_blocked)
+
+    def test_cashier_cannot_set_wholesale_price_tier_or_client_type(self):
+        """Cashiers cannot grant wholesale pricing (gros, demi_gros) or wholesale client_type."""
+        self.client_api.force_authenticate(user=self.cashier)
+
+        # 1. Attempt create client with price_tier="gros" -> 403
+        resp = self.client_api.post(
+            "/api/v1/clients/",
+            {"name": "Client Wholesale Test", "price_tier": "gros", "phone": "0555123456"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 2. Attempt create client with client_type="wholesale" -> 403
+        resp = self.client_api.post(
+            "/api/v1/clients/",
+            {"name": "Client Wholesale Test 2", "client_type": "wholesale", "phone": "0555123457"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Create retail client with default/detail tier -> 201
+        resp = self.client_api.post(
+            "/api/v1/clients/",
+            {"name": "Retail Client", "price_tier": "detail", "client_type": "retail", "phone": "0555123458"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        client_id = resp.data["id"]
+
+        # 4. Attempt to update retail client to price_tier="demi_gros" -> 403
+        resp = self.client_api.patch(
+            f"/api/v1/clients/{client_id}/",
+            {"price_tier": "demi_gros"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 5. Attempt to update retail client to client_type="wholesale" -> 403
+        resp = self.client_api.patch(
+            f"/api/v1/clients/{client_id}/",
+            {"client_type": "wholesale"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_owner_can_set_wholesale_price_tier_and_client_type(self):
+        """Owners can create and update clients with wholesale pricing tiers."""
+        self.client_api.force_authenticate(user=self.owner)
+
+        resp = self.client_api.post(
+            "/api/v1/clients/",
+            {"name": "Grossiste Client", "price_tier": "gros", "client_type": "wholesale", "phone": "0555999888"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        client_id = resp.data["id"]
+
+        resp = self.client_api.patch(
+            f"/api/v1/clients/{client_id}/",
+            {"price_tier": "demi_gros"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["price_tier"], "demi_gros")

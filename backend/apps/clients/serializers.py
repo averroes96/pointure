@@ -61,6 +61,13 @@ class ClientSerializer(serializers.ModelSerializer):
                 raise PermissionDenied(
                     "Seul un manager ou le propriétaire peut bloquer un client."
                 )
+        tier = validated_data.get("price_tier")
+        ctype = validated_data.get("client_type")
+        if (tier and tier != "detail") or ctype == "wholesale":
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut attribuer un tarif de gros ou demi-gros."
+                )
         if "price_tier" not in validated_data and validated_data.get("client_type") == "wholesale":
             validated_data["price_tier"] = "gros"
         elif "client_type" not in validated_data and validated_data.get("price_tier") in ("demi_gros", "gros"):
@@ -77,6 +84,16 @@ class ClientSerializer(serializers.ModelSerializer):
             if not self._is_manager_or_owner():
                 raise PermissionDenied(
                     "Seul un manager ou le propriétaire peut modifier l'état de blocage d'un client."
+                )
+        if "price_tier" in validated_data and validated_data["price_tier"] != instance.price_tier:
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut modifier la tarification d'un client."
+                )
+        if "client_type" in validated_data and validated_data["client_type"] != instance.client_type:
+            if not self._is_manager_or_owner():
+                raise PermissionDenied(
+                    "Seul un manager ou le propriétaire peut modifier le type d'un client."
                 )
         return super().update(instance, validated_data)
 
