@@ -70,7 +70,7 @@ def parse_pointure_range_with_meta(val: str, default_sizes: list[int]) -> tuple[
     if not val:
         return default_sizes, "missing"
 
-    match = re.search(r'(\d{2})[/\-\s]+(\d{2})', val)
+    match = re.search(r'(\d{2})(?:[/\-\s]+|\s*(?:à|a|au|to)\s*)(\d{2})', val, re.IGNORECASE)
     if match:
         start = int(match.group(1))
         end = int(match.group(2))

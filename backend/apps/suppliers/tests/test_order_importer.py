@@ -75,6 +75,15 @@ class TestOrderImporter:
         assert parse_decimal_value("1,250.50") == Decimal("1250.50")
         assert parse_decimal_value("3500.00") == Decimal("3500.00")
 
+        # Currency suffixes without word boundaries
+        assert parse_decimal_value("1200DA") == Decimal("1200.00")
+        assert parse_decimal_value("1200dzd") == Decimal("1200.00")
+
+        # Thousands separator without cents
+        assert parse_decimal_value("2.450") == Decimal("2450.00")
+        assert parse_decimal_value("1,250") == Decimal("1250.00")
+        assert parse_decimal_value("12.500") == Decimal("12500.00")
+
         # Arabic text with currency
         assert parse_decimal_value("4500 دج") == Decimal("4500.00")
 
@@ -82,6 +91,63 @@ class TestOrderImporter:
         assert parse_decimal_value("") is None
         assert parse_decimal_value("N/A") is None
         assert parse_decimal_value(None) is None
+
+    def test_integer_parsing_and_ranges(self):
+        from apps.suppliers.services.order_importer import parse_integer_value
+        from apps.core.services.legacy_dbf import parse_pointure_range
+
+        # Float / decimal strings must yield their integral integer value, not multiplied by 10
+        assert parse_integer_value("12.0") == 12
+        assert parse_integer_value("12,0") == 12
+        assert parse_integer_value(12.0) == 12
+
+        # Non-integral decimal should not concatenate digits
+        assert parse_integer_value("38.5", default=0) == 0
+
+        # Ranges should not concatenate into one large integer
+        assert parse_integer_value("37 à 41", default=0) == 0
+        assert parse_integer_value("37-41", default=0) == 0
+
+        # parse_pointure_range should support 'à', 'a', 'au'
+        assert parse_pointure_range("37 à 41", []) == [37, 38, 39, 40, 41]
+        assert parse_pointure_range("37 a 41", []) == [37, 38, 39, 40, 41]
+        assert parse_pointure_range("37 au 41", []) == [37, 38, 39, 40, 41]
+
+    def test_price_warning_and_reconciliation(self):
+        headers = ["Référence", "Désignation", "Pointure", "Quantité", "Prix Achat"]
+        data_rows = [
+            ["REF-VALID", "Chaussure Valid", "42", "5", "2500 DA"],
+            ["REF-INVALID", "Chaussure Sans Prix", "40", "3", "SUR DEMANDE"],
+        ]
+        column_map = {
+            "Référence": "reference",
+            "Désignation": "description",
+            "Pointure": "size",
+            "Quantité": "quantity",
+            "Prix Achat": "unit_price",
+        }
+
+        expanded = expand_imported_order_lines(
+            headers=headers,
+            data_rows=data_rows,
+            column_map=column_map,
+            size_mode="single",
+            tenant=self.tenant,
+        )
+
+        assert len(expanded) == 2
+        assert expanded[0]["unit_price"] == Decimal("2500.00")
+        assert expanded[0]["price_warning"] is False
+
+        assert expanded[1]["unit_price"] == Decimal("0.00")
+        assert expanded[1]["price_warning"] is True
+
+        matched_lines, summary = reconcile_with_catalog(expanded, tenant=self.tenant)
+        assert len(matched_lines) == 2
+        assert matched_lines[0]["match_status"] == "new_product"
+        assert summary["price_warnings_count"] == 1
+        assert summary["total_pairs"] == 8
+        assert summary["total_estimated_amount"] == Decimal("12500.00")
 
     # ── 2. Arabic CP1256 CSV Import ───────────────────────────────────────────
 
@@ -170,6 +236,38 @@ class TestOrderImporter:
         assert len(lines) == 2
         assert lines[0]["unit_price"] == Decimal("1850.50")
         assert lines[1]["unit_price"] == Decimal("2400.00")
+
+    def test_french_cp1252_csv_import(self):
+        csv_text = (
+            "RÉFÉRENCE;DÉSIGNATION;POINTURE;QUANTITÉ;PRIX ACHAT;COULEUR\n"
+            "MOD-FR-01;Mocassin Cuir;41;12;2.450;Noir\n"
+            "MOD-FR-02;Bottine Daim;42;8;3.800 DA;Marron\n"
+        )
+        raw_bytes = csv_text.encode("cp1252")
+
+        decoded, enc = detect_encoding_and_decode(raw_bytes)
+        assert enc == "cp1252"
+        assert "RÉFÉRENCE" in decoded
+        assert "DÉSIGNATION" in decoded
+        assert "ة" not in decoded  # Must not corrupt into Arabic teh marbuta
+
+        raw_rows, _, delimiter, err = parse_supplier_order_file(raw_bytes, "commande_fr.csv")
+        assert err is None
+        assert delimiter == ";"
+        header_idx, headers, data_rows = detect_header_row_and_headers(raw_rows)
+        assert any("RÉFÉRENCE" in h.upper() for h in headers)
+
+        auto_map, _, _ = auto_map_headers(headers)
+        lines = expand_imported_order_lines(
+            headers=headers,
+            data_rows=data_rows,
+            column_map={h: auto_map[h] for h in headers if auto_map.get(h)},
+            size_mode="single",
+            tenant=self.tenant,
+        )
+        assert len(lines) == 2
+        assert lines[0]["unit_price"] == Decimal("2450.00")
+        assert lines[1]["unit_price"] == Decimal("3800.00")
 
     # ── 4. English Excel Matrix/Pivot Sheet Transposition ──────────────────────
 

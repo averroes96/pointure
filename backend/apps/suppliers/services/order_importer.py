@@ -107,21 +107,28 @@ def normalize_text(val: Any) -> str:
 def parse_decimal_value(val: Any) -> Optional[Decimal]:
     """
     Parses numeric/currency values supporting French comma decimals ('1 250,50' / '1250,50'),
-    dot decimals ('1250.50' / '1,250.50'), and stripping currency suffixes ('DA', 'DZD', '€', etc.).
+    dot decimals ('1250.50' / '1,250.50'), thousand separators ('2.450' / '1,250'),
+    and stripping currency suffixes ('DA', 'DZD', '€', etc.).
     """
     if val is None:
         return None
+    if isinstance(val, (int, float, Decimal)):
+        try:
+            return Decimal(str(val)).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            return None
+
     s = str(val).strip()
     if not s:
         return None
 
-    # Strip currency suffixes, symbols, non-breaking spaces
-    s = re.sub(r"(?i)\b(da|dzd|eur|usd|dinar|dinars)\b", "", s)
-    s = re.sub(r"[دج\$€£\s\xa0]", "", s)
+    # Strip currency suffixes and symbols without requiring word boundary
+    s = re.sub(r"(?i)(da|dzd|eur|usd|dinar|dinars)", "", s)
+    s = re.sub(r"[دج\$€£\s\xa0]", "", s).strip()
     if not s:
         return None
 
-    # Determine decimal point
+    # Determine decimal point vs thousands grouping
     if "." in s and "," in s:
         if s.rfind(",") > s.rfind("."):
             # French style: 1.250,50 -> 1250.50
@@ -129,6 +136,9 @@ def parse_decimal_value(val: Any) -> Optional[Decimal]:
         else:
             # English style: 1,250.50 -> 1250.50
             s = s.replace(",", "")
+    elif re.match(r"^\d{1,3}([.,]\d{3})+$", s):
+        # Thousand grouping without decimals: "2.450", "1,250", "12.000", "1.250.000"
+        s = re.sub(r"[.,]", "", s)
     elif "," in s:
         # e.g. 1250,50 -> 1250.50
         s = s.replace(",", ".")
@@ -151,12 +161,36 @@ def parse_integer_value(val: Any, default: int = 0) -> int:
 
     if val is None:
         return safe_default
-    try:
-        if isinstance(val, (int, float)):
+
+    if isinstance(val, int):
+        return val
+
+    if isinstance(val, float):
+        if val.is_integer():
             return int(val)
-        cleaned = re.sub(r"[^\d\-]", "", str(val).strip())
-        return int(cleaned) if cleaned else safe_default
+        return safe_default
+
+    s = str(val).strip()
+    if not s:
+        return safe_default
+
+    # Strip simple unit suffixes
+    s_clean = re.sub(r"(?i)\b(paires?|pairs?|cartons?|ctns?|pcs|u)\b", "", s).strip()
+
+    # Try direct int conversion first
+    try:
+        return int(s_clean)
     except (ValueError, TypeError):
+        pass
+
+    # Try decimal/float representation like "12.0" or "12,00"
+    try:
+        s_norm = s_clean.replace(",", ".")
+        dec = Decimal(s_norm)
+        if dec == dec.to_integral_value():
+            return int(dec)
+        return safe_default
+    except (InvalidOperation, ValueError, TypeError):
         return safe_default
 
 
@@ -167,20 +201,55 @@ def parse_integer_value(val: Any, default: int = 0) -> int:
 def detect_encoding_and_decode(raw_bytes: bytes) -> Tuple[str, str]:
     """
     Detect encoding and decode raw bytes to text.
-    Probes utf-8-sig, utf-8, cp1256 (Arabic Windows Excel), cp1252 / iso-8859-1 (French Windows Excel).
-    Falls back to charset_normalizer.
+    Probes utf-8-sig, utf-8 first.
+    For single-byte encodings (cp1252 French vs cp1256 Arabic), scores candidate
+    decodings based on presence of Arabic script words vs isolated mojibake letters
+    in Latin text. Falls back to charset_normalizer and latin-1.
     Returns (decoded_text, detected_encoding).
     """
-    # 1. Probe common encodings in order
-    for enc in ["utf-8-sig", "utf-8", "cp1256", "cp1252", "iso-8859-1"]:
+    # 1. Probe clean UTF-8
+    for enc in ["utf-8-sig", "utf-8"]:
         try:
             text = raw_bytes.decode(enc)
-            # Verify if decode looks valid (e.g. no excess replacement chars)
             return text, enc
         except (UnicodeDecodeError, LookupError):
             continue
 
-    # 2. Fallback to charset_normalizer
+    # 2. Score candidate single-byte encodings: cp1252 vs cp1256
+    text_1252 = None
+    try:
+        text_1252 = raw_bytes.decode("cp1252")
+    except (UnicodeDecodeError, LookupError):
+        pass
+
+    text_1256 = None
+    try:
+        text_1256 = raw_bytes.decode("cp1256")
+    except (UnicodeDecodeError, LookupError):
+        pass
+
+    if text_1252 is not None and text_1256 is not None:
+        # Check for genuine Arabic words (2 or more consecutive Arabic letters)
+        arabic_words_1256 = len(re.findall(r"[\u0600-\u06FF]{2,}", text_1256))
+        # Check for mojibake: Arabic character isolated adjacent to Latin letters (e.g. RةFةRENCE)
+        mixed_mojibake_1256 = len(re.findall(r"[A-Za-z][\u0600-\u06FF]|[\u0600-\u06FF][A-Za-z]", text_1256))
+        # Check French accented letters in cp1252
+        french_accents_1252 = len(re.findall(r"[éèêëàâîïôùûçÉÈÊËÀÂÎÏÔÙÛÇœæ]", text_1252))
+
+        if arabic_words_1256 > 0 and mixed_mojibake_1256 == 0:
+            return text_1256, "cp1256"
+        if french_accents_1252 > 0 or mixed_mojibake_1256 > 0:
+            return text_1252, "cp1252"
+        if arabic_words_1256 > french_accents_1252:
+            return text_1256, "cp1256"
+        return text_1252, "cp1252"
+
+    if text_1252 is not None:
+        return text_1252, "cp1252"
+    if text_1256 is not None:
+        return text_1256, "cp1256"
+
+    # 3. Fallback to charset_normalizer
     match = charset_normalizer.from_bytes(raw_bytes).best()
     if match and match.encoding:
         try:
@@ -188,7 +257,7 @@ def detect_encoding_and_decode(raw_bytes: bytes) -> Tuple[str, str]:
         except Exception:
             pass
 
-    # 3. Last-ditch Latin-1 fallback (never fails decoding)
+    # 4. Last-ditch Latin-1 fallback (never fails decoding)
     return raw_bytes.decode("latin-1", errors="replace"), "latin-1"
 
 
@@ -473,7 +542,9 @@ def expand_imported_order_lines(
         location = get_val(row, "location")
 
         price_raw = get_val(row, "unit_price")
-        unit_price = parse_decimal_value(price_raw) or Decimal("0.00")
+        parsed_price = parse_decimal_value(price_raw)
+        unit_price = parsed_price if parsed_price is not None else Decimal("0.00")
+        has_price_warning = bool(price_raw and str(price_raw).strip() and parsed_price is None)
 
         cartons_raw = parse_integer_value(get_val(row, "cartons"), default=0)
         ppc_val = parse_integer_value(get_val(row, "pairs_per_carton"), default=ppc_default)
@@ -508,6 +579,7 @@ def expand_imported_order_lines(
                     "cartons": cartons_raw,
                     "pairs_per_carton": ppc_val,
                     "unit_price": unit_price,
+                    "price_warning": has_price_warning,
                 })
 
         # ── RANGE MODE: Plages de pointures (ex: 37-41) ──────────────────────
@@ -539,6 +611,7 @@ def expand_imported_order_lines(
                                 "cartons": cartons_raw,
                                 "pairs_per_carton": ppc_val,
                                 "unit_price": unit_price,
+                                "price_warning": has_price_warning,
                             })
                 else:
                     # Distribute total pairs across sizes
@@ -563,6 +636,7 @@ def expand_imported_order_lines(
                             "cartons": cartons_raw,
                             "pairs_per_carton": ppc_val,
                             "unit_price": unit_price,
+                            "price_warning": has_price_warning,
                         })
             else:
                 # Single size or empty
@@ -581,6 +655,7 @@ def expand_imported_order_lines(
                     "cartons": cartons_raw,
                     "pairs_per_carton": ppc_val,
                     "unit_price": unit_price,
+                    "price_warning": has_price_warning,
                 })
 
         # ── SINGLE MODE: 1 row = 1 size/variant ──────────────────────────────
@@ -603,6 +678,7 @@ def expand_imported_order_lines(
                 "cartons": cartons_raw,
                 "pairs_per_carton": ppc_val,
                 "unit_price": unit_price,
+                "price_warning": has_price_warning,
             })
 
     return expanded_lines
@@ -632,6 +708,7 @@ def reconcile_with_catalog(
             "matched_count": 0,
             "missing_variants_count": 0,
             "new_products_count": 0,
+            "price_warnings_count": 0,
         }
 
     # Fetch existing products in tenant
@@ -699,17 +776,20 @@ def reconcile_with_catalog(
             if ref:
                 seen_new_products.add(ref.lower())
 
+        matched_lines.append(line_result)
+
     summary = {
-        "total_lines": len(lines),
+        "total_lines": len(matched_lines),
         "total_cartons": total_cartons,
         "total_pairs": total_pairs,
         "total_estimated_amount": total_estimated_amount,
         "matched_count": matched_count,
         "missing_variants_count": missing_variants_count,
         "new_products_count": len(seen_new_products) if seen_new_products else new_products_count,
+        "price_warnings_count": sum(1 for l in matched_lines if l.get("price_warning")),
     }
 
-    return lines, summary
+    return matched_lines, summary
 
 
 # ─────────────────────────────────────────────────────────────────────────────
