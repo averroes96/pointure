@@ -174,13 +174,15 @@ class Invoice(TenantScopedModel):
             
         self.total_ttc = base_ttc + self.timbre_fiscal
 
-    def confirm(self, user=None):
+    def confirm(self, user=None, force=False):
         """Assign invoice number and set status based on payments."""
         if self.status == InvoiceStatusChoices.DRAFT:
             with transaction.atomic():
                 if self.date:
                     from apps.closing.services.lock import assert_period_open
                     assert_period_open(self.tenant, self.date)
+                from apps.invoicing.services.credit_check import assert_client_can_take_credit
+                assert_client_can_take_credit(self.client, self.total_ttc, user=user, force=force, is_drf=False)
                 self.number = InvoiceCounter.next_number(self.tenant, self.series_prefix, date=self.date)
                 self.status = InvoiceStatusChoices.SENT
                 self.save(update_fields=["number", "status"])
@@ -631,7 +633,7 @@ class Quote(TenantScopedModel):
             quote.save(update_fields=["status"])
             self.status = quote.status
 
-    def convert_to_invoice(self, user=None, target_date=None):
+    def convert_to_invoice(self, user=None, target_date=None, force=False):
         if not self.pk:
             raise ValueError(_("Le devis doit être enregistré avant d'être converti."))
 
@@ -649,9 +651,8 @@ class Quote(TenantScopedModel):
             if quote.converted_invoice:
                 raise ValueError(_("Ce devis a déjà été converti en facture."))
 
-            if quote.client and quote.client.is_blocked:
-                from django.core.exceptions import ValidationError
-                raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
+            from apps.invoicing.services.credit_check import assert_client_can_take_credit
+            assert_client_can_take_credit(quote.client, quote.total_ttc, user=user, force=force, is_drf=False)
 
             invoice = Invoice.objects.create(
                 tenant=quote.tenant,
@@ -698,7 +699,7 @@ class Quote(TenantScopedModel):
 
         return invoice
 
-    def convert_to_delivery_note(self, user=None, target_date=None):
+    def convert_to_delivery_note(self, user=None, target_date=None, force=False):
         if not self.pk:
             raise ValueError(_("Le devis doit être enregistré avant d'être converti."))
 
@@ -714,6 +715,9 @@ class Quote(TenantScopedModel):
                 raise ValueError(_("Un devis annulé ne peut pas être converti."))
             if quote.converted_delivery_note:
                 raise ValueError(_("Ce devis a déjà été converti en bon de livraison."))
+
+            from apps.invoicing.services.credit_check import assert_client_can_take_credit
+            assert_client_can_take_credit(quote.client, quote.total_ttc, user=user, force=force, is_drf=False)
 
             bl_number = InvoiceCounter.next_number(quote.tenant, "BL", date=dn_date)
             dn = DeliveryNote.objects.create(
