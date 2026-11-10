@@ -242,3 +242,38 @@ class TestTaxRegimeAndCompanyIdentity:
         )
         dn_bytes = render_delivery_note_pdf(dn)
         assert "NIS: 001616090001234" in dn_bytes.decode("utf-8")
+
+    def test_ifu_store_shows_tva_when_invoice_has_tva(self, monkeypatch):
+        """Even if store_settings.tax_regime == 'ifu', an invoice with apply_tva=True and tva_amount > 0 shows TVA."""
+        def mock_render_to_pdf(template_name, context, language="fr"):
+            from django.template.loader import render_to_string
+            return render_to_string(template_name, context).encode("utf-8")
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_to_pdf", mock_render_to_pdf)
+
+        self.settings.tax_regime = "ifu"
+        self.settings.save()
+
+        invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            apply_tva=True,
+            tva_rate=Decimal("19.00"),
+            created_by=self.owner,
+            is_formal=True,
+        )
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            description="Chaussure Test Avec TVA",
+            quantity=1,
+            unit_price=Decimal("10000.00"),
+        )
+        invoice.compute_totals()
+        invoice.save()
+
+        pdf_bytes = render_invoice_pdf(invoice)
+        html_str = pdf_bytes.decode("utf-8")
+
+        assert "TVA (19" in html_str
+        assert "1900" in html_str
