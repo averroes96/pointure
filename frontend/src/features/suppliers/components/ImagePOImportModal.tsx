@@ -85,7 +85,7 @@ export function ImagePOImportModal({
     if (!isOpen) return;
     let active = true;
     api
-      .get("/suppliers/suppliers/?page_size=200")
+      .get("/suppliers/?page_size=200")
       .then((res) => {
         if (!active) return;
         const list = res.data?.results ?? res.data ?? [];
