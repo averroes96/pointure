@@ -461,6 +461,12 @@ class DeliveryNoteLine(models.Model):
     class Meta:
         ordering = ["order", "pk"]
 
+    @property
+    def line_total(self):
+        subtotal = self.unit_price * self.quantity
+        discount = subtotal * self.discount_pct / 100
+        return subtotal - discount
+
     def __str__(self):
         return f"{self.description} × {self.quantity}"
 

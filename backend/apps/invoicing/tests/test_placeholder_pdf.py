@@ -159,3 +159,34 @@ class TestPlaceholderPDFPrevention:
         assert bool(dn.pdf_file) is True
         dn.pdf_file.open("rb")
         assert dn.pdf_file.read() == real_pdf_bytes
+
+    def test_delivery_note_without_invoice_renders_lines(self, monkeypatch):
+        """A standalone delivery note (or one from a quote without an invoice) renders its lines."""
+        def mock_render(template_name, context, language="fr"):
+            from django.template.loader import render_to_string
+            return render_to_string(template_name, context).encode("utf-8")
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_to_pdf", mock_render)
+
+        dn = DeliveryNote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            number="BL-2026-9999",
+            date=datetime.date.today(),
+        )
+        from apps.invoicing.models import DeliveryNoteLine
+        DeliveryNoteLine.objects.create(
+            delivery_note=dn,
+            description="Mocassin Cuir Standalone 42",
+            quantity=Decimal("15.00"),
+            cartons=2,
+            unit_price=Decimal("2500.00"),
+        )
+
+        from apps.invoicing.pdf import render_delivery_note_pdf
+        pdf_bytes = render_delivery_note_pdf(dn)
+        html_content = pdf_bytes.decode("utf-8")
+
+        assert "Mocassin Cuir Standalone 42" in html_content
+        assert "15" in html_content
+        assert self.client.name in html_content

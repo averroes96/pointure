@@ -65,13 +65,19 @@ def group_lines_by_product(lines):
         
         qty = getattr(line, "quantity", getattr(line, "quantity_ordered", 0))
         groups[key]["quantity"] += qty
-        groups[key]["total_price"] += line.line_total
+        line_total = getattr(line, "line_total", None)
+        if line_total is None:
+            unit_p = getattr(line, "unit_price", getattr(line, "agreed_unit_price", 0))
+            disc = getattr(line, "discount_pct", 0)
+            subtotal = unit_p * qty
+            line_total = subtotal - (subtotal * disc / 100)
+        groups[key]["total_price"] += line_total
         
         c = getattr(line, "cartons", 0)
         ppc = getattr(line, "pairs_per_carton", 0)
         if c > groups[key]["cartons"]:
             groups[key]["cartons"] = c
-        if ppc > getattr(groups[key], "pairs_per_carton", 0) or "pairs_per_carton" not in groups[key]:
+        if ppc > groups[key].get("pairs_per_carton", 0) or "pairs_per_carton" not in groups[key]:
             groups[key]["pairs_per_carton"] = ppc
 
         if getattr(line, "variant", None) and line.variant.size_eu:
@@ -116,14 +122,19 @@ def render_quote_pdf(quote, language: str = "fr") -> bytes:
 
 
 def render_delivery_note_pdf(delivery_note, language: str = "fr") -> bytes:
-    lines = list(delivery_note.invoice.lines.select_related("variant__product")) if delivery_note.invoice else []
+    if delivery_note.invoice:
+        lines = list(delivery_note.invoice.lines.select_related("variant__product"))
+    else:
+        lines = list(delivery_note.lines.select_related("variant__product"))
     tenant = delivery_note.invoice.tenant if delivery_note.invoice else delivery_note.tenant
+    client = delivery_note.client or (delivery_note.invoice.client if delivery_note.invoice else None)
     from apps.core.models import StoreSettings
     store_settings = StoreSettings.objects.filter(tenant=tenant).first()
     context = {
         "dn": delivery_note,
         "invoice": delivery_note.invoice,
         "tenant": tenant,
+        "client": client,
         "grouped_lines": group_lines_by_product(lines),
         "store_settings": store_settings,
     }
