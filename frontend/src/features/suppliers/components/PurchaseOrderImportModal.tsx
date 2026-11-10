@@ -244,6 +244,11 @@ export function PurchaseOrderImportModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setErrorMsg(t("suppliers.file_size_limit_exceeded", "Le fichier dépasse la taille maximale autorisée de 10 Mo."));
+        e.target.value = "";
+        return;
+      }
       setSelectedFile(file);
       setErrorMsg(null);
     }

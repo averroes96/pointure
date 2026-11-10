@@ -573,5 +573,57 @@ class TestOrderImporter:
         assert resolved_41 is not None
         assert resolved_41.size_eu == 41
 
+    def test_import_preview_rejects_oversized_file(self):
+        self.client.force_authenticate(user=self.owner)
+        oversized_bytes = b"Reference;Pointure;Quantite;Prix\n" + (b"ART-01;40;10;2500\n" * 600000)
+        upload = SimpleUploadedFile("big.csv", oversized_bytes, content_type="text/csv")
+
+        resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-preview/",
+            {"file": upload},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert resp.data["error"]["code"] in ("file_too_large", "import_limit_exceeded")
+
+    def test_import_preview_rejects_over_5000_rows(self):
+        self.client.force_authenticate(user=self.owner)
+        # Create CSV with header + 5,005 rows
+        csv_lines = ["Reference;Pointure;Quantite;Prix"]
+        for i in range(5005):
+            csv_lines.append(f"ART-{i};40;10;2500")
+        csv_bytes = "\n".join(csv_lines).encode("utf-8")
+        upload = SimpleUploadedFile("many_rows.csv", csv_bytes, content_type="text/csv")
+
+        resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-preview/",
+            {"file": upload},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert resp.data["error"]["code"] in ("too_many_rows", "import_limit_exceeded")
+
+    def test_parse_csv_and_xlsx_row_and_size_limits(self):
+        from apps.suppliers.services.order_importer import parse_csv_file, parse_xlsx_file
+
+        # 1. parse_csv_file oversized
+        huge_bytes = b"X" * (11 * 1024 * 1024)
+        rows, enc, delim, err = parse_csv_file(huge_bytes)
+        assert len(rows) == 0
+        assert "10 Mo" in str(err)
+
+        # 2. parse_csv_file too many rows
+        lines = ["Ref,Qty"] + [f"Item{i},1" for i in range(5005)]
+        csv_bytes = "\n".join(lines).encode("utf-8")
+        rows, enc, delim, err = parse_csv_file(csv_bytes)
+        assert len(rows) == 0
+        assert "5000" in str(err)
+
+        # 3. parse_xlsx_file oversized
+        rows, err = parse_xlsx_file(huge_bytes)
+        assert len(rows) == 0
+        assert "10 Mo" in str(err)
+
+
 
 

@@ -202,6 +202,10 @@ export function ImagePOImportModal({
   }, [catalogProducts, bindSearchQuery]);
 
   const handleUploadFile = (file: File) => {
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMsg(t("scanner.file_size_limit_exceeded", "L'image dépasse la taille maximale autorisée de 15 Mo."));
+      return;
+    }
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     scanMutation.mutate(file);

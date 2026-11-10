@@ -2847,10 +2847,14 @@
     "po_reference_label": "Order / Slip Ref.",
     "quick_create_products": "Automatically create new catalog products and variants",
     "error_missing_supplier": "Please select a supplier.",
-    "error_no_lines": "No lines to import."
+    "error_no_lines": "No lines to import.",
+    "file_size_limit_exceeded": "The file exceeds the maximum allowed size of 10 MB.",
+    "row_limit_exceeded": "The file exceeds the maximum limit of 5,000 rows."
   },
   "scanner": {
     "btn_scan_photo": "Scan photo / slip",
+    "file_size_limit_exceeded": "The image exceeds the maximum allowed size of 15 MB.",
+    "image_dimensions_too_large": "The image dimensions exceed the maximum allowed limit of 25 megapixels.",
     "po_modal_title": "Scan Supplier Slip (Offline Photo / Image)",
     "po_modal_subtitle": "Automatic extraction of references, size runs (e.g. 37-41), cartons (12c/20p), and unit prices",
     "upload_image": "Upload an image / photo",

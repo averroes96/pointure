@@ -120,6 +120,20 @@ class DocumentScanEngine:
             return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
 
         if isinstance(image_input, (bytes, bytearray)):
+            Image = get_pil_image()
+            # Inspect header to guard against memory exhaustion from oversized dimensions
+            try:
+                with Image.open(io.BytesIO(image_input)) as probe:
+                    w, h = probe.size
+                    if w * h > 25_000_000 or w > 8000 or h > 8000:
+                        raise ValueError(
+                            f"Image dimensions ({w}x{h} = {w*h} pixels) exceed maximum allowed 25 Megapixels."
+                        )
+            except ValueError:
+                raise
+            except Exception:
+                pass
+
             nparr = np.frombuffer(image_input, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if img is not None:

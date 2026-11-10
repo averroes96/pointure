@@ -516,11 +516,19 @@ def detect_header_row_and_headers(raw_rows: List[List[Any]]) -> Tuple[int, List[
 # File Parsers (CSV & Excel)
 # ─────────────────────────────────────────────────────────────────────────────
 
+MAX_DATA_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_IMPORT_ROWS = 5000                 # 5,000 rows
+
+
 def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optional[str]]:
     """
     Parses CSV bytes with auto-encoding and delimiter detection.
+    Enforces maximum file size (10 MB) and row limit (5,000 rows).
     Returns (raw_rows_grid, encoding, delimiter, error_message).
     """
+    if len(raw_bytes) > MAX_DATA_FILE_SIZE:
+        return [], "utf-8", ";", _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     decoded_text, encoding = detect_encoding_and_decode(raw_bytes)
     if not decoded_text.strip():
         return [], encoding, ";", _("Le fichier CSV est vide.")
@@ -529,10 +537,13 @@ def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optiona
 
     try:
         reader = csv.reader(io.StringIO(decoded_text), delimiter=delimiter)
-        raw_rows = [[str(cell or "").strip() for cell in row] for row in reader]
-        # Filter completely empty rows
-        filtered_rows = [r for r in raw_rows if any(cell for cell in r)]
-        return filtered_rows, encoding, delimiter, None
+        raw_rows = []
+        for row in reader:
+            if any(cell and str(cell).strip() for cell in row):
+                raw_rows.append([str(cell or "").strip() for cell in row])
+                if len(raw_rows) > MAX_IMPORT_ROWS:
+                    return [], encoding, delimiter, _("Le fichier dépasse la limite maximale de 5000 lignes.")
+        return raw_rows, encoding, delimiter, None
     except Exception as exc:
         return [], encoding, delimiter, f"{_('Erreur de lecture CSV')}: {exc}"
 
@@ -540,8 +551,12 @@ def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optiona
 def parse_xlsx_file(raw_bytes: bytes) -> Tuple[List[List[str]], Optional[str]]:
     """
     Parses Excel XLSX bytes.
+    Enforces maximum file size (10 MB) and row limit (5,000 rows).
     Returns (raw_rows_grid, error_message).
     """
+    if len(raw_bytes) > MAX_DATA_FILE_SIZE:
+        return [], _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     try:
         wb = openpyxl.load_workbook(io.BytesIO(raw_bytes), data_only=True, read_only=True)
         ws = wb.active
@@ -553,6 +568,8 @@ def parse_xlsx_file(raw_bytes: bytes) -> Tuple[List[List[str]], Optional[str]]:
             if not row or not any(v is not None and str(v).strip() for v in row):
                 continue
             raw_rows.append([str(v or "").strip() if v is not None else "" for v in row])
+            if len(raw_rows) > MAX_IMPORT_ROWS:
+                return [], _("Le classeur Excel dépasse la limite maximale de 5000 lignes.")
 
         if not raw_rows:
             return [], _("Le fichier Excel est vide.")

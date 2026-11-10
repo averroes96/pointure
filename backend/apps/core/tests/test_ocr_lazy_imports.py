@@ -50,8 +50,11 @@ class TestOCRLazyImports:
 
     def test_scan_image_returns_503_when_ocr_dependency_missing(self):
         """When numpy or cv2 is missing, calling scan-image returns 503 Service Unavailable."""
+        from PIL import Image
         url = "/api/v1/suppliers/purchase-orders/scan-image/"
-        fake_file = SimpleUploadedFile("bon.png", b"\x89PNG\r\n\x1a\nfakebytes", content_type="image/png")
+        buf = io.BytesIO()
+        Image.new("RGB", (100, 100), color="white").save(buf, format="PNG")
+        fake_file = SimpleUploadedFile("bon.png", buf.getvalue(), content_type="image/png")
 
         with patch("apps.core.services.ocr.engine.get_numpy", side_effect=ImportError("NumPy missing")):
             resp = self.client.post(url, {"file": fake_file}, format="multipart")
