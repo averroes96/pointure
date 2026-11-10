@@ -498,4 +498,80 @@ class TestOrderImporter:
             assert isinstance(lines[0]["pairs_per_carton"], int)
             assert lines[0]["pairs_per_carton"] > 0
 
+    def test_detect_size_matrix_column_ignores_tva_and_remise(self):
+        # Tax, discount, totals, or non-size columns must NEVER be identified as sizes
+        assert detect_size_matrix_column("TVA 19") is None
+        assert detect_size_matrix_column("TVA 19%") is None
+        assert detect_size_matrix_column("TVA 19 %") is None
+        assert detect_size_matrix_column("Remise 20%") is None
+        assert detect_size_matrix_column("Remise 20 %") is None
+        assert detect_size_matrix_column("Discount 15%") is None
+        assert detect_size_matrix_column("Article 42") is None
+        assert detect_size_matrix_column("Prix 38") is None
+        assert detect_size_matrix_column("Total 40") is None
+
+        # Exact and prefixed sizes must match
+        assert detect_size_matrix_column("38") == 38
+        assert detect_size_matrix_column("38.0") == 38
+        assert detect_size_matrix_column("38,0") == 38
+        assert detect_size_matrix_column("P38") == 38
+        assert detect_size_matrix_column("P.40") == 40
+        assert detect_size_matrix_column("T42") == 42
+        assert detect_size_matrix_column("T.42") == 42
+        assert detect_size_matrix_column("Pointure 39") == 39
+        assert detect_size_matrix_column("Size 41") == 41
+        assert detect_size_matrix_column("42 EU") == 42
+        assert detect_size_matrix_column("42 eu") == 42
+        assert detect_size_matrix_column("مقاس 38") == 38
+        assert detect_size_matrix_column("قياس 40") == 40
+
+    def test_auto_map_headers_prix_total_vs_pu_ht(self):
+        # Ensure 'Prix Total' is excluded from unit_price and does not steal mapping from 'PU HT'
+        headers = ["Référence", "Désignation", "Prix Total", "PU HT", "Qté"]
+        auto_map, size_cols, mode = auto_map_headers(headers)
+
+        assert auto_map.get("PU HT") == "unit_price"
+        assert auto_map.get("Prix Total") is None
+        assert auto_map.get("Référence") == "reference"
+        assert auto_map.get("Désignation") == "description"
+        assert auto_map.get("Qté") == "quantity"
+
+    def test_auto_map_headers_designation_article_and_code_couleur(self):
+        # Compound headers should map to their specific target, not steal reference
+        headers = ["Désignation article", "Code couleur", "Référence", "P.U."]
+        auto_map, _, _ = auto_map_headers(headers)
+
+        assert auto_map.get("Désignation article") == "description"
+        assert auto_map.get("Code couleur") == "colour"
+        assert auto_map.get("Référence") == "reference"
+        assert auto_map.get("P.U.") == "unit_price"
+
+    def test_resolve_variant_no_arbitrary_fallback(self):
+        from apps.suppliers.views import _resolve_variant
+
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Basket Falcon",
+            reference="FALCON-01",
+            purchase_price=Decimal("4000.00"),
+        )
+        # Sized variants
+        var40 = Variant.objects.create(tenant=self.tenant, product=product, size_eu=40, colour="Noir")
+        var42 = Variant.objects.create(tenant=self.tenant, product=product, size_eu=42, colour="Noir")
+
+        # Resolving size 0 for a sized product MUST NOT fall back to arbitrary variant (e.g. var40)
+        resolved_invalid = _resolve_variant(self.tenant, product, size_eu=0, colour="Noir")
+        assert resolved_invalid is None
+
+        # Resolving an existing valid size returns the exact variant
+        resolved_40 = _resolve_variant(self.tenant, product, size_eu=40, colour="Noir")
+        assert resolved_40 is not None
+        assert resolved_40.id == var40.id
+
+        # Resolving a new valid size creates that specific variant
+        resolved_41 = _resolve_variant(self.tenant, product, size_eu=41, colour="Noir")
+        assert resolved_41 is not None
+        assert resolved_41.size_eu == 41
+
+
 

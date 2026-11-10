@@ -124,21 +124,34 @@ def _resolve_product(tenant, nv: dict, branch=None):
 
 
 def _resolve_variant(tenant, product, size_eu: int, colour: str):
-    """Find an existing variant or create it."""
+    """
+    Find an existing variant or create it.
+    Never falls back to an arbitrary sized variant when size is invalid (size_eu <= 0)
+    for a product that has sized variants.
+    """
     from apps.inventory.models import Variant
 
+    has_sized_variants = product.variants.filter(size_eu__gt=0).exists()
+
     if not size_eu or int(size_eu) <= 0:
+        # If product has sized variants, a missing or invalid size must never
+        # arbitrarily resolve to a sized variant.
+        if has_sized_variants:
+            existing_zero = Variant.objects.filter(product=product, size_eu=0).first()
+            if existing_zero:
+                return existing_zero
+            return None
+
         size_eu = 0
         colour_clean = (colour or "").strip()
         if not colour_clean or colour_clean in ("N/A", "Standard"):
             colour_clean = "Standard"
-            existing = (
-                Variant.objects.filter(product=product, size_eu=0).first()
-                or Variant.objects.filter(product=product, is_active=True).first()
-            )
+            existing = Variant.objects.filter(product=product, size_eu=0).first()
             if existing:
                 return existing
-        colour = colour_clean
+        colour = colour_clean or "Standard"
+    else:
+        colour = (colour or "Standard").strip() or "Standard"
 
     return (
         Variant.objects.filter(product=product, size_eu=size_eu, colour=colour).first()
@@ -146,7 +159,7 @@ def _resolve_variant(tenant, product, size_eu: int, colour: str):
             product=product,
             tenant=tenant,
             size_eu=size_eu,
-            colour=colour or "Standard",
+            colour=colour,
             is_active=True,
         )
     )
