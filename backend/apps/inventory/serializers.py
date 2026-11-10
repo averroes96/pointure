@@ -112,12 +112,8 @@ class ProductSerializer(serializers.ModelSerializer):
         if carton_breakdown:
             if pairs_per_carton is None and self.instance:
                 pairs_per_carton = self.instance.pairs_per_carton
-            if pairs_per_carton is not None:
-                total_breakdown = sum(int(qty) for qty in carton_breakdown.values() if qty)
-                if total_breakdown > 0 and total_breakdown != int(pairs_per_carton):
-                    raise serializers.ValidationError({
-                        "carton_breakdown": f"La somme des paires par pointure ({total_breakdown}) doit être égale à pairs_per_carton ({pairs_per_carton})."
-                    })
+            from .validators import validate_carton_breakdown_dict
+            data["carton_breakdown"] = validate_carton_breakdown_dict(carton_breakdown, pairs_per_carton)
         return data
 
     def get_barcode(self, obj):
@@ -285,12 +281,8 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         if carton_breakdown:
             if pairs_per_carton is None and self.instance:
                 pairs_per_carton = self.instance.pairs_per_carton
-            if pairs_per_carton is not None:
-                total_breakdown = sum(int(qty) for qty in carton_breakdown.values() if qty)
-                if total_breakdown > 0 and total_breakdown != int(pairs_per_carton):
-                    raise serializers.ValidationError({
-                        "carton_breakdown": f"La somme des paires par pointure ({total_breakdown}) doit être égale à pairs_per_carton ({pairs_per_carton})."
-                    })
+            from .validators import validate_carton_breakdown_dict
+            data["carton_breakdown"] = validate_carton_breakdown_dict(carton_breakdown, pairs_per_carton)
         return data
 
 

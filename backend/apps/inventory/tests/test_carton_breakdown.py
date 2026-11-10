@@ -42,15 +42,16 @@ class TestCartonBreakdown:
         )
         assert product.carton_breakdown == {"40": 2, "41": 2, "42": 2}
 
-        # Invalid breakdown: 2 + 2 = 4 != 6 -> raises ValidationError on save
+        # Invalid breakdown: 2 + 2 = 4 != 6 -> raises ValidationError on clean()
+        p_invalid = Product(
+            tenant=self.tenant,
+            name="Derby Invalid",
+            sale_price=Decimal("4000.00"),
+            pairs_per_carton=6,
+            carton_breakdown={"40": 2, "41": 2},
+        )
         with pytest.raises(ValidationError):
-            Product.objects.create(
-                tenant=self.tenant,
-                name="Derby Invalid",
-                sale_price=Decimal("4000.00"),
-                pairs_per_carton=6,
-                carton_breakdown={"40": 2, "41": 2},
-            )
+            p_invalid.clean()
 
         # Serializer validation also rejects invalid breakdown
         serializer = ProductSerializer(
@@ -63,6 +64,31 @@ class TestCartonBreakdown:
         )
         assert not serializer.is_valid()
         assert "carton_breakdown" in serializer.errors
+
+    def test_carton_breakdown_rejects_negative_or_non_numeric_values(self):
+        # Negative value {"40": -2, "41": 12}
+        serializer = ProductSerializer(
+            data={
+                "name": "Sneaker Negative",
+                "sale_price": "5000.00",
+                "pairs_per_carton": 10,
+                "carton_breakdown": {"40": -2, "41": 12},
+            }
+        )
+        assert not serializer.is_valid()
+        assert "carton_breakdown" in serializer.errors
+
+        # Non-numeric value {"40": "abc"}
+        serializer2 = ProductSerializer(
+            data={
+                "name": "Sneaker String",
+                "sale_price": "5000.00",
+                "pairs_per_carton": 10,
+                "carton_breakdown": {"40": "abc"},
+            }
+        )
+        assert not serializer2.is_valid()
+        assert "carton_breakdown" in serializer2.errors
 
     def test_expand_cartons_endpoint(self):
         product = Product.objects.create(

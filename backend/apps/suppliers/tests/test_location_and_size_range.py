@@ -219,3 +219,48 @@ class TestLocationAndSizeRange:
         }
         res = self.client.post("/api/v1/suppliers/purchase-orders/", payload, format="json")
         assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_po_creation_with_existing_product_carton_breakdown_does_not_crash(self):
+        """Creating/receiving a PO for a product with existing carton_breakdown (12 pairs) does not crash or overwrite pairs_per_carton."""
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Basket 12 Paires",
+            reference="BSK-12P",
+            brand="SportWear",
+            pairs_per_carton=12,
+            carton_breakdown={"40": 2, "41": 2, "42": 2, "43": 2, "44": 2, "45": 2},
+            sale_price=Decimal("5000.00"),
+        )
+        self.client.force_authenticate(user=self.owner)
+        payload = {
+            "supplier": self.supplier.id,
+            "reference": "BC-CARTON-DIFF",
+            "branch": str(self.branch.id),
+            "receive_immediately": True,
+            "lines": [
+                {
+                    "description": "Basket 12 Paires",
+                    "quantity_ordered": 10,
+                    "agreed_unit_price": "3000.00",
+                    "cartons": 1,
+                    "pairs_per_carton": 10,
+                    "carton_sizes": [
+                        {
+                            "size_eu": 0,
+                            "quantity": 10,
+                            "new_variant": {
+                                "product_id": str(product.id),
+                                "product_name": "Basket 12 Paires",
+                                "reference": "BSK-12P",
+                                "pairs_per_carton": 10,
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+        res = self.client.post("/api/v1/suppliers/purchase-orders/", payload, format="json")
+        assert res.status_code == status.HTTP_201_CREATED, res.data
+        product.refresh_from_db()
+        assert product.pairs_per_carton == 12
+        assert product.carton_breakdown == {"40": 2, "41": 2, "42": 2, "43": 2, "44": 2, "45": 2}

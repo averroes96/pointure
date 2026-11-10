@@ -133,22 +133,14 @@ class Product(TenantScopedModel):
 
     def _validate_carton_breakdown(self):
         if self.carton_breakdown:
-            if not isinstance(self.carton_breakdown, dict):
-                raise ValidationError({"carton_breakdown": _("Le découpage par carton doit être un objet JSON.")})
-            total_pairs = sum(int(qty) for qty in self.carton_breakdown.values() if qty)
-            if total_pairs > 0 and self.pairs_per_carton and total_pairs != self.pairs_per_carton:
-                raise ValidationError({
-                    "carton_breakdown": _(
-                        f"La somme des paires par pointure ({total_pairs}) doit être égale au nombre de paires par carton ({self.pairs_per_carton})."
-                    )
-                })
+            from .validators import validate_carton_breakdown_dict
+            validate_carton_breakdown_dict(self.carton_breakdown, self.pairs_per_carton)
 
     def clean(self):
         super().clean()
         self._validate_carton_breakdown()
 
     def save(self, *args, **kwargs):
-        self._validate_carton_breakdown()
         try:
             pp = Decimal(str(self.purchase_price)) if self.purchase_price is not None else Decimal("0.00")
         except Exception:

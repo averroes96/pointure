@@ -82,8 +82,9 @@ def _resolve_product(tenant, nv: dict, branch=None):
             update_fields.append("sale_price")
         ppc = nv.get("pairs_per_carton")
         if ppc and int(ppc) > 0 and product.pairs_per_carton != int(ppc):
-            product.pairs_per_carton = int(ppc)
-            update_fields.append("pairs_per_carton")
+            if not product.carton_breakdown:
+                product.pairs_per_carton = int(ppc)
+                update_fields.append("pairs_per_carton")
         ref = (nv.get("reference") or "").strip()
         if ref and not product.reference:
             product.reference = ref
