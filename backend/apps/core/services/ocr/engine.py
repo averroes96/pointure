@@ -9,15 +9,14 @@ import logging
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
-from PIL import Image
-
 from apps.core.services.ocr.schema import OCRToken
 
 logger = logging.getLogger(__name__)
 
 _RAPID_OCR_INSTANCE = None
 _CV2_MODULE = None
+_NUMPY_MODULE = None
+_PIL_IMAGE_MODULE = None
 
 
 def get_cv2():
@@ -39,12 +38,54 @@ def get_cv2():
     return _CV2_MODULE
 
 
+def get_numpy():
+    """
+    Lazily loads NumPy so that importing OCR modules or loading Django's
+    URL configuration never fails at application startup if NumPy is missing.
+    """
+    global _NUMPY_MODULE
+    if _NUMPY_MODULE is None:
+        try:
+            import numpy as np
+            _NUMPY_MODULE = np
+        except ImportError as e:
+            logger.warning("NumPy is not available: %s", e)
+            raise ImportError(
+                "Le module NumPy n'est pas disponible dans cet environnement."
+            ) from e
+    return _NUMPY_MODULE
+
+
+def get_pil_image():
+    """
+    Lazily loads PIL.Image so that importing OCR modules or loading Django's
+    URL configuration never fails at application startup if Pillow is missing.
+    """
+    global _PIL_IMAGE_MODULE
+    if _PIL_IMAGE_MODULE is None:
+        try:
+            from PIL import Image
+            _PIL_IMAGE_MODULE = Image
+        except ImportError as e:
+            logger.warning("PIL (Pillow) is not available: %s", e)
+            raise ImportError(
+                "Le module Pillow (PIL) n'est pas disponible dans cet environnement."
+            ) from e
+    return _PIL_IMAGE_MODULE
+
+
 def get_rapid_ocr():
     """Singleton loader for RapidOCR to avoid reloading ONNX models on every request."""
     global _RAPID_OCR_INSTANCE
     if _RAPID_OCR_INSTANCE is None:
-        from rapidocr_onnxruntime import RapidOCR
-        _RAPID_OCR_INSTANCE = RapidOCR()
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            _RAPID_OCR_INSTANCE = RapidOCR()
+        except ImportError as e:
+            logger.warning("RapidOCR is not available: %s", e)
+            raise ImportError(
+                "Le module RapidOCR n'est pas disponible dans cet environnement."
+            ) from e
     return _RAPID_OCR_INSTANCE
 
 
@@ -58,19 +99,22 @@ class DocumentScanEngine:
         self.max_dimension = max_dimension
 
     @staticmethod
-    def load_image(image_input: Union[bytes, np.ndarray, Image.Image]) -> np.ndarray:
+    def load_image(image_input: Union[bytes, Any]) -> Any:
         """
         Loads an image from raw bytes, PIL Image, or numpy array into a BGR numpy array.
         """
         cv2 = get_cv2()
-        if isinstance(image_input, np.ndarray):
+        np = get_numpy()
+        Image = get_pil_image()
+
+        if hasattr(image_input, "ndim"):
             if image_input.ndim == 2:
                 return cv2.cvtColor(image_input, cv2.COLOR_GRAY2BGR)
             if image_input.shape[2] == 4:
                 return cv2.cvtColor(image_input, cv2.COLOR_RGBA2BGR)
             return image_input.copy()
 
-        if isinstance(image_input, Image.Image):
+        if hasattr(image_input, "convert") and hasattr(image_input, "mode"):
             rgb = image_input.convert("RGB")
             arr = np.array(rgb)
             return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
@@ -87,7 +131,7 @@ class DocumentScanEngine:
         raise ValueError(f"Unsupported image input type: {type(image_input)}")
 
     @staticmethod
-    def resize_preserving_aspect(img: np.ndarray, max_dim: int = 2000) -> Tuple[np.ndarray, float]:
+    def resize_preserving_aspect(img: Any, max_dim: int = 2000) -> Tuple[Any, float]:
         """
         Resizes image so that max(width, height) <= max_dim while preserving aspect ratio.
         Returns (resized_img, scale_factor).
@@ -105,7 +149,7 @@ class DocumentScanEngine:
         return resized, scale
 
     @staticmethod
-    def to_grayscale(img: np.ndarray) -> np.ndarray:
+    def to_grayscale(img: Any) -> Any:
         """Converts BGR image to single-channel grayscale."""
         cv2 = get_cv2()
         if img.ndim == 2:
@@ -113,7 +157,7 @@ class DocumentScanEngine:
         return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     @classmethod
-    def binarize(cls, gray_img: np.ndarray, method: str = "otsu") -> np.ndarray:
+    def binarize(cls, gray_img: Any, method: str = "otsu") -> Any:
         """
         Applies Otsu or adaptive Gaussian binarization to a grayscale image.
         """
@@ -133,12 +177,15 @@ class DocumentScanEngine:
         return thresh
 
     @classmethod
-    def estimate_skew_angle(cls, img: np.ndarray) -> float:
+    def estimate_skew_angle(cls, img: Any) -> float:
         """
         Estimates document skew angle within [-45, +45] degrees using horizontal
         morphological dilation + Probabilistic Hough Transform, with minAreaRect fallback.
         """
+        from statistics import median
+
         cv2 = get_cv2()
+        np = get_numpy()
         gray = cls.to_grayscale(img)
         h, w = gray.shape[:2]
 
@@ -157,7 +204,7 @@ class DocumentScanEngine:
         lines = cv2.HoughLinesP(
             dilated,
             rho=1,
-            theta=np.pi / 180.0,
+            theta=math.pi / 180.0,
             threshold=max(40, w // 15),
             minLineLength=max(40, w // 10),
             maxLineGap=20,
@@ -195,13 +242,13 @@ class DocumentScanEngine:
         if not angles:
             return 0.0
 
-        median_angle = float(np.median(angles))
+        median_angle = float(median(angles))
         if abs(median_angle) < 0.25 or abs(median_angle) > 45.0:
             return 0.0
         return round(median_angle, 2)
 
     @classmethod
-    def deskew(cls, img: np.ndarray, angle: Optional[float] = None) -> Tuple[np.ndarray, float]:
+    def deskew(cls, img: Any, angle: Optional[float] = None) -> Tuple[Any, float]:
         """
         Rotates the image to correct skew within ±45 degrees.
         Returns (deskewed_image, applied_angle).
@@ -227,7 +274,7 @@ class DocumentScanEngine:
         return rotated, angle
 
     @classmethod
-    def enhance_table_grid(cls, img: np.ndarray) -> np.ndarray:
+    def enhance_table_grid(cls, img: Any) -> Any:
         """
         Detects horizontal and vertical table grid lines via morphological operations
         and returns a grid mask (or grid-enhanced image).
@@ -247,11 +294,12 @@ class DocumentScanEngine:
         return grid_mask
 
     @classmethod
-    def normalize_illumination(cls, gray_img: np.ndarray) -> np.ndarray:
+    def normalize_illumination(cls, gray_img: Any) -> Any:
         """
         Normalizes uneven phone-camera lighting/shadows using background division and CLAHE.
         """
         cv2 = get_cv2()
+        np = get_numpy()
         gray = cls.to_grayscale(gray_img)
         # Estimate background illumination via large morphological closing / blur
         dilated = cv2.dilate(gray, np.ones((7, 7), np.uint8))
@@ -263,11 +311,11 @@ class DocumentScanEngine:
 
     def preprocess(
         self,
-        image_input: Union[bytes, np.ndarray, Image.Image],
+        image_input: Union[bytes, Any],
         deskew: bool = True,
         binarize_method: Optional[str] = None,
         normalize_lighting: bool = False,
-    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+    ) -> Tuple[Any, Dict[str, Any]]:
         """
         Runs the OpenCV preprocessing pipeline:
         1. Aspect-ratio-preserving resize (max 2000px)
@@ -312,7 +360,7 @@ class DocumentScanEngine:
 
     def extract_tokens(
         self,
-        image_input: Union[bytes, np.ndarray, Image.Image],
+        image_input: Union[bytes, Any],
         deskew: bool = True,
     ) -> Tuple[List[OCRToken], Dict[str, Any]]:
         """
@@ -364,8 +412,10 @@ class DocumentScanEngine:
         if not tokens:
             return []
 
+        from statistics import median
+
         heights = [t.height for t in tokens if t.height > 0]
-        median_h = float(np.median(heights)) if heights else 20.0
+        median_h = float(median(heights)) if heights else 20.0
         y_threshold = max(6.0, median_h * y_threshold_ratio)
 
         # Sort tokens top-to-bottom by vertical center

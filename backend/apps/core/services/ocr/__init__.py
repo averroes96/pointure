@@ -3,7 +3,13 @@ ShoeDZ Agnostic Vision & Spatial OCR Engine (`apps.core.services.ocr`).
 Reusable across Purchase Orders, Supplier Invoices, Stocktake Sheets,
 Expense Receipts, and Cheques.
 """
-from apps.core.services.ocr.engine import DocumentScanEngine, get_rapid_ocr
+from apps.core.services.ocr.engine import (
+    DocumentScanEngine,
+    get_cv2,
+    get_numpy,
+    get_pil_image,
+    get_rapid_ocr,
+)
 from apps.core.services.ocr.extractors import (
     normalize_ocr_label,
     parse_alphanumeric_code,
@@ -22,6 +28,9 @@ from apps.core.services.ocr.schema import (
 
 __all__ = [
     "DocumentScanEngine",
+    "get_cv2",
+    "get_numpy",
+    "get_pil_image",
     "get_rapid_ocr",
     "ProfileDocumentParser",
     "OCRToken",
