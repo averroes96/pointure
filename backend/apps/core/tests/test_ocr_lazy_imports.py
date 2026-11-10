@@ -57,3 +57,4 @@ class TestOCRLazyImports:
             resp = self.client.post(url, {"file": fake_file}, format="multipart")
             assert resp.status_code == 503
             assert "reconnaissance optique" in resp.data.get("detail", "")
+

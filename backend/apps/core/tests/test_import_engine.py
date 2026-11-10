@@ -976,3 +976,343 @@ class TestLegacyDBFTiersSuppliersChequesPartPayments:
         assert client.cached_balance == Decimal("3000.00")
         assert ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment").count() == 1
 
+
+@pytest.mark.django_db
+class TestLegacyImportIdempotencyAndPreservation:
+    def test_legacy_import_opening_balance_preexisting_client_and_update(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Client, ClientLedger
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        # Pre-existing client in database before import
+        preexisting_client = Client.objects.create(
+            tenant=tenant,
+            name="Client Deja Existant",
+            phone="0555123456",
+        )
+        assert preexisting_client.cached_balance == Decimal("0.00")
+        assert ClientLedger.objects.filter(client=preexisting_client).count() == 0
+
+        synthetic_clients = [
+            {
+                "CLIENT": "C_EXIST",
+                "DESIGNAT": "Client Deja Existant",
+                "TEL1": "0555123456",
+                "MT_RESTE": Decimal("15000.00"),
+                "JOUR": datetime.date(2026, 2, 1),
+            },
+        ]
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_clients if filename.upper() == "CLIENT.DBF" else [],
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        stats = importer.execute_import()
+
+        preexisting_client.refresh_from_db()
+        assert preexisting_client.cached_balance == Decimal("15000.00")
+        entries = list(ClientLedger.objects.filter(client=preexisting_client, reference_type="LegacyOpening"))
+        assert len(entries) == 1
+        assert entries[0].amount == Decimal("15000.00")
+        assert entries[0].entry_type == "debit"
+
+        # Re-importing with updated debt in DBF updates the entry instead of duplicating
+        synthetic_clients[0]["MT_RESTE"] = Decimal("18500.00")
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        importer2.execute_import()
+        preexisting_client.refresh_from_db()
+        assert preexisting_client.cached_balance == Decimal("18500.00")
+        assert ClientLedger.objects.filter(client=preexisting_client, reference_type="LegacyOpening").count() == 1
+
+    def test_legacy_import_stock_movement_idempotency(self, tenant, branch, monkeypatch):
+        from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "FAMILLE.DBF": [{"FAMILLE": "B", "LIBELLE": "Baskets Homme"}],
+            "ARTICLEB.DBF": [
+                {
+                    "ARTICLE": "ART_001",
+                    "REFERENCE": "RUNNER-PRO",
+                    "LIBELLE": "Runner Pro Red",
+                    "FAMILLE": "B",
+                    "PRIX_ACHAT": Decimal("3000.00"),
+                    "PV_TARIF1": Decimal("5000.00"),
+                    "ST_BL": 20,
+                    "POINTURE": "40 à 41",
+                }
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "software_type": "retail",
+                "easy_mode": False,
+                "suppliers": False,
+                "clients": False,
+                "products": True,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        importer.execute_import()
+
+        prod = Product.objects.get(tenant=tenant, reference="RUNNER-PRO")
+        variants = list(Variant.objects.filter(product=prod))
+        assert len(variants) == 2
+        assert sum(v.stock_qty for v in variants) == 20
+
+        initial_movements = StockMovement.objects.filter(
+            tenant=tenant, branch=branch, reason=MovementReasonChoices.INITIAL
+        )
+        assert initial_movements.count() == 2
+        assert sum(m.quantity_delta for m in initial_movements) == 20
+
+        # Second import: re-run must NOT double stock movements or stock_qty
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "software_type": "retail",
+                "easy_mode": False,
+                "suppliers": False,
+                "clients": False,
+                "products": True,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": False,
+            },
+        )
+        importer2.execute_import()
+
+        for v in variants:
+            v.refresh_from_db()
+        assert sum(v.stock_qty for v in variants) == 20
+
+        initial_movements_after = StockMovement.objects.filter(
+            tenant=tenant, branch=branch, reason=MovementReasonChoices.INITIAL
+        )
+        assert initial_movements_after.count() == 2
+        assert sum(m.quantity_delta for m in initial_movements_after) == 20
+
+    def test_legacy_import_cheques_preserve_deposited_status(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Cheque, ChequeDirectionChoices, ChequeStatusChoices, Client
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        synthetic_data = {
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "C_CHQ",
+                    "DESIGNAT": "Client Cheque",
+                    "TEL1": "0550112233",
+                    "MT_RESTE": Decimal("0.00"),
+                }
+            ],
+            "CHEQUEXP.DBF": [
+                {
+                    "CHEQUE": "CHQ-778899",
+                    "CLIENT": "C_CHQ",
+                    "LIBELLE": "Client Cheque",
+                    "MONTANT": Decimal("25000.00"),
+                    "REGLE": "N",
+                    "DATE_FACT": datetime.date(2026, 1, 20),
+                    "COMPTE": "BNA Alger",
+                }
+            ],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": True,
+                "part_payments": False,
+            },
+        )
+        importer.execute_import()
+
+        cheque = Cheque.objects.get(tenant=tenant, number="CHQ-778899")
+        assert cheque.status == ChequeStatusChoices.PENDING
+        assert cheque.amount == Decimal("25000.00")
+
+        # User marks cheque as deposited
+        cheque.status = ChequeStatusChoices.DEPOSITED
+        cheque.save()
+
+        # Re-importing must NOT reset deposited status back to pending
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": True,
+                "part_payments": False,
+            },
+        )
+        importer2.execute_import()
+
+        cheque.refresh_from_db()
+        assert cheque.status == ChequeStatusChoices.DEPOSITED
+
+    def test_legacy_import_verseclt_reordered_rows_idempotency(self, tenant, branch, monkeypatch):
+        import datetime
+        from apps.clients.models import Client, ClientLedger
+        from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+        row_101 = {
+            "NUMVERSCLT": "101",
+            "NOM": "Client Versement",
+            "TEL": "0550998877",
+            "LIBELLE": "Bottes Cuir",
+            "POINTURE": "39",
+            "PRIX_VENTE": Decimal("6500.00"),
+            "VERSE1": Decimal("2000.00"),
+            "VERSE2": Decimal("1500.00"),
+            "ECARTV": Decimal("3000.00"),
+            "LIVREE": "N",
+            "DATE_FACT": datetime.date(2026, 1, 15),
+        }
+        row_102 = {
+            "NUMVERSCLT": "102",
+            "NOM": "Client Versement",
+            "TEL": "0550998877",
+            "LIBELLE": "Mocassins",
+            "POINTURE": "42",
+            "PRIX_VENTE": Decimal("8000.00"),
+            "VERSE1": Decimal("3000.00"),
+            "VERSE2": Decimal("0.00"),
+            "ECARTV": Decimal("5000.00"),
+            "LIVREE": "N",
+            "DATE_FACT": datetime.date(2026, 1, 16),
+        }
+
+        synthetic_data = {
+            "CLIENT.DBF": [
+                {
+                    "CLIENT": "C_VRS",
+                    "DESIGNAT": "Client Versement",
+                    "TEL1": "0550998877",
+                    "MT_RESTE": Decimal("0.00"),
+                },
+            ],
+            "VERSECLT.DBF": [row_101, row_102],
+        }
+
+        monkeypatch.setattr(
+            LegacyDBFImporter,
+            "get_dbf",
+            lambda self, filename, optional=False: synthetic_data.get(filename.upper(), []),
+        )
+
+        importer = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": True,
+            },
+        )
+        importer.execute_import()
+
+        client = Client.objects.get(tenant=tenant, name="Client Versement")
+        assert client.cached_balance == Decimal("8000.00")
+        assert ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment").count() == 2
+
+        # Re-importing with rows re-ordered (row_102 first, row_101 second)
+        synthetic_data["VERSECLT.DBF"] = [row_102, row_101]
+        importer2 = LegacyDBFImporter(
+            path="/tmp/fake_legacy",
+            tenant=tenant,
+            branch=branch,
+            options={
+                "suppliers": False,
+                "clients": True,
+                "products": False,
+                "purchases": False,
+                "defects": False,
+                "sales": False,
+                "cheques": False,
+                "part_payments": True,
+            },
+        )
+        importer2.execute_import()
+
+        client.refresh_from_db()
+        assert client.cached_balance == Decimal("8000.00")
+        # Must still have exactly 2 entries, not 4!
+        assert ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment").count() == 2
+
+
