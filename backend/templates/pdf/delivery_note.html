@@ -19,7 +19,7 @@
     <div class="doc-meta">
       <strong>N° {{ dn.number }}</strong><br>
       Date: {{ dn.date|date:"d/m/Y" }}<br>
-      Facture: {{ invoice.number }}
+      {% if invoice %}Facture: {{ invoice.number }}{% endif %}
     </div>
   </div>
 </div>
@@ -29,7 +29,14 @@
     <div class="party-label">Fournisseur</div>
     <div class="party-name">{{ tenant.name }}</div>
   </div>
-  {% if invoice.client %}
+  {% if client %}
+  <div class="party-block">
+    <div class="party-label">Destinataire</div>
+    <div class="party-name">{{ client.name }}</div>
+    {% if client.address %}<div>{{ client.address }}</div>{% endif %}
+    {% if client.phone %}<div>{{ client.phone }}</div>{% endif %}
+  </div>
+  {% elif invoice.client %}
   <div class="party-block">
     <div class="party-label">Destinataire</div>
     <div class="party-name">{{ invoice.client.name }}</div>
