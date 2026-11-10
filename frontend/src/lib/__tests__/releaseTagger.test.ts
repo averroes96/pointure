@@ -15,6 +15,8 @@ describe("release-tagger semantic versioning and changelog generator", () => {
       expect(parseSemVer("v1.4.12")).toEqual({ major: 1, minor: 4, patch: 12 });
       expect(parseSemVer("2.0.0")).toEqual({ major: 2, minor: 0, patch: 0 });
       expect(parseSemVer("v0.1.5")).toEqual({ major: 0, minor: 1, patch: 5 });
+      expect(parseSemVer("v1.7.3-beta.1")).toEqual({ major: 1, minor: 7, patch: 3, prerelease: "beta.1" });
+      expect(parseSemVer("1.7.3-beta.2")).toEqual({ major: 1, minor: 7, patch: 3, prerelease: "beta.2" });
     });
 
     it("returns null for invalid inputs", () => {
@@ -126,6 +128,38 @@ describe("release-tagger semantic versioning and changelog generator", () => {
         patch: 13,
         version: "1.4.13",
         tag: "v1.4.13",
+      });
+    });
+
+    it("generates beta prerelease tags on feature branch releases", () => {
+      // First beta for 1.7.1
+      expect(bumpVersion("v1.7.0", "patch", true, [])).toEqual({
+        major: 1,
+        minor: 7,
+        patch: 1,
+        prerelease: "beta.1",
+        version: "1.7.1-beta.1",
+        tag: "v1.7.1-beta.1",
+      });
+
+      // Subsequent beta increments beta number
+      expect(bumpVersion("v1.7.0", "patch", true, ["v1.7.1-beta.1"])).toEqual({
+        major: 1,
+        minor: 7,
+        patch: 1,
+        prerelease: "beta.2",
+        version: "1.7.1-beta.2",
+        tag: "v1.7.1-beta.2",
+      });
+
+      // Minor feature on beta channel
+      expect(bumpVersion("v1.7.0", "minor", true, [])).toEqual({
+        major: 1,
+        minor: 8,
+        patch: 0,
+        prerelease: "beta.1",
+        version: "1.8.0-beta.1",
+        tag: "v1.8.0-beta.1",
       });
     });
   });

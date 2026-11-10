@@ -27,43 +27,55 @@ function execCmd(cmd, options = {}) {
 }
 
 /**
- * Parses a semver tag like "v1.4.12" or "1.4.12" into numbers.
+ * Parses a semver tag like "v1.4.12", "1.4.12", or "v1.7.3-beta.1" into numbers and optional prerelease suffix.
  */
 function parseSemVer(tag) {
   if (!tag) return null;
-  const match = tag.trim().match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+  const match = tag.trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.-]+))?$/);
   if (!match) return null;
-  return {
+  const res = {
     major: parseInt(match[1], 10),
     minor: parseInt(match[2], 10),
     patch: parseInt(match[3], 10),
   };
+  if (match[4]) {
+    res.prerelease = match[4];
+  }
+  return res;
 }
 
 /**
  * Finds the latest valid semver tag in the repository.
+ * Set includePrerelease to true to also consider pre-release tags (e.g. -beta.N).
  */
-function getLatestSemverTag(exec = execCmd) {
-  // Try git describe first
-  try {
-    const described = exec("git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*'", { allowFailure: true });
-    if (described && parseSemVer(described)) {
-      return described;
-    }
-  } catch (_) {}
-
-  // Fallback: list all tags sorted by version descending
+function getLatestSemverTag(exec = execCmd, includePrerelease = false) {
   try {
     const rawTags = exec("git tag -l 'v*.*.*' --sort=-v:refname", { allowFailure: true });
     const tags = rawTags.split('\n').map(t => t.trim()).filter(Boolean);
     for (const t of tags) {
-      if (parseSemVer(t)) {
+      const parsed = parseSemVer(t);
+      if (parsed) {
+        if (!includePrerelease && parsed.prerelease) {
+          continue;
+        }
         return t;
       }
     }
   } catch (_) {}
 
   return null;
+}
+
+/**
+ * Retrieves all semver tags in the repository sorted descending.
+ */
+function getAllSemverTags(exec = execCmd) {
+  try {
+    const rawTags = exec("git tag -l 'v*.*.*' --sort=-v:refname", { allowFailure: true });
+    return rawTags.split('\n').map(t => t.trim()).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
 }
 
 /**
@@ -171,37 +183,65 @@ function determineBump(commits) {
 
 /**
  * Increments semver given a current tag and a bump level.
+ * When isPrerelease is true, tags with -beta.N suffix.
  */
-function bumpVersion(currentTag, bump) {
+function bumpVersion(currentTag, bump, isPrerelease = false, existingTags = []) {
   const current = parseSemVer(currentTag) || { major: 0, minor: 0, patch: 0 };
 
+  let nextMajor = current.major;
+  let nextMinor = current.minor;
+  let nextPatch = current.patch;
+
   if (bump === 'major') {
+    nextMajor = current.major + 1;
+    nextMinor = 0;
+    nextPatch = 0;
+  } else if (bump === 'minor') {
+    nextMajor = current.major;
+    nextMinor = current.minor + 1;
+    nextPatch = 0;
+  } else {
+    // patch (default)
+    if (!current.prerelease) {
+      nextPatch = current.patch + 1;
+    }
+  }
+
+  const baseVersion = `${nextMajor}.${nextMinor}.${nextPatch}`;
+
+  if (!isPrerelease) {
     return {
-      major: current.major + 1,
-      minor: 0,
-      patch: 0,
-      version: `${current.major + 1}.0.0`,
-      tag: `v${current.major + 1}.0.0`,
+      major: nextMajor,
+      minor: nextMinor,
+      patch: nextPatch,
+      version: baseVersion,
+      tag: `v${baseVersion}`,
     };
   }
 
-  if (bump === 'minor') {
-    return {
-      major: current.major,
-      minor: current.minor + 1,
-      patch: 0,
-      version: `${current.major}.${current.minor + 1}.0`,
-      tag: `v${current.major}.${current.minor + 1}.0`,
-    };
+  // Calculate next beta number for this base version
+  let nextBetaNum = 1;
+  const betaPattern = new RegExp(`^v?${baseVersion.replace(/\./g, '\\.')}-beta\\.(\\d+)$`);
+  for (const t of existingTags) {
+    const match = t.trim().match(betaPattern);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= nextBetaNum) {
+        nextBetaNum = num + 1;
+      }
+    }
   }
 
-  // patch (default)
+  const prereleaseStr = `beta.${nextBetaNum}`;
+  const fullVersion = `${baseVersion}-${prereleaseStr}`;
+
   return {
-    major: current.major,
-    minor: current.minor,
-    patch: current.patch + 1,
-    version: `${current.major}.${current.minor}.${current.patch + 1}`,
-    tag: `v${current.major}.${current.minor}.${current.patch + 1}`,
+    major: nextMajor,
+    minor: nextMinor,
+    patch: nextPatch,
+    prerelease: prereleaseStr,
+    version: fullVersion,
+    tag: `v${fullVersion}`,
   };
 }
 
@@ -307,11 +347,13 @@ function main() {
   console.log(`[release-tagger] Starting semantic version inspection...`);
   console.log(`[release-tagger] GITHUB_REF: "${gitRef}", GITHUB_REF_NAME: "${gitRefName}"`);
 
-  // Case 1: Workflow triggered directly by a tag push (e.g. refs/tags/v1.5.0)
-  if (gitRef.startsWith('refs/tags/v') || gitRefName.match(/^v\d+\.\d+\.\d+$/)) {
+  // Case 1: Workflow triggered directly by a tag push (e.g. refs/tags/v1.5.0 or refs/tags/v1.7.3-beta.1)
+  if (gitRef.startsWith('refs/tags/v') || gitRefName.match(/^v\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/)) {
     const tag = gitRefName || gitRef.replace('refs/tags/', '');
     const version = tag.replace(/^v/, '');
-    console.log(`[release-tagger] Triggered by explicit tag push: ${tag}`);
+    const parsed = parseSemVer(tag);
+    const isPrerelease = Boolean(parsed && parsed.prerelease);
+    console.log(`[release-tagger] Triggered by explicit tag push: ${tag} (isPrerelease: ${isPrerelease})`);
 
     // Find previous tag before this one
     let previousTag = null;
@@ -340,13 +382,21 @@ function main() {
       appendGitHubOutput('version', version);
       appendGitHubOutput('bump', 'manual');
       appendGitHubOutput('changelog', changelog);
+      appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
     }
     return;
   }
 
-  // Case 2: Workflow triggered by branch push (e.g. feature/windows-desktop-installer, main)
-  const previousTag = getLatestSemverTag();
-  console.log(`[release-tagger] Previous semver tag detected: ${previousTag || '(none)'}`);
+  // Case 2: Workflow triggered by branch push (e.g. release, feature/windows-desktop-installer, feature/v1.7)
+  const branchName = gitRefName || gitRef.replace('refs/heads/', '') || execCmd('git rev-parse --abbrev-ref HEAD', { allowFailure: true });
+  // Only the 'release' branch produces official stable releases. All other branches produce prereleases.
+  const isPrerelease = (branchName !== 'release');
+
+  console.log(`[release-tagger] Branch detected: "${branchName}" | isPrerelease: ${isPrerelease}`);
+
+  const previousStableTag = getLatestSemverTag(execCmd, false);
+  const previousTag = isPrerelease ? (getLatestSemverTag(execCmd, true) || previousStableTag) : previousStableTag;
+  console.log(`[release-tagger] Previous tag detected: ${previousTag || '(none)'} (latest stable: ${previousStableTag || 'none'})`);
 
   const commits = getCommitsSince(previousTag);
   console.log(`[release-tagger] Found ${commits.length} commits since ${previousTag || 'initial commit'}`);
@@ -359,14 +409,16 @@ function main() {
       appendGitHubOutput('version', previousTag ? previousTag.replace(/^v/, '') : '');
       appendGitHubOutput('bump', 'none');
       appendGitHubOutput('changelog', '');
+      appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
     }
     return;
   }
 
+  const allTags = getAllSemverTags(execCmd);
   const bump = determineBump(commits);
-  const next = bumpVersion(previousTag, bump);
+  const next = bumpVersion(previousStableTag, bump, isPrerelease, allTags);
 
-  console.log(`[release-tagger] Evaluated bump level: ${bump.toUpperCase()}`);
+  console.log(`[release-tagger] Evaluated bump level: ${bump.toUpperCase()} | isPrerelease: ${isPrerelease}`);
   console.log(`[release-tagger] Next release version: ${next.version} (Tag: ${next.tag})`);
 
   const changelog = generateChangelog({
@@ -412,6 +464,7 @@ function main() {
     appendGitHubOutput('version', next.version);
     appendGitHubOutput('bump', bump);
     appendGitHubOutput('changelog', changelog);
+    appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
   }
 }
 
@@ -422,6 +475,7 @@ if (require.main === module) {
 module.exports = {
   parseSemVer,
   getLatestSemverTag,
+  getAllSemverTags,
   getCommitsSince,
   parseConventionalCommit,
   determineBump,
