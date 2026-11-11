@@ -60,6 +60,7 @@ export function AddCartonsModal({
       const res = await api.post(`/inventory/products/${product.id}/expand-cartons/`, {
         colour,
         cartons: cCount,
+        tier: priceTier,
       });
       setExpandedResult(res.data);
     } catch (err) {

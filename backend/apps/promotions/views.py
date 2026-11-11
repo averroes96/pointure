@@ -66,6 +66,8 @@ class PromotionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             )
 
         from apps.inventory.models import Variant
+        from apps.inventory.services.pricing import unit_price_for
+
         variant = (
             Variant.objects
             .filter(tenant=request.tenant, id=variant_id, is_active=True)
@@ -76,7 +78,8 @@ class PromotionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         today = timezone.now().date()
-        unit_price = variant.product.sale_price
+        tier = request.query_params.get("tier", "detail")
+        unit_price = unit_price_for(variant, tier)
         line_amount = unit_price * qty
 
         candidates = (

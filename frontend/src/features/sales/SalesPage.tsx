@@ -593,7 +593,7 @@ export default function SalesPage() {
 
   const applyPromo = useCallback(async (variantId: number, qty: number) => {
     try {
-      const res = await api.get(`/promotions/applicable/?variant=${variantId}&qty=${qty}`);
+      const res = await api.get(`/promotions/applicable/?variant=${variantId}&qty=${qty}&tier=${encodeURIComponent(activePriceTier)}`);
       if (res.status === 200 && res.data?.computed_discount != null) {
         const totalDiscount = Number(res.data.computed_discount) * qty;
         setCart((prev) =>

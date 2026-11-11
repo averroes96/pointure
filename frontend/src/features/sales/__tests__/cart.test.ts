@@ -287,4 +287,16 @@ describe("unitPriceFor", () => {
     const cartDemi = addItemToCart([], v, p, "demi_gros");
     expect(cartDemi[0].unit_price).toBe(5800);
   });
+
+  it("resolves tier price directly from Variant objects", () => {
+    const variantObj = {
+      product_sale_price: "7000.00",
+      product_semi_wholesale_price: "6200.00",
+      product_wholesale_price: "5500.00",
+    };
+    expect(unitPriceFor(variantObj, "detail")).toBe(7000);
+    expect(unitPriceFor(variantObj, "demi_gros")).toBe(6200);
+    expect(unitPriceFor(variantObj, "gros")).toBe(5500);
+    expect(unitPriceStringFor(variantObj, "gros")).toBe("5500");
+  });
 });

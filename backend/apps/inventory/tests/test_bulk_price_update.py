@@ -150,3 +150,43 @@ class BulkPriceUpdateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.p1.refresh_from_db()
         self.assertEqual(self.p1.wholesale_price, Decimal("9190.00"))
+
+    def test_semi_wholesale_price_update(self):
+        view = ProductViewSet.as_view({"post": "bulk_price_update"})
+        # Set p1 semi_wholesale_price to 8500.00
+        self.p1.semi_wholesale_price = Decimal("7500.00")
+        self.p1.save()
+
+        request = self.factory.post(
+            "/api/v1/inventory/products/bulk-price-update/",
+            {
+                "product_ids": [str(self.p1.id)],
+                "update_type": "fixed_delta",
+                "value": "1000",
+                "target_field": "semi_wholesale_price",
+                "rounding": "none",
+            },
+            format="json",
+        )
+        force_authenticate(request, user=self.manager)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.p1.refresh_from_db()
+        self.assertEqual(self.p1.semi_wholesale_price, Decimal("8500.00"))
+
+    def test_invalid_target_field_rejected(self):
+        view = ProductViewSet.as_view({"post": "bulk_price_update"})
+        request = self.factory.post(
+            "/api/v1/inventory/products/bulk-price-update/",
+            {
+                "product_ids": [str(self.p1.id)],
+                "update_type": "fixed_delta",
+                "value": "1000",
+                "target_field": "purchase_price",
+            },
+            format="json",
+        )
+        force_authenticate(request, user=self.manager)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+

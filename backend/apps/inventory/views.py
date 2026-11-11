@@ -805,6 +805,9 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             from apps.core.models import Branch
             branch = Branch.objects.filter(pk=branch_id, tenant=request.tenant).first()
 
+        tier = request.data.get("tier") or request.query_params.get("tier") or "gros"
+        from apps.inventory.services.pricing import unit_price_for
+
         def _parse_size(s):
             try:
                 return int(s)
@@ -858,7 +861,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 "pairs_per_carton": pairs_in_carton,
                 "cartons": cartons,
                 "quantity": qty,
-                "unit_price": str(product.wholesale_price if product.wholesale_price > 0 else product.sale_price),
+                "unit_price": str(unit_price_for(variant or product, tier)),
                 "available_stock": available_stock,
                 "is_sufficient_stock": is_sufficient,
             })
@@ -1266,8 +1269,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         update_type = request.data.get("update_type", "percentage")
         target_field = request.data.get("target_field", "sale_price")
-        if target_field not in ("sale_price", "wholesale_price"):
-            return Response({"error": "target_field must be 'sale_price' or 'wholesale_price'"}, status=status.HTTP_400_BAD_REQUEST)
+        if target_field not in ("sale_price", "wholesale_price", "semi_wholesale_price"):
+            return Response({"error": "target_field must be 'sale_price', 'wholesale_price', or 'semi_wholesale_price'"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             val = Decimal(str(request.data.get("value", 0)))
