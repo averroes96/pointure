@@ -35,12 +35,13 @@ Pour établir des propositions commerciales à vos clients grossistes avant comm
 1. Accédez au menu **Devis & Proformas** puis cliquez sur **+ Nouveau Devis**.
 2. Sélectionnez le client et renseignez la date d'émission ainsi que la date de validité (par défaut fixée à 15 jours).
 3. Ajoutez les articles par pointures et cartons. Le système calcule les montants HT, la TVA et le Total TTC.
-4. **Impact comptable et stock :** Le devis est une proposition purement commerciale. Il **n'engendre aucune sortie de stock** et **n'inscrit aucune créance** au compte du client.
-5. Vous pouvez imprimer le devis au format A4 (`PF-AAAA-#####`) ou le partager instantanément par **WhatsApp**.
-6. Dès accord du client :
+4. Lors de la modification d'un devis, les lignes descriptives libres existantes sont conservées, même si elles ne sont liées à aucune variante du catalogue.
+5. **Impact comptable et stock :** Le devis est une proposition purement commerciale. Il **n'engendre aucune sortie de stock** et **n'inscrit aucune créance** au compte du client.
+6. Vous pouvez imprimer le devis au format A4 (`PF-AAAA-#####`) ou le partager instantanément par **WhatsApp**.
+7. Dès accord du client :
    - Cliquez sur **Convertir en facture** pour générer automatiquement un brouillon de facture reprenant l'intégralité des lignes, prix et remises.
    - Ou cliquez sur **Convertir en bon de livraison** pour éditer le bon de livraison correspondant.
-7. Les devis non validés dont la date de validité est échue sont automatiquement marqués comme expirés par la maintenance quotidienne du logiciel.
+8. Les devis non validés dont la date de validité est échue sont automatiquement marqués comme expirés par la maintenance quotidienne du logiciel.
 
 ---
 

@@ -35,12 +35,13 @@ To prepare formal commercial proposals for wholesale clients prior to order conf
 1. Open the **Quotes & Proformas** menu and click **+ New Quote**.
 2. Select the client and specify the issue date as well as validity date (default 15 days).
 3. Add products by size and cartons. The system computes HT, VAT, and Total TTC.
-4. **Accounting and Inventory Invariant:** A quotation is purely a commercial proposal. It **does not deduct stock** and **posts no debit** to the client's ledger.
-5. You can print the proforma invoice in A4 format (`PF-YYYY-#####`) or share it immediately via **WhatsApp**.
-6. Upon client approval:
+4. When editing a quote, existing free-text description lines are retained even if they are not linked to a catalog variant.
+5. **Accounting and Inventory Invariant:** A quotation is purely a commercial proposal. It **does not deduct stock** and **posts no debit** to the client's ledger.
+6. You can print the proforma invoice in A4 format (`PF-YYYY-#####`) or share it immediately via **WhatsApp**.
+7. Upon client approval:
    - Click **Convert to Invoice** to automatically generate a draft sales invoice with identical items, quantities, and prices.
    - Or click **Convert to Delivery Note** to issue the corresponding delivery slip.
-7. Unaccepted quotes whose validity date has passed are automatically marked as expired by the desktop daily maintenance task.
+8. Unaccepted quotes whose validity date has passed are automatically marked as expired by the desktop daily maintenance task.
 
 ---
 
