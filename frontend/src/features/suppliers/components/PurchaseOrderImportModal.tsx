@@ -245,7 +245,7 @@ export function PurchaseOrderImportModal({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        setErrorMsg(t("suppliers.file_size_limit_exceeded", "Le fichier dépasse la taille maximale autorisée de 10 Mo."));
+        setErrorMsg(t("po_import.file_size_limit_exceeded", "Le fichier dépasse la taille maximale autorisée de 10 Mo."));
         e.target.value = "";
         return;
       }
@@ -418,7 +418,7 @@ export function PurchaseOrderImportModal({
                         {t("po_import.drag_and_drop", "Glissez-déposez un fichier ici ou cliquez pour parcourir")}
                       </p>
                       <p className="text-xs text-text-muted mt-1">
-                        Formats supportés : .xlsx, .xls, .csv (encodages UTF-8, Windows Arabe CP1256, Français CP1252)
+                        {t("po_import.supported_formats", "Formats pris en charge : .xlsx, .xls, .csv (encodages UTF-8, arabe Windows CP1256 et français CP1252)")}
                       </p>
                     </div>
                   )}
@@ -432,13 +432,16 @@ export function PurchaseOrderImportModal({
                   <span>{t("po_import.smart_features_title", "Reconnaissance intelligente ShoeDZ")}</span>
                 </div>
                 <p>
-                  • <strong>Multilingue :</strong> Détection automatique des en-têtes en Français, Arabe (المرجع، المقاس، الكمية...) et Anglais.
+                  • <strong>{t("po_import.feature_multilingual_title", "Multilingue :")}</strong>{" "}
+                  {t("po_import.feature_multilingual_description", "Détection automatique des en-têtes en français, arabe (المرجع، المقاس، الكمية...) et anglais.")}
                 </p>
                 <p>
-                  • <strong>Modes de pointures :</strong> Supporte pointure unitaire par ligne, plages de pointures (ex: 37-41) réparties selon le colisage, ou grilles matricielles (colonnes 36 à 46).
+                  • <strong>{t("po_import.feature_size_modes_title", "Modes de pointure :")}</strong>{" "}
+                  {t("po_import.feature_size_modes_description", "Prend en charge une pointure par ligne, les plages de pointures (ex. : 37-41) réparties selon le colisage, ou les grilles matricielles (colonnes 36 à 46).")}
                 </p>
                 <p>
-                  • <strong>Nettoyage automatique :</strong> Prise en charge des prix avec virgules françaises (ex: 1 250,50 DA) et devises (DZD, DA, €).
+                  • <strong>{t("po_import.feature_price_cleanup_title", "Nettoyage automatique :")}</strong>{" "}
+                  {t("po_import.feature_price_cleanup_description", "Prend en charge les prix avec virgule décimale française (ex. : 1 250,50 DA) et les devises (DZD, DA, €).")}
                 </p>
               </div>
             </div>
@@ -454,10 +457,12 @@ export function PurchaseOrderImportModal({
                     {previewData.detected_encoding}
                   </span>
                   <span className="text-text-muted">
-                    Séparateur : <strong className="text-text-primary font-mono">{previewData.detected_delimiter}</strong>
+                    {t("po_import.detected_delimiter", "Séparateur :")}{" "}
+                    <strong className="text-text-primary font-mono">{previewData.detected_delimiter}</strong>
                   </span>
                   <span className="text-text-muted">
-                    Lignes détectées : <strong className="text-text-primary">{previewData.total_raw_rows}</strong>
+                    {t("po_import.detected_rows", "Lignes détectées :")}{" "}
+                    <strong className="text-text-primary">{previewData.total_raw_rows}</strong>
                   </span>
                 </div>
 
@@ -503,7 +508,7 @@ export function PurchaseOrderImportModal({
                         {t("po_import.mode_single", "1 Pointure par ligne")}
                       </div>
                       <div className="text-[11px] text-text-muted mt-0.5">
-                        Chaque ligne contient une référence et une pointure unique.
+                        {t("po_import.mode_single_description", "Chaque ligne contient une référence et une pointure unique.")}
                       </div>
                     </div>
                   </button>
@@ -524,7 +529,7 @@ export function PurchaseOrderImportModal({
                         {t("po_import.mode_range", "Plage de pointures (ex: 37-41)")}
                       </div>
                       <div className="text-[11px] text-text-muted mt-0.5">
-                        Ligne avec colis ou paires réparties selon le découpage du carton.
+                        {t("po_import.mode_range_description", "Ligne avec colis ou paires réparties selon le découpage du carton.")}
                       </div>
                     </div>
                   </button>
@@ -545,7 +550,7 @@ export function PurchaseOrderImportModal({
                         {t("po_import.mode_matrix", "Grille matricielle (36..46)")}
                       </div>
                       <div className="text-[11px] text-text-muted mt-0.5">
-                        Les pointures sont présentées sous forme de colonnes dans le tableau.
+                        {t("po_import.mode_matrix_description", "Les pointures sont présentées sous forme de colonnes dans le tableau.")}
                       </div>
                     </div>
                   </button>
@@ -576,7 +581,7 @@ export function PurchaseOrderImportModal({
                     type="text"
                     value={defaultColour}
                     onChange={(e) => setDefaultColour(e.target.value)}
-                    placeholder="Standard"
+                    placeholder={t("po_import.default_colour_placeholder", "Standard")}
                     className="form-input text-xs w-full"
                   />
                 </div>
@@ -743,13 +748,19 @@ export function PurchaseOrderImportModal({
                           <td className="text-end font-mono font-semibold">{formatDZD(totalLine)}</td>
                           <td>
                             {line.match_status === "matched" && (
-                              <span className="badge badge-success text-[10px]">Existant</span>
+                              <span className="badge badge-success text-[10px]">
+                                {t("po_import.match_status_existing", "Existant")}
+                              </span>
                             )}
                             {line.match_status === "missing_variant" && (
-                              <span className="badge badge-warning text-[10px]">Variante manquante</span>
+                              <span className="badge badge-warning text-[10px]">
+                                {t("po_import.match_status_missing_variant", "Variante manquante")}
+                              </span>
                             )}
                             {line.match_status === "new_product" && (
-                              <span className="badge badge-info text-[10px]">Nouveau produit</span>
+                              <span className="badge badge-info text-[10px]">
+                                {t("po_import.match_status_new_product", "Nouveau produit")}
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -770,7 +781,7 @@ export function PurchaseOrderImportModal({
                       type="text"
                       value={poReference}
                       onChange={(e) => setPoReference(e.target.value)}
-                      placeholder="BC-2026-001"
+                      placeholder={t("po_import.po_reference_placeholder", "BC-2026-001")}
                       className="form-input text-xs w-full font-mono"
                     />
                   </div>
@@ -783,7 +794,7 @@ export function PurchaseOrderImportModal({
                       type="text"
                       value={poNotes}
                       onChange={(e) => setPoNotes(e.target.value)}
-                      placeholder="Importé automatiquement"
+                      placeholder={t("po_import.po_notes_placeholder", "Importé automatiquement")}
                       className="form-input text-xs w-full"
                     />
                   </div>
