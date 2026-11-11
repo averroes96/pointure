@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -26,6 +26,25 @@ from .services.statement import (
     render_client_statement_xlsx,
     render_bulk_statements_zip,
 )
+
+
+class StatementDateRangeQuerySerializer(serializers.Serializer):
+    from_date = serializers.DateField(required=False)
+    to_date = serializers.DateField(required=False)
+
+
+def _validate_statement_date_range(query_params):
+    date_params = {}
+    for query_key, field_name in (("from", "from_date"), ("to", "to_date")):
+        if query_key in query_params:
+            date_params[field_name] = query_params.get(query_key)
+
+    serializer = StatementDateRangeQuerySerializer(data=date_params)
+    serializer.is_valid(raise_exception=True)
+    return (
+        serializer.validated_data.get("from_date"),
+        serializer.validated_data.get("to_date"),
+    )
 
 
 class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
@@ -247,8 +266,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         self.require_manager()
         client = self.get_object()
-        from_str = request.query_params.get("from")
-        to_str = request.query_params.get("to")
+        from_date, to_date = _validate_statement_date_range(request.query_params)
         fmt = request.query_params.get("format", "json").lower()
         language = (
             request.query_params.get("lang")
@@ -256,7 +274,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             or "fr"
         )
 
-        data = get_client_statement_data(client, from_date=from_str, to_date=to_str)
+        data = get_client_statement_data(client, from_date=from_date, to_date=to_date)
 
         if fmt == "pdf":
             pdf_bytes = render_client_statement_pdf(data, language=language)
@@ -470,8 +488,7 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         GET /api/v1/clients/statements-zip/?from=&to=
         """
         self.require_manager()
-        from_str = request.query_params.get("from")
-        to_str = request.query_params.get("to")
+        from_date, to_date = _validate_statement_date_range(request.query_params)
         language = (
             request.query_params.get("lang")
             or getattr(request.user, "language_preference", "fr")
@@ -480,8 +497,8 @@ class ClientViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         zip_bytes = render_bulk_statements_zip(
             tenant=request.tenant,
-            from_date=from_str,
-            to_date=to_str,
+            from_date=from_date,
+            to_date=to_date,
             language=language,
         )
         today_str = timezone.localdate().isoformat()
