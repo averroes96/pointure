@@ -6,13 +6,15 @@ from django.db import migrations, models
 
 def backfill_payment_session(apps, schema_editor):
     Payment = apps.get_model("sales", "Payment")
-    for payment in (
+    sales_sessions = (
         Payment.objects.filter(session__isnull=True, sale__session__isnull=False)
-        .select_related("sale")
-        .iterator()
-    ):
-        payment.session_id = payment.sale.session_id
-        payment.save(update_fields=["session_id"])
+        .values_list("sale__session_id", flat=True)
+        .distinct()
+    )
+    for session_id in sales_sessions:
+        Payment.objects.filter(
+            session__isnull=True, sale__session_id=session_id
+        ).update(session_id=session_id)
 
 
 class Migration(migrations.Migration):

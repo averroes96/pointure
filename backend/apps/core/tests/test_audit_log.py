@@ -161,3 +161,38 @@ def test_additional_models_audit_logging(setup):
     assert AuditLog.objects.filter(tenant=tenant, model_name="StockTransfer", object_id=str(transfer.pk)).exists()
 
 
+def test_signals_skip_historical_models_during_migrations(setup):
+    """
+    Ensure saving historical models (created by Django migrations under '__fake__')
+    never triggers audit logs or raises ForeignKey assignment errors on AuditLog.tenant.
+    """
+    import importlib
+    from django.apps import apps as global_apps
+    from django.db.migrations.state import ProjectState
+    from apps.sales.models import CashSession, Payment, Sale
+
+    tenant, owner, _ = setup
+    session = CashSession.objects.create(tenant=tenant, cashier=owner, opening_float=Decimal("0"))
+    sale = Sale.objects.create(tenant=tenant, cashier=owner, session=session, total_amount=Decimal("1500"))
+    payment = Payment.objects.create(sale=sale, amount=Decimal("1500"), method="cash")
+
+    project_state = ProjectState.from_apps(global_apps)
+    FakePayment = project_state.apps.get_model("sales", "Payment")
+    assert getattr(FakePayment, "__module__", "") == "__fake__"
+
+    fake_p = FakePayment.objects.get(id=payment.id)
+    fake_p.session_id = session.id
+    # Saving fake_p directly must not crash with ValueError on AuditLog.tenant
+    fake_p.save(update_fields=["session_id"])
+
+    # Run the backfill migration function directly
+    migration_mod = importlib.import_module("apps.sales.migrations.0008_payment_session")
+    migration_mod.backfill_payment_session(project_state.apps, None)
+
+    payment.refresh_from_db()
+    assert payment.session_id == session.id
+    # No AuditLog entries should be written for historical models
+    assert not AuditLog.objects.filter(tenant=tenant, model_name="Payment").exists()
+
+
+
