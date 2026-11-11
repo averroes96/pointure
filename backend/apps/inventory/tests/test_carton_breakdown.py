@@ -6,8 +6,8 @@ import pytest
 from rest_framework.test import APIClient
 from django.core.exceptions import ValidationError
 
-from apps.core.models import PlanChoices, RoleChoices, Tenant, User
-from apps.inventory.models import Product, Variant
+from apps.core.models import Branch, PlanChoices, RoleChoices, Tenant, User
+from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
 from apps.inventory.serializers import ProductSerializer
 
 
@@ -22,6 +22,15 @@ class TestCartonBreakdown:
     @pytest.fixture(autouse=True)
     def setup(self, db):
         self.tenant = Tenant.objects.create(name="Wholesale Shop", plan=PlanChoices.PRO_WHOLESALE)
+        self.headquarters = Branch.objects.create(
+            tenant=self.tenant,
+            name="Headquarters",
+            is_headquarters=True,
+        )
+        self.other_branch = Branch.objects.create(
+            tenant=self.tenant,
+            name="Other Branch",
+        )
         self.manager = User.objects.create_user(
             email="manager@carton.com",
             password="testpass123",
@@ -99,31 +108,43 @@ class TestCartonBreakdown:
             pairs_per_carton=6,
             carton_breakdown={"40": 2, "41": 2, "42": 2},
         )
-        # Create variants:
-        # size 40 with 10 pairs in stock
-        # size 41 with 4 pairs in stock (will be insufficient for 3 cartons = 6 pairs)
-        # size 42 with 20 pairs in stock
-        Variant.objects.create(
+        variant_40 = Variant.objects.create(
             tenant=self.tenant,
             product=product,
             size_eu=40,
             colour="Noir",
-            stock_qty=10,
         )
-        Variant.objects.create(
+        variant_41 = Variant.objects.create(
             tenant=self.tenant,
             product=product,
             size_eu=41,
             colour="Noir",
-            stock_qty=4,
         )
-        Variant.objects.create(
+        variant_42 = Variant.objects.create(
             tenant=self.tenant,
             product=product,
             size_eu=42,
             colour="Noir",
-            stock_qty=20,
         )
+
+        # Branch stock intentionally differs so a global stock sum is detectable.
+        for variant, hq_stock, other_stock in (
+            (variant_40, 10, 2),
+            (variant_41, 4, 10),
+            (variant_42, 20, 1),
+        ):
+            for branch, quantity in (
+                (self.headquarters, hq_stock),
+                (self.other_branch, other_stock),
+            ):
+                StockMovement.objects.create(
+                    tenant=self.tenant,
+                    variant=variant,
+                    branch=branch,
+                    quantity_delta=quantity,
+                    reason=MovementReasonChoices.INITIAL,
+                    user=self.manager,
+                )
 
         resp = self.client.post(
             f"/api/v1/inventory/products/{product.id}/expand-cartons/",
@@ -155,6 +176,64 @@ class TestCartonBreakdown:
         assert line_42["is_sufficient_stock"] is True
 
         assert data["all_stock_sufficient"] is False
+
+        other_branch_resp = self.client.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"colour": "Noir", "cartons": 3, "branch_id": str(self.other_branch.id)},
+            format="json",
+        )
+        assert other_branch_resp.status_code == 200, other_branch_resp.data
+        other_branch_line_40 = next(
+            l for l in other_branch_resp.data["lines"] if l["size_eu"] == 40
+        )
+        assert other_branch_line_40["available_stock"] == 2
+
+    @pytest.mark.parametrize(
+        ("cartons", "error_code"),
+        [(0, "min_value"), (-1, "min_value"), ("invalid", "invalid")],
+    )
+    def test_expand_cartons_rejects_invalid_carton_counts(self, cartons, error_code):
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Invalid Carton Count",
+            sale_price=Decimal("2000.00"),
+            pairs_per_carton=2,
+            carton_breakdown={"40": 2},
+        )
+
+        resp = self.client.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": cartons},
+            format="json",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["error"]["code"] == error_code
+        assert "cartons" in resp.data["error"]["details"]
+
+    def test_expand_cartons_rejects_branch_from_another_tenant(self):
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Tenant Scoped Carton Product",
+            sale_price=Decimal("2000.00"),
+            pairs_per_carton=2,
+            carton_breakdown={"40": 2},
+        )
+        other_tenant = Tenant.objects.create(name="Other Carton Tenant")
+        foreign_branch = Branch.objects.create(
+            tenant=other_tenant,
+            name="Foreign Branch",
+            is_headquarters=True,
+        )
+
+        resp = self.client.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": 1, "branch_id": str(foreign_branch.id)},
+            format="json",
+        )
+
+        assert resp.status_code == 404
+        assert resp.data["error"]["code"] == "not_found"
 
     def test_expand_cartons_without_breakdown_fails(self):
         product = Product.objects.create(

@@ -7,6 +7,11 @@ from apps.core.models import Branch, RoleChoices
 from .models import DefectItem, Product, StockMovement, StockTransfer, Variant, StocktakeSession, StocktakeItem
 
 
+class ExpandCartonsInputSerializer(serializers.Serializer):
+    cartons = serializers.IntegerField(required=False, default=1, min_value=1)
+    branch_id = serializers.UUIDField(required=False, allow_null=True)
+
+
 def _can_see_costs(request) -> bool:
     """Return True if the requesting user is allowed to view cost and purchase prices."""
     user = getattr(request, "user", None) if request else None

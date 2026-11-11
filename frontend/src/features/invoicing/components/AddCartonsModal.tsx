@@ -11,6 +11,7 @@ interface AddCartonsModalProps {
   isOpen: boolean;
   onClose: () => void;
   priceTier?: PriceTier;
+  branchId?: number | string | null;
   onAddCartons: (matrix: MatrixConfig) => void;
 }
 
@@ -18,6 +19,7 @@ export function AddCartonsModal({
   isOpen,
   onClose,
   priceTier = "gros",
+  branchId,
   onAddCartons,
 }: AddCartonsModalProps) {
   const { t } = useTranslation();
@@ -61,6 +63,7 @@ export function AddCartonsModal({
         colour,
         cartons: cCount,
         tier: priceTier,
+        branch_id: branchId ?? null,
       });
       setExpandedResult(res.data);
     } catch (err) {
