@@ -19,6 +19,8 @@ drf-spectacular==0.27.2
 
 # Image Processing & Offline OCR
 Pillow==10.4.0
+# RapidOCR depends on GUI OpenCV; desktop/scripts/build.ps1 removes that distribution
+# after dependency resolution and restores this headless wheel for the packaged runtime.
 opencv-python-headless==5.0.0.93
 rapidocr-onnxruntime==1.4.4
 

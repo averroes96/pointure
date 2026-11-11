@@ -99,6 +99,28 @@ if (-not (Test-Path $PythonArchMarker)) {
     New-Item -ItemType File -Path $PythonArchMarker | Out-Null
 }
 
+# RapidOCR's metadata pulls in opencv-python even though the desktop app only needs cv2.
+# Remove the GUI distribution and restore the headless wheel after dependency resolution.
+$GuiOpenCv = & "$PythonDist\python.exe" -m pip show opencv-python 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Removing GUI OpenCV from the desktop runtime..." -ForegroundColor Cyan
+    & "$PythonDist\python.exe" -m pip uninstall --yes opencv-python
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to remove GUI OpenCV from the desktop runtime ($Arch)!"
+    }
+
+    & "$PythonDist\python.exe" -m pip install --no-warn-script-location --force-reinstall --no-deps "opencv-python-headless==5.0.0.93"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to restore headless OpenCV in the desktop runtime ($Arch)!"
+    }
+}
+
+# Ensure the packed runtime has a working cv2 module and no GUI OpenCV distribution.
+& "$PythonDist\python.exe" -c "import cv2, importlib.metadata as m; assert m.version('opencv-python-headless'); assert not any((d.metadata.get('Name') or '').lower() == 'opencv-python' for d in m.distributions()); print('Headless OpenCV smoke test passed!')"
+if ($LASTEXITCODE -ne 0) {
+    throw "Headless OpenCV packaging check failed in Python distribution ($Arch)!"
+}
+
 # Copy shodz_desktop package into Python dist
 $DestShodz = "$PythonDist\shodz_desktop"
 if (Test-Path $DestShodz) { Remove-Item $DestShodz -Recurse -Force }
