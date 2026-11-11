@@ -669,7 +669,9 @@ class Quote(TenantScopedModel):
                 status=InvoiceStatusChoices.DRAFT,
             )
 
-            for i, line in enumerate(quote.lines.all()):
+            from apps.inventory.services.costing import current_unit_cost
+
+            for i, line in enumerate(quote.lines.select_related("variant__product")):
                 InvoiceLine.objects.create(
                     invoice=invoice,
                     variant=line.variant,
@@ -679,7 +681,7 @@ class Quote(TenantScopedModel):
                     discount_pct=line.discount_pct,
                     cartons=line.cartons,
                     order=line.order if line.order else i,
-                    unit_cost=line.unit_cost,
+                    unit_cost=current_unit_cost(line.variant),
                     unit_cost_estimated=line.unit_cost_estimated,
                 )
 

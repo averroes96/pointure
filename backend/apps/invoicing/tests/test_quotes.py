@@ -211,6 +211,31 @@ class TestQuotes:
         resp_cancel = client.post(f"/api/v1/invoicing/quotes/{quote.id}/cancel/")
         assert resp_cancel.status_code == 400
 
+    def test_convert_to_invoice_uses_current_unit_cost(self):
+        self.product.purchase_price = Decimal("1400.00")
+        self.product.pamp = Decimal("1600.00")
+        self.product.save()
+
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("2.00"),
+            unit_price=Decimal("2000.00"),
+            unit_cost=Decimal("900.00"),
+        )
+
+        invoice = quote.convert_to_invoice()
+
+        invoice_line = invoice.lines.get()
+        assert invoice_line.unit_cost == Decimal("1600.00")
+
     def test_convert_to_delivery_note(self):
         quote = Quote.objects.create(
             tenant=self.tenant,
