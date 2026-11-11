@@ -24,21 +24,22 @@ class ClientSerializer(serializers.ModelSerializer):
             "id", "cached_balance", "is_over_credit_limit", "risk_grade", "risk_details", "created_at"
         ]
 
-    def get_risk_grade(self, obj) -> str:
+    def _get_risk_profile(self, obj) -> dict:
         bulk_map = self.context.get("bulk_risk_map")
-        if bulk_map and obj.id in bulk_map:
-            return bulk_map[obj.id]["grade"]
-        from .services.risk import client_risk
-        return client_risk(obj)["grade"]
+        if bulk_map is not None and obj.id in bulk_map:
+            return bulk_map[obj.id]
+
+        risk_cache = self.context.setdefault("_client_risk_cache", {})
+        if obj.id not in risk_cache:
+            from .services.risk import client_risk
+            risk_cache[obj.id] = client_risk(obj)
+        return risk_cache[obj.id]
+
+    def get_risk_grade(self, obj) -> str:
+        return self._get_risk_profile(obj)["grade"]
 
     def get_risk_details(self, obj) -> dict:
-        bulk_map = self.context.get("bulk_risk_map")
-        if bulk_map and obj.id in bulk_map:
-            res = bulk_map[obj.id].copy()
-            res["overdue_amount"] = str(res["overdue_amount"])
-            return res
-        from .services.risk import client_risk
-        res = client_risk(obj).copy()
+        res = self._get_risk_profile(obj).copy()
         res["overdue_amount"] = str(res["overdue_amount"])
         return res
 
