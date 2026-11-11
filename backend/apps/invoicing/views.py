@@ -9,6 +9,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -796,11 +797,8 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         quote = self.get_object()
         try:
             quote.cancel(user=request.user)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "invalid_action", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="invalid_action") from exc
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=["post"], url_path="convert-to-invoice")
@@ -812,11 +810,8 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         assert_client_can_take_credit(quote.client, quote.total_ttc, user=request.user, force=force, is_drf=True)
         try:
             invoice = quote.convert_to_invoice(user=request.user, force=force)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "conversion_failed", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="conversion_failed") from exc
         transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
         return Response({
             "quote": QuoteSerializer(quote).data,
@@ -833,11 +828,8 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         assert_client_can_take_credit(quote.client, quote.total_ttc, user=request.user, force=force, is_drf=True)
         try:
             dn = quote.convert_to_delivery_note(user=request.user, force=force)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "conversion_failed", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="conversion_failed") from exc
         transaction.on_commit(lambda: run_task(generate_delivery_note_pdf, dn.pk))
         return Response({
             "quote": QuoteSerializer(quote).data,
