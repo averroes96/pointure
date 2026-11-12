@@ -479,10 +479,12 @@ def parse_supplier_order_file(
     Returns (raw_rows_grid, encoding, delimiter, error_message).
     """
     fname = filename.lower()
-    if fname.endswith((".xlsx", ".xlsm", ".xltx")):
+    if fname.endswith(".xlsx"):
         rows, err = parse_xlsx_file(raw_bytes)
         return rows, "binary", "excel", err
-    return parse_csv_file(raw_bytes)
+    if fname.endswith(".csv"):
+        return parse_csv_file(raw_bytes)
+    return [], "", "", _("Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

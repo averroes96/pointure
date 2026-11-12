@@ -269,6 +269,15 @@ class TestOrderImporter:
         assert lines[0]["unit_price"] == Decimal("2450.00")
         assert lines[1]["unit_price"] == Decimal("3800.00")
 
+    @pytest.mark.parametrize("filename", ["legacy.xls", "macro.xlsm", "template.xltx"])
+    def test_unsupported_excel_extensions_are_rejected(self, filename):
+        rows, encoding, delimiter, error = parse_supplier_order_file(b"not a csv file", filename)
+
+        assert rows == []
+        assert encoding == ""
+        assert delimiter == ""
+        assert str(error) == "Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv."
+
     # ── 4. English Excel Matrix/Pivot Sheet Transposition ──────────────────────
 
     def test_english_excel_matrix_transposition(self):
@@ -382,11 +391,13 @@ class TestOrderImporter:
             "EE-001;41;24;2100.00\n"
         )
         raw_bytes = csv_text.encode("utf-8")
+        csv_file = io.BytesIO(raw_bytes)
+        csv_file.name = "supplier-order.csv"
 
         self.client.force_authenticate(user=self.owner)
         resp = self.client.post(
             "/api/v1/suppliers/purchase-orders/import-preview/",
-            {"file": io.BytesIO(raw_bytes), "supplier_id": str(self.supplier.id)},
+            {"file": csv_file, "supplier_id": str(self.supplier.id)},
             format="multipart",
         )
         assert resp.status_code == status.HTTP_200_OK

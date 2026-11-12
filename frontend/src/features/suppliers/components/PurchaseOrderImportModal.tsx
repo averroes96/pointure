@@ -244,6 +244,13 @@ export function PurchaseOrderImportModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const filename = file.name.toLowerCase();
+      if (!filename.endsWith(".xlsx") && !filename.endsWith(".csv")) {
+        setSelectedFile(null);
+        setErrorMsg(t("po_import.error_unsupported_file", "Veuillez choisir un fichier .xlsx ou .csv."));
+        e.target.value = "";
+        return;
+      }
       setSelectedFile(file);
       setErrorMsg(null);
     }
@@ -393,7 +400,7 @@ export function PurchaseOrderImportModal({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".csv, .xlsx, .xlsm, .xltx, .xls"
+                    accept=".csv, .xlsx"
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -413,7 +420,10 @@ export function PurchaseOrderImportModal({
                         {t("po_import.drag_and_drop", "Glissez-déposez un fichier ici ou cliquez pour parcourir")}
                       </p>
                       <p className="text-xs text-text-muted mt-1">
-                        Formats supportés : .xlsx, .xls, .csv (encodages UTF-8, Windows Arabe CP1256, Français CP1252)
+                        {t(
+                          "po_import.supported_formats",
+                          "Formats pris en charge : .xlsx et .csv (UTF-8, Windows arabe CP1256, français CP1252)"
+                        )}
                       </p>
                     </div>
                   )}

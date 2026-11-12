@@ -236,8 +236,9 @@ export default function BulkImportWizardModal({
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) return;
     const ext = selectedFile.name.toLowerCase();
-    if (!ext.endsWith(".csv") && !ext.endsWith(".xlsx") && !ext.endsWith(".xls")) {
-      setErrorMessage(t("import_wizard.drag_drop_subtitle"));
+    if (!ext.endsWith(".csv") && !ext.endsWith(".xlsx")) {
+      setFile(null);
+      setErrorMessage(t("import_wizard.error_unsupported_file"));
       return;
     }
     setFile(selectedFile);
@@ -603,7 +604,7 @@ export default function BulkImportWizardModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv,.xlsx"
                   className="hidden"
                   onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
                 />

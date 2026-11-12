@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "@/lib/i18n";
+import i18n from "@/lib/i18n";
 import { PurchaseOrderImportModal } from "../components/PurchaseOrderImportModal";
 
 const createTestQueryClient = () =>
@@ -41,6 +41,24 @@ describe("PurchaseOrderImportModal", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("rejects unsupported legacy .xls files", async () => {
+    await i18n.changeLanguage("fr");
+    const queryClient = createTestQueryClient();
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <PurchaseOrderImportModal isOpen={true} onClose={vi.fn()} />
+      </QueryClientProvider>
+    );
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    expect(fileInput.accept.split(",").map((extension) => extension.trim())).toEqual([".csv", ".xlsx"]);
+    fireEvent.change(fileInput, {
+      target: { files: [new File(["legacy workbook"], "legacy.xls")] },
+    });
+
+    expect(screen.getByText("Veuillez choisir un fichier .xlsx ou .csv.")).toBeInTheDocument();
   });
 
   it("calls onClose when cancel or close button is clicked", () => {

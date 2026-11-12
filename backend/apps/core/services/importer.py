@@ -277,9 +277,11 @@ def parse_file_data(raw_bytes: bytes, filename: str) -> Tuple[List[str], List[Di
     Returns (headers, rows, error_message).
     """
     fname = filename.lower()
-    if fname.endswith((".xlsx", ".xlsm", ".xltx")):
+    if fname.endswith(".xlsx"):
         return _parse_xlsx_data(raw_bytes)
-    return _parse_csv_data(raw_bytes)
+    if fname.endswith(".csv"):
+        return _parse_csv_data(raw_bytes)
+    return [], [], _("Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv.")
 
 
 def _parse_csv_data(raw_bytes: bytes) -> Tuple[List[str], List[Dict[str, Any]], Optional[str]]:

@@ -72,7 +72,7 @@ Chaque vente de ce mocassin déduira un coût de revient de `3 250 DZD`, garanti
 
 ### F. Import intelligent de bons de commande (Excel & CSV multilingue)
 
-ShoeDZ intègre un module d'importation intelligent pour convertir directement les listes d'achats transmises par vos fournisseurs sous forme de fichiers Excel (`.xlsx`, `.xls`) ou CSV :
+ShoeDZ intègre un module d'importation intelligent pour convertir directement les listes d'achats transmises par vos fournisseurs sous forme de fichiers Excel (`.xlsx`) ou CSV :
 1. Dans l'écran de création de commande ou depuis l'onglet Commandes d'un fournisseur, cliquez sur **Importer (Excel / CSV)**.
 2. Déposez votre fichier : le moteur détecte automatiquement l'encodage (UTF-8, Windows Arabe CP1256, Français CP1252), le séparateur (`;`, `,`, tabulation) et la ligne des en-têtes.
 3. **Reconnaissance des colonnes et pointures :**

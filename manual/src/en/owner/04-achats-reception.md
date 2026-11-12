@@ -72,7 +72,7 @@ When any pair of this loafer is subsequently sold, the software deducts a cost o
 
 ### F. Smart Purchase Order Import (Multi-language Excel & CSV)
 
-ShoeDZ provides an intelligent import engine to directly convert procurement spreadsheets received from footwear suppliers (`.xlsx`, `.xls`, `.csv`) into official purchase orders:
+ShoeDZ provides an intelligent import engine to directly convert procurement spreadsheets received from footwear suppliers (`.xlsx`, `.csv`) into official purchase orders:
 1. In the purchase order form or from a supplier's Orders tab, click **Import (Excel / CSV)**.
 2. Upload the file: the engine automatically detects encoding (UTF-8, Arabic Windows CP1256, French CP1252), delimiter (`;`, `,`, tab), and header rows.
 3. **Column Mapping and Footwear Sizing Modes:**

@@ -202,6 +202,21 @@ class TestImportApiEndpoints:
         assert res.status_code == status.HTTP_200_OK
         assert "modele_import_produits_shoedz.xlsx" in res["Content-Disposition"]
 
+    def test_parse_endpoint_rejects_unsupported_xls(self, auth_client):
+        xls_file = io.BytesIO(b"not a csv file")
+        xls_file.name = "legacy.xls"
+
+        response = auth_client.post(
+            "/api/v1/core/import/parse/",
+            {"file": xls_file, "entity": "products"},
+            format="multipart",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv."
+        }
+
     def test_parse_and_preview_endpoints(self, auth_client):
         csv_data = "Nom,Marque,Pointure,Prix Vente\nAir Force,Nike,42,12000\n"
         csv_file = io.BytesIO(csv_data.encode("utf-8"))
