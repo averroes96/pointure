@@ -458,6 +458,67 @@ class TestOrderImporter:
         assert Product.objects.filter(tenant=self.tenant, reference="PROD-NEW-01").exists()
         assert SupplierImportTemplate.objects.filter(tenant=self.tenant, name="Modèle Standard Nouveau").exists()
 
+    def test_api_import_confirm_rejects_identical_supplier_lines_for_10_seconds(self):
+        self.client.force_authenticate(user=self.owner)
+        payload = {
+            "supplier_id": str(self.supplier.id),
+            "reference": "BC-IDEMPOTENT-1",
+            "lines": [
+                {
+                    "reference": "IDEMPOTENT-PRODUCT",
+                    "description": "Basket de test",
+                    "size_eu": 42,
+                    "quantity": 10,
+                    "unit_price": "2500.00",
+                }
+            ],
+            "quick_create_products": False,
+        }
+
+        first_resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-confirm/",
+            payload,
+            format="json",
+        )
+        assert first_resp.status_code == status.HTTP_201_CREATED
+
+        duplicate_payload = {**payload, "reference": "BC-IDEMPOTENT-2"}
+        duplicate_resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-confirm/",
+            duplicate_payload,
+            format="json",
+        )
+        assert duplicate_resp.status_code == status.HTTP_409_CONFLICT
+        assert duplicate_resp.data == {
+            "error": {
+                "code": "duplicate_po_import",
+                "message": "Une confirmation identique a été reçue récemment. Réessayez dans 10 secondes.",
+                "details": {},
+                "status_code": status.HTTP_409_CONFLICT,
+            }
+        }
+
+        changed_lines_payload = {
+            **payload,
+            "lines": [{**payload["lines"][0], "quantity": 11}],
+        }
+        changed_lines_resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-confirm/",
+            changed_lines_payload,
+            format="json",
+        )
+        assert changed_lines_resp.status_code == status.HTTP_201_CREATED
+
+        other_supplier = Supplier.objects.create(tenant=self.tenant, name="Autre fournisseur")
+        other_supplier_payload = {**payload, "supplier_id": str(other_supplier.id)}
+        other_supplier_resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-confirm/",
+            other_supplier_payload,
+            format="json",
+        )
+        assert other_supplier_resp.status_code == status.HTTP_201_CREATED
+        assert PurchaseOrder.objects.filter(tenant=self.tenant).count() == 3
+
     def test_cashier_forbidden_from_import(self):
         self.client.force_authenticate(user=self.cashier)
         resp = self.client.post(

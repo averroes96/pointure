@@ -1,8 +1,15 @@
 """Supplier management API views."""
+import hashlib
+import json
+
+from django.core.cache import cache
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -44,6 +51,12 @@ from .services import (
     reconcile_with_catalog,
     scan_purchase_order_image,
 )
+
+
+class DuplicatePOImportError(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = _("Une confirmation identique a été reçue récemment. Réessayez dans 10 secondes.")
+    default_code = "duplicate_po_import"
 
 
 def _resolve_product(tenant, nv: dict, branch=None):
@@ -799,19 +812,38 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if not lines:
             return Response({"detail": "Aucune ligne à importer."}, status=status.HTTP_400_BAD_REQUEST)
 
-        po, stats = execute_po_import(
-            tenant=request.tenant,
-            user=request.user,
-            supplier=supplier,
-            lines=lines,
-            reference=data.get("reference", ""),
-            expected_date=data.get("expected_date"),
-            notes=data.get("notes", ""),
-            quick_create_products=data.get("quick_create_products", True),
-            save_as_template=data.get("save_as_template", False),
-            template_name=data.get("template_name", ""),
-            template_data=data.get("template_data", {}),
+        fingerprint_data = json.dumps(
+            {
+                "tenant_id": str(request.tenant.id),
+                "supplier_id": str(supplier.id),
+                "lines": lines,
+            },
+            cls=DjangoJSONEncoder,
+            sort_keys=True,
+            separators=(",", ":"),
         )
+        fingerprint = hashlib.sha256(fingerprint_data.encode("utf-8")).hexdigest()
+        cache_key = f"po_import_confirm:{fingerprint}"
+        if not cache.add(cache_key, "processing", timeout=10):
+            raise DuplicatePOImportError()
+
+        try:
+            po, stats = execute_po_import(
+                tenant=request.tenant,
+                user=request.user,
+                supplier=supplier,
+                lines=lines,
+                reference=data.get("reference", ""),
+                expected_date=data.get("expected_date"),
+                notes=data.get("notes", ""),
+                quick_create_products=data.get("quick_create_products", True),
+                save_as_template=data.get("save_as_template", False),
+                template_name=data.get("template_name", ""),
+                template_data=data.get("template_data", {}),
+            )
+        except Exception:
+            cache.delete(cache_key)
+            raise
 
         return Response({
             "purchase_order": PurchaseOrderSerializer(po).data,
