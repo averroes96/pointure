@@ -8,6 +8,7 @@ Verifies that:
 """
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 import pytest
 from dbfread import DBF
 import openpyxl
@@ -108,8 +109,9 @@ class TestDemoFixturesGenerator:
 
 @pytest.mark.django_db
 class TestSeedDemoCommand:
-    def test_seed_demo_execution(self):
-        call_command("seed_demo", "--reset")
+    def test_seed_demo_execution(self, tmp_path):
+        call_command("seed_demo", "--reset", "--write-fixtures", "--fixtures-dir", str(tmp_path))
+        assert (tmp_path / "README.md").exists()
 
         # 1. Tenant & Settings
         tenant = Tenant.objects.get(name="ShoeDZ Demo Store")
@@ -171,4 +173,10 @@ class TestSeedDemoCommand:
         bns = DeliveryNote.objects.filter(tenant=tenant)
         assert bns.count() == 2
         assert bns.first().lines.first().cartons > 0
+
+    def test_seed_demo_does_not_generate_fixtures_by_default(self):
+        with patch("apps.core.services.demo_fixtures_generator.generate_demo_fixtures") as generate:
+            call_command("seed_demo", "--reset")
+
+        generate.assert_not_called()
 

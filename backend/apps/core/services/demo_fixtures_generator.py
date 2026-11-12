@@ -766,7 +766,7 @@ You can regenerate or reset these fixtures at any time using Django management c
 ```bash
 cd backend
 # Regenerates all fixtures and updates demo database:
-venv/bin/python manage.py seed_demo --reset
+venv/bin/python manage.py seed_demo --reset --write-fixtures
 ```
 """
     readme_path.write_text(content.strip() + "\n", encoding="utf-8")

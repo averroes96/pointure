@@ -20,13 +20,14 @@ Creates a complete, rich demo dataset for development, testing, and user guide d
   - 3 Pending cheques in calendar
   - 30 Sales over the last 30 days
   - 10 Invoices in various statuses
-  - Programmatic generation of sample import fixtures in fixtures/demo_imports/ (Legacy DBF, PO Excel/CSV, Products)
+  - Optional generation of sample import fixtures in fixtures/demo_imports/ with --write-fixtures
 """
 import random
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
@@ -62,9 +63,22 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true", help="Delete existing demo data first.")
+        parser.add_argument(
+            "--write-fixtures",
+            action="store_true",
+            help="Generate demo import fixtures in fixtures/demo_imports/.",
+        )
+        parser.add_argument(
+            "--fixtures-dir",
+            type=Path,
+            help="Write demo import fixtures to this directory (requires --write-fixtures).",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if options.get("fixtures_dir") and not options.get("write_fixtures"):
+            raise CommandError("--fixtures-dir requires --write-fixtures.")
+
         self.stdout.write(self.style.MIGRATE_HEADING("🌱 Seeding comprehensive demo data..."))
 
         from apps.core.models import (
@@ -682,17 +696,22 @@ class Command(BaseCommand):
         self.stdout.write(f"  ✓ Invoices: {len(created_invoices)} invoices + 2 Delivery Notes (BL) with cartons")
 
         # ── 13. Generate Import Fixtures ────────────────────────────────────────
-        from apps.core.services.demo_fixtures_generator import generate_demo_fixtures
+        fixture_dir = None
+        if options.get("write_fixtures"):
+            from apps.core.services.demo_fixtures_generator import generate_demo_fixtures
 
-        fixture_dir = generate_demo_fixtures()
-        self.stdout.write(f"  ✓ Demo Import Fixtures generated in: {fixture_dir}")
+            fixture_dir = generate_demo_fixtures(output_root=options.get("fixtures_dir"))
+            self.stdout.write(f"  ✓ Demo Import Fixtures generated in: {fixture_dir}")
+        else:
+            self.stdout.write("  ↷ Demo Import Fixtures skipped (pass --write-fixtures to generate them).")
 
-        self.stdout.write(self.style.SUCCESS("\n✅ Complete demo dataset & fixtures seeded successfully!\n"))
+        self.stdout.write(self.style.SUCCESS("\n✅ Complete demo dataset seeded successfully!\n"))
         self.stdout.write("   Credentials:")
         self.stdout.write("   • Admin/Owner:   0555 00 00 01 / admin@demo.com   |  password: demo1234")
         self.stdout.write("   • Manager:       0555 00 00 02 / manager@demo.com |  password: demo1234")
         self.stdout.write("   • Cashier:       0555 00 00 03 / cashier@demo.com |  password: demo1234\n")
-        self.stdout.write("   Sample Files for Imports:")
-        self.stdout.write(f"   • Legacy DBF:      {fixture_dir}/legacy_dbf/")
-        self.stdout.write(f"   • Purchase Orders: {fixture_dir}/purchase_orders/")
-        self.stdout.write(f"   • Products:        {fixture_dir}/products/\n")
+        if fixture_dir is not None:
+            self.stdout.write("   Sample Files for Imports:")
+            self.stdout.write(f"   • Legacy DBF:      {fixture_dir}/legacy_dbf/")
+            self.stdout.write(f"   • Purchase Orders: {fixture_dir}/purchase_orders/")
+            self.stdout.write(f"   • Products:        {fixture_dir}/products/\n")
