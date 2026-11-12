@@ -33,6 +33,10 @@ You can add shoes or accessories to the active cart using two methods:
 > [!WARNING]
 > Your cashier account has an authorized maximum discount threshold (`max_discount_pct`, e.g., 10%). If you attempt to grant a higher discount, a **Manager PIN Authorization** dialog will appear.
 
+#### Customer Price Tier
+
+Selecting a customer applies their default tier (Retail, Semi-wholesale, or Wholesale) to the cart prices. Press <kbd>Alt + G</kbd> to cycle Retail → Semi-wholesale → Wholesale, or choose a tier directly from the selector in the cart.
+
 ---
 
 ### C. Choosing the Payment Method

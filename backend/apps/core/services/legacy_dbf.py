@@ -405,13 +405,21 @@ class LegacyDBFImporter:
             self.supplier_map[name] = supp
             self.stats["suppliers_imported"] += 1
 
-        # 2. In Algerian retail dBase systems, wholesale vendors/importers are recorded in CLIENT.DBF
-        # (e.g. CHINA, GHOLEM GROS)
+        # Some legacy systems also store vendors in CLIENT.DBF. That table contains
+        # ordinary customers too, so use purchase records to identify vendor rows
+        # instead of guessing from names or customer price tiers.
+        purchase_supplier_refs = set()
+        for filename in ("ACHATART.DBF", "ACHATMVT.DBF"):
+            for purchase_record in self.get_dbf(filename, optional=True):
+                supplier_ref = safe_str(purchase_record.get("CLIENT"))
+                if supplier_ref:
+                    purchase_supplier_refs.add(supplier_ref)
+
         client_records = self.get_dbf("CLIENT.DBF")
         for r in client_records:
             cid = safe_str(r.get("CLIENT"))
             name = safe_str(r.get("DESIGNAT"))
-            if not name or "DETAIL" in name.upper() or "COMPTOIR" in name.upper():
+            if not name or not ({cid, name} & purchase_supplier_refs):
                 continue
             supp, created = Supplier.objects.get_or_create(
                 tenant=self.tenant,
@@ -1190,5 +1198,8 @@ class LegacyDBFImporter:
                         unit_price=sid["unit_price"],
                         description=f"{sid['variant'].product.name}{desc_size}",
                     )
+
+                invoice.compute_totals()
+                invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
                     
                 self.stats["sales_imported"] += 1

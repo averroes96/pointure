@@ -84,6 +84,7 @@ ShoeDZ intègre un module d'importation intelligent pour convertir directement l
    - Le tableau d'aperçu affiche le total des colis, paires et montants estimés, ainsi que l'état de rapprochement (produits existants, variantes à ajouter, nouveaux articles).
    - L'option de création automatique génère instantanément les fiches produits et déclinaisons en catalogue.
    - Vous pouvez cocher **Enregistrer comme modèle d'import** pour mémoriser le format de ce fournisseur et accélérer les réapprovisionnements futurs.
+5. Vérifiez les lignes et totaux de l'aperçu. Si le mapping est incorrect, revenez à l'étape des colonnes pour le modifier, puis cliquez sur **Créer le bon de commande**. Le bon importé est créé en brouillon : vérifiez-le puis confirmez-le dans le circuit habituel des commandes.
 
 ---
 

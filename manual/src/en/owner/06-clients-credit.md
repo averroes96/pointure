@@ -7,6 +7,7 @@ Managing trade credit and customer receivables is essential for healthy store ca
 Under the **Customers** menu (<kbd>F4</kbd>), each customer file consolidates:
 - Contact Information: Full name, mobile phone number (`05/06/07`), and wilaya.
 - Commercial / Trade Accounts: Trade name, tax credentials (NIF, RC), and billing address.
+- **Price Tier:** Choose the customer's default tier — Retail, Semi-wholesale, or Wholesale. This tier is selected when the customer is used at POS and in invoices and quotes.
 - Financial History: Chronological list of all sales receipts, invoices, and layaway deposit slips.
 
 ---
@@ -26,10 +27,11 @@ To mitigate bad debt risks, ShoeDZ provides automated credit governance:
 ### C. Customer Ledger (Statement of Account)
 
 ShoeDZ maintains an automated running ledger for every customer:
+- To open it, select a customer from **Customers** and choose the **Ledger** tab. Use the date range, movement type, and search filters to narrow the entries.
 - **Debit:** Every credit sale or invoice increases the customer's balance due.
 - **Credit:** Every cash installment, down payment, or cleared cheque reduces the debt.
 - **Net Balance:** Accurate balance due computed in real time.
-- Clicking **PDF** or **Excel** exports an official statement of account over the selected date range (featuring opening balance, ledger movements, and open invoices). The **WhatsApp** button sends an instant reminder message with the current balance due.
+- **PDF** and **Excel** export the statement for the selected date range, including the opening balance, movements, and open invoices. **WhatsApp** prepares a reminder with the current balance due.
 
 ---
 

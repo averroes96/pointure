@@ -24,9 +24,8 @@ In footwear retail, catalog management requires a structured breakdown by model,
 
 Define your store's pricing strategy for each shoe model:
 - **Purchase Price (HT) and Weighted Average Cost (PAMP):** Supplier purchase price and weighted average cost updated automatically upon receiving purchase orders.
-- **Retail Selling Price (Rayon):** Standard unit retail price charged to walk-in customers.
-- **Wholesale Price (Carton):** Discounted price applied when selling complete cartons or bulk bundles to trade clients.
-- **Carton Breakdown (Series / Assortment):** Define the number of pairs per size within a standard carton (e.g., 40×2, 41×2, 42×3, 43×2, 44×1). This breakdown is automatically used to expand wholesale cartons in invoices and quotes.
+- **Retail, Semi-wholesale, and Wholesale Prices:** Enter a selling price per pair for each available price tier. The tier selected for a customer determines the price used at checkout and on invoices and quotes.
+- **Carton Breakdown (Series / Assortment):** Define the number of pairs per size within a standard carton (e.g., 40×2, 41×2, 42×3, 43×2, 44×1). This breakdown expands carton quantities by shoe size when adding cartons to invoices and quotes.
 
 ---
 

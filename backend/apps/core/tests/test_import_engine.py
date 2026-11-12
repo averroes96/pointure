@@ -459,7 +459,7 @@ class TestLegacyDBFDryRun:
         stats = importer.execute_import(dry_run=True)
 
         assert stats["dry_run"] is True
-        assert stats["counts"]["suppliers"] == 4  # 2 from FOURNISS.DBF + 2 wholesale client vendors from CLIENT.DBF
+        assert stats["counts"]["suppliers"] == 2  # Only the two records from FOURNISS.DBF are suppliers without purchase references.
         assert stats["counts"]["clients"] == 2
         assert stats["counts"]["products"] == 3
         assert stats["counts"]["stock_units"] == 22
@@ -990,4 +990,96 @@ class TestLegacyDBFTiersSuppliersChequesPartPayments:
         client.refresh_from_db()
         assert client.cached_balance == Decimal("3000.00")
         assert ClientLedger.objects.filter(client=client, reference_type="LegacyPartPayment").count() == 1
+
+
+@pytest.mark.django_db
+def test_legacy_supplier_import_filters_client_rows_by_purchase_references(tenant, branch, monkeypatch):
+    from apps.core.services.legacy_dbf import LegacyDBFImporter
+
+    legacy_records = {
+        "FOURNISS.DBF": [],
+        "CLIENT.DBF": [
+            {"CLIENT": "CUST-1", "DESIGNAT": "Boutique des Lilas"},
+            {"CLIENT": "SUPP-1", "DESIGNAT": "Importateur référencé"},
+            {"CLIENT": "CUST-2", "DESIGNAT": "Société El Wiam"},
+        ],
+        "ACHATART.DBF": [{"FACTURE": "ACH-001", "CLIENT": "SUPP-1"}],
+        "ACHATMVT.DBF": [],
+        "FOURND.DBF": [],
+    }
+
+    importer = LegacyDBFImporter(
+        path="/tmp/fake_legacy",
+        tenant=tenant,
+        branch=branch,
+    )
+    monkeypatch.setattr(
+        importer,
+        "get_dbf",
+        lambda filename, optional=False: legacy_records.get(filename.upper(), []),
+    )
+
+    importer._import_suppliers()
+
+    assert importer.stats["suppliers_imported"] == 1
+    assert list(Supplier.objects.filter(tenant=tenant).values_list("name", flat=True)) == [
+        "Importateur référencé"
+    ]
+
+
+@pytest.mark.django_db
+def test_legacy_wholesale_invoice_recalculates_totals_and_client_ledger(tenant, branch, monkeypatch):
+    import datetime
+
+    from apps.clients.models import Client, ClientLedger
+    from apps.core.services.legacy_dbf import LegacyDBFImporter
+    from apps.invoicing.models import Invoice
+    from apps.inventory.models import Product, Variant
+
+    client = Client.objects.create(tenant=tenant, name="Client importé")
+    product = Product.objects.create(tenant=tenant, name="Mocassin importé")
+    variant = Variant.objects.create(
+        tenant=tenant,
+        product=product,
+        size_eu=42,
+        colour="Noir",
+    )
+    importer = LegacyDBFImporter(
+        path="/tmp/fake_legacy",
+        tenant=tenant,
+        branch=branch,
+        options={"software_type": "wholesale"},
+    )
+    importer.product_map["ART-1"] = variant
+    importer.client_map["CLIENT-1"] = client
+    legacy_records = {
+        "VENTEMVT.DBF": [
+            {
+                "FACTURE": "LEG-001",
+                "DATE_FACT": datetime.date(2026, 1, 15),
+                "CLIENT": "CLIENT-1",
+                "QUANTITE": Decimal("2"),
+                "PRIX_VENTE": Decimal("100.00"),
+                "ARTICLE": "ART-1",
+            }
+        ],
+        "VENTMVTX.DBF": [],
+    }
+    monkeypatch.setattr(
+        importer,
+        "get_dbf",
+        lambda filename, optional=False: legacy_records.get(filename.upper(), []),
+    )
+
+    importer._import_invoices()
+
+    invoice = Invoice.objects.get(tenant=tenant, number="LEG-001")
+    assert invoice.total_ht == Decimal("200.00")
+    assert invoice.tva_amount == Decimal("38.00")
+    assert invoice.total_ttc == Decimal("238.00")
+    assert list(
+        ClientLedger.objects.filter(client=client, reference_type="Invoice").values_list("amount", flat=True)
+    ) == [Decimal("238.00")]
+    client.refresh_from_db()
+    assert client.cached_balance == Decimal("238.00")
 
