@@ -33,6 +33,10 @@ Vous disposez de deux méthodes pour ajouter des chaussures ou accessoires :
 > [!WARNING]
 > Votre compte caissier dispose d'un plafond de remise maximale autorisé (`max_discount_pct`, par exemple 10%). Si vous tentez d'accorder une remise supérieure, une boîte d'autorisation par **PIN Responsable** s'affichera obligatoirement.
 
+#### Grille tarifaire du client
+
+Lorsque vous sélectionnez un client, sa grille par défaut (Détail, Demi-gros ou Gros) est appliquée aux prix du panier. Appuyez sur <kbd>Alt + G</kbd> pour parcourir les tarifs dans l'ordre Détail → Demi-gros → Gros, ou choisissez directement un tarif dans le sélecteur du panier.
+
 ---
 
 ### C. Choisir le mode de règlement

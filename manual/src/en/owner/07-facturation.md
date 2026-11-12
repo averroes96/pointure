@@ -6,7 +6,7 @@ For wholesale clients, regional resellers, and business accounts, ShoeDZ creates
 
 1. Open the **Invoices** menu (<kbd>F3</kbd>) and click **+ New Invoice** (<kbd>Shift + F3</kbd>).
 2. Select the customer (their NIF, RC, and AI credentials populate automatically).
-3. Add line items (shoe models, sizes, pairs or cartons, and unit prices excluding tax HT). The **+ Add Cartons (Series)** button lets you select a model, colour, and number of cartons to directly insert the size breakdown while verifying stock availability.
+3. Add line items (shoe models, sizes, pair or carton quantities, and unit prices excluding tax HT). For a carton series, click **+ Add Cartons (Series)** or press <kbd>Alt + C</kbd>, choose the model, colour, and carton count, then review the size breakdown and displayed stock before adding it.
 4. The system calculates automatically:
    - Total Amount Excluding Tax (HT).
    - VAT at statutory rate (19%).
@@ -34,7 +34,7 @@ For wholesale clients, regional resellers, and business accounts, ShoeDZ creates
 To prepare formal commercial proposals for wholesale clients prior to order confirmation:
 1. Open the **Quotes & Proformas** menu and click **+ New Quote**.
 2. Select the client and specify the issue date as well as validity date (default 15 days).
-3. Add products by size and cartons. The system computes HT, VAT, and Total TTC.
+3. Add products by size, or use **Add Cartons (Series)** / <kbd>Alt + C</kbd> to choose a model, colour, and carton count; ShoeDZ expands the quantities by size. The system computes HT, VAT, and Total TTC.
 4. **Accounting and Inventory Invariant:** A quotation is purely a commercial proposal. It **does not deduct stock** and **posts no debit** to the client's ledger.
 5. You can print the proforma invoice in A4 format (`PF-YYYY-#####`) or share it immediately via **WhatsApp**.
 6. Upon client approval:

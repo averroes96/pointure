@@ -7,6 +7,7 @@ La maîtrise du crédit accordé aux clients est cruciale pour préserver la tr�
 Dans le menu **Clients** (<kbd>F4</kbd>), chaque fiche client centralise :
 - Coordonnées : Nom complet, numéro de téléphone mobile (`05/06/07`), et wilaya de résidence.
 - Pour les clients professionnels (boutiques revendeuses, entreprises) : Raison sociale, NIF, RC et adresse de facturation.
+- **Grille tarifaire :** Choisissez le tarif par défaut du client — Détail, Demi-gros ou Gros. Cette grille est reprise lors de la sélection du client en caisse, dans les factures et dans les devis.
 - Historique d'achats : Liste chronologique de tous les tickets de caisse, factures et versements d'acomptes émis pour ce client.
 
 ---
@@ -26,10 +27,11 @@ Pour limiter les risques d'impayés, ShoeDZ intègre un contrôle strict du cré
 ### C. L'extrait de compte client (Grand livre client)
 
 ShoeDZ tient automatiquement à jour le grand livre de chaque client :
+- Pour le consulter, ouvrez la fiche du client depuis **Clients**, puis choisissez l'onglet **Relevé de compte**. Utilisez les dates, le type de mouvement et la recherche pour filtrer les lignes.
 - **Débit :** Chaque vente à crédit ou facture émise augmente la dette du client.
 - **Crédit :** Chaque versement d'acompte, règlement en espèces ou chèque encaissé diminue la dette.
 - **Solde net :** Le montant restant dû en temps réel.
-- En cliquant sur **PDF** ou **Excel**, vous pouvez exporter un relevé de compte officiel sur la période choisie (avec solde initial, détail des mouvements et factures non soldées). Le bouton **WhatsApp** permet de partager instantanément le montant du solde restant dû.
+- Les boutons **PDF** et **Excel** exportent le relevé pour la période choisie, avec le solde initial, les mouvements et les factures non soldées. **WhatsApp** prépare un rappel avec le solde restant dû.
 
 ---
 

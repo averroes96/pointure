@@ -6,7 +6,7 @@ Pour votre clientèle de revendeurs, d'entreprises ou d'administrations, ShoeDZ 
 
 1. Accédez au menu **Factures** (<kbd>F3</kbd>) puis cliquez sur **+ Nouvelle facture** (<kbd>Shift + F3</kbd>).
 2. Sélectionnez le client destinataire (ses mentions NIF, RC et AI s'insèrent automatiquement).
-3. Ajoutez les lignes de vente (modèles, pointures, quantités de paires ou cartons, prix unitaires HT). Le bouton **+ Ajouter cartons (Série)** permet de sélectionner un modèle, une couleur et un nombre de cartons pour insérer directement la répartition détaillée tout en vérifiant le stock disponible.
+3. Ajoutez les lignes de vente (modèles, pointures, quantités de paires ou cartons, prix unitaires HT). Pour une série de cartons, cliquez sur **+ Ajouter cartons (Série)** ou appuyez sur <kbd>Alt + C</kbd>, choisissez le modèle, la couleur et le nombre de cartons, puis vérifiez la répartition par pointure et les stocks affichés avant l'ajout.
 4. Le système calcule automatiquement :
    - Le montant Total Hors Taxes (HT).
    - La TVA au taux légal en vigueur (19%).
@@ -34,7 +34,7 @@ Pour votre clientèle de revendeurs, d'entreprises ou d'administrations, ShoeDZ 
 Pour établir des propositions commerciales à vos clients grossistes avant commande ferme :
 1. Accédez au menu **Devis & Proformas** puis cliquez sur **+ Nouveau Devis**.
 2. Sélectionnez le client et renseignez la date d'émission ainsi que la date de validité (par défaut fixée à 15 jours).
-3. Ajoutez les articles par pointures et cartons. Le système calcule les montants HT, la TVA et le Total TTC.
+3. Ajoutez les articles par pointure ou utilisez **Ajouter cartons (Série)** / <kbd>Alt + C</kbd> pour choisir un modèle, une couleur et un nombre de cartons ; le système détaille les quantités par pointure. Il calcule les montants HT, la TVA et le Total TTC.
 4. **Impact comptable et stock :** Le devis est une proposition purement commerciale. Il **n'engendre aucune sortie de stock** et **n'inscrit aucune créance** au compte du client.
 5. Vous pouvez imprimer le devis au format A4 (`PF-AAAA-#####`) ou le partager instantanément par **WhatsApp**.
 6. Dès accord du client :
