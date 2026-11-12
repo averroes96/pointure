@@ -3,7 +3,7 @@ name: Build Windows Desktop Installer
 on:
   push:
     branches:
-      - main
+      - release
       - feature/windows-desktop-installer
     tags:
       - "v*"
