@@ -1539,7 +1539,7 @@
     "tax_regime_ifu": "Single Flat Tax - IFU (No VAT by default)",
     "tax_regime_help": "Under the IFU regime, VAT is automatically disabled by default on new invoices and quotes.",
     "invoice_legal_mentions_label": "Legal mentions on invoices",
-    "invoice_legal_mentions_placeholder": "E.g., Exempt from VAT pursuant to Article 282 quater CIDTA (IFU regime invoice)...",
+    "invoice_legal_mentions_placeholder": "Enter the legal wording provided by your accountant.",
     "invoice_legal_mentions_help": "Custom text printed at the bottom of your PDF invoices and quotes. Verify exact wording with your accountant.",
     "password_mismatch": "Passwords do not match",
     "profile": "Profile",

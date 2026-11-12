@@ -124,6 +124,7 @@ class TestSeedDemoCommand:
         assert settings_obj.business_mode == BusinessModeChoices.MIXED
         assert settings_obj.tax_regime == TaxRegimeChoices.REEL
         assert settings_obj.enable_variants is True
+        assert settings_obj.invoice_legal_mentions == ""
 
         # 2. Products with 3 tiers and shelving
         products = Product.objects.filter(tenant=tenant)
@@ -173,6 +174,16 @@ class TestSeedDemoCommand:
         bns = DeliveryNote.objects.filter(tenant=tenant)
         assert bns.count() == 2
         assert bns.first().lines.first().cartons > 0
+
+    def test_seed_demo_preserves_owner_legal_mentions(self):
+        tenant = Tenant.objects.create(name="ShoeDZ Demo Store")
+        owner_text = "Texte fourni par le comptable de la boutique."
+        StoreSettings.objects.create(tenant=tenant, invoice_legal_mentions=owner_text)
+
+        call_command("seed_demo")
+
+        settings_obj = StoreSettings.objects.get(tenant=tenant)
+        assert settings_obj.invoice_legal_mentions == owner_text
 
     def test_seed_demo_does_not_generate_fixtures_by_default(self):
         with patch("apps.core.services.demo_fixtures_generator.generate_demo_fixtures") as generate:

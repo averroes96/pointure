@@ -121,7 +121,6 @@ class Command(BaseCommand):
         settings_obj.tax_regime = TaxRegimeChoices.REEL
         settings_obj.enable_variants = True
         settings_obj.allow_negative_stock = False
-        settings_obj.invoice_legal_mentions = "Exonéré de TVA selon l'art. 9 du CTCA — SARL au capital de 10.000.000 DZD."
         settings_obj.save()
         self.stdout.write("  ✓ StoreSettings: Mixed mode, Réel tax regime, variants enabled")
 

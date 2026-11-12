@@ -2129,7 +2129,7 @@ function VersementsTab() {
             <textarea
               {...register("invoice_legal_mentions")}
               rows={3}
-              placeholder={t("settings.invoice_legal_mentions_placeholder", "Ex: Exonéré de TVA selon l'Article 282 quater du CIDTA (Facture établie sous le régime IFU)...")}
+              placeholder={t("settings.invoice_legal_mentions_placeholder", "Saisissez les mentions légales fournies par votre comptable.")}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
             />
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
