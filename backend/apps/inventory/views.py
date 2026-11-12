@@ -895,13 +895,21 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             .order_by("size_eu", "colour")
         )
 
+        try:
+            copies = max(1, min(int(request.query_params.get("copies", 1)), 200))
+        except (ValueError, TypeError):
+            copies = 1
+
         for v in variants:
             if not v.barcode:
                 v.barcode = generate_barcode(v)
                 Variant.objects.filter(pk=v.pk).update(barcode=v.barcode)
 
         labels_html = "\n".join(
-            _render_label(product, v, w_mm, h_mm, lang=lang) for v in variants if v.barcode
+            _render_label(product, v, w_mm, h_mm, lang=lang)
+            for _ in range(copies)
+            for v in variants
+            if v.barcode
         )
 
         if not labels_html:

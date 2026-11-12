@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -48,8 +50,13 @@ def validate_carton_breakdown_dict(carton_breakdown, pairs_per_carton=None):
 
         # Validate quantity of pairs (value)
         try:
-            qty_int = int(raw_qty)
-        except (ValueError, TypeError):
+            if isinstance(raw_qty, bool):
+                raise InvalidOperation
+            qty_decimal = Decimal(str(raw_qty))
+            if not qty_decimal.is_finite() or qty_decimal != qty_decimal.to_integral_value():
+                raise InvalidOperation
+            qty_int = int(qty_decimal)
+        except (InvalidOperation, ValueError, TypeError):
             raise ValidationError(
                 {
                     "carton_breakdown": _(

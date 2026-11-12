@@ -122,10 +122,12 @@ def render_quote_pdf(quote, language: str = "fr") -> bytes:
 
 
 def render_delivery_note_pdf(delivery_note, language: str = "fr") -> bytes:
-    if delivery_note.invoice:
+    lines = list(delivery_note.lines.select_related("variant__product"))
+    if not lines and delivery_note.invoice:
+        # Older linked delivery notes may not have their own lines. Keep the
+        # invoice fallback for those records, while printing only the BL's
+        # delivered quantities whenever its lines are present.
         lines = list(delivery_note.invoice.lines.select_related("variant__product"))
-    else:
-        lines = list(delivery_note.lines.select_related("variant__product"))
     tenant = delivery_note.invoice.tenant if delivery_note.invoice else delivery_note.tenant
     client = delivery_note.client or (delivery_note.invoice.client if delivery_note.invoice else None)
     from apps.core.models import StoreSettings

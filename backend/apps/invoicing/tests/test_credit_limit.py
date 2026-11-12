@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 from rest_framework.test import APIClient
+from apps.invoicing.models import Invoice
 
 
 def _today():
@@ -151,3 +152,24 @@ class TestCreditLimitEnforcement:
         )
         # Cashier gets 403 from require_manager() before credit limit check
         assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.data}"
+
+    def test_blocked_client_cannot_confirm_existing_draft_invoice(self):
+        """Blocking a client after draft creation must also block invoice confirmation."""
+        invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_50k,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            status="draft",
+        )
+        self.client_50k.is_blocked = True
+        self.client_50k.save(update_fields=["is_blocked"])
+
+        response = _make_client(self.manager).post(
+            f"/api/v1/invoicing/invoices/{invoice.pk}/confirm/"
+        )
+
+        assert response.status_code == 400, response.data
+        invoice.refresh_from_db()
+        assert invoice.status == "draft"
+        assert invoice.number == ""

@@ -6,6 +6,16 @@ import {
   type LabelsPrinterConfig,
 } from "@/lib/printerConfig";
 
+export function countLabelPages(html: string): number {
+  const matches = html.match(/class=["']page["']/g);
+  return matches && matches.length > 0 ? matches.length : 1;
+}
+
+export function resolvePrintCopies(pageCount: number, requestedCopies: number): number {
+  const copies = Math.max(1, Math.floor(requestedCopies || 1));
+  return pageCount >= copies && copies > 1 ? 1 : pageCount === 1 ? copies : 1;
+}
+
 export interface LabelPrintRequest {
   title: string;
   defaultCopies?: number;
@@ -98,7 +108,8 @@ export async function triggerLabelPrint(
     const { w, h } = getLabelDimensions(cfg);
     try {
       const html = await req.fetchHtml({ w, h, copies });
-      const res = await printLabelHtml(html, { copies });
+      const printCopies = resolvePrintCopies(countLabelPages(html), copies);
+      const res = await printLabelHtml(html, { copies: printCopies });
       if (res.success) {
         showToast?.(
           `Étiquette(s) envoyée(s) à ${cfg.printerName || "l'imprimante par défaut"}`,

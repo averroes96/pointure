@@ -11,7 +11,7 @@ from django.utils import timezone
 from apps.clients.models import Client, ClientLedger
 from apps.core.models import PlanChoices, RoleChoices, Tenant, User
 from apps.inventory.models import Product, StockMovement, Variant
-from apps.invoicing.models import Invoice, Quote, QuoteLine, QuoteStatusChoices
+from apps.invoicing.models import DeliveryNote, Invoice, Quote, QuoteLine, QuoteStatusChoices
 from apps.invoicing.tasks import expire_outdated_quotes
 
 
@@ -275,6 +275,71 @@ class TestQuotes:
 
         # Exactly 1 invoice created
         assert Invoice.objects.filter(client=self.client).count() == 1
+
+    @pytest.mark.parametrize(
+        ("action", "model", "converted_field"),
+        [
+            ("convert-to-invoice", Invoice, "converted_invoice"),
+            ("convert-to-delivery-note", DeliveryNote, "converted_delivery_note"),
+        ],
+    )
+    def test_quote_conversion_endpoint_does_not_create_duplicates(self, action, model, converted_field):
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("2.00"),
+            unit_price=Decimal("2000.00"),
+        )
+        client = _make_client(self.manager)
+
+        first = client.post(f"/api/v1/invoicing/quotes/{quote.pk}/{action}/")
+        second = client.post(f"/api/v1/invoicing/quotes/{quote.pk}/{action}/")
+
+        assert first.status_code == 200, first.data
+        assert second.status_code == 400, second.data
+        assert model.objects.filter(client=self.client).count() == 1
+        quote.refresh_from_db()
+        assert getattr(quote, converted_field) is not None
+
+    @pytest.mark.parametrize(
+        ("action", "model"),
+        [
+            ("convert-to-invoice", Invoice),
+            ("convert-to-delivery-note", DeliveryNote),
+        ],
+    )
+    def test_blocked_client_cannot_convert_quote(self, action, model):
+        self.client.is_blocked = True
+        self.client.save(update_fields=["is_blocked"])
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("2.00"),
+            unit_price=Decimal("2000.00"),
+        )
+
+        response = _make_client(self.manager).post(
+            f"/api/v1/invoicing/quotes/{quote.pk}/{action}/"
+        )
+
+        assert response.status_code == 400, response.data
+        assert model.objects.filter(client=self.client).count() == 0
+        quote.refresh_from_db()
+        assert quote.status == QuoteStatusChoices.ACCEPTED
 
     def test_quote_convert_to_bl_then_invoice_links_delivery_note(self):
         """Converting a quote to a BL and then to an invoice links the BL to the invoice."""

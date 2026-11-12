@@ -35,7 +35,8 @@ ShoeDZ includes an integrated thermal label generator for shoe boxes and price t
 1. From the product card or upon receiving shipments, click **Print Labels**.
 2. Select the label dimensions suited to your thermal label printer (e.g., `50x30 mm` or `40x25 mm`).
 3. Select which variants to print (all sizes or received quantities).
-4. Click **Start Printing**: each label prints with model name, brand, large size indicator, colour, DZD price, and scannable barcode.
+4. In the print dialog, set the number of copies; it applies once to each selected label.
+5. Click **Start Printing**: each label prints with model name, brand, large size indicator, colour, DZD price, and scannable barcode.
 
 ---
 

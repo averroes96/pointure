@@ -35,7 +35,8 @@ ShoeDZ intègre un générateur d'étiquettes thermiques pour vos boîtes à cha
 1. Sur la fiche produit ou depuis la réception d'une commande, cliquez sur **Imprimer les étiquettes**.
 2. Choisissez le format d'étiquette adapté à votre imprimante thermique (ex : `50x30 mm` ou `40x25 mm`).
 3. Sélectionnez les variantes à imprimer (toutes les pointures ou uniquement les quantités reçues).
-4. Cliquez sur **Lancer l'impression** : chaque étiquette comporte le nom du modèle, la marque, la pointure en gros caractères, la couleur, le prix en DZD et le code-barres scannable.
+4. Dans la fenêtre d'impression, indiquez le nombre d'exemplaires souhaité ; il s'applique une fois à chaque étiquette sélectionnée.
+5. Cliquez sur **Lancer l'impression** : chaque étiquette comporte le nom du modèle, la marque, la pointure en gros caractères, la couleur, le prix en DZD et le code-barres scannable.
 
 ---
 

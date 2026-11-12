@@ -24,7 +24,7 @@ import {
   type LabelSizePreset,
   type LabelsPrinterConfig,
 } from "@/lib/printerConfig";
-import { useLabelPrintStore } from "./labelPrintStore";
+import { countLabelPages, resolvePrintCopies, useLabelPrintStore } from "./labelPrintStore";
 import type { PrinterInfo } from "@/vite-env";
 import { cn } from "@/lib/utils";
 
@@ -143,8 +143,7 @@ export default function LabelPrintDialog() {
   // Count pages in preview HTML (e.g. for bulk printing)
   const pageCount = useMemo(() => {
     if (!previewHtml) return 1;
-    const matches = previewHtml.match(/class=["']page["']/g);
-    return matches && matches.length > 0 ? matches.length : 1;
+    return countLabelPages(previewHtml);
   }, [previewHtml]);
 
   const [currentPage, setCurrentPage] = useState<number>(0);
@@ -230,6 +229,7 @@ export default function LabelPrintDialog() {
       };
       savePrinterConfig(updatedConfig);
 
+      const printCopies = resolvePrintCopies(pageCount, copies);
       const res = await printLabelHtml(htmlContent, {
         printerName: selectedPrinter,
         labelSize,
@@ -238,7 +238,7 @@ export default function LabelPrintDialog() {
         offsetX,
         offsetY,
         landscape,
-        copies,
+        copies: printCopies,
       });
 
       if (res.success) {

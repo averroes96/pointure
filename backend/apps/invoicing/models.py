@@ -13,6 +13,21 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import Branch, TenantScopedModel
 
 
+def _assert_client_not_blocked(client_id, tenant, message):
+    if not client_id:
+        return
+
+    from django.core.exceptions import ValidationError
+    from apps.clients.models import Client
+
+    client = Client.objects.select_for_update().only("is_blocked").get(
+        pk=client_id,
+        tenant=tenant,
+    )
+    if client.is_blocked:
+        raise ValidationError({"client": message})
+
+
 class InvoiceStatusChoices(models.TextChoices):
     DRAFT = "draft", _("Draft")
     SENT = "sent", _("Sent")
@@ -178,6 +193,11 @@ class Invoice(TenantScopedModel):
         """Assign invoice number and set status based on payments."""
         if self.status == InvoiceStatusChoices.DRAFT:
             with transaction.atomic():
+                _assert_client_not_blocked(
+                    self.client_id,
+                    self.tenant,
+                    _("Ce client est bloqué. Impossible de confirmer la facture."),
+                )
                 if self.date:
                     from apps.closing.services.lock import assert_period_open
                     assert_period_open(self.tenant, self.date)
@@ -649,9 +669,11 @@ class Quote(TenantScopedModel):
             if quote.converted_invoice:
                 raise ValueError(_("Ce devis a déjà été converti en facture."))
 
-            if quote.client and quote.client.is_blocked:
-                from django.core.exceptions import ValidationError
-                raise ValidationError("Ce client est bloqué. Impossible d'émettre une facture.")
+            _assert_client_not_blocked(
+                quote.client_id,
+                quote.tenant,
+                _("Ce client est bloqué. Impossible d'émettre une facture."),
+            )
 
             invoice = Invoice.objects.create(
                 tenant=quote.tenant,
@@ -714,6 +736,11 @@ class Quote(TenantScopedModel):
                 raise ValueError(_("Un devis annulé ne peut pas être converti."))
             if quote.converted_delivery_note:
                 raise ValueError(_("Ce devis a déjà été converti en bon de livraison."))
+            _assert_client_not_blocked(
+                quote.client_id,
+                quote.tenant,
+                _("Ce client est bloqué. Impossible d'émettre un bon de livraison."),
+            )
 
             bl_number = InvoiceCounter.next_number(quote.tenant, "BL", date=dn_date)
             dn = DeliveryNote.objects.create(

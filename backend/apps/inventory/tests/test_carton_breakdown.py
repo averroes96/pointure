@@ -90,6 +90,29 @@ class TestCartonBreakdown:
         assert not serializer2.is_valid()
         assert "carton_breakdown" in serializer2.errors
 
+    @pytest.mark.parametrize(
+        ("breakdown", "pairs_per_carton"),
+        [
+            ({"40": 1.5}, 1),
+            ({"14": 1}, 1),
+            ({"61": 1}, 1),
+        ],
+    )
+    def test_carton_breakdown_rejects_fractional_quantities_and_invalid_sizes(
+        self, breakdown, pairs_per_carton
+    ):
+        serializer = ProductSerializer(
+            data={
+                "name": "Invalid breakdown",
+                "sale_price": "5000.00",
+                "pairs_per_carton": pairs_per_carton,
+                "carton_breakdown": breakdown,
+            }
+        )
+
+        assert serializer.is_valid() is False
+        assert set(serializer.errors) == {"carton_breakdown"}
+
     def test_expand_cartons_endpoint(self):
         product = Product.objects.create(
             tenant=self.tenant,

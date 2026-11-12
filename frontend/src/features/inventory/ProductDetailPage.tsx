@@ -202,9 +202,9 @@ export default function ProductDetailPage() {
     try {
       await triggerLabelPrint({
         title: `Étiquettes — ${product?.name || "Produit"}`,
-        fetchHtml: async ({ w, h }) => {
+        fetchHtml: async ({ w, h, copies }) => {
           const res = await api.get(
-            `/inventory/products/${id}/barcode-labels/?output=html&w=${w}&h=${h}`,
+            `/inventory/products/${id}/barcode-labels/?output=html&w=${w}&h=${h}&copies=${copies}`,
             { responseType: "text" }
           );
           return res.data;

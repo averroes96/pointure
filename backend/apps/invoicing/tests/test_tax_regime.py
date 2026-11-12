@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 from rest_framework.test import APIClient
 from apps.core.models import Tenant, StoreSettings, User, RoleChoices, PlanChoices
-from apps.invoicing.models import Invoice, InvoiceLine, Quote, DeliveryNote
+from apps.invoicing.models import DeliveryNoteLine, Invoice, InvoiceLine, Quote, DeliveryNote
 from apps.invoicing.pdf import render_invoice_pdf, render_quote_pdf, render_delivery_note_pdf
 
 
@@ -242,6 +242,50 @@ class TestTaxRegimeAndCompanyIdentity:
         )
         dn_bytes = render_delivery_note_pdf(dn)
         assert "NIS: 001616090001234" in dn_bytes.decode("utf-8")
+
+    def test_linked_delivery_note_pdf_renders_delivery_note_lines(self, monkeypatch):
+        """A BL PDF must render its delivered lines, not every line on its invoice."""
+        captured_contexts = []
+
+        def mock_render_to_pdf(template_name, context, language="fr"):
+            captured_contexts.append(context)
+            from django.template.loader import render_to_string
+            return render_to_string(template_name, context).encode("utf-8")
+
+        monkeypatch.setattr("apps.invoicing.pdf.render_to_pdf", mock_render_to_pdf)
+        invoice = Invoice.objects.create(
+            tenant=self.tenant,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            created_by=self.owner,
+        )
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            description="Invoice-only line",
+            quantity=Decimal("7.00"),
+            unit_price=Decimal("1000.00"),
+        )
+        delivery_note = DeliveryNote.objects.create(
+            tenant=self.tenant,
+            invoice=invoice,
+            number="BL-2026-0002",
+            date=datetime.date.today(),
+        )
+        DeliveryNoteLine.objects.create(
+            delivery_note=delivery_note,
+            description="Delivered line",
+            quantity=Decimal("2.50"),
+            unit_price=Decimal("1000.00"),
+        )
+
+        pdf_html = render_delivery_note_pdf(delivery_note).decode("utf-8")
+
+        assert "Delivered line" in pdf_html
+        assert "Invoice-only line" not in pdf_html
+        grouped_lines = captured_contexts[0]["grouped_lines"]
+        assert len(grouped_lines) == 1
+        assert grouped_lines[0]["name"] == "Delivered line"
+        assert grouped_lines[0]["quantity"] == Decimal("2.50")
 
     def test_ifu_store_shows_tva_when_invoice_has_tva(self, monkeypatch):
         """Even if store_settings.tax_regime == 'ifu', an invoice with apply_tva=True and tva_amount > 0 shows TVA."""
