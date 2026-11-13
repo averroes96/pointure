@@ -472,6 +472,66 @@ class TestQuotes:
         dn.refresh_from_db()
         assert dn.invoice == inv
 
+    def test_quote_conversion_refuses_second_invoice_after_regrouper_invoices_bl(self):
+        today = timezone.localdate()
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=today,
+            status=QuoteStatusChoices.ACCEPTED,
+            apply_tva=False,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("2.00"),
+            unit_price=Decimal("2000.00"),
+        )
+        quote.compute_totals()
+        quote.save()
+
+        delivery_note = quote.convert_to_delivery_note(user=self.manager)
+        client = _make_client(self.manager)
+        regrouper_response = client.post(
+            "/api/v1/invoicing/delivery-notes/regrouper/",
+            {
+                "client_id": str(self.client.pk),
+                "delivery_note_ids": [str(delivery_note.pk)],
+                "date": today.isoformat(),
+                "due_date": (today + datetime.timedelta(days=30)).isoformat(),
+                "series_prefix": "FA",
+                "apply_tva": False,
+                "tva_rate": "0.00",
+                "confirm": True,
+            },
+            format="json",
+        )
+        assert regrouper_response.status_code == 201, regrouper_response.data
+        invoice_a = Invoice.objects.get(tenant=self.tenant)
+        delivery_note.refresh_from_db()
+        assert delivery_note.invoice_id == invoice_a.pk
+
+        response = client.post(
+            f"/api/v1/invoicing/quotes/{quote.pk}/convert-to-invoice/"
+        )
+
+        expected_message = "Ce bon de livraison est déjà lié à une facture."
+        assert response.status_code == 400
+        assert response.data == {
+            "error": {
+                "code": "conversion_failed",
+                "message": expected_message,
+                "details": {"non_field_errors": [expected_message]},
+                "status_code": 400,
+            }
+        }
+        quote.refresh_from_db()
+        delivery_note.refresh_from_db()
+        assert Invoice.objects.filter(tenant=self.tenant).count() == 1
+        assert quote.converted_invoice_id is None
+        assert delivery_note.invoice_id == invoice_a.pk
+
     def test_expire_outdated_quotes(self):
         yesterday = timezone.localdate() - datetime.timedelta(days=1)
         tomorrow = timezone.localdate() + datetime.timedelta(days=1)
