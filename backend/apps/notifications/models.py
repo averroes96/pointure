@@ -63,6 +63,7 @@ class OutboundMessage(TenantScopedModel):
 
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
+        SENDING = "sending", _("Sending")
         SENT = "sent", _("Sent")
         FAILED = "failed", _("Failed")
 
@@ -80,6 +81,7 @@ class OutboundMessage(TenantScopedModel):
     )
     attempts = models.PositiveIntegerField(default=0)
     next_attempt_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    claimed_at = models.DateTimeField(null=True, blank=True, db_index=True)
     last_error = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     sent_at = models.DateTimeField(null=True, blank=True)
@@ -103,7 +105,10 @@ class OutboundMessage(TenantScopedModel):
         self.sent_at = now
         self.last_error = ""
         self.next_attempt_at = None
-        self.save(update_fields=["status", "sent_at", "last_error", "next_attempt_at"])
+        self.claimed_at = None
+        self.save(update_fields=[
+            "status", "sent_at", "last_error", "next_attempt_at", "claimed_at",
+        ])
 
     def mark_retry(self, error: str, now=None):
         """
@@ -113,6 +118,7 @@ class OutboundMessage(TenantScopedModel):
         now = now or timezone.now()
         self.attempts += 1
         self.last_error = (error or "")[:2000]
+        self.claimed_at = None
         delay = outbound_backoff(self.attempts)
         nxt = now + delay
         if now >= self.deadline or nxt > self.deadline:
@@ -121,12 +127,15 @@ class OutboundMessage(TenantScopedModel):
         else:
             self.status = self.Status.PENDING
             self.next_attempt_at = nxt
-        self.save(update_fields=["attempts", "last_error", "status", "next_attempt_at"])
+        self.save(update_fields=[
+            "attempts", "last_error", "status", "next_attempt_at", "claimed_at",
+        ])
 
     def mark_expired(self, now=None):
         now = now or timezone.now()
         self.status = self.Status.FAILED
         self.next_attempt_at = None
+        self.claimed_at = None
         if not self.last_error:
             self.last_error = "Gave up after 48 hours."
-        self.save(update_fields=["status", "next_attempt_at", "last_error"])
+        self.save(update_fields=["status", "next_attempt_at", "last_error", "claimed_at"])
