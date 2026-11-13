@@ -303,6 +303,8 @@ class Invoice(TenantScopedModel):
 
     def _sync_client_ledger(self):
         """Create or update a client ledger debit entry for this invoice."""
+        if getattr(self, "_skip_client_ledger", False):
+            return
         if not self.client:
             return
         if self.status in (InvoiceStatusChoices.DRAFT, InvoiceStatusChoices.CANCELLED):
