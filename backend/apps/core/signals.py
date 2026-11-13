@@ -34,6 +34,9 @@ AUDITED_MODELS = [
 
     # Fiscal Year Closing
     "FiscalYear",
+
+    # Owner remote alerts
+    "OutboundMessage",
 ]
 
 # Current request user (set by middleware)
