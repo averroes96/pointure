@@ -1,14 +1,15 @@
 """
 Queue owner Telegram summaries and alerts.
 
-Message text is built first. Delivery stays on the outbound queue, outside
-the request that triggered it. A failure here must not break the sale.
+Message text is built first. Delivery stays on the outbound queue and runs
+after commit, off the request thread. A failure here must not break the sale.
 """
 import logging
+import threading
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import close_old_connections, transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
@@ -76,10 +77,24 @@ def enqueue_telegram(tenant, kind: str, text: str) -> int:
 
 
 def _flush_outbound_queue():
-    """Ask the worker to send. On desktop this runs in-process after commit."""
-    from apps.core.utils.task_runner import run_task
-    from apps.notifications.tasks import deliver_outbound_queue
-    run_task(deliver_outbound_queue)
+    """Send queued rows after commit, without Celery.
+
+    The web process must not publish to the broker: a down or mismatched
+    Redis would log an error on every refund. A daemon thread keeps the
+    HTTPS call off the request and off SQLite's write lock.
+    """
+    threading.Thread(target=_dispatch_outbound_now, daemon=True).start()
+
+
+def _dispatch_outbound_now():
+    from apps.notifications.services.outbound import dispatch_due_messages
+    close_old_connections()
+    try:
+        dispatch_due_messages()
+    except Exception:
+        logger.exception("Outbound Telegram delivery failed")
+    finally:
+        close_old_connections()
 
 
 def _person_name(user) -> str:
