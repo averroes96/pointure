@@ -30,6 +30,13 @@ import { cn } from "@/lib/utils";
 
 export default function LabelPrintDialog() {
   const { t } = useTranslation();
+  const labelPresetLabels: Record<LabelSizePreset, string> = {
+    "45x35": t("printers.label_preset_45x35", "45 × 35 mm (Gprinter GP-3150TN — recommandé)"),
+    "50x30": t("printers.label_preset_50x30", "50 × 30 mm (Compact)"),
+    "82x40": t("printers.label_preset_82x40", "82 × 40 mm (Grande boîte)"),
+    "38x25": t("printers.label_preset_38x25", "38 × 25 mm (Mini)"),
+    custom: t("inventory.custom_format"),
+  };
   const { isOpen, request, htmlContent, isLoadingHtml, copies, closeDialog, setCopies, refreshHtml } =
     useLabelPrintStore();
 
@@ -322,10 +329,11 @@ export default function LabelPrintDialog() {
                   onChange={(e) => setSelectedPrinter(e.target.value)}
                   className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-primary-500"
                 >
-                  <option value="">(Imprimante par défaut Windows)</option>
+                  <option value="">{t("hardware.default_printer", "Imprimante par défaut Windows / Système")}</option>
                   {printers.map((p) => (
                     <option key={p.name} value={p.name}>
-                      {p.displayName || p.name} {p.isDefault ? "★ (Défaut)" : ""}
+                      {p.displayName || p.name}{" "}
+                      {p.isDefault ? `★ (${t("printers.default_label", "Défaut")})` : ""}
                     </option>
                   ))}
                 </select>
@@ -397,7 +405,7 @@ export default function LabelPrintDialog() {
                 >
                   {LABEL_SIZE_PRESETS.map((p) => (
                     <option key={p.value} value={p.value}>
-                      {p.label}
+                      {labelPresetLabels[p.value]}
                     </option>
                   ))}
                   <option value="custom">{t("inventory.custom_format")}</option>
@@ -479,7 +487,9 @@ export default function LabelPrintDialog() {
                   </span>
                   {(offsetX !== 0 || offsetY !== 0) && (
                     <span className="text-3xs px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      X:{offsetX > 0 ? `+${offsetX}` : offsetX}mm
+                      {t("inventory.offset_x_value", "X: {{value}} mm", {
+                        value: offsetX > 0 ? `+${offsetX}` : offsetX,
+                      })}
                     </span>
                   )}
                 </button>
@@ -505,7 +515,9 @@ export default function LabelPrintDialog() {
                             onChange={(e) => setOffsetX(parseFloat(e.target.value) || 0)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
                           />
-                          <span className="text-3xs text-slate-500">mm</span>
+                          <span className="text-3xs text-slate-500">
+                            {t("common.millimeter_abbr", "mm")}
+                          </span>
                         </div>
                       </div>
                       <div>
@@ -522,7 +534,9 @@ export default function LabelPrintDialog() {
                             onChange={(e) => setOffsetY(parseFloat(e.target.value) || 0)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
                           />
-                          <span className="text-3xs text-slate-500">mm</span>
+                          <span className="text-3xs text-slate-500">
+                            {t("common.millimeter_abbr", "mm")}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -568,7 +582,7 @@ export default function LabelPrintDialog() {
                   {isPrinting ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Impression...</span>
+                      <span>{t("hardware.printing", "Impression en cours...")}</span>
                     </>
                   ) : (
                     <>
@@ -588,7 +602,7 @@ export default function LabelPrintDialog() {
               <div className="text-2xs text-slate-400 font-mono mb-3 flex items-center gap-2">
                 <span>Aperçu physique réel :</span>
                 <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                  {w} mm (L) × {h} mm (H)
+                  {w} × {h} {t("common.millimeter_abbr", "mm")}
                 </span>
                 {copies > 1 && (
                   <span className="text-slate-500">× {copies}</span>

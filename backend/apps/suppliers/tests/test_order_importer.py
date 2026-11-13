@@ -570,4 +570,132 @@ class TestOrderImporter:
             assert isinstance(lines[0]["pairs_per_carton"], int)
             assert lines[0]["pairs_per_carton"] > 0
 
+    def test_detect_size_matrix_column_ignores_tva_and_remise(self):
+        # Tax, discount, totals, or non-size columns must NEVER be identified as sizes
+        assert detect_size_matrix_column("TVA 19") is None
+        assert detect_size_matrix_column("TVA 19%") is None
+        assert detect_size_matrix_column("TVA 19 %") is None
+        assert detect_size_matrix_column("Remise 20%") is None
+        assert detect_size_matrix_column("Remise 20 %") is None
+        assert detect_size_matrix_column("Discount 15%") is None
+        assert detect_size_matrix_column("Article 42") is None
+        assert detect_size_matrix_column("Prix 38") is None
+        assert detect_size_matrix_column("Total 40") is None
+
+        # Exact and prefixed sizes must match
+        assert detect_size_matrix_column("38") == 38
+        assert detect_size_matrix_column("38.0") == 38
+        assert detect_size_matrix_column("38,0") == 38
+        assert detect_size_matrix_column("P38") == 38
+        assert detect_size_matrix_column("P.40") == 40
+        assert detect_size_matrix_column("T42") == 42
+        assert detect_size_matrix_column("T.42") == 42
+        assert detect_size_matrix_column("Pointure 39") == 39
+        assert detect_size_matrix_column("Size 41") == 41
+        assert detect_size_matrix_column("42 EU") == 42
+        assert detect_size_matrix_column("42 eu") == 42
+        assert detect_size_matrix_column("مقاس 38") == 38
+        assert detect_size_matrix_column("قياس 40") == 40
+
+    def test_auto_map_headers_prix_total_vs_pu_ht(self):
+        # Ensure 'Prix Total' is excluded from unit_price and does not steal mapping from 'PU HT'
+        headers = ["Référence", "Désignation", "Prix Total", "PU HT", "Qté"]
+        auto_map, size_cols, mode = auto_map_headers(headers)
+
+        assert auto_map.get("PU HT") == "unit_price"
+        assert auto_map.get("Prix Total") is None
+        assert auto_map.get("Référence") == "reference"
+        assert auto_map.get("Désignation") == "description"
+        assert auto_map.get("Qté") == "quantity"
+
+    def test_auto_map_headers_designation_article_and_code_couleur(self):
+        # Compound headers should map to their specific target, not steal reference
+        headers = ["Désignation article", "Code couleur", "Référence", "P.U."]
+        auto_map, _, _ = auto_map_headers(headers)
+
+        assert auto_map.get("Désignation article") == "description"
+        assert auto_map.get("Code couleur") == "colour"
+        assert auto_map.get("Référence") == "reference"
+        assert auto_map.get("P.U.") == "unit_price"
+
+    def test_resolve_variant_no_arbitrary_fallback(self):
+        from apps.suppliers.views import _resolve_variant
+
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Basket Falcon",
+            reference="FALCON-01",
+            purchase_price=Decimal("4000.00"),
+        )
+        # Sized variants
+        var40 = Variant.objects.create(tenant=self.tenant, product=product, size_eu=40, colour="Noir")
+        var42 = Variant.objects.create(tenant=self.tenant, product=product, size_eu=42, colour="Noir")
+
+        # Resolving size 0 for a sized product MUST NOT fall back to arbitrary variant (e.g. var40)
+        resolved_invalid = _resolve_variant(self.tenant, product, size_eu=0, colour="Noir")
+        assert resolved_invalid is None
+
+        # Resolving an existing valid size returns the exact variant
+        resolved_40 = _resolve_variant(self.tenant, product, size_eu=40, colour="Noir")
+        assert resolved_40 is not None
+        assert resolved_40.id == var40.id
+
+        # Resolving a new valid size creates that specific variant
+        resolved_41 = _resolve_variant(self.tenant, product, size_eu=41, colour="Noir")
+        assert resolved_41 is not None
+        assert resolved_41.size_eu == 41
+
+    def test_import_preview_rejects_oversized_file(self):
+        self.client.force_authenticate(user=self.owner)
+        oversized_bytes = b"Reference;Pointure;Quantite;Prix\n" + (b"ART-01;40;10;2500\n" * 600000)
+        upload = SimpleUploadedFile("big.csv", oversized_bytes, content_type="text/csv")
+
+        resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-preview/",
+            {"file": upload},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert resp.data["error"]["code"] in ("file_too_large", "import_limit_exceeded")
+
+    def test_import_preview_rejects_over_5000_rows(self):
+        self.client.force_authenticate(user=self.owner)
+        # Create CSV with header + 5,005 rows
+        csv_lines = ["Reference;Pointure;Quantite;Prix"]
+        for i in range(5005):
+            csv_lines.append(f"ART-{i};40;10;2500")
+        csv_bytes = "\n".join(csv_lines).encode("utf-8")
+        upload = SimpleUploadedFile("many_rows.csv", csv_bytes, content_type="text/csv")
+
+        resp = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-preview/",
+            {"file": upload},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert resp.data["error"]["code"] in ("too_many_rows", "import_limit_exceeded")
+
+    def test_parse_csv_and_xlsx_row_and_size_limits(self):
+        from apps.suppliers.services.order_importer import parse_csv_file, parse_xlsx_file
+
+        # 1. parse_csv_file oversized
+        huge_bytes = b"X" * (11 * 1024 * 1024)
+        rows, enc, delim, err = parse_csv_file(huge_bytes)
+        assert len(rows) == 0
+        assert "10 Mo" in str(err)
+
+        # 2. parse_csv_file too many rows
+        lines = ["Ref,Qty"] + [f"Item{i},1" for i in range(5005)]
+        csv_bytes = "\n".join(lines).encode("utf-8")
+        rows, enc, delim, err = parse_csv_file(csv_bytes)
+        assert len(rows) == 0
+        assert "5000" in str(err)
+
+        # 3. parse_xlsx_file oversized
+        rows, err = parse_xlsx_file(huge_bytes)
+        assert len(rows) == 0
+        assert "10 Mo" in str(err)
+
+
+
 

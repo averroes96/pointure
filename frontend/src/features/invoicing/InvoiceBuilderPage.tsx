@@ -824,6 +824,7 @@ export default function InvoiceBuilderPage() {
       isOpen={isCartonModalOpen}
       onClose={() => setIsCartonModalOpen(false)}
       priceTier={client?.price_tier ?? "gros"}
+      branchId={currentBranch?.id ?? null}
       onAddCartons={(newMatrix) => {
         setMatrices((prev) => [...prev.filter((m) => m.product !== null), newMatrix]);
       }}

@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from django.utils import timezone
 
 from apps.clients.models import Client, ClientLedger
+from apps.closing.models import FiscalYear, FiscalYearStatusChoices
 from apps.core.models import PlanChoices, RoleChoices, Tenant, User
 from apps.inventory.models import Product, StockMovement, Variant
 from apps.invoicing.models import DeliveryNote, Invoice, Quote, QuoteLine, QuoteStatusChoices
@@ -210,6 +211,109 @@ class TestQuotes:
         # Cannot cancel converted quote
         resp_cancel = client.post(f"/api/v1/invoicing/quotes/{quote.id}/cancel/")
         assert resp_cancel.status_code == 400
+        cancel_message = "Impossible d'annuler un devis déjà converti."
+        assert resp_cancel.data == {
+            "error": {
+                "code": "invalid_action",
+                "message": cancel_message,
+                "details": {"non_field_errors": [cancel_message]},
+                "status_code": 400,
+            }
+        }
+
+    def test_convert_to_invoice_uses_current_unit_cost(self):
+        self.product.purchase_price = Decimal("1400.00")
+        self.product.pamp = Decimal("1600.00")
+        self.product.save()
+
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        QuoteLine.objects.create(
+            quote=quote,
+            variant=self.variant,
+            description="Basket Pro 42",
+            quantity=Decimal("2.00"),
+            unit_price=Decimal("2000.00"),
+            unit_cost=Decimal("900.00"),
+        )
+
+        invoice = quote.convert_to_invoice()
+
+        invoice_line = invoice.lines.get()
+        assert invoice_line.unit_cost == Decimal("1600.00")
+
+    @pytest.mark.parametrize(
+        ("conversion_path", "expected_message"),
+        [
+            ("convert-to-invoice", "Ce devis a déjà été converti en facture."),
+            ("convert-to-delivery-note", "Ce devis a déjà été converti en bon de livraison."),
+        ],
+    )
+    def test_quote_conversion_business_errors_use_standard_shape(
+        self, conversion_path, expected_message
+    ):
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+        client = _make_client(self.manager)
+        url = f"/api/v1/invoicing/quotes/{quote.id}/{conversion_path}/"
+
+        first_response = client.post(url)
+        assert first_response.status_code == 200, first_response.data
+
+        response = client.post(url)
+
+        assert response.status_code == 400
+        assert response.data == {
+            "error": {
+                "code": "conversion_failed",
+                "message": expected_message,
+                "details": {"non_field_errors": [expected_message]},
+                "status_code": 400,
+            }
+        }
+
+    def test_quote_conversion_validation_uses_custom_exception_handler(self):
+        today = timezone.localdate()
+        FiscalYear.objects.create(
+            tenant=self.tenant,
+            year=today.year,
+            start_date=datetime.date(today.year, 1, 1),
+            end_date=datetime.date(today.year, 12, 31),
+            status=FiscalYearStatusChoices.CLOSED,
+        )
+        quote = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client,
+            date=today,
+            status=QuoteStatusChoices.ACCEPTED,
+        )
+
+        response = _make_client(self.manager).post(
+            f"/api/v1/invoicing/quotes/{quote.id}/convert-to-invoice/"
+        )
+
+        message = (
+            f"L'exercice fiscal {today.year} (du {today.year}-01-01 au "
+            f"{today.year}-12-31) est clôturé. Aucune opération n'est autorisée "
+            "sur cette période."
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            "error": {
+                "code": "period_closed",
+                "message": message,
+                "details": {"non_field_errors": [message]},
+                "status_code": 400,
+            }
+        }
 
     def test_convert_to_delivery_note(self):
         quote = Quote.objects.create(
@@ -433,9 +537,10 @@ class TestQuotes:
             status=QuoteStatusChoices.DRAFT,
         )
 
-        # Cashier can view
+        # Cashier cannot list or view
+        assert cashier_client.get("/api/v1/invoicing/quotes/").status_code == 403
         resp = cashier_client.get(f"/api/v1/invoicing/quotes/{quote.id}/")
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
         # Cashier cannot send/accept/cancel/convert
         assert cashier_client.post(f"/api/v1/invoicing/quotes/{quote.id}/send/").status_code == 403

@@ -556,13 +556,10 @@ from rest_framework.parsers import MultiPartParser
 logger = logging.getLogger(__name__)
 
 
-def _parse_bool_flag(raw_value, default=False) -> bool:
+def _parse_strict_bool(raw_value, default=False) -> bool:
     if raw_value is None or raw_value == "":
         return default
-    try:
-        return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
-    except drf_serializers.ValidationError:
-        return default
+    return bool(drf_serializers.BooleanField().to_internal_value(raw_value))
 
 
 class LegacyDBFImportView(APIView):
@@ -615,7 +612,14 @@ class LegacyDBFImportView(APIView):
             raw_dry_run = request.query_params.get("dry_run")
         if raw_dry_run is None and isinstance(options, dict):
             raw_dry_run = options.get("dry_run")
-        dry_run = _parse_bool_flag(raw_dry_run, default=False)
+
+        try:
+            dry_run = _parse_strict_bool(raw_dry_run, default=False)
+        except (drf_serializers.ValidationError, ValueError, TypeError):
+            return Response(
+                {"error": _("Valeur invalide pour le paramètre 'dry_run'.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
                 
         try:
             # Save uploaded zip
@@ -692,27 +696,69 @@ class QuickSearchView(APIView):
 
         role = getattr(request.user, "role", "cashier")
 
-        from apps.inventory.models import Product
+        from uuid import UUID
+
+        from django.db.models import Prefetch, Q
+
+        from apps.core.plan_permissions import PLAN_RANK
+        from apps.inventory.models import Product, ProductLocation, Variant
         from apps.clients.models import Client
         from apps.suppliers.models import Supplier
         from apps.invoicing.models import Invoice
-        from django.db.models import Q
+
+        branch_id = request.query_params.get("branch_id")
+        try:
+            branch_id = UUID(branch_id) if branch_id else None
+        except (TypeError, ValueError, AttributeError):
+            branch_id = None
+
+        active_branch = None
+        if branch_id:
+            active_branch = Branch.objects.filter(
+                tenant=tenant,
+                pk=branch_id,
+                is_active=True,
+            ).only("pk").first()
+
+        location_qs = ProductLocation.objects.filter(tenant=tenant)
+        if active_branch:
+            location_qs = location_qs.filter(branch=active_branch)
+        else:
+            location_qs = location_qs.none()
+
+        active_variant_qs = Variant.objects.filter(tenant=tenant, is_active=True)
 
         # 1. Products
         prod_qs = (
-            Product.objects.filter(tenant=tenant)
+            Product.objects.filter(tenant=tenant, is_active=True)
             .filter(
                 Q(name__icontains=query)
                 | Q(reference__icontains=query)
                 | Q(brand__icontains=query)
-                | Q(variants__barcode__icontains=query)
+                | Q(
+                    variants__barcode__icontains=query,
+                    variants__is_active=True,
+                    variants__tenant=tenant,
+                )
             )
             .distinct()
-            .prefetch_related("branch_locations", "variants")[:6]
+            .prefetch_related(
+                Prefetch(
+                    "branch_locations",
+                    queryset=location_qs,
+                    to_attr="quick_search_locations",
+                ),
+                Prefetch(
+                    "variants",
+                    queryset=active_variant_qs,
+                    to_attr="quick_search_variants",
+                ),
+            )[:6]
         )
         products = []
         for p in prod_qs:
-            loc = p.branch_locations.first()
+            locations = p.quick_search_locations
+            loc = locations[0] if locations else None
             loc_str = loc.location if loc else ""
             if loc_str and getattr(p, "size_range", ""):
                 full_loc = f"{loc_str} ({p.size_range})"
@@ -723,7 +769,7 @@ class QuickSearchView(APIView):
             else:
                 full_loc = ""
 
-            total_stock = sum(v.stock_qty for v in p.variants.all())
+            total_stock = sum(v.stock_qty for v in p.quick_search_variants)
             products.append({
                 "id": p.id,
                 "name": p.name,
@@ -736,7 +782,7 @@ class QuickSearchView(APIView):
 
         # 2. Clients
         client_qs = (
-            Client.objects.filter(tenant=tenant)
+            Client.objects.filter(tenant=tenant, is_active=True)
             .filter(
                 Q(name__icontains=query)
                 | Q(phone__icontains=query)
@@ -760,7 +806,7 @@ class QuickSearchView(APIView):
         suppliers = []
         if role in ("owner", "manager"):
             sup_qs = (
-                Supplier.objects.filter(tenant=tenant)
+                Supplier.objects.filter(tenant=tenant, is_active=True)
                 .filter(Q(name__icontains=query) | Q(phone__icontains=query))[:5]
             )
             suppliers = [
@@ -774,25 +820,28 @@ class QuickSearchView(APIView):
             ]
 
         # 4. Invoices
-        invoice_qs = (
-            Invoice.objects.filter(tenant=tenant)
-            .filter(
-                Q(number__icontains=query)
-                | Q(client__name__icontains=query)
+        invoices = []
+        plan = getattr(tenant, "plan", "free") or "free"
+        if PLAN_RANK.get(plan, 0) >= PLAN_RANK["pro_wholesale"]:
+            invoice_qs = (
+                Invoice.objects.filter(tenant=tenant)
+                .filter(
+                    Q(number__icontains=query)
+                    | Q(client__name__icontains=query)
+                )
+                .select_related("client")[:6]
             )
-            .select_related("client")[:6]
-        )
-        invoices = [
-            {
-                "id": str(inv.id),
-                "number": inv.number,
-                "client_name": inv.client.name if inv.client else "",
-                "total_ttc": str(inv.total_ttc),
-                "status": inv.status,
-                "date": str(inv.date),
-            }
-            for inv in invoice_qs
-        ]
+            invoices = [
+                {
+                    "id": str(inv.id),
+                    "number": inv.number,
+                    "client_name": inv.client.name if inv.client else "",
+                    "total_ttc": str(inv.total_ttc),
+                    "status": inv.status,
+                    "date": str(inv.date),
+                }
+                for inv in invoice_qs
+            ]
 
         return Response({
             "products": products,

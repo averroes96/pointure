@@ -2,7 +2,7 @@ import os
 import re
 import datetime
 from decimal import Decimal
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 from dbfread import DBF
 
@@ -508,28 +508,39 @@ class LegacyDBFImporter:
             entry_date = safe_date(r.get("JOUR"), default=timezone.localdate())
             if debt > 0:
                 self.stats["client_debts_total"] += debt
-                if created:
-                    ClientLedger.objects.create(
-                        client=client,
-                        entry_type="debit",
-                        amount=debt,
-                        date=entry_date,
-                        description="Opening Balance (Imported from Legacy)",
-                        reference_type="LegacyOpening",
-                        reference_id=legacy_client_id[:50],
-                    )
+                ClientLedger.objects.update_or_create(
+                    client=client,
+                    reference_type="LegacyOpening",
+                    reference_id=legacy_client_id[:50],
+                    defaults={
+                        "entry_type": "debit",
+                        "amount": debt,
+                        "date": entry_date,
+                        "description": "Opening Balance (Imported from Legacy)",
+                    },
+                )
             elif debt < 0:
-                self.stats["client_credits_total"] += abs(debt)
-                if created:
-                    ClientLedger.objects.create(
-                        client=client,
-                        entry_type="credit",
-                        amount=abs(debt),
-                        date=entry_date,
-                        description="Opening Credit (Imported from Legacy)",
-                        reference_type="LegacyOpening",
-                        reference_id=legacy_client_id[:50],
-                    )
+                credit_amount = abs(debt)
+                self.stats["client_credits_total"] += credit_amount
+                ClientLedger.objects.update_or_create(
+                    client=client,
+                    reference_type="LegacyOpening",
+                    reference_id=legacy_client_id[:50],
+                    defaults={
+                        "entry_type": "credit",
+                        "amount": credit_amount,
+                        "date": entry_date,
+                        "description": "Opening Credit (Imported from Legacy)",
+                    },
+                )
+            else:
+                deleted, _ = ClientLedger.objects.filter(
+                    client=client,
+                    reference_type="LegacyOpening",
+                    reference_id=legacy_client_id[:50],
+                ).delete()
+                if deleted:
+                    client.recompute_balance()
             self.stats["clients_imported"] += 1
 
     def _import_products(self):
@@ -552,6 +563,50 @@ class LegacyDBFImporter:
         existing_variants = {}
         for v in Variant.objects.filter(tenant=self.tenant):
             existing_variants[(v.product_id, v.size_eu, v.colour)] = v
+
+        # Pre-cache existing INITIAL stock movements by variant_id
+        existing_initial_movements = {}
+        for m in StockMovement.objects.filter(
+            tenant=self.tenant,
+            branch=self.branch,
+            reason=MovementReasonChoices.INITIAL,
+        ):
+            existing_initial_movements.setdefault(m.variant_id, []).append(m)
+
+        def record_initial_stock(variant, quantity, notes, cost_basis, retail_price):
+            if quantity <= 0:
+                mvts = existing_initial_movements.pop(variant.id, [])
+                if mvts:
+                    for m in mvts:
+                        m.delete()
+                    variant.refresh_stock()
+                return
+
+            mvts = existing_initial_movements.get(variant.id, [])
+            if mvts:
+                mvt = mvts[0]
+                if mvt.quantity_delta != quantity or mvt.notes != notes:
+                    mvt.quantity_delta = quantity
+                    mvt.notes = notes
+                    mvt.save()
+                if len(mvts) > 1:
+                    for extra in mvts[1:]:
+                        extra.delete()
+                    variant.refresh_stock()
+            else:
+                mvt = StockMovement.objects.create(
+                    tenant=self.tenant,
+                    branch=self.branch,
+                    variant=variant,
+                    quantity_delta=quantity,
+                    reason=MovementReasonChoices.INITIAL,
+                    notes=notes,
+                )
+                existing_initial_movements[variant.id] = [mvt]
+
+            self.stats["stock_units_imported"] += quantity
+            self.stats["stock_value_total"] += Decimal(quantity) * cost_basis
+            self.stats["stock_retail_value_total"] += Decimal(quantity) * retail_price
 
         for r in records:
             ref = safe_str(r.get("REFERENCE"))
@@ -658,17 +713,13 @@ class LegacyDBFImporter:
                     existing_variants[var_key] = var
 
                 if st_bl > 0:
-                    StockMovement.objects.create(
-                        tenant=self.tenant,
-                        branch=self.branch,
-                        variant=var,
-                        quantity_delta=st_bl,
-                        reason=MovementReasonChoices.INITIAL,
-                        notes=f"Stock initial importé de l'ancienne base ({st_bl} paires)"
+                    record_initial_stock(
+                        var,
+                        st_bl,
+                        f"Stock initial importé de l'ancienne base ({st_bl} paires)",
+                        unit_cost_basis,
+                        sale_price,
                     )
-                    self.stats["stock_units_imported"] += st_bl
-                    self.stats["stock_value_total"] += Decimal(st_bl) * unit_cost_basis
-                    self.stats["stock_retail_value_total"] += Decimal(st_bl) * sale_price
 
                 self.product_map[legacy_id] = var
                 self.stats["products_imported"] += 1
@@ -703,17 +754,13 @@ class LegacyDBFImporter:
                     
                     qty = stock_distribution.get(sz, 0)
                     if qty > 0:
-                        StockMovement.objects.create(
-                            tenant=self.tenant,
-                            branch=self.branch,
-                            variant=var,
-                            quantity_delta=qty,
-                            reason=MovementReasonChoices.INITIAL,
-                            notes=f"Imported from Legacy ST_BL (Size {sz})"
+                        record_initial_stock(
+                            var,
+                            qty,
+                            f"Imported from Legacy ST_BL (Size {sz})",
+                            unit_cost_basis,
+                            sale_price,
                         )
-                        self.stats["stock_units_imported"] += qty
-                        self.stats["stock_value_total"] += Decimal(qty) * unit_cost_basis
-                        self.stats["stock_retail_value_total"] += Decimal(qty) * sale_price
                 
                 self.product_map[legacy_id] = middle_variant or var
                 self.stats["products_imported"] += 1
@@ -780,19 +827,34 @@ class LegacyDBFImporter:
                 continue
             seen_cheques.add(dedup_key)
 
-            Cheque.objects.update_or_create(
+            existing_cheque = Cheque.objects.filter(
                 tenant=self.tenant,
                 client=client,
                 direction=ChequeDirectionChoices.RECEIVABLE,
                 number=cheque_num,
-                defaults={
-                    "bank": bank,
-                    "amount": montant,
-                    "due_date": due_date,
-                    "status": ChequeStatusChoices.PENDING,
-                    "notes": notes,
-                },
-            )
+            ).first()
+
+            if not existing_cheque:
+                Cheque.objects.create(
+                    tenant=self.tenant,
+                    client=client,
+                    direction=ChequeDirectionChoices.RECEIVABLE,
+                    number=cheque_num,
+                    bank=bank,
+                    amount=montant,
+                    due_date=due_date,
+                    status=ChequeStatusChoices.PENDING,
+                    notes=notes,
+                )
+            else:
+                existing_cheque.bank = bank or existing_cheque.bank
+                existing_cheque.amount = montant
+                existing_cheque.due_date = due_date
+                existing_cheque.notes = notes
+                # Never overwrite status if it has transitioned away from pending
+                if existing_cheque.status == ChequeStatusChoices.PENDING:
+                    existing_cheque.status = ChequeStatusChoices.PENDING
+                existing_cheque.save()
             self.stats["cheques_imported"] += 1
             self.stats["unsettled_cheques_total"] += montant
 
@@ -820,18 +882,32 @@ class LegacyDBFImporter:
                 continue
             seen_cheques.add(dedup_key)
 
-            Cheque.objects.update_or_create(
+            existing_cheque = Cheque.objects.filter(
                 tenant=self.tenant,
                 client=client,
                 direction=ChequeDirectionChoices.RECEIVABLE,
                 number=cheque_num,
-                defaults={
-                    "amount": montant,
-                    "due_date": due_date,
-                    "status": ChequeStatusChoices.PENDING,
-                    "notes": notes,
-                },
-            )
+            ).first()
+
+            if not existing_cheque:
+                Cheque.objects.create(
+                    tenant=self.tenant,
+                    client=client,
+                    direction=ChequeDirectionChoices.RECEIVABLE,
+                    number=cheque_num,
+                    amount=montant,
+                    due_date=due_date,
+                    status=ChequeStatusChoices.PENDING,
+                    notes=notes,
+                )
+            else:
+                existing_cheque.amount = montant
+                existing_cheque.due_date = due_date
+                existing_cheque.notes = notes
+                # Never overwrite status if it has transitioned away from pending
+                if existing_cheque.status == ChequeStatusChoices.PENDING:
+                    existing_cheque.status = ChequeStatusChoices.PENDING
+                existing_cheque.save()
             self.stats["cheques_imported"] += 1
             self.stats["unsettled_cheques_total"] += montant
 
@@ -875,34 +951,46 @@ class LegacyDBFImporter:
                 or (f"Article {art_code}" if art_code else "Article")
             )
 
-            num_vers = safe_str(r.get("NUMVERSCLT")) or f"{idx + 1}"
-            ref_id = f"VERSECLT-{num_vers}-{idx + 1}"[:50]
+            raw_num_vers = safe_str(r.get("NUMVERSCLT")) or safe_str(r.get("NUM"))
+            num_vers = raw_num_vers or f"{idx + 1}"
+            ref_id = f"VERSECLT-{num_vers}"[:50] if raw_num_vers else f"VERSECLT-ROW-{idx + 1}"[:50]
             entry_date = safe_date(r.get("DATE_FACT") or r.get("DATE1VERSE") or r.get("DATE2VERSE"), default=opening_date)
             description = (
                 f"Versement en cours #{num_vers} - {article_label} "
                 f"(Prix: {prix_vente} DA, Versé: {paid} DA)"
             )[:300]
 
-            ledger_entry, created_entry = ClientLedger.objects.get_or_create(
+            existing_entry = ClientLedger.objects.filter(
                 client=client,
                 reference_type="LegacyPartPayment",
-                reference_id=ref_id,
-                defaults={
-                    "entry_type": "debit",
-                    "amount": remaining,
-                    "date": entry_date,
-                    "description": description,
-                },
-            )
-            if not created_entry and (
-                ledger_entry.amount != remaining
-                or ledger_entry.date != entry_date
-                or ledger_entry.description != description
-            ):
-                ledger_entry.amount = remaining
-                ledger_entry.date = entry_date
-                ledger_entry.description = description
-                ledger_entry.save()
+            ).filter(
+                models.Q(reference_id=ref_id)
+                | (models.Q(reference_id__startswith=f"VERSECLT-{num_vers}-") if raw_num_vers else models.Q())
+            ).first()
+
+            if existing_entry:
+                if (
+                    existing_entry.reference_id != ref_id
+                    or existing_entry.amount != remaining
+                    or existing_entry.date != entry_date
+                    or existing_entry.description != description
+                ):
+                    existing_entry.reference_id = ref_id
+                    existing_entry.entry_type = "debit"
+                    existing_entry.amount = remaining
+                    existing_entry.date = entry_date
+                    existing_entry.description = description
+                    existing_entry.save()
+            else:
+                ClientLedger.objects.create(
+                    client=client,
+                    reference_type="LegacyPartPayment",
+                    reference_id=ref_id,
+                    entry_type="debit",
+                    amount=remaining,
+                    date=entry_date,
+                    description=description,
+                )
 
             self.stats["part_payments_imported"] += 1
             self.stats["part_payments_total"] += remaining

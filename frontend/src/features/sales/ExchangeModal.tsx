@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/AuthContext";
 import ManagerPinModal from "@/components/ui/ManagerPinModal";
+import { unitPriceFor, unitPriceStringFor } from "@/lib/pricing";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
   { value: "cash", labelKey: "payment.cash" },
@@ -60,6 +61,7 @@ export default function ExchangeModal({
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const clientTier = sale.client_price_tier || "detail";
 
   // ── Returned items state (from original sale) ──────────────────────────────
   const [returnedItems, setReturnedItems] = useState<ReturnedItemState[]>(
@@ -223,7 +225,7 @@ export default function ExchangeModal({
           ? `${variant.product_name} — EU ${variant.size_eu}${variant.colour && variant.colour !== "N/A" && variant.colour !== "Standard" ? ` ${variant.colour}` : ""}`
           : variant.product_name,
         quantity: 1,
-        unit_price: variant.product_sale_price,
+        unit_price: unitPriceStringFor(variant, clientTier),
       },
     ]);
   }
@@ -445,7 +447,7 @@ export default function ExchangeModal({
                             {t('sales.stock_label')} {v.stock_qty}
                           </span>
                           <span className="font-mono text-primary-600 dark:text-primary-400">
-                            {formatDZD(v.product_sale_price)} DZD
+                            {formatDZD(unitPriceFor(v, clientTier))} DZD
                           </span>
                         </div>
                       </button>

@@ -294,51 +294,133 @@ def detect_delimiter(sample_text: str) -> str:
 # Multi-Lingual Column Matching & Size Matrix Detection
 # ─────────────────────────────────────────────────────────────────────────────
 
-def match_column_to_canonical(header: str) -> Optional[str]:
+DISQUALIFIED_SIZE_TERMS = {
+    "tva", "vat", "tax", "taxe", "taxes", "remise", "discount", "rabais", "ristourne",
+    "taux", "pourcent", "pourcentage", "total", "montant", "sum", "amount",
+    "prix", "price", "cout", "cost", "pu", "ht", "ttc",
+    "ref", "reference", "code", "article", "sku", "item", "designation", "libelle",
+    "qte", "qty", "quantite", "quantity", "colis", "carton", "box", "paire", "pair",
+}
+
+UNIT_PRICE_DISQUALIFIED_TERMS = {
+    "total", "montant", "ttc", "global", "somme", "sum", "amount",
+    "مجموع", "اجمالي", "المجموع", "الإجمالي",
+}
+
+QUANTITY_DISQUALIFIED_TERMS = {
+    "prix", "price", "montant", "amount", "valeur", "tva", "cout", "cost",
+}
+
+
+def score_header_match(header: str, field: str) -> int:
     """
-    Matches raw header to a canonical PO field using trilingual synonyms.
-    Returns canonical field key or None.
+    Computes a match score for a raw header against a canonical PO field.
+    Returns 0 if disqualified or no match, or a positive integer score.
     """
     cleaned = normalize_text(header)
     if not cleaned:
-        return None
+        return 0
 
-    # 1. Exact match
-    for field, synonyms in PO_SYNONYMS.items():
-        if cleaned == field:
-            return field
-        for syn in synonyms:
-            if cleaned == normalize_text(syn):
-                return field
+    tokens = set(cleaned.split())
 
-    # 2. Substring match (for compound headers like 'Ref Fournisseur' or 'Prix Achat HT')
-    for field, synonyms in PO_SYNONYMS.items():
-        for syn in synonyms:
-            syn_norm = normalize_text(syn)
-            if len(syn_norm) >= 3 and (syn_norm in cleaned or cleaned in syn_norm):
-                return field
+    # Hard disqualifiers
+    if field == "unit_price":
+        if any(term in cleaned for term in UNIT_PRICE_DISQUALIFIED_TERMS):
+            return 0
+    elif field == "quantity":
+        if tokens & QUANTITY_DISQUALIFIED_TERMS:
+            return 0
+    elif field == "reference":
+        if any(w in cleaned for w in ["couleur", "color", "designation", "libelle", "nom", "name", "prix", "price"]):
+            return 0
+    elif field == "description":
+        if any(w in cleaned for w in ["couleur", "color", "prix", "price"]):
+            return 0
 
-    return None
+    score = 0
+    # Exact match with canonical field name
+    if cleaned == field:
+        score = 2000
+
+    synonyms = PO_SYNONYMS.get(field, [])
+    for syn in synonyms:
+        syn_norm = normalize_text(syn)
+        if not syn_norm:
+            continue
+
+        if cleaned == syn_norm:
+            # Exact synonym match
+            score = max(score, 1500 + len(syn_norm))
+        elif re.search(rf"\b{re.escape(syn_norm)}\b", cleaned):
+            # Whole word match in compound header
+            word_score = 100 + (len(syn_norm) * 10)
+            if cleaned.startswith(syn_norm):
+                word_score += 20
+            score = max(score, word_score)
+        elif len(syn_norm) >= 4 and syn_norm in cleaned:
+            # Substring match without word boundary
+            score = max(score, 50 + len(syn_norm))
+
+    return score
+
+
+def match_column_to_canonical(header: str) -> Optional[str]:
+    """
+    Matches raw header to a canonical PO field using trilingual synonyms and scored ranking.
+    Returns canonical field key or None.
+    """
+    best_field = None
+    best_score = 0
+
+    for field in PO_SYNONYMS.keys():
+        sc = score_header_match(header, field)
+        if sc > best_score:
+            best_score = sc
+            best_field = field
+
+    return best_field
 
 
 def detect_size_matrix_column(header: str) -> Optional[int]:
     """
     Determines if a column header represents an EU footwear size (typically 15 to 60).
-    Matches patterns like '37', '38', 'P36', 'P.40', 'T42', 'Pointure 39', 'Size 41'.
+    Matches patterns like '37', '38', 'P36', 'P.40', 'T42', 'Pointure 39', 'Size 41', 'مقاس 42'.
+    Strictly ignores tax, discount, total, price, reference, or non-size columns (e.g. 'TVA 19', 'Remise 20%').
     Returns the integer size or None.
     """
-    cleaned = normalize_text(header)
+    if not header:
+        return None
+
+    raw = str(header).strip()
+    # Strip potential float suffix like '38.0' or '38,0' from Excel/CSV number formatting
+    raw = re.sub(r"[\.,]0+$", "", raw).strip()
+
+    cleaned = normalize_text(raw)
     if not cleaned:
         return None
 
-    # Check for direct integer: 15..60
-    if re.fullmatch(r"\d{2}", cleaned):
+    # Disqualify if any financial, tax, discount, or reference word appears
+    tokens = set(cleaned.split())
+    if tokens & DISQUALIFIED_SIZE_TERMS or "%" in raw:
+        return None
+
+    # Check 1: Direct integer 15..60
+    if re.fullmatch(r"([1-5][0-9]|60)", cleaned):
         sz = int(cleaned)
         if 15 <= sz <= 60:
             return sz
 
-    # Check for prefixed patterns: p37, t41, size 42, etc.
-    m = re.search(r"\b(?:p|t|pointure|taille|size|eu)?[\s\.\-_]*([1-5][0-9])\b", cleaned)
+    # Check 2: Explicit size prefix required: p37, p.40, t42, pointure 39, size 41, etc.
+    prefix_pattern = r"(?:p|pt|pointure|pointures|t|tl|taille|tailles|size|sizes|sz|eu|مقاس|نمره|نمرة|قياس|حجم)"
+    m = re.fullmatch(rf"{prefix_pattern}\s*([1-5][0-9]|60)", cleaned)
+    if m:
+        sz = int(m.group(1))
+        if 15 <= sz <= 60:
+            return sz
+
+    # Check 3: Postfix size pattern: 40 eu, 42p, etc.
+    postfix_pattern = r"(?:eu|p|t|pointure|taille|size|مقاس|نمره|نمرة|قياس)"
+    m = re.fullmatch(rf"([1-5][0-9]|60)\s*{postfix_pattern}", cleaned)
     if m:
         sz = int(m.group(1))
         if 15 <= sz <= 60:
@@ -355,23 +437,32 @@ def auto_map_headers(headers: List[str]) -> Tuple[Dict[str, Optional[str]], Dict
       - size_matrix_columns: {header: size_eu}
       - suggested_size_mode: 'matrix' if >=3 size columns, else 'single'
     """
-    canonical_mapping: Dict[str, Optional[str]] = {}
+    canonical_mapping: Dict[str, Optional[str]] = {h: None for h in headers}
     size_matrix_columns: Dict[str, int] = {}
-    assigned_fields: Set[str] = set()
+    candidate_scores: List[Tuple[int, str, str]] = []
 
     for h in headers:
         size_eu = detect_size_matrix_column(h)
         if size_eu is not None:
             size_matrix_columns[h] = size_eu
-            canonical_mapping[h] = None
             continue
 
-        field = match_column_to_canonical(h)
-        if field and field not in assigned_fields:
-            canonical_mapping[h] = field
-            assigned_fields.add(field)
-        else:
-            canonical_mapping[h] = None
+        for field in PO_SYNONYMS.keys():
+            sc = score_header_match(h, field)
+            if sc > 0:
+                candidate_scores.append((sc, h, field))
+
+    # Sort candidates by score descending
+    candidate_scores.sort(key=lambda x: x[0], reverse=True)
+
+    assigned_headers: Set[str] = set()
+    assigned_fields: Set[str] = set()
+
+    for sc, h, f in candidate_scores:
+        if h not in assigned_headers and f not in assigned_fields:
+            canonical_mapping[h] = f
+            assigned_headers.add(h)
+            assigned_fields.add(f)
 
     suggested_mode = "matrix" if len(size_matrix_columns) >= 3 else "single"
     return canonical_mapping, size_matrix_columns, suggested_mode
@@ -425,11 +516,19 @@ def detect_header_row_and_headers(raw_rows: List[List[Any]]) -> Tuple[int, List[
 # File Parsers (CSV & Excel)
 # ─────────────────────────────────────────────────────────────────────────────
 
+MAX_DATA_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_IMPORT_ROWS = 5000                 # 5,000 rows
+
+
 def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optional[str]]:
     """
     Parses CSV bytes with auto-encoding and delimiter detection.
+    Enforces maximum file size (10 MB) and row limit (5,000 rows).
     Returns (raw_rows_grid, encoding, delimiter, error_message).
     """
+    if len(raw_bytes) > MAX_DATA_FILE_SIZE:
+        return [], "utf-8", ";", _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     decoded_text, encoding = detect_encoding_and_decode(raw_bytes)
     if not decoded_text.strip():
         return [], encoding, ";", _("Le fichier CSV est vide.")
@@ -438,10 +537,13 @@ def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optiona
 
     try:
         reader = csv.reader(io.StringIO(decoded_text), delimiter=delimiter)
-        raw_rows = [[str(cell or "").strip() for cell in row] for row in reader]
-        # Filter completely empty rows
-        filtered_rows = [r for r in raw_rows if any(cell for cell in r)]
-        return filtered_rows, encoding, delimiter, None
+        raw_rows = []
+        for row in reader:
+            if any(cell and str(cell).strip() for cell in row):
+                raw_rows.append([str(cell or "").strip() for cell in row])
+                if len(raw_rows) > MAX_IMPORT_ROWS:
+                    return [], encoding, delimiter, _("Le fichier dépasse la limite maximale de 5000 lignes.")
+        return raw_rows, encoding, delimiter, None
     except Exception as exc:
         return [], encoding, delimiter, f"{_('Erreur de lecture CSV')}: {exc}"
 
@@ -449,8 +551,12 @@ def parse_csv_file(raw_bytes: bytes) -> Tuple[List[List[str]], str, str, Optiona
 def parse_xlsx_file(raw_bytes: bytes) -> Tuple[List[List[str]], Optional[str]]:
     """
     Parses Excel XLSX bytes.
+    Enforces maximum file size (10 MB) and row limit (5,000 rows).
     Returns (raw_rows_grid, error_message).
     """
+    if len(raw_bytes) > MAX_DATA_FILE_SIZE:
+        return [], _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     try:
         wb = openpyxl.load_workbook(io.BytesIO(raw_bytes), data_only=True, read_only=True)
         ws = wb.active
@@ -462,6 +568,8 @@ def parse_xlsx_file(raw_bytes: bytes) -> Tuple[List[List[str]], Optional[str]]:
             if not row or not any(v is not None and str(v).strip() for v in row):
                 continue
             raw_rows.append([str(v or "").strip() if v is not None else "" for v in row])
+            if len(raw_rows) > MAX_IMPORT_ROWS:
+                return [], _("Le classeur Excel dépasse la limite maximale de 5000 lignes.")
 
         if not raw_rows:
             return [], _("Le fichier Excel est vide.")

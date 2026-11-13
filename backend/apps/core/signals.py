@@ -91,13 +91,21 @@ def _write_audit(instance, action, diff=None):
     """Write an AuditLog entry. Safe to call from signals."""
     from apps.core.models import AuditLog
 
+    # Skip historical migration models defensively
+    if getattr(instance.__class__, "__module__", "") == "__fake__":
+        return
+
     tenant = _get_tenant_from_instance(instance)
-    if not tenant:
+    tenant_id = getattr(instance, "tenant_id", None) or getattr(tenant, "pk", tenant)
+    if not tenant_id:
         return
 
     user = get_current_user()
-    if user and getattr(user, "tenant_id", None) != getattr(tenant, "id", None):
-        user = None
+    user_id = None
+    if user:
+        u_tenant = getattr(user, "tenant_id", None) or getattr(getattr(user, "tenant", None), "pk", None)
+        if str(u_tenant) == str(tenant_id):
+            user_id = getattr(user, "pk", None)
 
     diff = dict(diff or {})
     # Record the manager who authorized the action with their PIN, if any.
@@ -112,8 +120,8 @@ def _write_audit(instance, action, diff=None):
             }
 
     AuditLog.objects.create(
-        tenant=tenant,
-        user=user,
+        tenant_id=tenant_id,
+        user_id=user_id,
         action=action,
         model_name=instance.__class__.__name__,
         object_id=str(instance.pk),
@@ -125,12 +133,18 @@ def _write_audit(instance, action, diff=None):
 # ── Signal receivers ──────────────────────────────────────────────────────────
 
 def _is_audited(instance):
+    # Historical models from migrations are created dynamically under the '__fake__' module.
+    # Never audit migrations or historical models.
+    if getattr(instance.__class__, "__module__", "") == "__fake__":
+        return False
     return instance.__class__.__name__ in AUDITED_MODELS
 
 
 @receiver(pre_save)
 def audit_pre_save(sender, instance, **kwargs):
     """Capture the previous DB state before saving so we can diff it."""
+    if kwargs.get("raw"):
+        return
     if not _is_audited(instance):
         return
     if instance.pk:
@@ -147,6 +161,8 @@ def audit_pre_save(sender, instance, **kwargs):
 @receiver(post_save)
 def audit_post_save(sender, instance, created, **kwargs):
     """Write a CREATE or UPDATE audit log entry."""
+    if kwargs.get("raw"):
+        return
     if not _is_audited(instance):
         return
 
@@ -211,6 +227,10 @@ def serialize_model(instance):
 
 @receiver(post_save)
 def sync_outbox_post_save(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
+    if getattr(instance.__class__, "__module__", "") == "__fake__":
+        return
     # Only track TenantScopedModel subclasses
     if not issubclass(sender, TenantScopedModel):
         return
@@ -229,8 +249,12 @@ def sync_outbox_post_save(sender, instance, created, **kwargs):
     except TypeError:
         payload_json = {}
 
+    tenant_id = getattr(instance, "tenant_id", None) or getattr(getattr(instance, "tenant", None), "pk", None)
+    if not tenant_id:
+        return
+
     SyncOutbox.objects.create(
-        tenant=instance.tenant,
+        tenant_id=tenant_id,
         model_name=sender.__name__,
         object_id=str(instance.pk),
         action=action,
@@ -239,14 +263,20 @@ def sync_outbox_post_save(sender, instance, created, **kwargs):
 
 @receiver(post_delete)
 def sync_outbox_post_delete(sender, instance, **kwargs):
+    if getattr(instance.__class__, "__module__", "") == "__fake__":
+        return
     if not issubclass(sender, TenantScopedModel):
         return
         
     if sender in (SyncOutbox, AuditLog):
         return
-        
+
+    tenant_id = getattr(instance, "tenant_id", None) or getattr(getattr(instance, "tenant", None), "pk", None)
+    if not tenant_id:
+        return
+
     SyncOutbox.objects.create(
-        tenant=instance.tenant,
+        tenant_id=tenant_id,
         model_name=sender.__name__,
         object_id=str(instance.pk),
         action=AuditLog.ActionChoices.DELETE,

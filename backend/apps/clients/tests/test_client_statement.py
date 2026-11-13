@@ -127,6 +127,33 @@ class TestClientStatement:
         assert payload["closing_balance"] == "5000.00"
         assert len(payload["entries"]) == 1
 
+    @pytest.mark.parametrize("endpoint_kind", ["single", "bulk"])
+    @pytest.mark.parametrize(
+        ("query_key", "invalid_value", "error_key"),
+        [
+            ("from", "not-a-date", "from_date"),
+            ("from", "", "from_date"),
+            ("to", "2026-02-30", "to_date"),
+        ],
+    )
+    def test_statement_endpoints_reject_malformed_date_parameters(
+        self, endpoint_kind, query_key, invalid_value, error_key
+    ):
+        if endpoint_kind == "single":
+            path = f"/api/v1/clients/{self.client_obj.id}/statement/"
+        else:
+            path = "/api/v1/clients/statements-zip/"
+
+        resp = _make_api_client(self.manager).get(path, {query_key: invalid_value})
+
+        assert resp.status_code == 400
+        assert set(resp.data) == {"error"}
+        assert set(resp.data["error"]) == {"code", "message", "details", "status_code"}
+        assert resp.data["error"]["code"] == "invalid"
+        assert resp.data["error"]["status_code"] == 400
+        assert set(resp.data["error"]["details"]) == {error_key}
+        assert len(resp.data["error"]["details"][error_key]) == 1
+
     def test_client_statement_api_pdf(self, monkeypatch):
         fake_pdf = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\nxref\ntrailer\nstartxref\n%%EOF"
         monkeypatch.setattr("apps.clients.services.statement.render_to_pdf", lambda *args, **kwargs: fake_pdf)
@@ -207,6 +234,17 @@ class TestClientStatement:
         url = "/api/v1/clients/statements-zip/"
         resp = api.get(url)
         assert resp.status_code == 403
+
+    def test_client_statement_permissions(self):
+        cashier_api = _make_api_client(self.cashier)
+        manager_api = _make_api_client(self.manager)
+        url = f"/api/v1/clients/{self.client_obj.id}/statement/"
+
+        resp = cashier_api.get(url)
+        assert resp.status_code == 403
+
+        resp = manager_api.get(url)
+        assert resp.status_code == 200
 
     def test_client_statement_with_open_invoices(self):
         from apps.invoicing.models import Invoice, InvoiceLine

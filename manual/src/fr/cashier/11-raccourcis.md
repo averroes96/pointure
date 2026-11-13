@@ -34,7 +34,7 @@ L'ensemble des touches de fonction ci-dessous fonctionne en permanence sous Wind
 
 | Touche | Action associée | Utilisation pratique |
 | :---: | :--- | :--- |
-| <kbd>Ctrl + K</kbd> | **Recherche universelle** | Palette de commandes et recherche globale : produits, clients, fournisseurs, factures. |
+| <kbd>Ctrl + K</kbd> | **Recherche universelle** | Rechercher les produits, clients et fournisseurs actifs ; l'emplacement des produits suit l'agence sélectionnée. Les factures sont disponibles avec les plans Pro Wholesale et Enterprise. |
 | <kbd>Alt + G</kbd> | **Grille tarifaire** | Parcourir les tarifs Détail, Demi-gros et Gros sur la vente en cours. |
 | <kbd>Alt + C</kbd> | **Ajouter des cartons** | Dans un éditeur de facture ou de devis, ouvrir la saisie des cartons et de leur série de pointures. |
 | <kbd>Alt + D</kbd> | **Devis & Proforma** | Accéder aux devis (<kbd>Shift + Alt + D</kbd> pour créer un nouveau devis). |

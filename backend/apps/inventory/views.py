@@ -15,8 +15,10 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -51,6 +53,7 @@ from apps.inventory.serializers import (
     StocktakeSessionListSerializer,
     StocktakeSessionDetailSerializer,
     CreateStocktakeSessionSerializer,
+    ExpandCartonsInputSerializer,
 )
 
 
@@ -783,27 +786,44 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            cartons = int(request.data.get("cartons") or 1)
-        except (ValueError, TypeError):
-            cartons = 0
-
-        if cartons < 1:
-            return Response(
-                {"error": {"code": "invalid_cartons", "message": "Le nombre de cartons doit être supérieur ou égal à 1."}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        raw_branch_id = request.data.get("branch_id") or request.query_params.get("branch_id")
+        input_data = {"cartons": request.data.get("cartons", 1)}
+        if raw_branch_id:
+            input_data["branch_id"] = raw_branch_id
+        input_serializer = ExpandCartonsInputSerializer(data=input_data)
+        input_serializer.is_valid(raise_exception=True)
+        cartons = input_serializer.validated_data["cartons"]
 
         colour = request.data.get("colour", "").strip()
         if not colour:
             first_variant = product.variants.filter(is_active=True).first()
             colour = first_variant.colour if first_variant and first_variant.colour else "Standard"
 
-        branch = None
-        branch_id = request.data.get("branch_id") or request.query_params.get("branch_id")
+        branch = getattr(request, "branch", None)
+        if branch and (branch.tenant_id != product.tenant_id or not branch.is_active):
+            branch = None
+
+        branch_id = input_serializer.validated_data.get("branch_id")
         if branch_id:
-            from apps.core.models import Branch
-            branch = Branch.objects.filter(pk=branch_id, tenant=request.tenant).first()
+            branch = Branch.objects.filter(
+                pk=branch_id,
+                tenant=product.tenant,
+                is_active=True,
+            ).first()
+            if branch is None:
+                raise NotFound(_("Agence introuvable."))
+        elif branch is None:
+            branch = Branch.objects.filter(
+                tenant=product.tenant,
+                is_headquarters=True,
+                is_active=True,
+            ).first()
+
+        if branch is None:
+            raise NotFound(_("Aucune agence active n'est configurée."))
+
+        tier = request.data.get("tier") or request.query_params.get("tier") or "gros"
+        from apps.inventory.services.pricing import unit_price_for
 
         def _parse_size(s):
             try:
@@ -833,14 +853,11 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             available_stock = 0
             if variant:
-                if branch:
-                    from django.db.models import Sum
-                    from apps.inventory.models import StockMovement
-                    available_stock = StockMovement.objects.filter(
-                        variant=variant, branch=branch
-                    ).aggregate(t=Sum("quantity_delta"))["t"] or 0
-                else:
-                    available_stock = variant.stock_qty
+                available_stock = StockMovement.objects.filter(
+                    tenant=product.tenant,
+                    variant=variant,
+                    branch=branch,
+                ).aggregate(t=Sum("quantity_delta"))["t"] or 0
 
             is_sufficient = available_stock >= qty
 
@@ -858,7 +875,7 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 "pairs_per_carton": pairs_in_carton,
                 "cartons": cartons,
                 "quantity": qty,
-                "unit_price": str(product.wholesale_price if product.wholesale_price > 0 else product.sale_price),
+                "unit_price": str(unit_price_for(variant or product, tier)),
                 "available_stock": available_stock,
                 "is_sufficient_stock": is_sufficient,
             })
@@ -1266,8 +1283,8 @@ class ProductViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         update_type = request.data.get("update_type", "percentage")
         target_field = request.data.get("target_field", "sale_price")
-        if target_field not in ("sale_price", "wholesale_price"):
-            return Response({"error": "target_field must be 'sale_price' or 'wholesale_price'"}, status=status.HTTP_400_BAD_REQUEST)
+        if target_field not in ("sale_price", "wholesale_price", "semi_wholesale_price"):
+            return Response({"error": "target_field must be 'sale_price', 'wholesale_price', or 'semi_wholesale_price'"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             val = Decimal(str(request.data.get("value", 0)))

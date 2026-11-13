@@ -137,21 +137,34 @@ def _resolve_product(tenant, nv: dict, branch=None):
 
 
 def _resolve_variant(tenant, product, size_eu: int, colour: str):
-    """Find an existing variant or create it."""
+    """
+    Find an existing variant or create it.
+    Never falls back to an arbitrary sized variant when size is invalid (size_eu <= 0)
+    for a product that has sized variants.
+    """
     from apps.inventory.models import Variant
 
+    has_sized_variants = product.variants.filter(size_eu__gt=0).exists()
+
     if not size_eu or int(size_eu) <= 0:
+        # If product has sized variants, a missing or invalid size must never
+        # arbitrarily resolve to a sized variant.
+        if has_sized_variants:
+            existing_zero = Variant.objects.filter(product=product, size_eu=0).first()
+            if existing_zero:
+                return existing_zero
+            return None
+
         size_eu = 0
         colour_clean = (colour or "").strip()
         if not colour_clean or colour_clean in ("N/A", "Standard"):
             colour_clean = "Standard"
-            existing = (
-                Variant.objects.filter(product=product, size_eu=0).first()
-                or Variant.objects.filter(product=product, is_active=True).first()
-            )
+            existing = Variant.objects.filter(product=product, size_eu=0).first()
             if existing:
                 return existing
-        colour = colour_clean
+        colour = colour_clean or "Standard"
+    else:
+        colour = (colour or "Standard").strip() or "Standard"
 
     return (
         Variant.objects.filter(product=product, size_eu=size_eu, colour=colour).first()
@@ -159,7 +172,7 @@ def _resolve_variant(tenant, product, size_eu: int, colour: str):
             product=product,
             tenant=tenant,
             size_eu=size_eu,
-            colour=colour or "Standard",
+            colour=colour,
             is_active=True,
         )
     )
@@ -181,11 +194,19 @@ class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         Query: ?dry_run=true to validate without saving.
         """
         from apps.core.services.importer import DataImportEngine, auto_map_columns, parse_file_data
+        from apps.suppliers.services.po_extraction_profile import MAX_DATA_FILE_SIZE
 
         self.require_manager()
         file_obj = request.FILES.get("file")
         if not file_obj:
             return Response({"detail": "Champ 'file' manquant."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if file_obj.size > MAX_DATA_FILE_SIZE:
+            msg = _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+            return Response(
+                {"detail": msg, "error": {"code": "file_too_large", "message": msg, "status_code": 413}},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
 
         dry_run = request.query_params.get("dry_run", "").lower() in ("1", "true", "yes")
         duplicate_mode = request.query_params.get("duplicate_mode", "skip")
@@ -674,17 +695,53 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         delimiter = ";"
 
         if file_obj:
+            from apps.suppliers.services.po_extraction_profile import MAX_DATA_FILE_SIZE, MAX_IMPORT_ROWS
+            if file_obj.size > MAX_DATA_FILE_SIZE:
+                msg = _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+                return Response(
+                    {"detail": msg, "error": {"code": "file_too_large", "message": msg, "status_code": 413}},
+                    status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                )
             raw_bytes = file_obj.read()
+            if len(raw_bytes) > MAX_DATA_FILE_SIZE:
+                msg = _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+                return Response(
+                    {"detail": msg, "error": {"code": "file_too_large", "message": msg, "status_code": 413}},
+                    status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                )
             raw_rows, encoding, delimiter, parse_err = parse_supplier_order_file(raw_bytes, file_obj.name)
             if parse_err:
-                return Response({"detail": str(parse_err)}, status=status.HTTP_400_BAD_REQUEST)
+                is_413 = "10 Mo" in str(parse_err) or "5000" in str(parse_err)
+                err_status = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE if is_413 else status.HTTP_400_BAD_REQUEST
+                return Response(
+                    {
+                        "detail": str(parse_err),
+                        "error": {
+                            "code": "import_limit_exceeded" if is_413 else "parse_error",
+                            "message": str(parse_err),
+                            "status_code": err_status,
+                        },
+                    },
+                    status=err_status,
+                )
         elif "raw_rows" in request.data:
+            from apps.suppliers.services.po_extraction_profile import MAX_IMPORT_ROWS
             raw_rows = request.data.get("raw_rows") or []
         else:
             return Response({"detail": "Aucun fichier ou données fournis."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not raw_rows:
             return Response({"detail": "Le fichier ou les données sont vides."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(raw_rows) > MAX_IMPORT_ROWS:
+            msg = _("Le fichier contient %(count)d lignes, ce qui dépasse la limite maximale de %(max)d lignes.") % {
+                "count": len(raw_rows),
+                "max": MAX_IMPORT_ROWS,
+            }
+            return Response(
+                {"detail": msg, "error": {"code": "too_many_rows", "message": msg, "status_code": 413}},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
 
         # Supplier and Template lookup
         supplier_id = request.data.get("supplier_id")
@@ -717,7 +774,7 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         elif applied_template and applied_template.header_row:
             header_row_idx = applied_template.header_row
         else:
-            header_row_idx, _, _ = detect_header_row_and_headers(raw_rows)
+            header_row_idx, unused_h, unused_dr = detect_header_row_and_headers(raw_rows)
 
         # Slice headers and data rows based on header_row_idx
         best_header_row_idx, auto_headers, auto_data_rows = detect_header_row_and_headers(raw_rows)
@@ -884,11 +941,60 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from apps.suppliers.services.po_extraction_profile import (
+            MAX_IMAGE_FILE_SIZE,
+            validate_image_upload,
+        )
+
+        if uploaded_file.size > MAX_IMAGE_FILE_SIZE:
+            msg = _("L'image dépasse la taille maximale autorisée de 15 Mo.")
+            return Response(
+                {
+                    "detail": msg,
+                    "error": {
+                        "code": "file_too_large",
+                        "message": msg,
+                        "status_code": 413,
+                    },
+                },
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
         raw_bytes = uploaded_file.read()
         if not raw_bytes:
             return Response(
                 {"detail": _("Le fichier image est vide.")},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(raw_bytes) > MAX_IMAGE_FILE_SIZE:
+            msg = _("L'image dépasse la taille maximale autorisée de 15 Mo.")
+            return Response(
+                {
+                    "detail": msg,
+                    "error": {
+                        "code": "file_too_large",
+                        "message": msg,
+                        "status_code": 413,
+                    },
+                },
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        # Inspect dimensions from image header without raster decompression
+        is_valid, err_msg, err_status, err_code, meta = validate_image_upload(raw_bytes)
+        if not is_valid:
+            return Response(
+                {
+                    "detail": err_msg,
+                    "error": {
+                        "code": err_code,
+                        "message": err_msg,
+                        "status_code": err_status,
+                    },
+                    **meta,
+                },
+                status=err_status,
             )
 
         try:

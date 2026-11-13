@@ -66,6 +66,14 @@ class TestCreditLimitEnforcement:
             credit_limit=Decimal("10000.00"),
             cached_balance=Decimal("8000.00"),
         )
+        self.client_blocked = Client.objects.create(
+            tenant=self.tenant,
+            name="Blocked Client",
+            phone="0550000099",
+            credit_limit=Decimal("50000.00"),
+            cached_balance=Decimal("0.00"),
+            is_blocked=True,
+        )
 
     def _invoice_payload(self, client, amount="10000.00"):
         return {
@@ -173,3 +181,162 @@ class TestCreditLimitEnforcement:
         invoice.refresh_from_db()
         assert invoice.status == "draft"
         assert invoice.number == ""
+
+    def test_invoice_create_blocked_client_fails(self):
+        """Creating an invoice for a blocked client fails with 400."""
+        c = _make_client(self.manager)
+        resp = c.post(
+            "/api/v1/invoicing/invoices/",
+            self._invoice_payload(self.client_blocked, "1000.00"),
+            format="json",
+        )
+        assert resp.status_code == 400
+        assert "client_blocked" in str(resp.data) or "client_id" in str(resp.data)
+
+    def test_invoice_confirm_blocked_client_fails(self):
+        """Confirming a draft invoice for a blocked client fails with 400."""
+        from apps.invoicing.models import Invoice, InvoiceLine, InvoiceStatusChoices
+        # Create draft invoice directly
+        inv = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_blocked,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            series_prefix="FA",
+            status=InvoiceStatusChoices.DRAFT,
+            total_ht=Decimal("2000.00"),
+            total_ttc=Decimal("2000.00"),
+        )
+        InvoiceLine.objects.create(
+            invoice=inv,
+            description="Item",
+            quantity=1,
+            unit_price=Decimal("2000.00"),
+        )
+        c = _make_client(self.manager)
+        resp = c.post(f"/api/v1/invoicing/invoices/{inv.pk}/confirm/")
+        assert resp.status_code == 400
+        assert "client_blocked" in str(resp.data)
+
+    def test_invoice_confirm_exceeding_credit_limit_fails(self):
+        """Confirming a draft invoice that exceeds credit_limit fails with 400 unless forced."""
+        from apps.invoicing.models import Invoice, InvoiceLine, InvoiceStatusChoices
+        # client_10k has cached_balance 8000 and credit_limit 10000.
+        # An invoice of 5000 pushes would_be_balance to 13000 > 10000.
+        inv = Invoice.objects.create(
+            tenant=self.tenant,
+            client=self.client_10k,
+            date=datetime.date.today(),
+            due_date=datetime.date.today() + datetime.timedelta(days=30),
+            series_prefix="FA",
+            status=InvoiceStatusChoices.DRAFT,
+            total_ht=Decimal("5000.00"),
+            total_ttc=Decimal("5000.00"),
+        )
+        InvoiceLine.objects.create(
+            invoice=inv,
+            description="Item",
+            quantity=1,
+            unit_price=Decimal("5000.00"),
+        )
+        inv.compute_totals()
+        inv.save(update_fields=["total_ht", "total_ttc"])
+        c = _make_client(self.manager)
+        # Attempt without force -> 400
+        resp = c.post(f"/api/v1/invoicing/invoices/{inv.pk}/confirm/")
+        assert resp.status_code == 400
+        assert "credit_limit_exceeded" in str(resp.data)
+
+        # Attempt with force -> 200
+        resp_force = c.post(f"/api/v1/invoicing/invoices/{inv.pk}/confirm/?force=true")
+        assert resp_force.status_code == 200
+        inv.refresh_from_db()
+        assert inv.status == InvoiceStatusChoices.SENT
+
+    def test_quote_convert_to_invoice_credit_limit_and_blocked(self):
+        """Converting a quote to an invoice checks credit_limit and is_blocked."""
+        from apps.invoicing.models import Quote, QuoteLine, QuoteStatusChoices
+        # 1. Blocked client
+        quote_blocked = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client_blocked,
+            number="DEV-BLK",
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+            total_ht=Decimal("1000.00"),
+            total_ttc=Decimal("1000.00"),
+        )
+        QuoteLine.objects.create(quote=quote_blocked, description="Item", quantity=1, unit_price=Decimal("1000.00"))
+        quote_blocked.compute_totals()
+        quote_blocked.save(update_fields=["total_ht", "total_ttc"])
+        c = _make_client(self.manager)
+        resp = c.post(f"/api/v1/invoicing/quotes/{quote_blocked.pk}/convert-to-invoice/")
+        assert resp.status_code == 400
+        assert "client_blocked" in str(resp.data) or "bloqué" in str(resp.data)
+
+        # 2. Over credit limit (5000 on client_10k with balance 8000 > 10000 limit)
+        quote_over = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client_10k,
+            number="DEV-OVR",
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+            total_ht=Decimal("5000.00"),
+            total_ttc=Decimal("5000.00"),
+        )
+        QuoteLine.objects.create(quote=quote_over, description="Item", quantity=1, unit_price=Decimal("5000.00"))
+        quote_over.compute_totals()
+        quote_over.save(update_fields=["total_ht", "total_ttc"])
+        resp2 = c.post(f"/api/v1/invoicing/quotes/{quote_over.pk}/convert-to-invoice/")
+        assert resp2.status_code == 400
+        assert "credit_limit_exceeded" in str(resp2.data) or "Plafond de crédit dépassé" in str(resp2.data)
+
+        # 3. Manager force override succeeds
+        resp3 = c.post(f"/api/v1/invoicing/quotes/{quote_over.pk}/convert-to-invoice/?force=true")
+        assert resp3.status_code == 200
+        quote_over.refresh_from_db()
+        assert quote_over.status == QuoteStatusChoices.CONVERTED
+
+    def test_quote_convert_to_delivery_note_credit_limit_and_blocked(self):
+        """Converting a quote to a delivery note checks credit_limit and is_blocked."""
+        from apps.invoicing.models import Quote, QuoteLine, QuoteStatusChoices
+        # 1. Blocked client
+        quote_blocked = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client_blocked,
+            number="DEV-BL-BLK",
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+            total_ht=Decimal("1000.00"),
+            total_ttc=Decimal("1000.00"),
+        )
+        QuoteLine.objects.create(quote=quote_blocked, description="Item", quantity=1, unit_price=Decimal("1000.00"))
+        quote_blocked.compute_totals()
+        quote_blocked.save(update_fields=["total_ht", "total_ttc"])
+        c = _make_client(self.manager)
+        resp = c.post(f"/api/v1/invoicing/quotes/{quote_blocked.pk}/convert-to-delivery-note/")
+        assert resp.status_code == 400
+        assert "client_blocked" in str(resp.data) or "bloqué" in str(resp.data)
+
+        # 2. Over credit limit
+        quote_over = Quote.objects.create(
+            tenant=self.tenant,
+            client=self.client_10k,
+            number="DEV-BL-OVR",
+            date=datetime.date.today(),
+            status=QuoteStatusChoices.ACCEPTED,
+            total_ht=Decimal("5000.00"),
+            total_ttc=Decimal("5000.00"),
+        )
+        QuoteLine.objects.create(quote=quote_over, description="Item", quantity=1, unit_price=Decimal("5000.00"))
+        quote_over.compute_totals()
+        quote_over.save(update_fields=["total_ht", "total_ttc"])
+        resp2 = c.post(f"/api/v1/invoicing/quotes/{quote_over.pk}/convert-to-delivery-note/")
+        assert resp2.status_code == 400
+        assert "credit_limit_exceeded" in str(resp2.data) or "Plafond de crédit dépassé" in str(resp2.data)
+
+        # 3. Manager force override succeeds
+        resp3 = c.post(f"/api/v1/invoicing/quotes/{quote_over.pk}/convert-to-delivery-note/?force=true")
+        assert resp3.status_code == 200
+        quote_over.refresh_from_db()
+        assert quote_over.converted_delivery_note is not None
