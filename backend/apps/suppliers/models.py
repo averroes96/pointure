@@ -94,6 +94,10 @@ class PurchaseOrder(TenantScopedModel):
     reference = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    currency = models.CharField(_("Devise"), max_length=3, default="DZD")
+    exchange_rate = models.DecimalField(
+        _("Taux (DZD pour 1 unité)"), max_digits=12, decimal_places=4, default=Decimal("1.0000"),
+    )
     created_by = models.ForeignKey("core.User", on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -115,10 +119,41 @@ class POLine(models.Model):
     cartons = models.PositiveIntegerField(default=0)
     pairs_per_carton = models.PositiveIntegerField(default=10)
     agreed_unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    landed_unit_cost = models.DecimalField(
+        _("Coût de revient unitaire (DZD)"), max_digits=12, decimal_places=2, null=True, blank=True,
+    )
 
     @property
     def line_total(self):
         return self.agreed_unit_price * self.quantity_ordered
+
+
+class LandedCost(TenantScopedModel):
+    """Import costs (freight, duty, broker) shared across one or more purchase orders."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", _("Brouillon")
+        APPLIED = "applied", _("Appliqué")
+
+    class Allocation(models.TextChoices):
+        VALUE = "value", _("Valeur")
+        PAIRS = "pairs", _("Paires")
+        CARTONS = "cartons", _("Cartons")
+
+    purchase_orders = models.ManyToManyField(PurchaseOrder, related_name="landed_costs")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    allocation = models.CharField(max_length=12, choices=Allocation.choices, default=Allocation.VALUE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class LandedCostLine(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    landed_cost = models.ForeignKey(LandedCost, on_delete=models.CASCADE, related_name="lines")
+    label = models.CharField(max_length=80)
+    amount_dzd = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
 
 class SupplierInvoice(TenantScopedModel):

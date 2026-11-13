@@ -338,7 +338,13 @@ class SupplierViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
 
 
+def _reception_unit_cost(line, po):
+    from apps.suppliers.services.landed_cost import reception_unit_cost
+    return reception_unit_cost(line, po)
+
+
 def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user):
+    from decimal import Decimal
     from apps.inventory.models import StockMovement, MovementReasonChoices, Variant, Product
     from apps.core.models import Branch
 
@@ -439,7 +445,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                                 from decimal import Decimal
                                 product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
                             product_reception_totals[pid]["qty"] += cs_qty
-                            product_reception_totals[pid]["value"] += (cs_qty * line.agreed_unit_price)
+                            product_reception_totals[pid]["value"] += cs_qty * _reception_unit_cost(line, po)
 
                         # Check if any pairs arrived defective
                         defect_qty = cs.get("defect_quantity", 0)
@@ -452,7 +458,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                                 supplier=po.supplier,
                                 purchase_order=po,
                                 quantity=defect_qty,
-                                cost_price=line.agreed_unit_price,
+                                cost_price=_reception_unit_cost(line, po),
                                 defect_reason=cs.get("defect_reason") or "other",
                                 notes=f"Réception {po_ref}: {cs.get('defect_notes', '')}".strip(),
                                 logged_by=user,
@@ -526,7 +532,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         from decimal import Decimal
                         product_reception_totals[pid] = {"qty": 0, "value": Decimal("0")}
                     product_reception_totals[pid]["qty"] += delta
-                    product_reception_totals[pid]["value"] += (delta * line.agreed_unit_price)
+                    product_reception_totals[pid]["value"] += delta * _reception_unit_cost(line, po)
 
                 defect_qty = ld.get("defect_quantity", 0)
                 if defect_qty > 0 and line.variant_id:
@@ -538,7 +544,7 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
                         supplier=po.supplier,
                         purchase_order=po,
                         quantity=defect_qty,
-                        cost_price=line.agreed_unit_price,
+                        cost_price=_reception_unit_cost(line, po),
                         defect_reason=ld.get("defect_reason") or "other",
                         notes=f"Réception {po_ref}: {ld.get('defect_notes', '')}".strip(),
                         logged_by=user,
@@ -587,9 +593,11 @@ def _process_receive_lines(po, lines_data, bl_reference, branch_id, tenant, user
 
         # Auto-create or update SupplierInvoice ONLY when PO status is fully received
         if po.status == POStatusChoices.RECEIVED:
+            rate = po.exchange_rate if po.exchange_rate is not None else Decimal("1")
             received_total = sum(
-                ln.quantity_received * ln.agreed_unit_price for ln in all_lines
-            )
+                (ln.quantity_received * ln.agreed_unit_price * rate for ln in all_lines),
+                Decimal("0"),
+            ).quantize(Decimal("0.01"))
             if received_total > 0:
                 from django.utils import timezone
                 inv, created = SupplierInvoice.objects.get_or_create(
@@ -1114,6 +1122,22 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         po.status = POStatusChoices.CANCELLED
         po.save(update_fields=["status"])
         return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=["post"], url_path="landed-cost/apply")
+    def landed_cost_apply(self, request, pk=None):
+        from apps.suppliers.services.landed_cost import apply_landed_cost
+        return Response(apply_landed_cost(self.get_object()))
+
+    @action(detail=True, methods=["get", "put"], url_path="landed-cost")
+    def landed_cost(self, request, pk=None):
+        from apps.suppliers.services.landed_cost import landed_cost_state, save_landed_cost
+        from apps.suppliers.serializers import LandedCostWriteSerializer
+        po = self.get_object()
+        if request.method == "GET":
+            return Response(landed_cost_state(po))
+        ser = LandedCostWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        return Response(save_landed_cost(po, ser.validated_data))
 
     @action(detail=True, methods=["post"], url_path="receive")
     def receive(self, request, pk=None):

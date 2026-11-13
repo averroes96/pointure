@@ -39,6 +39,8 @@ When boxes arrive at the store or warehouse:
    - Available shelf inventory counts increase immediately.
    - Barcode labels can be printed in one click to tag newly arrived boxes.
 
+For an import shipment, before anything is received, open **Landed costs** on the purchase order. Enter the currency and the dinar rate, then freight, duty, the broker and transport. Each size's landed cost feeds the weighted average. The supplier invoice stays on the converted supplier price, without those charges. A purchase order that is already partly received cannot take these costs.
+
 ---
 
 ### D. Supplier Invoices and Settlement

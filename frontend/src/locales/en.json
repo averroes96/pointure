@@ -90,6 +90,26 @@
     "access_denied": "You don't have permission to access this page.",
     "no_email_account_title": "Account without email address"
   },
+  "landed": {
+    "title": "Landed costs",
+    "help": "The supplier price is converted to DZD, then freight, duty and other charges are shared across the lines. The supplier invoice does not include those charges. Apply them before any goods are received.",
+    "currency": "Currency",
+    "rate": "Rate (DZD per 1)",
+    "allocation": "Allocation",
+    "allocation_value": "By value",
+    "allocation_pairs": "By pairs",
+    "allocation_cartons": "By cartons",
+    "line": "Line",
+    "supplier_price": "Supplier price",
+    "dzd_price": "DZD price",
+    "allocated": "Allocated charges",
+    "unit_cost": "Landed unit cost",
+    "pamp": "Estimated average cost",
+    "preview": "Calculate",
+    "apply": "Apply",
+    "applied": "Costs applied. The next receipt updates the average cost with this figure.",
+    "already_received": "This order is already partly received. Landed costs can no longer be applied."
+  },
   "seasonal": {
     "title": "Aïd and the new school term",
     "subtitle": "Sales in the days before each Aïd or the school term, compared with earlier years. Calculated dates stay estimated until you confirm them.",

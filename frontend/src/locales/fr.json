@@ -90,6 +90,26 @@
     "access_denied": "Vous n'avez pas la permission d'accéder à cette page.",
     "no_email_account_title": "Compte sans adresse email"
   },
+  "landed": {
+    "title": "Coûts d'approche",
+    "help": "Le prix fournisseur est converti en DZD, puis le fret, les droits et les autres frais sont répartis. La facture fournisseur ne comprend pas ces frais. Appliquez-les avant toute réception.",
+    "currency": "Devise",
+    "rate": "Taux (DZD pour 1)",
+    "allocation": "Répartition",
+    "allocation_value": "Selon la valeur",
+    "allocation_pairs": "Selon les paires",
+    "allocation_cartons": "Selon les cartons",
+    "line": "Ligne",
+    "supplier_price": "Prix fournisseur",
+    "dzd_price": "Prix DZD",
+    "allocated": "Frais répartis",
+    "unit_cost": "Coût de revient",
+    "pamp": "PAMP estimé",
+    "preview": "Calculer",
+    "apply": "Appliquer",
+    "applied": "Coûts appliqués. La prochaine réception met à jour le PAMP avec ce coût.",
+    "already_received": "Cette commande est déjà réceptionnée en partie. Les coûts d'approche ne peuvent plus être appliqués."
+  },
   "seasonal": {
     "title": "Aïd et rentrée",
     "subtitle": "Ventes des jours qui précèdent chaque Aïd ou la rentrée, comparées aux années précédentes. Les dates calculées restent estimées tant que vous ne les confirmez pas.",
