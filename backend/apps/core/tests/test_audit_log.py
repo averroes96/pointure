@@ -1,10 +1,11 @@
+import datetime
 from decimal import Decimal
 
 import pytest
 from rest_framework.test import APIClient
 
 from apps.clients.models import Client
-from apps.core.models import AuditLog, PlanChoices, RoleChoices, Tenant, User
+from apps.core.models import AuditLog, PlanChoices, RoleChoices, StoreSettings, Tenant, User
 from apps.core.signals import set_current_user
 
 
@@ -26,6 +27,18 @@ def setup(db):
         credit_limit=Decimal("10000.00"),
     )
     return tenant, owner, client_obj
+
+
+def test_store_settings_audit_serializes_digest_time(setup):
+    tenant, _owner, _client = setup
+    settings = StoreSettings.objects.create(
+        tenant=tenant, telegram_digest_time=datetime.time(21, 30),
+    )
+
+    log = AuditLog.objects.filter(
+        tenant=tenant, model_name="StoreSettings", object_id=str(settings.pk), action="create"
+    ).get()
+    assert log.diff["telegram_digest_time"]["to"] == "21:30:00"
 
 
 def test_credit_limit_change_creates_audit_row_with_before_and_after(setup):
