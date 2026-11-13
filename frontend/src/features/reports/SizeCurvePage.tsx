@@ -74,6 +74,9 @@ export default function SizeCurvePage() {
       <div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t("report.size_curve_title")}</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("report.size_curve_subtitle")}</p>
+        <Link to="/reports/reorder" className="inline-block mt-2 text-sm font-semibold text-teal-800 dark:text-teal-300 hover:underline">
+          {t("report.reorder_link")}
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

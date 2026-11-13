@@ -148,6 +148,7 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
             "alert_refund_enabled", "alert_refund_amount",
             "alert_discount_enabled", "alert_discount_pct",
             "alert_year_open_enabled", "alert_backup_stale_enabled",
+            "reorder_cover_weeks",
         ]
         read_only_fields = ["id"]
 

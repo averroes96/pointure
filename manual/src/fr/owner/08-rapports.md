@@ -44,3 +44,10 @@ Dans **Rapports → Courbe des pointures** :
 2. Le graphique et le tableau montrent, pour chaque pointure : paires vendues nettes des retours, part des ventes, stock, quantités encore en commande, semaines de couverture et taux d'écoulement.
 3. La liste **Tailles cassées** signale un modèle qui a encore du stock, mais dont une pointure centrale est à zéro. Les pointures centrales sont celles qui font au moins 70 % des ventes du modèle sur 52 semaines. Sans historique, le calcul utilise la catégorie, puis le genre, puis des pointures habituelles. Le montant immobilisé est valorisé au PAMP.
 
+### E. Suggestions de réassort
+
+Dans **Rapports → Réassort**, ou depuis **Stock bas** et **Courbe des pointures** :
+1. Chaque pointure propose une quantité : ventes des 8 dernières semaines, ramenées à une semaine, multipliées par les semaines de couverture (6 par défaut, réglage du propriétaire), moins le stock, moins les quantités déjà commandées.
+2. Si le modèle a un découpage par carton, la quantité est arrondie au carton entier pour cette couleur.
+3. Le fournisseur proposé est celui du dernier bon de commande du modèle. Corrigez les quantités, puis créez un **brouillon** de bon de commande par fournisseur.
+

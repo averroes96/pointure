@@ -6,6 +6,7 @@ import uuid
 from decimal import Decimal
 
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -450,6 +451,11 @@ class StoreSettings(TenantScopedModel):
     alert_discount_pct = models.PositiveSmallIntegerField(_("Seuil remise (%)"), default=10)
     alert_year_open_enabled = models.BooleanField(_("Alerte exercice non clôturé"), default=True)
     alert_backup_stale_enabled = models.BooleanField(_("Alerte sauvegarde externe"), default=True)
+    reorder_cover_weeks = models.PositiveSmallIntegerField(
+        _("Semaines de couverture pour réassort"),
+        default=6,
+        validators=[MinValueValidator(1), MaxValueValidator(52)],
+    )
 
     class Meta:
         verbose_name = _("Store Settings")

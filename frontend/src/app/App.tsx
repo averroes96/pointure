@@ -83,6 +83,7 @@ const DailyReportPage = lazy(() => import("@/features/reports/DailyReportPage"))
 const SalesReportPage = lazy(() => import("@/features/reports/SalesReportPage"));
 const StockReportPage = lazy(() => import("@/features/reports/StockReportPage"));
 const SizeCurvePage = lazy(() => import("@/features/reports/SizeCurvePage"));
+const ReorderPage = lazy(() => import("@/features/reports/ReorderPage"));
 const ReportBuilderPage = lazy(() => import("@/features/reports/ReportBuilderPage"));
 
 // Settings
@@ -230,6 +231,7 @@ function AppRoutes() {
             <Route path="sales" element={<SalesReportPage />} />
             <Route path="stock" element={<StockReportPage />} />
             <Route path="size-curve" element={<SizeCurvePage />} />
+            <Route path="reorder" element={<ReorderPage />} />
             <Route path="builder" element={<ReportBuilderPage />} />
           </Route>
 

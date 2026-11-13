@@ -18,6 +18,8 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     role_permissions = {
         "profit_loss": MANAGER_OR_OWNER,
         "size_curve": MANAGER_OR_OWNER,
+        "reorder_suggestions": MANAGER_OR_OWNER,
+        "reorder_create_po": MANAGER_OR_OWNER,
         "stock_valuation": MANAGER_OR_OWNER,
         "stock": MANAGER_OR_OWNER,
         "stock_pdf": MANAGER_OR_OWNER,
@@ -864,6 +866,36 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             gender=data.get("gender") or "",
             weeks=data.get("weeks") or 8,
         ))
+
+    @action(detail=False, methods=["get"], url_path="reorder-suggestions")
+    def reorder_suggestions(self, request):
+        """Suggested purchase quantities. Manager and owner only."""
+        from .serializers import ReorderQuerySerializer
+        from .services.reorder import build_reorder_suggestions
+
+        ser = ReorderQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(build_reorder_suggestions(
+            request.tenant,
+            today=timezone.localdate(),
+            supplier_id=data.get("supplier"),
+            brand=(data.get("brand") or "").strip(),
+            category=data.get("category") or "",
+        ))
+
+    @action(detail=False, methods=["post"], url_path="reorder-suggestions/create-po")
+    def reorder_create_po(self, request):
+        """Create one draft purchase order per supplier from the chosen lines."""
+        from .serializers import ReorderCreateSerializer
+        from .services.reorder import create_reorder_orders
+
+        ser = ReorderCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        return Response(
+            create_reorder_orders(request.tenant, request.user, ser.validated_data["lines"]),
+            status=201,
+        )
 
     @action(
         detail=False, methods=["get", "post"], url_path="templates",

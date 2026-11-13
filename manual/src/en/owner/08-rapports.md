@@ -44,3 +44,10 @@ In **Reports → Size curve**:
 2. The chart and table show, for each size: pairs sold net of returns, sales share, stock, quantity still on order, weeks of cover, and sell-through.
 3. **Broken size runs** lists a model that still has stock while one of its core sizes is at zero. Core sizes are those that make up at least 70% of that model's sales over 52 weeks. With no history, the calculation uses the category, then the gender, then the usual sizes. Tied-up stock is valued at weighted average cost.
 
+### E. Reorder suggestions
+
+In **Reports → Reorder**, or from **Low stock** and **Size curve**:
+1. Each size suggests a quantity: sales over the last 8 weeks, per week, multiplied by the cover weeks (6 by default, an owner setting), minus stock, minus quantities already on order.
+2. If the model has a carton breakdown, the quantity is rounded up to a whole carton for that colour.
+3. The suggested supplier is the one on the model's latest purchase order. Edit the quantities, then create one **draft** purchase order per supplier.
+
