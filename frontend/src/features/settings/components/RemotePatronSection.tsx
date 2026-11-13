@@ -14,6 +14,19 @@ interface PendingLink {
   expires_at: string;
 }
 
+interface AlertSettings {
+  telegram_digest_time: string;
+  alert_cash_gap_enabled: boolean;
+  alert_cash_gap_amount: string;
+  alert_cancel_enabled: boolean;
+  alert_refund_enabled: boolean;
+  alert_refund_amount: string;
+  alert_discount_enabled: boolean;
+  alert_discount_pct: number;
+  alert_year_open_enabled: boolean;
+  alert_backup_stale_enabled: boolean;
+}
+
 interface TelegramStatus {
   has_token: boolean;
   bot_username: string;
@@ -119,6 +132,41 @@ export default function RemotePatronSection() {
   });
 
   const pending = status?.pending_link;
+  const settingsQuery = useQuery({
+    queryKey: ["store-settings"],
+    queryFn: async () => (await api.get<AlertSettings>("/core/store-settings/current/")).data,
+  });
+  const [alerts, setAlerts] = useState<AlertSettings | null>(null);
+  useEffect(() => {
+    if (settingsQuery.data) setAlerts(settingsQuery.data);
+  }, [settingsQuery.data]);
+  const saveAlerts = useMutation({
+    mutationFn: async () => {
+      if (!alerts) return null;
+      const { data } = await api.patch<AlertSettings>("/core/store-settings/update_settings/", {
+        telegram_digest_time: alerts.telegram_digest_time?.slice(0, 5),
+        alert_cash_gap_enabled: alerts.alert_cash_gap_enabled,
+        alert_cash_gap_amount: alerts.alert_cash_gap_amount,
+        alert_cancel_enabled: alerts.alert_cancel_enabled,
+        alert_refund_enabled: alerts.alert_refund_enabled,
+        alert_refund_amount: alerts.alert_refund_amount,
+        alert_discount_enabled: alerts.alert_discount_enabled,
+        alert_discount_pct: alerts.alert_discount_pct,
+        alert_year_open_enabled: alerts.alert_year_open_enabled,
+        alert_backup_stale_enabled: alerts.alert_backup_stale_enabled,
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        setAlerts(data);
+        queryClient.setQueryData(["store-settings"], data);
+      }
+      setError("");
+      setNotice(t("settings.remote_owner.alerts_saved"));
+    },
+    onError: (err) => setError(getApiError(err)),
+  });
 
   return (
     <section className="space-y-6">
@@ -255,6 +303,105 @@ export default function RemotePatronSection() {
           ))}
         </ul>
       </div>
+
+      {alerts && (
+        <form
+          className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveAlerts.mutate();
+          }}
+        >
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+            {t("settings.remote_owner.alerts_title")}
+          </h3>
+          <label className="block text-sm text-slate-700 dark:text-slate-300">
+            {t("settings.remote_owner.digest_time")}
+            <input
+              type="time"
+              className="form-input mt-1"
+              value={alerts.telegram_digest_time?.slice(0, 5) || "21:00"}
+              onChange={(event) => setAlerts({ ...alerts, telegram_digest_time: event.target.value })}
+            />
+          </label>
+          <AlertRow
+            label={t("settings.remote_owner.alert_gap")}
+            enabled={alerts.alert_cash_gap_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_cash_gap_enabled: value })}
+            amount={alerts.alert_cash_gap_amount}
+            onAmount={(value) => setAlerts({ ...alerts, alert_cash_gap_amount: value })}
+          />
+          <AlertRow
+            label={t("settings.remote_owner.alert_cancel")}
+            enabled={alerts.alert_cancel_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_cancel_enabled: value })}
+          />
+          <AlertRow
+            label={t("settings.remote_owner.alert_refund")}
+            enabled={alerts.alert_refund_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_refund_enabled: value })}
+            amount={alerts.alert_refund_amount}
+            onAmount={(value) => setAlerts({ ...alerts, alert_refund_amount: value })}
+          />
+          <AlertRow
+            label={t("settings.remote_owner.alert_discount")}
+            enabled={alerts.alert_discount_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_discount_enabled: value })}
+            amount={String(alerts.alert_discount_pct)}
+            onAmount={(value) => setAlerts({ ...alerts, alert_discount_pct: Number(value) || 0 })}
+            suffix="%"
+          />
+          <AlertRow
+            label={t("settings.remote_owner.alert_year")}
+            enabled={alerts.alert_year_open_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_year_open_enabled: value })}
+          />
+          <AlertRow
+            label={t("settings.remote_owner.alert_backup")}
+            enabled={alerts.alert_backup_stale_enabled}
+            onToggle={(value) => setAlerts({ ...alerts, alert_backup_stale_enabled: value })}
+          />
+          <button type="submit" className="btn-primary" disabled={saveAlerts.isPending}>
+            {t("settings.remote_owner.alerts_save")}
+          </button>
+        </form>
+      )}
     </section>
+  );
+}
+
+function AlertRow({
+  label,
+  enabled,
+  onToggle,
+  amount,
+  onAmount,
+  suffix,
+}: {
+  label: string;
+  enabled: boolean;
+  onToggle: (value: boolean) => void;
+  amount?: string;
+  onAmount?: (value: string) => void;
+  suffix?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+        <input type="checkbox" checked={enabled} onChange={(event) => onToggle(event.target.checked)} />
+        {label}
+      </label>
+      {onAmount && (
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          className="form-input w-32"
+          value={amount ?? ""}
+          onChange={(event) => onAmount(event.target.value)}
+          aria-label={suffix ? `${label} ${suffix}` : label}
+        />
+      )}
+    </div>
   );
 }

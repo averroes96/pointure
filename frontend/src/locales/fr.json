@@ -1594,7 +1594,17 @@
       "test": "Message test",
       "test_ok": "Message de test envoyé.",
       "linked_ok": "Discussion liée.",
-      "limit": "Trois discussions au maximum. Retirez-en une pour en lier une autre."
+      "limit": "Trois discussions au maximum. Retirez-en une pour en lier une autre.",
+      "alerts_title": "Résumé et alertes",
+      "alerts_save": "Enregistrer les alertes",
+      "alerts_saved": "Alertes enregistrées.",
+      "digest_time": "Heure du résumé quotidien",
+      "alert_gap": "Écart de caisse au-dessus de (DZD)",
+      "alert_cancel": "Vente annulée",
+      "alert_refund": "Remboursement au-dessus de (DZD)",
+      "alert_discount": "Remise approuvée au-dessus de (%)",
+      "alert_year": "Exercice non clôturé après le 15 janvier",
+      "alert_backup": "Sauvegarde externe de plus de 3 jours"
     },
     "backup_title": "Sauvegardes de la base de données",
     "backup_desc": "Sauvegardes locales automatiques et manuelles de votre base de données SQLite",

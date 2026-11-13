@@ -331,6 +331,9 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if notes:
                 sale.notes = f"{sale.notes}\n[Annulation Réservation] {notes}".strip()
             sale.save(update_fields=["status", "layaway_deposit_forfeited", "notes"])
+            from apps.notifications.services.owner_dispatch import after_commit, notify_sale_cancelled
+            cancelled_id = sale.pk
+            after_commit(lambda: notify_sale_cancelled(cancelled_id))
 
         return Response(SaleSerializer(sale).data)
 
@@ -426,6 +429,9 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             if notes:
                 sale.notes = f"{sale.notes}\n[Annulation Versement] {notes}".strip()
             sale.save(update_fields=["status", "layaway_deposit_forfeited", "notes"])
+            from apps.notifications.services.owner_dispatch import after_commit, notify_sale_cancelled
+            cancelled_id = sale.pk
+            after_commit(lambda: notify_sale_cancelled(cancelled_id))
 
         return Response(SaleSerializer(sale).data)
 
@@ -989,6 +995,9 @@ class CashSessionViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             session.closing_notes = closing_notes
 
             session.save()
+            from apps.notifications.services.owner_dispatch import after_commit, notify_shift_closed
+            closed_id = session.pk
+            after_commit(lambda: notify_shift_closed(closed_id))
 
         store_name = getattr(request.tenant, "name", "ShoeDZ") or "ShoeDZ"
         lang = request.data.get("lang") or request.GET.get("lang") or request.headers.get("Accept-Language", "fr")[:2]

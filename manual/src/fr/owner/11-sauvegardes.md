@@ -53,4 +53,5 @@ Le propriétaire peut recevoir des messages en lecture seule sur Telegram. Le je
 4. Cliquez sur **Lier**. L'application affiche un code à 6 chiffres pendant 5 minutes.
 5. Dans Telegram, envoyez au bot `/start` suivi du code. Jusqu'à 3 discussions peuvent être liées. Chaque discussion peut être retirée, et un **Message test** confirme le lien.
 6. Les messages venant d'une discussion non liée sont ignorés.
+7. Sur le même écran, choisissez l'heure du résumé quotidien (21:00 par défaut) et activez les alertes : écart de caisse, vente annulée, remboursement, remise approuvée, exercice non clôturé après le 15 janvier, sauvegarde externe de plus de 3 jours. Les textes suivent la langue du propriétaire.
 

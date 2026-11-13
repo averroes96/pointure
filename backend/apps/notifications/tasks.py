@@ -138,3 +138,17 @@ def check_closing_reminders_task():
     notifications = check_closing_reminders()
     logger.info(f"Closing reminders check complete. {len(notifications)} notifications created.")
 
+
+@shared_task(name="apps.notifications.tasks.deliver_outbound_queue", queue="notifications")
+def deliver_outbound_queue():
+    from apps.notifications.services.outbound import dispatch_due_messages
+    dispatch_due_messages()
+
+
+@shared_task(name="apps.notifications.tasks.dispatch_scheduled_owner_alerts", queue="notifications")
+def dispatch_scheduled_owner_alerts():
+    """Digest and daily owner alerts. Safe to run often; each kind is sent once."""
+    from apps.notifications.services.owner_dispatch import dispatch_scheduled_alerts
+    dispatch_scheduled_alerts()
+    deliver_outbound_queue()
+

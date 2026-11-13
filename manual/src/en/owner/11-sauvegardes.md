@@ -53,4 +53,5 @@ The owner can receive read-only messages on Telegram. The bot token stays in the
 4. Click **Link**. The app shows a 6-digit code for 5 minutes.
 5. In Telegram, send the bot `/start` followed by the code. Up to 3 chats can be linked. Each chat can be removed, and a **Test message** confirms the link.
 6. Messages from a chat that is not linked are ignored.
+7. On the same screen, set the daily digest time (default 21:00) and turn alerts on or off: cash gap, cancelled sale, refund, approved discount, fiscal year still open after 15 January, and an external backup older than 3 days. The text follows the owner's language.
 

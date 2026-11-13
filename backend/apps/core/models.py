@@ -3,6 +3,7 @@ Core models: Tenant, User, Branch, AuditLog, and TenantScopedModel base.
 These are the foundation of the entire ShoeDZ system.
 """
 import uuid
+from decimal import Decimal
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -432,6 +433,23 @@ class StoreSettings(TenantScopedModel):
         blank=True,
         help_text="Mentions légales personnalisées imprimées sur les factures (ex: mention d'exonération TVA / IFU).",
     )
+    telegram_digest_time = models.TimeField(
+        _("Heure du résumé Telegram"),
+        default="21:00",
+    )
+    alert_cash_gap_enabled = models.BooleanField(_("Alerte écart de caisse"), default=True)
+    alert_cash_gap_amount = models.DecimalField(
+        _("Seuil écart de caisse (DZD)"), max_digits=12, decimal_places=2, default=Decimal("1000.00"),
+    )
+    alert_cancel_enabled = models.BooleanField(_("Alerte vente annulée"), default=True)
+    alert_refund_enabled = models.BooleanField(_("Alerte remboursement"), default=True)
+    alert_refund_amount = models.DecimalField(
+        _("Seuil remboursement (DZD)"), max_digits=12, decimal_places=2, default=Decimal("1000.00"),
+    )
+    alert_discount_enabled = models.BooleanField(_("Alerte remise approuvée"), default=True)
+    alert_discount_pct = models.PositiveSmallIntegerField(_("Seuil remise (%)"), default=10)
+    alert_year_open_enabled = models.BooleanField(_("Alerte exercice non clôturé"), default=True)
+    alert_backup_stale_enabled = models.BooleanField(_("Alerte sauvegarde externe"), default=True)
 
     class Meta:
         verbose_name = _("Store Settings")

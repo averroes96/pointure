@@ -275,7 +275,12 @@ CELERY_TASK_ROUTES = {
 # Periodic tasks — all times interpreted in CELERY_TIMEZONE (Africa/Algiers).
 # With DatabaseScheduler these are seeded into the DB on first startup and can
 # be overridden later via Django admin without a redeploy.
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    "owner-telegram-alerts": {
+        "task": "apps.notifications.tasks.dispatch_scheduled_owner_alerts",
+        "schedule": 300.0,
+    },
+}
 
 # ─────────────────────────────────────────────
 # Cache

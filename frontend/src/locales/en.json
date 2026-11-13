@@ -1594,7 +1594,17 @@
       "test": "Test message",
       "test_ok": "Test message sent.",
       "linked_ok": "Chat linked.",
-      "limit": "Three chats at most. Remove one before linking another."
+      "limit": "Three chats at most. Remove one before linking another.",
+      "alerts_title": "Digest and alerts",
+      "alerts_save": "Save alerts",
+      "alerts_saved": "Alerts saved.",
+      "digest_time": "Daily digest time",
+      "alert_gap": "Cash gap above (DZD)",
+      "alert_cancel": "Sale cancelled",
+      "alert_refund": "Refund above (DZD)",
+      "alert_discount": "Approved discount above (%)",
+      "alert_year": "Year still open after 15 January",
+      "alert_backup": "External backup older than 3 days"
     },
     "backup_title": "Database Backups",
     "backup_desc": "Local automatic and manual backups of your SQLite database",

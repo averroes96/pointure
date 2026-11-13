@@ -130,6 +130,8 @@ def _run_scheduler_loop():
             try:
                 from apps.notifications.services.outbound import dispatch_due_messages
                 dispatch_due_messages()
+                from apps.notifications.services.owner_dispatch import dispatch_scheduled_alerts
+                dispatch_scheduled_alerts()
             except Exception:
                 logger.warning("Scheduled outbound message dispatch failed", exc_info=True)
 
