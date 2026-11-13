@@ -590,6 +590,59 @@ def match_po_scan_with_catalog(
     return enriched_rows, summary
 
 
+MAX_IMAGE_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
+MAX_IMAGE_PIXELS = 25_000_000           # 25 Megapixels (e.g. 5000x5000)
+MAX_IMAGE_DIMENSION = 8000              # 8000 px max single axis
+MAX_DATA_FILE_SIZE = 10 * 1024 * 1024   # 10 MB
+MAX_IMPORT_ROWS = 5000                  # 5,000 rows
+
+
+def validate_image_upload(
+    raw_bytes: bytes,
+    max_file_size: int = MAX_IMAGE_FILE_SIZE,
+    max_pixels: int = MAX_IMAGE_PIXELS,
+    max_dim: int = MAX_IMAGE_DIMENSION,
+) -> Tuple[bool, Optional[str], int, str, Dict[str, Any]]:
+    """
+    Validates uploaded image file size and pixel dimensions before raster decoding.
+    Inspects image header using Pillow without decompressing the pixel raster into RAM.
+    Returns (is_valid, error_message, http_status_code, error_code, metadata_dict).
+    """
+    import io
+    from django.utils.translation import gettext as _
+
+    if len(raw_bytes) > max_file_size:
+        msg = _("L'image dépasse la taille maximale autorisée de 15 Mo.")
+        return False, msg, 413, "file_too_large", {"max_file_size": max_file_size}
+
+    try:
+        from apps.core.services.ocr.engine import get_pil_image
+        Image = get_pil_image()
+    except Exception:
+        from PIL import Image
+
+    try:
+        with Image.open(io.BytesIO(raw_bytes)) as img:
+            w, h = img.size
+            total_pixels = w * h
+            if total_pixels > max_pixels or w > max_dim or h > max_dim:
+                mp = round(total_pixels / 1_000_000, 1)
+                msg = _(
+                    "Les dimensions de l'image (%(w)dx%(h)d = %(mp)s mégapixels) dépassent "
+                    "la limite autorisée de 25 mégapixels. Veuillez réduire la résolution de l'image."
+                ) % {"w": w, "h": h, "mp": mp}
+                return False, msg, 413, "image_dimensions_too_large", {
+                    "width": w,
+                    "height": h,
+                    "total_pixels": total_pixels,
+                    "max_pixels": max_pixels,
+                }
+            return True, None, 200, "ok", {"width": w, "height": h, "total_pixels": total_pixels}
+    except Exception as exc:
+        msg = _("Fichier image corrompu ou illisible.")
+        return False, f"{msg} ({exc})", 400, "corrupted_image", {}
+
+
 def scan_purchase_order_image(
     image_input: Any,
     tenant=None,
@@ -602,6 +655,11 @@ def scan_purchase_order_image(
       3. Detects supplier from top 20% tokens (phone / name).
       4. Reconciles lines with the tenant's footwear catalog (`exact`, `partial`, `unmatched`).
     """
+    if isinstance(image_input, (bytes, bytearray)):
+        is_valid, err_msg, _, _, _ = validate_image_upload(image_input)
+        if not is_valid:
+            raise ValueError(err_msg)
+
     engine = DocumentScanEngine()
     parser = ProfileDocumentParser(engine=engine)
 

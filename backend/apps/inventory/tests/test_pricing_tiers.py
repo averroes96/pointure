@@ -304,3 +304,45 @@ class TestBulkImportDemiGrosAndTier:
         c = Client.objects.get(tenant=tenant, name="Boutique Demi")
         assert c.price_tier == PriceTierChoices.DEMI_GROS
         assert c.client_type == ClientTypeChoices.WHOLESALE
+
+
+@pytest.mark.django_db
+class TestExpandCartonsPricingTiers:
+    def test_expand_cartons_respects_tier(self, setup_tier_env):
+        manager = setup_tier_env["manager"]
+        product = setup_tier_env["product"]
+        # product: sale_price=6500, semi_wholesale_price=5800, wholesale_price=5200
+        product.carton_breakdown = {"42": 10}
+        product.pairs_per_carton = 10
+        product.save()
+
+        api = APIClient(HTTP_HOST="localhost")
+        api.force_authenticate(user=manager)
+
+        # Default tier without param defaults to "gros" (wholesale_price = 5200)
+        res_default = api.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": 1, "colour": "Blanc"},
+            format="json",
+        )
+        assert res_default.status_code == 200
+        assert res_default.data["lines"][0]["unit_price"] == "5200.00"
+
+        # Explicit demi_gros tier uses semi_wholesale_price = 5800
+        res_demi = api.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": 1, "colour": "Blanc", "tier": "demi_gros"},
+            format="json",
+        )
+        assert res_demi.status_code == 200
+        assert res_demi.data["lines"][0]["unit_price"] == "5800.00"
+
+        # Explicit detail tier uses sale_price = 6500
+        res_detail = api.post(
+            f"/api/v1/inventory/products/{product.id}/expand-cartons/",
+            {"cartons": 1, "colour": "Blanc", "tier": "detail"},
+            format="json",
+        )
+        assert res_detail.status_code == 200
+        assert res_detail.data["lines"][0]["unit_price"] == "6500.00"
+

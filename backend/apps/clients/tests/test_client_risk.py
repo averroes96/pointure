@@ -12,6 +12,7 @@ Tests for Task 7.8:
 
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -27,6 +28,7 @@ from apps.clients.services.risk import (
     bulk_client_risk,
     client_risk,
 )
+from apps.clients.serializers import ClientSerializer
 from apps.core.models import Branch, Tenant, User
 from apps.invoicing.models import Invoice, InvoiceLine, InvoicePayment, InvoiceStatusChoices
 from apps.inventory.models import Product, Variant
@@ -120,8 +122,8 @@ class ClientRiskScoringTests(TestCase):
         )
         self._create_invoice(
             client=client,
-            date=self.today - timedelta(days=45),
-            due_date=self.today - timedelta(days=15),
+            date=self.today - timedelta(days=75),
+            due_date=self.today - timedelta(days=45),
             amount=Decimal("5000.00"),
             status=InvoiceStatusChoices.SENT,
         )
@@ -129,6 +131,26 @@ class ClientRiskScoringTests(TestCase):
         risk = client_risk(client, today=self.today)
         self.assertEqual(risk["grade"], GRADE_B)
         self.assertEqual(risk["overdue_amount"], Decimal("5000.00"))
+
+    def test_invoice_not_past_due_is_not_aged_from_invoice_date(self):
+        client = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Not Yet Due",
+            cached_balance=Decimal("5000.00"),
+        )
+        self._create_invoice(
+            client=client,
+            date=self.today - timedelta(days=45),
+            due_date=self.today + timedelta(days=10),
+            amount=Decimal("5000.00"),
+            status=InvoiceStatusChoices.SENT,
+        )
+
+        risk = client_risk(client, today=self.today)
+
+        self.assertEqual(risk["grade"], GRADE_A)
+        self.assertEqual(risk["overdue_amount"], Decimal("0.00"))
+        self.assertEqual(risk["buckets"]["current"], Decimal("5000.00"))
 
     def test_grade_c_average_delay_above_60_days(self):
         """A client whose average invoice settlement exceeds 60 days receives Grade C."""
@@ -164,8 +186,8 @@ class ClientRiskScoringTests(TestCase):
         )
         self._create_invoice(
             client=client,
-            date=self.today - timedelta(days=75),
-            due_date=self.today - timedelta(days=45),
+            date=self.today - timedelta(days=105),
+            due_date=self.today - timedelta(days=75),
             amount=Decimal("8000.00"),
             status=InvoiceStatusChoices.SENT,
         )
@@ -204,8 +226,8 @@ class ClientRiskScoringTests(TestCase):
         )
         self._create_invoice(
             client=client,
-            date=self.today - timedelta(days=120),
-            due_date=self.today - timedelta(days=90),
+            date=self.today - timedelta(days=121),
+            due_date=self.today - timedelta(days=91),
             amount=Decimal("12000.00"),
             status=InvoiceStatusChoices.SENT,
         )
@@ -232,6 +254,23 @@ class ClientRiskScoringTests(TestCase):
 
         self.assertEqual(bulk_res[c1.id]["grade"], res1["grade"])
         self.assertEqual(bulk_res[c2.id]["grade"], res2["grade"])
+
+    def test_serializer_calculates_risk_once_for_grade_and_details(self):
+        client = Client.objects.create(
+            tenant=self.tenant,
+            name="Client Cached Risk",
+            cached_balance=Decimal("0.00"),
+        )
+        serializer = ClientSerializer(context={})
+
+        with patch(
+            "apps.clients.services.risk.client_risk", wraps=client_risk
+        ) as calculate_risk:
+            grade = serializer.get_risk_grade(client)
+            details = serializer.get_risk_details(client)
+
+        self.assertEqual(calculate_risk.call_count, 1)
+        self.assertEqual(grade, details["grade"])
 
 
 class BlockedClientEnforcementTests(TestCase):

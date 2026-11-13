@@ -521,10 +521,118 @@ def test_scan_image_graceful_503_when_cv2_unavailable(monkeypatch):
 
     client = APIClient()
     client.force_authenticate(user=manager)
+    valid_slip = _build_synthetic_supplier_slip_image()
     resp = client.post(
         "/api/v1/suppliers/purchase-orders/scan-image/",
-        {"file": SimpleUploadedFile("slip.png", b"fake image bytes", content_type="image/png")},
+        {"file": SimpleUploadedFile("slip.png", valid_slip, content_type="image/png")},
         format="multipart",
     )
     assert resp.status_code == 503
     assert "OpenCV/libGL" in resp.json()["detail"]
+
+
+@pytest.mark.django_db
+def test_scan_image_rejects_oversized_file():
+    """
+    Verifies that images exceeding MAX_IMAGE_FILE_SIZE (15 MB) are rejected with
+    HTTP 413 Payload Too Large.
+    """
+    tenant = Tenant.objects.create(name="Alger Shoes")
+    manager = User.objects.create_user(
+        phone="0550334466",
+        password="pass",
+        tenant=tenant,
+        role=RoleChoices.MANAGER,
+    )
+    client = APIClient()
+    client.force_authenticate(user=manager)
+
+    # 16 MB dummy payload
+    oversized_bytes = b"X" * (16 * 1024 * 1024)
+    upload = SimpleUploadedFile("huge.png", oversized_bytes, content_type="image/png")
+
+    resp = client.post(
+        "/api/v1/suppliers/purchase-orders/scan-image/",
+        {"file": upload},
+        format="multipart",
+    )
+    assert resp.status_code == 413
+    assert resp.json()["error"]["code"] == "file_too_large"
+
+
+@pytest.mark.django_db
+def test_scan_image_rejects_giant_pixel_dimensions():
+    """
+    Verifies that images exceeding MAX_IMAGE_PIXELS (25 MP) are rejected with
+    HTTP 413 without decompressing the raster pixels into memory.
+    """
+    tenant = Tenant.objects.create(name="Alger Shoes")
+    manager = User.objects.create_user(
+        phone="0550334477",
+        password="pass",
+        tenant=tenant,
+        role=RoleChoices.MANAGER,
+    )
+    client = APIClient()
+    client.force_authenticate(user=manager)
+
+    # Generate a lightweight JPEG with 6000x5000 = 30 MP dimensions
+    img = Image.new("RGB", (6000, 5000), color=(255, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=20)
+    raw_bytes = buf.getvalue()
+
+    upload = SimpleUploadedFile("giant.jpg", raw_bytes, content_type="image/jpeg")
+
+    resp = client.post(
+        "/api/v1/suppliers/purchase-orders/scan-image/",
+        {"file": upload},
+        format="multipart",
+    )
+    assert resp.status_code == 413
+    assert resp.json()["error"]["code"] == "image_dimensions_too_large"
+    assert resp.json()["width"] == 6000
+    assert resp.json()["height"] == 5000
+
+
+def test_validate_image_upload_helper():
+    """
+    Unit test for validate_image_upload helper.
+    """
+    from apps.suppliers.services.po_extraction_profile import validate_image_upload
+
+    # 1. Normal image
+    img = Image.new("RGB", (800, 600), color=(255, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    valid_bytes = buf.getvalue()
+
+    is_valid, msg, code, err_code, meta = validate_image_upload(valid_bytes)
+    assert is_valid is True
+    assert code == 200
+    assert meta["width"] == 800
+    assert meta["height"] == 600
+
+    # 2. Oversized bytes
+    is_valid, msg, code, err_code, meta = validate_image_upload(valid_bytes, max_file_size=10)
+    assert is_valid is False
+    assert code == 413
+    assert err_code == "file_too_large"
+
+    # 3. Giant dimensions (e.g. 5000x6000 = 30 MP > 25 MP)
+    giant = Image.new("RGB", (5000, 6000), color=(255, 255, 255))
+    buf_g = io.BytesIO()
+    giant.save(buf_g, format="JPEG", quality=10)
+    giant_bytes = buf_g.getvalue()
+
+    is_valid, msg, code, err_code, meta = validate_image_upload(giant_bytes)
+    assert is_valid is False
+    assert code == 413
+    assert err_code == "image_dimensions_too_large"
+
+    # 4. Corrupted data
+    is_valid, msg, code, err_code, meta = validate_image_upload(b"not an image at all")
+    assert is_valid is False
+    assert code == 400
+    assert err_code == "corrupted_image"
+

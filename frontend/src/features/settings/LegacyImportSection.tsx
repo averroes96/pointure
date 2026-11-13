@@ -79,6 +79,13 @@ export const LegacyImportSection: React.FC = () => {
     easy_mode: true, // true = Easy Mode (1 product = 1 SKU with real stock), false = expand sizes
   });
 
+  const updateOption = <K extends keyof typeof options>(key: K, value: typeof options[K]) => {
+    setOptions((prev) => ({ ...prev, [key]: value }));
+    // Clear previewReport and result whenever options change so user doesn't execute with stale preview (P1-7)
+    setPreviewReport(null);
+    setResult(null);
+  };
+
   const sendImportRequest = async (blob: Blob | File, filename: string, dryRun: boolean) => {
     const formData = new FormData();
     formData.append('zip_file', blob, filename);
@@ -340,7 +347,7 @@ export const LegacyImportSection: React.FC = () => {
                 type="radio"
                 name="easy_mode"
                 checked={options.easy_mode}
-                onChange={() => setOptions({ ...options, easy_mode: true })}
+                onChange={() => updateOption('easy_mode', true)}
                 disabled={isBusy}
                 className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -367,7 +374,7 @@ export const LegacyImportSection: React.FC = () => {
                 type="radio"
                 name="easy_mode"
                 checked={!options.easy_mode}
-                onChange={() => setOptions({ ...options, easy_mode: false })}
+                onChange={() => updateOption('easy_mode', false)}
                 disabled={isBusy}
                 className="mt-0.5 border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -392,7 +399,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="radio"
                 checked={options.software_type === 'retail'}
-                onChange={() => setOptions({ ...options, software_type: 'retail' })}
+                onChange={() => updateOption('software_type', 'retail')}
                 disabled={isBusy}
                 className="border-slate-300 text-primary-600 focus:ring-primary-500"
                 name="software_type"
@@ -406,7 +413,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="radio"
                 checked={options.software_type === 'wholesale'}
-                onChange={() => setOptions({ ...options, software_type: 'wholesale' })}
+                onChange={() => updateOption('software_type', 'wholesale')}
                 disabled={isBusy}
                 className="border-slate-300 text-primary-600 focus:ring-primary-500"
                 name="software_type"
@@ -428,7 +435,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="checkbox"
                 checked={options.suppliers}
-                onChange={(e) => setOptions({ ...options, suppliers: e.target.checked })}
+                onChange={(e) => updateOption('suppliers', e.target.checked)}
                 disabled={isBusy}
                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -440,7 +447,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="checkbox"
                 checked={options.clients}
-                onChange={(e) => setOptions({ ...options, clients: e.target.checked })}
+                onChange={(e) => updateOption('clients', e.target.checked)}
                 disabled={isBusy}
                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -452,7 +459,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="checkbox"
                 checked={options.products}
-                onChange={(e) => setOptions({ ...options, products: e.target.checked })}
+                onChange={(e) => updateOption('products', e.target.checked)}
                 disabled={isBusy}
                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -464,7 +471,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="checkbox"
                 checked={options.purchases}
-                onChange={(e) => setOptions({ ...options, purchases: e.target.checked })}
+                onChange={(e) => updateOption('purchases', e.target.checked)}
                 disabled={isBusy}
                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -476,7 +483,7 @@ export const LegacyImportSection: React.FC = () => {
               <input
                 type="checkbox"
                 checked={options.sales}
-                onChange={(e) => setOptions({ ...options, sales: e.target.checked })}
+                onChange={(e) => updateOption('sales', e.target.checked)}
                 disabled={isBusy}
                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
@@ -794,6 +801,12 @@ export const LegacyImportSection: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* SQLite Writer Lock Notice */}
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>{t('settings.legacy_sqlite_lock_warning')}</span>
+            </div>
 
             {/* Action Bar */}
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-sky-200/80 dark:border-sky-900/60">

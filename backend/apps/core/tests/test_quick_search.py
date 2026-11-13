@@ -95,7 +95,9 @@ class TestQuickSearch:
     def test_quick_search_products_and_location(self):
         """Quick search finds products with their formatted location and total stock."""
         self.api_client.force_authenticate(user=self.owner)
-        res = self.api_client.get("/api/v1/core/quick-search/?q=Mocassin")
+        res = self.api_client.get(
+            f"/api/v1/core/quick-search/?q=Mocassin&branch_id={self.branch1.id}"
+        )
         assert res.status_code == status.HTTP_200_OK
 
         prods = res.data["products"]
@@ -104,6 +106,73 @@ class TestQuickSearch:
         assert prods[0]["reference"] == "MOC-ALG-01"
         assert prods[0]["location"] == "R05 (39/44)"
         assert prods[0]["stock_qty"] == 12  # 5 + 7
+
+    def test_quick_search_location_is_scoped_to_selected_branch(self):
+        other_branch = Branch.objects.create(
+            tenant=self.tenant1,
+            name="Boutique Secondaire",
+        )
+        ProductLocation.objects.create(
+            tenant=self.tenant1,
+            branch=other_branch,
+            product=self.product1,
+            location="R99",
+        )
+        self.api_client.force_authenticate(user=self.owner)
+
+        res = self.api_client.get(
+            f"/api/v1/core/quick-search/?q=Mocassin&branch_id={other_branch.id}"
+        )
+
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data["products"]) == 1
+        assert res.data["products"][0]["location"] == "R99 (39/44)"
+
+    def test_quick_search_excludes_inactive_products_clients_suppliers_and_variants(self):
+        Product.objects.create(
+            tenant=self.tenant1,
+            name="Inactive Searchable Product",
+            sale_price=Decimal("1000.00"),
+            is_active=False,
+        )
+        inactive_variant = Variant.objects.create(
+            tenant=self.tenant1,
+            product=self.product1,
+            size_eu=42,
+            stock_qty=100,
+            is_active=False,
+        )
+        Variant.objects.filter(pk=inactive_variant.pk).update(barcode="INACTIVE-SKU-777")
+        Client.objects.create(
+            tenant=self.tenant1,
+            name="Inactive Searchable Client",
+            is_active=False,
+        )
+        Supplier.objects.create(
+            tenant=self.tenant1,
+            name="Inactive Searchable Supplier",
+            is_active=False,
+        )
+        self.api_client.force_authenticate(user=self.owner)
+
+        res = self.api_client.get(
+            "/api/v1/core/quick-search/?q=Inactive&branch_id=" + str(self.branch1.id)
+        )
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data["products"] == []
+        assert res.data["clients"] == []
+        assert res.data["suppliers"] == []
+
+        inactive_barcode_search = self.api_client.get(
+            "/api/v1/core/quick-search/?q=INACTIVE-SKU-777"
+        )
+        assert inactive_barcode_search.status_code == status.HTTP_200_OK
+        assert inactive_barcode_search.data["products"] == []
+
+        active_product_search = self.api_client.get(
+            "/api/v1/core/quick-search/?q=Mocassin&branch_id=" + str(self.branch1.id)
+        )
+        assert active_product_search.data["products"][0]["stock_qty"] == 12
 
     def test_quick_search_tenant_isolation(self):
         """Quick search NEVER returns entities belonging to other tenants."""
@@ -124,6 +193,28 @@ class TestQuickSearch:
 
         assert len(res.data["invoices"]) == 1
         assert res.data["invoices"][0]["number"] == "FAC-2026-0001"
+
+    @pytest.mark.parametrize("plan", ["free", "pro_retail"])
+    def test_quick_search_hides_invoices_below_pro_wholesale(self, plan):
+        self.tenant1.plan = plan
+        self.tenant1.save(update_fields=["plan"])
+        self.api_client.force_authenticate(user=self.owner)
+
+        res = self.api_client.get("/api/v1/core/quick-search/?q=Benali")
+
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data["clients"][0]["name"] == "Mourad Benali"
+        assert res.data["invoices"] == []
+
+    def test_enterprise_plan_can_search_invoices(self):
+        self.tenant1.plan = "enterprise"
+        self.tenant1.save(update_fields=["plan"])
+        self.api_client.force_authenticate(user=self.owner)
+
+        res = self.api_client.get("/api/v1/core/quick-search/?q=Benali")
+
+        assert res.status_code == status.HTTP_200_OK
+        assert [invoice["number"] for invoice in res.data["invoices"]] == ["FAC-2026-0001"]
 
     def test_cashier_can_search_products_clients_but_not_suppliers(self):
         """Cashiers can search products and clients, but supplier payables are withheld."""

@@ -285,6 +285,9 @@ def parse_file_data(raw_bytes: bytes, filename: str) -> Tuple[List[str], List[Di
 
 
 def _parse_csv_data(raw_bytes: bytes) -> Tuple[List[str], List[Dict[str, Any]], Optional[str]]:
+    if len(raw_bytes) > 10 * 1024 * 1024:
+        return [], [], _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     text = ""
     for enc in ["utf-8-sig", "utf-8", "cp1256", "latin-1"]:
         try:
@@ -326,11 +329,16 @@ def _parse_csv_data(raw_bytes: bytes) -> Tuple[List[str], List[Dict[str, Any]], 
             val = row[idx] if idx < len(row) else ""
             row_dict[h] = str(val).strip() if val is not None else ""
         rows.append(row_dict)
+        if len(rows) > 5000:
+            return [], [], _("Le fichier dépasse la limite maximale de 5000 lignes.")
 
     return headers, rows, None
 
 
 def _parse_xlsx_data(raw_bytes: bytes) -> Tuple[List[str], List[Dict[str, Any]], Optional[str]]:
+    if len(raw_bytes) > 10 * 1024 * 1024:
+        return [], [], _("Le fichier dépasse la taille maximale autorisée de 10 Mo.")
+
     try:
         wb = openpyxl.load_workbook(io.BytesIO(raw_bytes), data_only=True, read_only=True)
         ws = wb.active
@@ -350,6 +358,13 @@ def _parse_xlsx_data(raw_bytes: bytes) -> Tuple[List[str], List[Dict[str, Any]],
         for row in rows_iter:
             if not row or not any(v is not None and str(v).strip() for v in row):
                 continue
+            row_dict = {}
+            for idx, h in enumerate(headers):
+                val = row[idx] if idx < len(row) else ""
+                row_dict[h] = str(val).strip() if val is not None else ""
+            rows.append(row_dict)
+            if len(rows) > 5000:
+                return [], [], _("Le classeur Excel dépasse la limite maximale de 5000 lignes.")
             row_dict = {}
             for idx, h in enumerate(headers):
                 val = row[idx] if idx < len(row) else ""

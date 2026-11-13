@@ -56,6 +56,7 @@ class SaleSerializer(serializers.ModelSerializer):
     amount_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True)
     client_name = serializers.CharField(source="client.name", default=None, read_only=True)
+    client_price_tier = serializers.CharField(source="client.price_tier", default="detail", read_only=True)
     loyalty_tier = serializers.SerializerMethodField()
     loyalty_points = serializers.SerializerMethodField()
     exchange_count = serializers.IntegerField(source="exchanges.count", read_only=True)
@@ -96,7 +97,7 @@ class SaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = [
-            "id", "branch", "cashier", "cashier_name", "client", "client_name",
+            "id", "branch", "cashier", "cashier_name", "client", "client_name", "client_price_tier",
             "loyalty_tier", "loyalty_points", "status",
             "total_amount", "discount_amount", "amount_paid", "balance_due", "is_formal", "timbre_fiscal",
             "receipt_number", "notes", "due_date", "items", "payments",
@@ -107,7 +108,7 @@ class SaleSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id", "created_at", "receipt_number", "authorized_by_name",
-            "days_until_expiration", "is_layaway_expired",
+            "client_price_tier", "days_until_expiration", "is_layaway_expired",
         ]
 
 

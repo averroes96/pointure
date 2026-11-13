@@ -9,6 +9,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -90,40 +91,23 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 from apps.clients.models import Client
                 client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
 
-            if client and client.is_blocked:
-                from rest_framework.exceptions import ValidationError as DRFValidationError
-                raise DRFValidationError({
-                    "client_id": "Ce client est bloqué. Impossible d'émettre une facture."
-                })
+            # ── Credit limit & blocked client check ──────────────────
+            estimated_total = sum(
+                line_data["quantity"] * line_data["unit_price"] *
+                (1 - line_data.get("discount_pct", Decimal("0")) / 100)
+                for line_data in data["lines"]
+            )
+            if data.get("apply_tva"):
+                estimated_total *= (1 + data.get("tva_rate", Decimal("19.00")) / Decimal("100"))
+
+            force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+            from apps.invoicing.services.credit_check import assert_client_can_take_credit
+            assert_client_can_take_credit(client, estimated_total, user=request.user, force=force, is_drf=True)
 
             branch = None
             if data.get("branch_id"):
                 from apps.core.models import Branch
                 branch = Branch.objects.get(pk=data["branch_id"], tenant=request.tenant)
-
-            # ── Credit limit check ──────────────────────────────────
-            if client and client.credit_limit and client.credit_limit > 0:
-                # Compute invoice total from lines (quick estimate before save)
-                estimated_total = sum(
-                    line_data["quantity"] * line_data["unit_price"] *
-                    (1 - line_data.get("discount_pct", Decimal("0")) / 100)
-                    for line_data in data["lines"]
-                )
-                if data.get("apply_tva"):
-                    estimated_total *= (1 + data.get("tva_rate", Decimal("19.00")) / Decimal("100"))
-
-                would_be_balance = client.cached_balance + estimated_total
-                if would_be_balance > client.credit_limit:
-                    force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
-                    if not force or request.user.role == RoleChoices.CASHIER:
-                        from rest_framework.exceptions import ValidationError as DRFValidationError
-                        raise DRFValidationError({
-                            "error": "credit_limit_exceeded",
-                            "credit_limit": str(client.credit_limit),
-                            "current_balance": str(client.cached_balance),
-                            "invoice_total": str(estimated_total.quantize(Decimal("0.01"))),
-                            "would_be_balance": str(would_be_balance.quantize(Decimal("0.01"))),
-                        })
 
             invoice = Invoice.objects.create(
                 tenant=request.tenant,
@@ -176,7 +160,7 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
             # Confirm if requested
             if data.get("confirm"):
-                invoice.confirm(user=request.user)
+                invoice.confirm(user=request.user, force=force)
             else:
                 invoice.update_status()
 
@@ -321,7 +305,10 @@ class InvoiceViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                 {"error": {"code": "invalid_state", "message": "Invoice is not a draft."}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        invoice.confirm(user=request.user)
+        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+        from apps.invoicing.services.credit_check import assert_client_can_take_credit
+        assert_client_can_take_credit(invoice.client, invoice.total_ttc, user=request.user, force=force, is_drf=True)
+        invoice.confirm(user=request.user, force=force)
         transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
         return Response(InvoiceSerializer(invoice).data)
 
@@ -570,23 +557,17 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     or Branch.objects.filter(tenant=request.tenant).first()
                 )
 
-            if client.is_blocked:
-                from rest_framework.exceptions import ValidationError as DRFValidationError
-                raise DRFValidationError({"error": "client_blocked", "client_id": "Ce client est bloqué. Impossible d'émettre une facture."})
-
-            # Check credit limit
+            # Check credit limit and blocked client
             estimated_total = sum(
                 line.quantity * line.unit_price * (1 - line.discount_pct / 100)
                 for bl in bls for line in bl.lines.all()
             )
             if data.get("apply_tva"):
                 estimated_total *= (1 + data.get("tva_rate", Decimal("19.00")) / Decimal("100"))
-                
-            if client.credit_limit and client.credit_limit > 0:
-                would_be_balance = client.cached_balance + estimated_total
-                if would_be_balance > client.credit_limit:
-                    from rest_framework.exceptions import ValidationError as DRFValidationError
-                    raise DRFValidationError({"error": "credit_limit_exceeded"})
+
+            force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+            from apps.invoicing.services.credit_check import assert_client_can_take_credit
+            assert_client_can_take_credit(client, estimated_total, user=request.user, force=force, is_drf=True)
 
             invoice = Invoice.objects.create(
                 tenant=request.tenant,
@@ -667,7 +648,7 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         "cancel": MANAGER_OR_OWNER,
         "convert_to_invoice": MANAGER_OR_OWNER,
         "convert_to_delivery_note": MANAGER_OR_OWNER,
-        "default": ALL_ROLES,
+        "default": MANAGER_OR_OWNER,
     }
     filterset_fields = ["status", "client", "branch"]
     search_fields = ["number", "client__name"]
@@ -816,24 +797,21 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         quote = self.get_object()
         try:
             quote.cancel(user=request.user)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "invalid_action", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="invalid_action") from exc
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=["post"], url_path="convert-to-invoice")
     def convert_to_invoice(self, request, pk=None):
         self.require_manager()
         quote = self.get_object()
+        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+        from apps.invoicing.services.credit_check import assert_client_can_take_credit
+        assert_client_can_take_credit(quote.client, quote.total_ttc, user=request.user, force=force, is_drf=True)
         try:
-            invoice = quote.convert_to_invoice(user=request.user)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "conversion_failed", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            invoice = quote.convert_to_invoice(user=request.user, force=force)
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="conversion_failed") from exc
         transaction.on_commit(lambda: run_task(generate_invoice_pdf, invoice.pk))
         return Response({
             "quote": QuoteSerializer(quote).data,
@@ -845,13 +823,13 @@ class QuoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     def convert_to_delivery_note(self, request, pk=None):
         self.require_manager()
         quote = self.get_object()
+        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+        from apps.invoicing.services.credit_check import assert_client_can_take_credit
+        assert_client_can_take_credit(quote.client, quote.total_ttc, user=request.user, force=force, is_drf=True)
         try:
-            dn = quote.convert_to_delivery_note(user=request.user)
-        except Exception as e:
-            return Response(
-                {"error": {"code": "conversion_failed", "message": str(e)}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            dn = quote.convert_to_delivery_note(user=request.user, force=force)
+        except ValueError as exc:
+            raise DRFValidationError(str(exc), code="conversion_failed") from exc
         transaction.on_commit(lambda: run_task(generate_delivery_note_pdf, dn.pk))
         return Response({
             "quote": QuoteSerializer(quote).data,

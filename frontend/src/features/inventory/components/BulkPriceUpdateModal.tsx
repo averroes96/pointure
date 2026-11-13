@@ -18,10 +18,11 @@ import {
 import api, { formatDZD } from "@/lib/api";
 import type { Product } from "@/types";
 import { cn } from "@/lib/utils";
+import { unitPriceFor } from "@/lib/pricing";
 
 export type PriceUpdateType = "percentage" | "fixed_delta" | "fixed_set";
 export type RoundingType = "none" | "nearest_10" | "nearest_50" | "nearest_100" | "end_90";
-export type TargetField = "sale_price" | "wholesale_price";
+export type TargetField = "sale_price" | "wholesale_price" | "semi_wholesale_price";
 
 interface BulkPriceUpdateModalProps {
   isOpen: boolean;
@@ -57,11 +58,14 @@ export default function BulkPriceUpdateModal({
   // Preview calculations for visible products
   const previewList = useMemo(() => {
     return selectedProducts.map((p) => {
-      const oldPrice = parseFloat(
-        targetField === "sale_price"
-          ? p.sale_price
-          : p.wholesale_price || p.sale_price
-      ) || 0;
+      const oldPrice = unitPriceFor(
+        p,
+        targetField === "semi_wholesale_price"
+          ? "demi_gros"
+          : targetField === "wholesale_price"
+          ? "gros"
+          : "detail"
+      );
 
       let rawNewPrice = oldPrice;
       if (updateType === "percentage") {
@@ -174,26 +178,45 @@ export default function BulkPriceUpdateModal({
 
           {/* Target Field Selection */}
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-              1. Prix à modifier
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
+              1. {t("inventory.bulk_price_target_label", "Prix à modifier")}
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => setTargetField("sale_price")}
                 className={cn(
                   "p-3 rounded-xl border text-start transition-all flex flex-col justify-between",
                   targetField === "sale_price"
-                    ? "border-primary-600 bg-primary-50/50 ring-2 ring-primary-500/20 text-slate-900"
-                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/40 ring-2 ring-primary-500/20 text-slate-900 dark:text-white"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-300"
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm">{t("inventory.retail_price_ttc")}</span>
-                  {targetField === "sale_price" && <CheckCircle2 size={16} className="text-primary-600" />}
+                  {targetField === "sale_price" && <CheckCircle2 size={16} className="text-primary-600 dark:text-primary-400" />}
                 </div>
-                <span className="text-2xs text-slate-500 mt-1">
+                <span className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
                   {t("inventory.retail_price_desc", "Prix affiché au magasin et imprimé sur l'étiquette de rayon")}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTargetField("semi_wholesale_price")}
+                className={cn(
+                  "p-3 rounded-xl border text-start transition-all flex flex-col justify-between",
+                  targetField === "semi_wholesale_price"
+                    ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/40 ring-2 ring-primary-500/20 text-slate-900 dark:text-white"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm">{t("inventory.semi_wholesale_price_b2b", "Prix demi-gros (B2B)")}</span>
+                  {targetField === "semi_wholesale_price" && <CheckCircle2 size={16} className="text-primary-600 dark:text-primary-400" />}
+                </div>
+                <span className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t("inventory.semi_wholesale_price_desc", "Prix appliqué pour les commandes demi-gros")}
                 </span>
               </button>
 
@@ -203,15 +226,15 @@ export default function BulkPriceUpdateModal({
                 className={cn(
                   "p-3 rounded-xl border text-start transition-all flex flex-col justify-between",
                   targetField === "wholesale_price"
-                    ? "border-primary-600 bg-primary-50/50 ring-2 ring-primary-500/20 text-slate-900"
-                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/40 ring-2 ring-primary-500/20 text-slate-900 dark:text-white"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-300"
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm">{t("inventory.wholesale_price_b2b")}</span>
-                  {targetField === "wholesale_price" && <CheckCircle2 size={16} className="text-primary-600" />}
+                  {targetField === "wholesale_price" && <CheckCircle2 size={16} className="text-primary-600 dark:text-primary-400" />}
                 </div>
-                <span className="text-2xs text-slate-500 mt-1">
+                <span className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
                   {t("inventory.wholesale_price_desc", "Prix appliqué pour les commandes par cartons / clients gros")}
                 </span>
               </button>

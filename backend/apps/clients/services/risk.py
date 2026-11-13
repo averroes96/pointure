@@ -166,8 +166,8 @@ def bulk_client_risk(clients: List[Any], today=None) -> Dict[Any, Dict[str, Any]
         remaining = inv.total_ttc - paid
         if remaining <= Decimal("0.00"):
             continue
-        inv_date = inv.date or inv.due_date or today
-        age_days = (today - inv_date).days
+        due_date = inv.due_date or inv.date or today
+        age_days = (today - due_date).days
         cid = inv.client_id
         if age_days <= 30:
             client_buckets[cid]["current"] += remaining

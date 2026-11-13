@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Save, AlertCircle, FileSpreadsheet, Layers } from "lucide-react";
 import api, { formatDZD, getApiError } from "@/lib/api";
 import { useBranch } from "@/features/auth/BranchContext";
-import type { Client, Quote } from "@/types";
+import type { Client, Quote, QuoteLine } from "@/types";
 import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { cn } from "@/lib/utils";
 import { unitPriceStringFor } from "@/lib/pricing";
@@ -13,9 +13,15 @@ import { ClientSelector } from "./components/ClientSelector";
 import {
   InvoiceProductMatrix,
   type MatrixConfig,
+  type ProductResult,
   createEmptyMatrix,
 } from "./components/InvoiceProductMatrix";
 import { AddCartonsModal } from "./components/AddCartonsModal";
+
+type QuoteSubmissionLine = Pick<
+  QuoteLine,
+  "description" | "variant" | "quantity" | "unit_price" | "discount_pct" | "cartons"
+>;
 
 function formatDefaultDate(daysOffset = 0): string {
   const d = new Date();
@@ -40,6 +46,7 @@ export default function QuoteFormPage() {
   const [tvaRate, setTvaRate] = useState<string>("19.00");
   const [notes, setNotes] = useState<string>("");
   const [matrices, setMatrices] = useState<MatrixConfig[]>([createEmptyMatrix()]);
+  const [preservedLines, setPreservedLines] = useState<QuoteSubmissionLine[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isCartonModalOpen, setIsCartonModalOpen] = useState<boolean>(false);
 
@@ -70,16 +77,45 @@ export default function QuoteFormPage() {
 
       const loadMatrices = async () => {
         const productMap = new Map<string | number, MatrixConfig>();
+        const linesToPreserve: QuoteSubmissionLine[] = [];
 
         for (const line of quoteToEdit.lines) {
-          if (!line.product_id) continue;
+          if (!line.product_id || line.variant == null) {
+            linesToPreserve.push({
+              description: line.description,
+              variant: line.variant,
+              quantity: line.quantity,
+              unit_price: line.unit_price,
+              discount_pct: line.discount_pct,
+              cartons: line.cartons,
+            });
+            continue;
+          }
 
           let matrix = productMap.get(line.product_id);
+          const product = matrix?.product ?? (
+            await api.get<ProductResult>(`/inventory/products/${line.product_id}/`)
+          ).data;
+          const matchingVariant = product.variants.find(
+            (variant) => String(variant.id) === String(line.variant)
+          );
+
+          if (!matchingVariant) {
+            linesToPreserve.push({
+              description: line.description,
+              variant: line.variant,
+              quantity: line.quantity,
+              unit_price: line.unit_price,
+              discount_pct: line.discount_pct,
+              cartons: line.cartons,
+            });
+            continue;
+          }
+
           if (!matrix) {
-            const pRes = await api.get(`/inventory/products/${line.product_id}/`);
             matrix = {
               id: Math.random().toString(36).slice(2, 10),
-              product: pRes.data,
+              product,
               cartons: line.cartons,
               pairs_per_carton: 0,
               unit_price: line.unit_price,
@@ -89,15 +125,15 @@ export default function QuoteFormPage() {
             productMap.set(line.product_id, matrix);
           }
 
-          const colour = line.colour || "Standard";
-          const size = line.size_eu;
-          if (size !== undefined && size !== null && !isNaN(Number(size))) {
-            if (!matrix.quantities[colour]) {
-              matrix.quantities[colour] = {};
-            }
-            matrix.quantities[colour][Number(size)] = parseFloat(line.quantity as string) || 0;
+          const colour = matchingVariant.colour || "Standard";
+          const size = matchingVariant.size_eu;
+          if (!matrix.quantities[colour]) {
+            matrix.quantities[colour] = {};
           }
+          matrix.quantities[colour][size] = parseFloat(line.quantity) || 0;
         }
+
+        setPreservedLines(linesToPreserve);
 
         const m = Array.from(productMap.values()).map((matrix) => {
           let totalPairs = 0;
@@ -175,7 +211,7 @@ export default function QuoteFormPage() {
         }
       }
     }
-    return flatLines;
+    return [...flatLines, ...preservedLines];
   }
 
   // Totals calculations

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import api, { formatDZD } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useBranch } from "@/features/auth/BranchContext";
 import { canAccessPath } from "@/lib/roleAccess";
 import { cn } from "@/lib/utils";
 
@@ -115,6 +116,7 @@ export default function QuickSearchModal() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentBranch } = useBranch();
   const role = user?.role;
 
   const [isOpen, setIsOpen] = useState(false);
@@ -266,13 +268,19 @@ export default function QuickSearchModal() {
 
   // Query server API for Products, Clients, Suppliers, Invoices
   const cleanQuery = query.trim();
+  const currentBranchId = currentBranch?.id;
   const { data: serverData, isFetching } = useQuery<QuickSearchResult>({
-    queryKey: ["quick-search", cleanQuery],
-    queryFn: () =>
-      api
-        .get<QuickSearchResult>(`/core/quick-search/?q=${encodeURIComponent(cleanQuery)}`)
+    queryKey: ["quick-search", cleanQuery, currentBranchId],
+    queryFn: () => {
+      const params = new URLSearchParams({ q: cleanQuery });
+      if (currentBranchId != null) {
+        params.set("branch_id", String(currentBranchId));
+      }
+      return api
+        .get<QuickSearchResult>(`/core/quick-search/?${params.toString()}`)
         .then((r) => r.data)
-        .catch(() => ({ products: [], clients: [], suppliers: [], invoices: [] })),
+        .catch(() => ({ products: [], clients: [], suppliers: [], invoices: [] }));
+    },
     enabled: isOpen && cleanQuery.length >= 2,
     staleTime: 10 * 1000,
   });
