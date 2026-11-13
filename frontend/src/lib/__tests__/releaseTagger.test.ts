@@ -114,7 +114,7 @@ describe("release-tagger semantic versioning and changelog generator", () => {
 
   describe("getLatestSemverTag", () => {
     it("uses the highest ancestor tag rather than the closest one", () => {
-      const exec = (cmd) => {
+      const exec = (cmd: string) => {
         if (cmd.includes("git tag")) return "v1.8.4\nv1.8.5\nv1.9.0-beta.9\n";
         if (cmd.includes("v1.8.4") || cmd.includes("v1.8.5")) return "ancestor";
         return "";
