@@ -27,23 +27,34 @@ function execCmd(cmd, options = {}) {
 }
 
 /**
- * Parses a semver tag like "v1.4.12" or "1.4.12" into numbers.
+ * Parses a semver tag like "v1.4.12", "1.4.12", or "v1.9.0-beta.10".
+ * The prerelease field is set only when the tag has a suffix.
  */
 function parseSemVer(tag) {
   if (!tag) return null;
-  const match = tag.trim().match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+  const match = tag.trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
   if (!match) return null;
-  return {
+  const parsed = {
     major: parseInt(match[1], 10),
     minor: parseInt(match[2], 10),
     patch: parseInt(match[3], 10),
   };
+  if (match[4]) parsed.prerelease = match[4];
+  return parsed;
 }
 
 function compareSemVer(left, right) {
   if (left.major !== right.major) return left.major - right.major;
   if (left.minor !== right.minor) return left.minor - right.minor;
-  return left.patch - right.patch;
+  if (left.patch !== right.patch) return left.patch - right.patch;
+  if (!left.prerelease && !right.prerelease) return 0;
+  if (!left.prerelease) return 1;
+  if (!right.prerelease) return -1;
+  return String(left.prerelease).localeCompare(String(right.prerelease), undefined, { numeric: true });
+}
+
+function isStableReleaseBranch(branchName) {
+  return branchName === 'release';
 }
 
 /**
@@ -52,12 +63,13 @@ function compareSemVer(left, right) {
  * and git describe returns the closest tag, which can be older than a
  * higher tag that already exists.
  */
-function selectHighestSemver(tags) {
+function selectHighestSemver(tags, includePrerelease = false) {
   let bestTag = null;
   let bestParsed = null;
   for (const tag of tags) {
     const parsed = parseSemVer(tag);
     if (!parsed) continue;
+    if (!includePrerelease && parsed.prerelease) continue;
     if (!bestParsed || compareSemVer(parsed, bestParsed) > 0) {
       bestTag = tag.trim();
       bestParsed = parsed;
@@ -71,16 +83,19 @@ function selectHighestSemver(tags) {
  * Falls back to the highest stable tag in the repo so a new release
  * cannot reuse a version that was already published.
  */
-function getLatestSemverTag(exec = execCmd) {
+function getLatestSemverTag(exec = execCmd, includePrerelease = false) {
   let rawTags = '';
   try {
     rawTags = exec("git tag -l 'v*.*.*'", { allowFailure: true });
   } catch (_) {}
 
-  const stable = rawTags.split('\n').map(t => t.trim()).filter(t => parseSemVer(t));
-  if (stable.length === 0) return null;
+  const parsedTags = rawTags.split('\n').map(t => t.trim()).filter(t => parseSemVer(t));
+  const pool = includePrerelease
+    ? parsedTags
+    : parsedTags.filter(tag => !parseSemVer(tag).prerelease);
+  if (pool.length === 0) return null;
 
-  const ancestors = stable.filter(tag => {
+  const ancestors = pool.filter(tag => {
     const marker = exec(
       `git merge-base --is-ancestor "${tag}" HEAD && echo ancestor`,
       { allowFailure: true },
@@ -88,7 +103,31 @@ function getLatestSemverTag(exec = execCmd) {
     return String(marker).includes('ancestor');
   });
 
-  return selectHighestSemver(ancestors.length > 0 ? ancestors : stable);
+  return selectHighestSemver(ancestors.length > 0 ? ancestors : pool, includePrerelease);
+}
+
+/**
+ * Attaches the next free -beta.N suffix to an already bumped stable version.
+ */
+function nextPrerelease(stableNext, existingTags = []) {
+  const escaped = stableNext.version.replace(/\./g, '\\.');
+  const pattern = new RegExp(`^v?${escaped}-beta\\.(\\d+)$`);
+  let beta = 1;
+  for (const tag of existingTags) {
+    const match = String(tag).trim().match(pattern);
+    if (!match) continue;
+    beta = Math.max(beta, parseInt(match[1], 10) + 1);
+  }
+  const prerelease = `beta.${beta}`;
+  const version = `${stableNext.version}-${prerelease}`;
+  return {
+    major: stableNext.major,
+    minor: stableNext.minor,
+    patch: stableNext.patch,
+    prerelease,
+    version,
+    tag: `v${version}`,
+  };
 }
 
 /**
@@ -346,10 +385,11 @@ function main() {
   console.log(`[release-tagger] Starting semantic version inspection...`);
   console.log(`[release-tagger] GITHUB_REF: "${gitRef}", GITHUB_REF_NAME: "${gitRefName}"`);
 
-  // Case 1: Workflow triggered directly by a tag push (e.g. refs/tags/v1.5.0)
-  if (gitRef.startsWith('refs/tags/v') || gitRefName.match(/^v\d+\.\d+\.\d+$/)) {
+  // Case 1: Workflow triggered directly by a tag push (v1.5.0 or v1.9.0-beta.1)
+  if (gitRef.startsWith('refs/tags/v') || /^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(gitRefName)) {
     const tag = gitRefName || gitRef.replace('refs/tags/', '');
     const version = tag.replace(/^v/, '');
+    const isPrerelease = Boolean(parseSemVer(tag) && parseSemVer(tag).prerelease);
     console.log(`[release-tagger] Triggered by explicit tag push: ${tag}`);
 
     // Find previous tag before this one
@@ -379,13 +419,20 @@ function main() {
       appendGitHubOutput('version', version);
       appendGitHubOutput('bump', 'manual');
       appendGitHubOutput('changelog', changelog);
+      appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
     }
     return;
   }
 
-  // Case 2: Workflow triggered by branch push (e.g. feature/windows-desktop-installer, main)
-  const previousTag = getLatestSemverTag();
-  console.log(`[release-tagger] Previous semver tag detected: ${previousTag || '(none)'}`);
+  // Only the release branch publishes a stable version. Every other branch is a beta.
+  const branchName = gitRefName || gitRef.replace('refs/heads/', '') || execCmd('git rev-parse --abbrev-ref HEAD', { allowFailure: true });
+  const isPrerelease = !isStableReleaseBranch(branchName);
+  const previousStableTag = getLatestSemverTag(execCmd, false);
+  const previousTag = isPrerelease
+    ? (getLatestSemverTag(execCmd, true) || previousStableTag)
+    : previousStableTag;
+  console.log(`[release-tagger] Branch "${branchName}" prerelease=${isPrerelease}`);
+  console.log(`[release-tagger] Previous tag: ${previousTag || '(none)'} (stable ${previousStableTag || 'none'})`);
 
   const commits = getCommitsSince(previousTag);
   console.log(`[release-tagger] Found ${commits.length} commits since ${previousTag || 'initial commit'}`);
@@ -398,6 +445,7 @@ function main() {
       appendGitHubOutput('version', previousTag ? previousTag.replace(/^v/, '') : '');
       appendGitHubOutput('bump', 'none');
       appendGitHubOutput('changelog', '');
+      appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
     }
     return;
   }
@@ -410,7 +458,8 @@ function main() {
       .map(tag => tag.trim())
       .filter(Boolean);
   } catch (_) {}
-  const next = resolveNextVersion(previousTag, bump, existingTags);
+  const stableNext = resolveNextVersion(previousStableTag, bump, existingTags);
+  const next = isPrerelease ? nextPrerelease(stableNext, existingTags) : stableNext;
 
   console.log(`[release-tagger] Evaluated bump level: ${bump.toUpperCase()}`);
   console.log(`[release-tagger] Next release version: ${next.version} (Tag: ${next.tag})`);
@@ -458,6 +507,7 @@ function main() {
     appendGitHubOutput('version', next.version);
     appendGitHubOutput('bump', bump);
     appendGitHubOutput('changelog', changelog);
+    appendGitHubOutput('is_prerelease', isPrerelease ? 'true' : 'false');
   }
 }
 
@@ -467,8 +517,10 @@ if (require.main === module) {
 
 module.exports = {
   parseSemVer,
+  isStableReleaseBranch,
   selectHighestSemver,
   getLatestSemverTag,
+  nextPrerelease,
   resolveNextVersion,
   getCommitsSince,
   parseConventionalCommit,

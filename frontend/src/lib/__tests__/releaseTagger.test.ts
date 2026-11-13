@@ -3,8 +3,10 @@ import { describe, it, expect } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const {
   parseSemVer,
+  isStableReleaseBranch,
   selectHighestSemver,
   getLatestSemverTag,
+  nextPrerelease,
   resolveNextVersion,
   determineBump,
   bumpVersion,
@@ -24,6 +26,15 @@ describe("release-tagger semantic versioning and changelog generator", () => {
       expect(parseSemVer("")).toBeNull();
       expect(parseSemVer("invalid-tag")).toBeNull();
       expect(parseSemVer(null)).toBeNull();
+    });
+
+    it("parses a beta suffix without treating it as a stable tag", () => {
+      expect(parseSemVer("v1.9.0-beta.10")).toEqual({
+        major: 1,
+        minor: 9,
+        patch: 0,
+        prerelease: "beta.10",
+      });
     });
   });
 
@@ -120,6 +131,29 @@ describe("release-tagger semantic versioning and changelog generator", () => {
         return "";
       };
       expect(getLatestSemverTag(exec)).toBe("v1.8.5");
+    });
+
+    it("selects the highest ancestor beta when prereleases are included", () => {
+      const exec = (cmd: string) => {
+        if (cmd.startsWith("git tag")) return "v1.8.5\nv1.9.0-beta.2\nv1.9.0-beta.10\n";
+        return "ancestor";
+      };
+      expect(getLatestSemverTag(exec, true)).toBe("v1.9.0-beta.10");
+    });
+  });
+
+  describe("release channel", () => {
+    it("treats only the release branch as stable", () => {
+      expect(isStableReleaseBranch("release")).toBe(true);
+      expect(isStableReleaseBranch("feature/windows-desktop-installer")).toBe(false);
+    });
+
+    it("numbers the next beta after the highest existing suffix", () => {
+      const stable = bumpVersion("v1.8.5", "minor");
+      expect(nextPrerelease(stable, ["v1.9.0-beta.9", "v1.9.0-beta.10"])).toMatchObject({
+        version: "1.9.0-beta.11",
+        tag: "v1.9.0-beta.11",
+      });
     });
   });
 
