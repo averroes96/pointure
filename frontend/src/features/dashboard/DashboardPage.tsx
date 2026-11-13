@@ -16,6 +16,7 @@ import {
 import api, { formatDZD, formatDate } from "@/lib/api";
 import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow, Plan } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
+import AidCountdownCard from "@/features/dashboard/AidCountdownCard";
 import { usePlan } from "@/hooks/usePlan";
 import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useSSE } from "@/hooks/useSSE";
@@ -505,6 +506,8 @@ export default function DashboardPage() {
           color="bg-indigo-600"
         />
       </div>
+
+      {!isCashier && <AidCountdownCard />}
 
       {/* Quick actions cards */}
       <div className="space-y-3">

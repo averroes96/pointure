@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, ShoppingCart, History, FileText, FileSpreadsheet, Truck, FileX,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
-  Factory, PieChart, CalendarDays, BarChart, BookOpen,
+  Factory, PieChart, CalendarDays, BarChart, BookOpen, Ruler,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
   ShieldAlert, ClipboardList, CalendarCheck,
   type LucideIcon,
@@ -109,6 +109,9 @@ function useNavSections(): NavSection[] {
         { to: "/reports/daily", labelKey: "nav.daily_report", icon: CalendarDays, managerOnly: true },
         { to: "/reports/sales", labelKey: "nav.sales_analytics", icon: BarChart, managerOnly: true, minPlan: "pro_retail" },
         { to: "/reports/stock", labelKey: "nav.stock_report", icon: PieChart, managerOnly: true },
+        { to: "/reports/size-curve", labelKey: "nav.size_curve", icon: Ruler, managerOnly: true },
+        { to: "/reports/reorder", labelKey: "nav.reorder", icon: ClipboardList, managerOnly: true },
+        { to: "/reports/seasonal", labelKey: "nav.seasonal", icon: CalendarDays, managerOnly: true },
         { to: "/reports/builder", labelKey: "nav.report_builder", icon: BarChart2, managerOnly: true, minPlan: "enterprise" },
       ],
     },

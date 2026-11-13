@@ -15,6 +15,7 @@ import {
   Search, Plus, SkipForward, Download, MessageCircle, ShieldAlert, Printer,
 } from "lucide-react";
 import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
+import LandedCostPanel from "@/features/suppliers/components/LandedCostPanel";
 import { getPrinterConfig, getLabelDimensions, printLabelHtml } from "@/lib/printerConfig";
 import ColourPicker from "@/components/ui/ColourPicker";
 import { getColourHex, getColourLabel } from "@/lib/colours";
@@ -598,10 +599,10 @@ function ReceiveForm({ po, onSuccess }: { po: PurchaseOrder; onSuccess: () => vo
                       )}
                     </td>
                     <td className="text-end font-mono text-sm text-text-muted">
-                      {formatDZD(line.agreed_unit_price)} DZD
+                      {formatDZD(line.agreed_unit_price)} {po.currency || "DZD"}
                     </td>
                     <td className="text-end font-mono text-sm">
-                      {formatDZD(line.line_total)} DZD
+                      {formatDZD(line.line_total)} {po.currency || "DZD"}
                     </td>
                     <td className="text-center">
                       {isDone ? (
@@ -1098,6 +1099,8 @@ export default function PurchaseOrderDetailPage() {
         </div>
       )}
 
+      {poId && <LandedCostPanel poId={poId} />}
+
       {/* Lines */}
       {po.lines.length > 0 ? (
         <ReceiveForm
@@ -1116,7 +1119,7 @@ export default function PurchaseOrderDetailPage() {
           <span className="text-sm text-text-muted">Total commande</span>
           <span className="text-xl font-bold font-mono text-text-primary">
             {formatDZD(po.total_amount)}{" "}
-            <span className="text-sm font-normal text-text-muted">DZD</span>
+            <span className="text-sm font-normal text-text-muted">{po.currency || "DZD"}</span>
           </span>
         </div>
       </div>

@@ -783,6 +783,7 @@ export interface POLine {
   quantity_ordered: number;
   quantity_received: number;
   agreed_unit_price: string;
+  landed_unit_cost?: string | null;
   line_total: string;
 }
 
@@ -799,6 +800,8 @@ export interface PurchaseOrder {
   reference: string;
   notes: string;
   total_amount: string;
+  currency?: string;
+  exchange_rate?: string;
   created_by: number | null;
   lines: POLine[];
   created_at: string;

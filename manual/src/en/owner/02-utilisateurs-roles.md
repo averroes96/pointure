@@ -37,6 +37,7 @@ ShoeDZ enforces a strict hierarchy of capabilities:
 | **User Accounts & Role Management** | ✓ | ✗ (blocked) | ✗ (blocked) |
 | **Annual Fiscal Closing & Audit Log** | ✓ | ✗ (blocked) | ✗ (blocked) |
 | **Database Restore & Encrypted External Backup** | ✓ | ✗ (blocked) | ✗ (blocked) |
+| **Remote owner (Telegram)** | ✓ | ✗ (blocked) | ✗ (blocked) |
 
 ---
 

@@ -40,4 +40,18 @@ Pour restaurer votre base de données (sur le poste actuel ou après installatio
 2. Cliquez sur **Restaurer cette sauvegarde** en face d'une archive locale, ou sur **Restaurer un fichier...** pour sélectionner un fichier `.sqlite3` ou `.shodzbak` depuis votre clé USB.
 3. Si le fichier est chiffré (`.shodzbak`), saisissez votre **Phrase de passe de restauration**.
 4. Tapez le mot de confirmation demandé (`RESTAURER`), puis cliquez sur **Restaurer et Redémarrer** : une sauvegarde automatique pré-restauration (`pre_restore_*.sqlite3`) est créée, puis l'application redémarre automatiquement avec vos données restaurées.
+'
+---
+
+### D. Patron à distance (Telegram)
+
+Le propriétaire peut recevoir des messages en lecture seule sur Telegram. Le jeton du bot reste dans la configuration locale de l'ordinateur ; il n'est pas enregistré dans la base de données.
+
+1. Créez un bot avec **@BotFather** et copiez son jeton.
+2. Ouvrez **Paramètres → Patron à distance** (compte **Propriétaire**).
+3. Collez le jeton et cliquez sur **Vérifier**.
+4. Cliquez sur **Lier**. L'application affiche un code à 6 chiffres pendant 5 minutes.
+5. Dans Telegram, envoyez au bot `/start` suivi du code. Jusqu'à 3 discussions peuvent être liées. Chaque discussion peut être retirée, et un **Message test** confirme le lien.
+6. Les messages venant d'une discussion non liée sont ignorés.
+7. Sur le même écran, choisissez l'heure du résumé quotidien (21:00 par défaut) et activez les alertes : écart de caisse, vente annulée, remboursement, remise approuvée, exercice non clôturé après le 15 janvier, sauvegarde externe de plus de 3 jours. Les textes suivent la langue du propriétaire.
 

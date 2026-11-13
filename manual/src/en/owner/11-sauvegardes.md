@@ -41,3 +41,17 @@ To restore your database (on the current PC or after installing ShoeDZ on a repl
 3. If the backup is encrypted (`.shodzbak`), enter your **Restore passphrase**.
 4. Type the confirmation word (`RESTORE` or `RESTAURER`) and click **Restore & Restart**: an automatic pre-restore safety backup (`pre_restore_*.sqlite3`) is created, and the application restarts automatically with your restored data.
 
+---
+
+### D. Remote owner (Telegram)
+
+The owner can receive read-only messages on Telegram. The bot token stays in the computer's local configuration and is not stored in the database.
+
+1. Create a bot with **@BotFather** and copy its token.
+2. Open **Settings → Remote owner** (signed in as **Owner**).
+3. Paste the token and click **Check**.
+4. Click **Link**. The app shows a 6-digit code for 5 minutes.
+5. In Telegram, send the bot `/start` followed by the code. Up to 3 chats can be linked. Each chat can be removed, and a **Test message** confirms the link.
+6. Messages from a chat that is not linked are ignored.
+7. On the same screen, set the daily digest time (default 21:00) and turn alerts on or off: cash gap, cancelled sale, refund, approved discount, fiscal year still open after 15 January, and an external backup older than 3 days. The text follows the owner's language.
+

@@ -722,6 +722,11 @@ export default function LowStockPage() {
         <div>
           <h1 className="text-2xl font-bold font-sans tracking-tight text-slate-900 dark:text-white">{t("inventory.low_stock_title")}</h1>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t("inventory.low_stock_desc")}</p>
+          {canRestock && (
+            <Link to="/reports/reorder" className="inline-block mt-2 text-sm font-semibold text-teal-800 dark:text-teal-300 hover:underline">
+              {t("inventory.reorder_link")}
+            </Link>
+          )}
         </div>
         <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 self-start sm:self-auto">
           <button

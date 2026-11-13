@@ -39,6 +39,8 @@ Une gestion d'approvisionnement rigoureuse garantit des stocks optimaux et une p
    - Les niveaux de stock disponibles en rayon sont immédiatement incrémentés.
    - Les étiquettes codes-barres peuvent être imprimées en un clic pour étiqueter les nouvelles boîtes.
 
+Sur un arrivage, avant toute réception, ouvrez **Coûts d'approche** sur le bon de commande. Indiquez la devise et le taux en dinars, puis le fret, les droits, le transitaire et le transport. Le coût de revient de chaque pointure sert au PAMP. La facture du fournisseur reste calculée sur son prix converti, sans ces frais. Une commande déjà réceptionnée en partie ne peut plus recevoir ces coûts.
+
 ---
 
 ### D. Factures fournisseurs et règlements

@@ -96,6 +96,10 @@ def _run_scheduler_loop():
     heartbeat_interval_sec = 30 * 60
     last_license_check_mono = time.monotonic() - heartbeat_interval_sec
 
+    # Outbound owner alerts — every 2 minutes, never inside a request.
+    outbound_interval_sec = 2 * 60
+    last_outbound_mono = time.monotonic() - outbound_interval_sec
+
     # Load persistent state for daily tasks
     state = load_scheduler_state()
     last_daily_str = state.get("last_daily_tasks")
@@ -119,6 +123,17 @@ def _run_scheduler_loop():
                 license_heartbeat()
             except Exception:
                 logger.warning("Scheduled license heartbeat failed", exc_info=True)
+
+        # 1b. Outbound message queue — every 2 minutes (monotonic interval)
+        if now_mono - last_outbound_mono >= outbound_interval_sec:
+            last_outbound_mono = now_mono
+            try:
+                from apps.notifications.services.outbound import dispatch_due_messages
+                dispatch_due_messages()
+                from apps.notifications.services.owner_dispatch import dispatch_scheduled_alerts
+                dispatch_scheduled_alerts()
+            except Exception:
+                logger.warning("Scheduled outbound message dispatch failed", exc_info=True)
 
         # 2. Daily tasks (cheques, overdue invoices, low stock alerts, DB backup)
         if should_run_daily_tasks(last_daily_tasks, now):

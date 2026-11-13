@@ -142,6 +142,13 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
             "require_manager_pin_for_returns", "require_manager_pin_for_discounts", "default_max_discount_pct",
             "enable_layaway", "min_layaway_deposit_pct", "layaway_duration_days",
             "enable_delivery_integrations", "tax_regime", "invoice_legal_mentions",
+            "telegram_digest_time",
+            "alert_cash_gap_enabled", "alert_cash_gap_amount",
+            "alert_cancel_enabled",
+            "alert_refund_enabled", "alert_refund_amount",
+            "alert_discount_enabled", "alert_discount_pct",
+            "alert_year_open_enabled", "alert_backup_stale_enabled",
+            "reorder_cover_weeks",
         ]
         read_only_fields = ["id"]
 

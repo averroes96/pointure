@@ -37,3 +37,25 @@ Le rapport **État du stock** certifie la valeur marchande globale des marchandi
 - **Valeur marchande potentielle (au prix de vente détail) :** Chiffre d'affaires potentiel attendu en cas d'écoulement complet du stock.
 - **Marge potentielle en stock :** Différence entre la valeur de vente et la valeur d'achat du stock existant.
 
+### D. Courbe des pointures et tailles cassées
+
+Dans **Rapports → Courbe des pointures** :
+1. Choisissez la période (8 semaines par défaut), une marque, une catégorie ou un genre.
+2. Le graphique et le tableau montrent, pour chaque pointure : paires vendues nettes des retours, part des ventes, stock, quantités encore en commande, semaines de couverture et taux d'écoulement.
+3. La liste **Tailles cassées** signale un modèle qui a encore du stock, mais dont une pointure centrale est à zéro. Les pointures centrales sont celles qui font au moins 70 % des ventes du modèle sur 52 semaines. Sans historique, le calcul utilise la catégorie, puis le genre, puis des pointures habituelles. Le montant immobilisé est valorisé au PAMP.
+
+### E. Suggestions de réassort
+
+Dans **Rapports → Réassort**, ou depuis **Stock bas** et **Courbe des pointures** :
+1. Chaque pointure propose une quantité : ventes des 8 dernières semaines, ramenées à une semaine, multipliées par les semaines de couverture (6 par défaut, réglage du propriétaire), moins le stock, moins les quantités déjà commandées.
+2. Si le modèle a un découpage par carton, la quantité est arrondie au carton entier pour cette couleur.
+3. Le fournisseur proposé est celui du dernier bon de commande du modèle. Corrigez les quantités, puis créez un **brouillon** de bon de commande par fournisseur.
+
+### F. Aïd et rentrée
+
+Le tableau de bord annonce le prochain Aïd et rappelle les paires et les pointures vendues sur la même période l'année précédente, avec un lien vers le réassort.
+
+Dans **Rapports → Aïd et rentrée**, comparez le chiffre et les pointures des 30 jours (ou 15, 45, 60) avant chaque occurrence.
+
+Dans **Paramètres → Saisons**, le propriétaire corrige la date. L'Aïd est calculé (1er Chawwal et 10 Dhou al-Hijja, 2020–2035) et reste estimé tant qu'il n'est pas modifié. La rentrée est proposée au 1er septembre.
+

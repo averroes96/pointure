@@ -3,6 +3,9 @@ import { describe, it, expect } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const {
   parseSemVer,
+  selectHighestSemver,
+  getLatestSemverTag,
+  resolveNextVersion,
   determineBump,
   bumpVersion,
   parseConventionalCommit,
@@ -95,6 +98,40 @@ describe("release-tagger semantic versioning and changelog generator", () => {
 
     it("returns null when commit list is empty", () => {
       expect(determineBump([])).toBeNull();
+    });
+  });
+
+  describe("selectHighestSemver", () => {
+    it("ignores pre-releases and a closer but older stable tag", () => {
+      expect(selectHighestSemver([
+        "v1.8.4",
+        "v1.9.0-beta.9",
+        "v1.8.5",
+        "not-a-version",
+      ])).toBe("v1.8.5");
+    });
+  });
+
+  describe("getLatestSemverTag", () => {
+    it("uses the highest ancestor tag rather than the closest one", () => {
+      const exec = (cmd) => {
+        if (cmd.includes("git tag")) return "v1.8.4\nv1.8.5\nv1.9.0-beta.9\n";
+        if (cmd.includes("v1.8.4") || cmd.includes("v1.8.5")) return "ancestor";
+        return "";
+      };
+      expect(getLatestSemverTag(exec)).toBe("v1.8.5");
+    });
+  });
+
+  describe("resolveNextVersion", () => {
+    it("skips a stable tag that already exists", () => {
+      expect(resolveNextVersion("v1.8.4", "patch", ["v1.8.5", "v1.9.0-beta.1"])).toEqual({
+        major: 1,
+        minor: 8,
+        patch: 6,
+        version: "1.8.6",
+        tag: "v1.8.6",
+      });
     });
   });
 

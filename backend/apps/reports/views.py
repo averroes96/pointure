@@ -17,6 +17,11 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, RolePermission]
     role_permissions = {
         "profit_loss": MANAGER_OR_OWNER,
+        "size_curve": MANAGER_OR_OWNER,
+        "reorder_suggestions": MANAGER_OR_OWNER,
+        "reorder_create_po": MANAGER_OR_OWNER,
+        "seasonal": MANAGER_OR_OWNER,
+        "seasonal_preview": MANAGER_OR_OWNER,
         "stock_valuation": MANAGER_OR_OWNER,
         "stock": MANAGER_OR_OWNER,
         "stock_pdf": MANAGER_OR_OWNER,
@@ -844,6 +849,79 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         response = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = 'attachment; filename="rapport.csv"'
         return response
+
+    @action(detail=False, methods=["get"], url_path="size-curve")
+    def size_curve(self, request):
+        """Net sales, cover and broken size runs. Manager and owner only."""
+        from .serializers import SizeCurveQuerySerializer
+        from .services.size_curve import build_size_curve
+
+        ser = SizeCurveQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(build_size_curve(
+            request.tenant,
+            today=timezone.localdate(),
+            product_id=data.get("product"),
+            brand=(data.get("brand") or "").strip(),
+            category=data.get("category") or "",
+            gender=data.get("gender") or "",
+            weeks=data.get("weeks") or 8,
+        ))
+
+    @action(detail=False, methods=["get"], url_path="reorder-suggestions")
+    def reorder_suggestions(self, request):
+        """Suggested purchase quantities. Manager and owner only."""
+        from .serializers import ReorderQuerySerializer
+        from .services.reorder import build_reorder_suggestions
+
+        ser = ReorderQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(build_reorder_suggestions(
+            request.tenant,
+            today=timezone.localdate(),
+            supplier_id=data.get("supplier"),
+            brand=(data.get("brand") or "").strip(),
+            category=data.get("category") or "",
+        ))
+
+    @action(detail=False, methods=["post"], url_path="reorder-suggestions/create-po")
+    def reorder_create_po(self, request):
+        """Create one draft purchase order per supplier from the chosen lines."""
+        from .serializers import ReorderCreateSerializer
+        from .services.reorder import create_reorder_orders
+
+        ser = ReorderCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        return Response(
+            create_reorder_orders(request.tenant, request.user, ser.validated_data["lines"]),
+            status=201,
+        )
+
+    @action(detail=False, methods=["get"], url_path="seasonal-preview")
+    def seasonal_preview(self, request):
+        """Next Aïd and what the same stretch sold last time."""
+        from .services.seasonal import next_aid_preview
+
+        preview = next_aid_preview(request.tenant, today=timezone.localdate())
+        return Response(preview or {})
+
+    @action(detail=False, methods=["get"], url_path="seasonal")
+    def seasonal(self, request):
+        """Sales in the days before an Aïd or the rentrée, year by year."""
+        from .serializers import SeasonalQuerySerializer
+        from .services.seasonal import seasonal_comparison
+
+        ser = SeasonalQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(seasonal_comparison(
+            request.tenant,
+            kind=data["event"],
+            days_before=data.get("days_before") or 30,
+            today=timezone.localdate(),
+        ))
 
     @action(
         detail=False, methods=["get", "post"], url_path="templates",

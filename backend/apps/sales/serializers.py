@@ -725,6 +725,10 @@ class CreateSaleSerializer(serializers.Serializer):
                 held_qs = held_qs.filter(cashier=cashier)
             held_qs.delete()
 
+        from apps.notifications.services.owner_dispatch import after_commit, notify_discount_approved
+        created_id = sale.pk
+        after_commit(lambda: notify_discount_approved(created_id))
+
         return sale
 
     @staticmethod
@@ -1032,6 +1036,10 @@ class CreateReturnSerializer(serializers.Serializer):
         if all(returned.get(vid, 0) >= qty for vid, qty in sold.items()):
             sale.status = "refunded"
             sale.save(update_fields=["status"])
+
+        from apps.notifications.services.owner_dispatch import after_commit, notify_refund
+        return_id = return_obj.pk
+        after_commit(lambda: notify_refund(return_id))
 
         return return_obj
 

@@ -1,6 +1,7 @@
 import uuid
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from apps.core.models import TenantScopedModel
 
 SOURCE_CHOICES = [
@@ -29,3 +30,33 @@ class ReportTemplate(TenantScopedModel):
 
     def __str__(self):
         return f"{self.tenant.name} — {self.name}"
+
+
+class SeasonalEvent(TenantScopedModel):
+    """Aïd, rentrée, or a date the owner adds. Calculated dates stay editable."""
+
+    class Kind(models.TextChoices):
+        AID_EL_FITR = "aid_el_fitr", "Aïd el Fitr"
+        AID_EL_ADHA = "aid_el_adha", "Aïd el Adha"
+        RENTREE = "rentree", "Rentrée"
+        CUSTOM = "custom", "Personnalisé"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    date = models.DateField()
+    label = models.CharField(max_length=80)
+    is_estimated = models.BooleanField(default=True)
+    # Stable id for seeded rows, so editing the date does not create a duplicate.
+    seed_key = models.CharField(max_length=40, blank=True, default="")
+
+    class Meta:
+        ordering = ["date", "kind"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "seed_key"],
+                condition=~Q(seed_key=""),
+                name="reports_seasonal_seed_key_uniq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.label} {self.date}"

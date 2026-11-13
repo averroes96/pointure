@@ -32,7 +32,8 @@ class POLineSerializer(serializers.ModelSerializer):
         model = POLine
         fields = [
             "id", "variant", "variant_label", "description", "quantity_ordered",
-            "quantity_received", "cartons", "pairs_per_carton", "agreed_unit_price", "line_total",
+            "quantity_received", "cartons", "pairs_per_carton", "agreed_unit_price",
+            "landed_unit_cost", "line_total",
         ]
 
     def get_variant_label(self, obj) -> str | None:
@@ -75,6 +76,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         fields = [
             "id", "supplier", "supplier_name", "supplier_phone", "supplier_email",
             "status", "expected_date", "reference", "notes", "total_amount",
+            "currency", "exchange_rate",
             "created_by", "lines", "created_at",
         ]
         read_only_fields = ["id", "created_at", "created_by"]
@@ -251,6 +253,18 @@ class POImportLineItemSerializer(serializers.Serializer):
     product_id = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_name = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)
     variant_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+
+class LandedCostLineInputSerializer(serializers.Serializer):
+    label = serializers.CharField(max_length=80)
+    amount_dzd = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+
+
+class LandedCostWriteSerializer(serializers.Serializer):
+    currency = serializers.CharField(min_length=3, max_length=3)
+    exchange_rate = serializers.DecimalField(max_digits=12, decimal_places=4, min_value=Decimal("0.0001"))
+    allocation = serializers.ChoiceField(choices=["value", "pairs", "cartons"])
+    lines = LandedCostLineInputSerializer(many=True, allow_empty=False)
 
 
 class POImportConfirmRequestSerializer(serializers.Serializer):
