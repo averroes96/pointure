@@ -29,6 +29,7 @@ import {
   Store,
   Boxes,
   Layers,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import api, { getApiError, type PaginatedResponse } from "@/lib/api";
@@ -37,6 +38,7 @@ import { LegacyImportSection } from "./LegacyImportSection";
 import { TaxIdentitySection } from "./components/TaxIdentitySection";
 import DesktopTab from "./DesktopTab";
 import RemotePatronSection from "./components/RemotePatronSection";
+import SeasonalEventsSection from "./components/SeasonalEventsSection";
 import PrintersTab from "./PrintersTab";
 import type { User as UserType, Branch, StoreSettings, Tenant, BusinessMode } from "@/types";
 import { cn } from "@/lib/utils";
@@ -2094,7 +2096,8 @@ type TabKey =
   | "imprimantes"
   | "migration"
   | "desktop"
-  | "patron";
+  | "patron"
+  | "saisons";
 
 interface Tab {
   key: TabKey;
@@ -2123,6 +2126,7 @@ export default function SettingsPage() {
     { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner"] },
     { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner"] },
     { key: "patron", label: t("settings.tab_remote_owner"), icon: Send, roles: ["owner"] },
+    { key: "saisons", label: t("settings.tab_seasons"), icon: CalendarDays, roles: ["owner"] },
   ];
 
   // Fetch tenant data for boutique tab
@@ -2231,6 +2235,8 @@ export default function SettingsPage() {
             {activeTab === "desktop" && user?.role === "owner" && <DesktopTab />}
 
             {activeTab === "patron" && user?.role === "owner" && <RemotePatronSection />}
+
+            {activeTab === "saisons" && user?.role === "owner" && <SeasonalEventsSection />}
           </div>
         </div>
       </div>

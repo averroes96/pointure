@@ -51,3 +51,11 @@ Dans **Rapports → Réassort**, ou depuis **Stock bas** et **Courbe des pointur
 2. Si le modèle a un découpage par carton, la quantité est arrondie au carton entier pour cette couleur.
 3. Le fournisseur proposé est celui du dernier bon de commande du modèle. Corrigez les quantités, puis créez un **brouillon** de bon de commande par fournisseur.
 
+### F. Aïd et rentrée
+
+Le tableau de bord annonce le prochain Aïd et rappelle les paires et les pointures vendues sur la même période l'année précédente, avec un lien vers le réassort.
+
+Dans **Rapports → Aïd et rentrée**, comparez le chiffre et les pointures des 30 jours (ou 15, 45, 60) avant chaque occurrence.
+
+Dans **Paramètres → Saisons**, le propriétaire corrige la date. L'Aïd est calculé (1er Chawwal et 10 Dhou al-Hijja, 2020–2035) et reste estimé tant qu'il n'est pas modifié. La rentrée est proposée au 1er septembre.
+

@@ -33,6 +33,7 @@
     "stock_report": "Stock Report",
     "size_curve": "Size curve",
     "reorder": "Reorder",
+    "seasonal": "Aïd and term",
     "settings": "Settings",
     "reconciliation": "Cash Reconciliation",
     "promotions": "Promotions",
@@ -89,8 +90,36 @@
     "access_denied": "You don't have permission to access this page.",
     "no_email_account_title": "Account without email address"
   },
+  "seasonal": {
+    "title": "Aïd and the new school term",
+    "subtitle": "Sales in the days before each Aïd or the school term, compared with earlier years. Calculated dates stay estimated until you confirm them.",
+    "event": "Event",
+    "days_before": "Days before",
+    "days_n": "{{count}} days before",
+    "date": "Date",
+    "year": "Year",
+    "top_models": "Models",
+    "top_sizes": "Sizes",
+    "estimated": "Estimated date",
+    "settings_title": "Season dates",
+    "settings_help": "Aïd is calculated (1 Shawwal and 10 Dhu al-Hijjah) and the school term defaults to 1 September. Correct a date once it is known: it will no longer be marked estimated.",
+    "custom_label": "Label",
+    "add": "Add",
+    "delete": "Remove",
+    "kind": {
+      "aid_el_fitr": "Eid al-Fitr",
+      "aid_el_adha": "Eid al-Adha",
+      "rentree": "School term",
+      "custom": "Custom"
+    }
+  },
   "dashboard": {
     "today_revenue": "Today's Revenue",
+    "aid_countdown": "{{name}} in {{count}} days",
+    "aid_today": "{{name}} is today",
+    "aid_last_year": "Last time, over the {{days}} days before: {{count}} pairs. Best-selling sizes: {{sizes}}.",
+    "aid_compare": "Compare years",
+    "aid_reorder": "Prepare the reorder",
     "outstanding_debt": "Outstanding Debt",
     "low_stock": "Low Stock SKUs",
     "cheques_due": "Cheques Due",
@@ -1610,6 +1639,7 @@
     "tab_migration": "Migration",
     "tab_desktop": "Backups & Desktop App",
     "tab_remote_owner": "Remote owner",
+    "tab_seasons": "Seasons",
     "remote_owner": {
       "intro": "Receive read-only summaries on Telegram. The bot token stays on this computer and is not stored in the database.",
       "token_label": "Bot token",

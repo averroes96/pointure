@@ -20,6 +20,8 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         "size_curve": MANAGER_OR_OWNER,
         "reorder_suggestions": MANAGER_OR_OWNER,
         "reorder_create_po": MANAGER_OR_OWNER,
+        "seasonal": MANAGER_OR_OWNER,
+        "seasonal_preview": MANAGER_OR_OWNER,
         "stock_valuation": MANAGER_OR_OWNER,
         "stock": MANAGER_OR_OWNER,
         "stock_pdf": MANAGER_OR_OWNER,
@@ -896,6 +898,30 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             create_reorder_orders(request.tenant, request.user, ser.validated_data["lines"]),
             status=201,
         )
+
+    @action(detail=False, methods=["get"], url_path="seasonal-preview")
+    def seasonal_preview(self, request):
+        """Next Aïd and what the same stretch sold last time."""
+        from .services.seasonal import next_aid_preview
+
+        preview = next_aid_preview(request.tenant, today=timezone.localdate())
+        return Response(preview or {})
+
+    @action(detail=False, methods=["get"], url_path="seasonal")
+    def seasonal(self, request):
+        """Sales in the days before an Aïd or the rentrée, year by year."""
+        from .serializers import SeasonalQuerySerializer
+        from .services.seasonal import seasonal_comparison
+
+        ser = SeasonalQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(seasonal_comparison(
+            request.tenant,
+            kind=data["event"],
+            days_before=data.get("days_before") or 30,
+            today=timezone.localdate(),
+        ))
 
     @action(
         detail=False, methods=["get", "post"], url_path="templates",

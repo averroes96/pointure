@@ -51,3 +51,11 @@ In **Reports → Reorder**, or from **Low stock** and **Size curve**:
 2. If the model has a carton breakdown, the quantity is rounded up to a whole carton for that colour.
 3. The suggested supplier is the one on the model's latest purchase order. Edit the quantities, then create one **draft** purchase order per supplier.
 
+### F. Aïd and the school term
+
+The dashboard announces the next Aïd and recalls the pairs and sizes sold over the same stretch the previous time, with a link to reorder.
+
+In **Reports → Aïd and term**, compare revenue and sizes for the 30 days (or 15, 45, 60) before each occurrence.
+
+In **Settings → Seasons**, the owner corrects the date. Aïd is calculated (1 Shawwal and 10 Dhu al-Hijjah, 2020–2035) and stays estimated until it is edited. The school term defaults to 1 September.
+

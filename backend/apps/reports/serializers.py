@@ -28,6 +28,27 @@ class ReorderCreateSerializer(serializers.Serializer):
     lines = ReorderLineSerializer(many=True, allow_empty=False)
 
 
+class SeasonalQuerySerializer(serializers.Serializer):
+    event = serializers.ChoiceField(choices=[
+        "aid_el_fitr", "aid_el_adha", "rentree", "custom",
+    ])
+    days_before = serializers.IntegerField(required=False, min_value=1, max_value=90, default=30)
+
+
+class SeasonalEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import SeasonalEvent
+        model = SeasonalEvent
+        fields = ["id", "kind", "date", "label", "is_estimated", "seed_key"]
+        read_only_fields = ["id", "kind", "is_estimated", "seed_key"]
+
+    def validate_label(self, value):
+        label = (value or "").strip()
+        if not label:
+            raise serializers.ValidationError("Indiquez un libellé.")
+        return label
+
+
 class ReportTemplateSerializer(serializers.ModelSerializer):
     created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
 

@@ -111,6 +111,7 @@ function useNavSections(): NavSection[] {
         { to: "/reports/stock", labelKey: "nav.stock_report", icon: PieChart, managerOnly: true },
         { to: "/reports/size-curve", labelKey: "nav.size_curve", icon: Ruler, managerOnly: true },
         { to: "/reports/reorder", labelKey: "nav.reorder", icon: ClipboardList, managerOnly: true },
+        { to: "/reports/seasonal", labelKey: "nav.seasonal", icon: CalendarDays, managerOnly: true },
         { to: "/reports/builder", labelKey: "nav.report_builder", icon: BarChart2, managerOnly: true, minPlan: "enterprise" },
       ],
     },

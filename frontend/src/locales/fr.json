@@ -33,6 +33,7 @@
     "stock_report": "Rapport de Stock",
     "size_curve": "Courbe des pointures",
     "reorder": "Réassort",
+    "seasonal": "Aïd et rentrée",
     "settings": "Paramètres",
     "reconciliation": "Fermeture de caisse",
     "promotions": "Promotions",
@@ -89,8 +90,36 @@
     "access_denied": "Vous n'avez pas la permission d'accéder à cette page.",
     "no_email_account_title": "Compte sans adresse email"
   },
+  "seasonal": {
+    "title": "Aïd et rentrée",
+    "subtitle": "Ventes des jours qui précèdent chaque Aïd ou la rentrée, comparées aux années précédentes. Les dates calculées restent estimées tant que vous ne les confirmez pas.",
+    "event": "Événement",
+    "days_before": "Jours avant",
+    "days_n": "{{count}} jours avant",
+    "date": "Date",
+    "year": "Année",
+    "top_models": "Modèles",
+    "top_sizes": "Pointures",
+    "estimated": "Date estimée",
+    "settings_title": "Dates des saisons",
+    "settings_help": "L'Aïd est calculé (1er Chawwal et 10 Dhou al-Hijja) et la rentrée est fixée au 1er septembre. Corrigez la date quand elle est connue : elle ne sera plus marquée comme estimée.",
+    "custom_label": "Libellé",
+    "add": "Ajouter",
+    "delete": "Supprimer",
+    "kind": {
+      "aid_el_fitr": "Aïd el Fitr",
+      "aid_el_adha": "Aïd el Adha",
+      "rentree": "Rentrée",
+      "custom": "Personnalisé"
+    }
+  },
   "dashboard": {
     "today_revenue": "Chiffre du jour",
+    "aid_countdown": "{{name}} dans {{count}} jours",
+    "aid_today": "{{name}} est aujourd'hui",
+    "aid_last_year": "L'an dernier, sur les {{days}} jours d'avant : {{count}} paires. Pointures les plus vendues : {{sizes}}.",
+    "aid_compare": "Comparer les années",
+    "aid_reorder": "Préparer le réassort",
     "outstanding_debt": "Créances totales",
     "low_stock": "Articles en rupture",
     "cheques_due": "Chèques à encaisser",
@@ -1610,6 +1639,7 @@
     "tab_migration": "Migration",
     "tab_desktop": "Sauvegardes & Application",
     "tab_remote_owner": "Patron à distance",
+    "tab_seasons": "Saisons",
     "remote_owner": {
       "intro": "Recevez des résumés en lecture seule sur Telegram. Le jeton du bot reste sur cet ordinateur et n'est pas enregistré dans la base.",
       "token_label": "Jeton du bot",
