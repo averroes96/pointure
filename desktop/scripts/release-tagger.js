@@ -40,30 +40,69 @@ function parseSemVer(tag) {
   };
 }
 
+function compareSemVer(left, right) {
+  if (left.major !== right.major) return left.major - right.major;
+  if (left.minor !== right.minor) return left.minor - right.minor;
+  return left.patch - right.patch;
+}
+
 /**
- * Finds the latest valid semver tag in the repository.
+ * Highest stable semver in the list. Pre-release tags such as
+ * v1.9.0-beta.9 are ignored. Git's version sort would put those first,
+ * and git describe returns the closest tag, which can be older than a
+ * higher tag that already exists.
+ */
+function selectHighestSemver(tags) {
+  let bestTag = null;
+  let bestParsed = null;
+  for (const tag of tags) {
+    const parsed = parseSemVer(tag);
+    if (!parsed) continue;
+    if (!bestParsed || compareSemVer(parsed, bestParsed) > 0) {
+      bestTag = tag.trim();
+      bestParsed = parsed;
+    }
+  }
+  return bestTag;
+}
+
+/**
+ * Finds the highest stable semver tag reachable from HEAD.
+ * Falls back to the highest stable tag in the repo so a new release
+ * cannot reuse a version that was already published.
  */
 function getLatestSemverTag(exec = execCmd) {
-  // Try git describe first
+  let rawTags = '';
   try {
-    const described = exec("git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*'", { allowFailure: true });
-    if (described && parseSemVer(described)) {
-      return described;
-    }
+    rawTags = exec("git tag -l 'v*.*.*'", { allowFailure: true });
   } catch (_) {}
 
-  // Fallback: list all tags sorted by version descending
-  try {
-    const rawTags = exec("git tag -l 'v*.*.*' --sort=-v:refname", { allowFailure: true });
-    const tags = rawTags.split('\n').map(t => t.trim()).filter(Boolean);
-    for (const t of tags) {
-      if (parseSemVer(t)) {
-        return t;
-      }
-    }
-  } catch (_) {}
+  const stable = rawTags.split('\n').map(t => t.trim()).filter(t => parseSemVer(t));
+  if (stable.length === 0) return null;
 
-  return null;
+  const ancestors = stable.filter(tag => {
+    const marker = exec(
+      `git merge-base --is-ancestor "${tag}" HEAD && echo ancestor`,
+      { allowFailure: true },
+    );
+    return String(marker).includes('ancestor');
+  });
+
+  return selectHighestSemver(ancestors.length > 0 ? ancestors : stable);
+}
+
+/**
+ * Bumps once, then keeps moving the patch up while the tag name is taken.
+ */
+function resolveNextVersion(currentTag, bump, existingTags = []) {
+  const taken = new Set(existingTags);
+  let next = bumpVersion(currentTag, bump);
+  let guard = 0;
+  while (taken.has(next.tag) && guard < 50) {
+    next = bumpVersion(next.tag, 'patch');
+    guard += 1;
+  }
+  return next;
 }
 
 /**
@@ -364,7 +403,14 @@ function main() {
   }
 
   const bump = determineBump(commits);
-  const next = bumpVersion(previousTag, bump);
+  let existingTags = [];
+  try {
+    existingTags = execCmd("git tag -l 'v*.*.*'", { allowFailure: true })
+      .split('\n')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+  } catch (_) {}
+  const next = resolveNextVersion(previousTag, bump, existingTags);
 
   console.log(`[release-tagger] Evaluated bump level: ${bump.toUpperCase()}`);
   console.log(`[release-tagger] Next release version: ${next.version} (Tag: ${next.tag})`);
@@ -421,7 +467,9 @@ if (require.main === module) {
 
 module.exports = {
   parseSemVer,
+  selectHighestSemver,
   getLatestSemverTag,
+  resolveNextVersion,
   getCommitsSince,
   parseConventionalCommit,
   determineBump,
