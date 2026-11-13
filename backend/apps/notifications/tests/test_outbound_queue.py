@@ -1,12 +1,12 @@
 """Task 8.1: outbound queue backoff, retry, and Telegram escaping."""
-import inspect
+import threading
 from datetime import timedelta
 
 import pytest
 import requests
 from django.utils import timezone
 
-from apps.core.desktop import scheduler
+from apps.core.signals import AUDITED_MODELS
 from apps.core.models import Tenant
 from apps.notifications.channels.telegram import OutboundSendError, send_telegram_message
 from apps.notifications.models import (
@@ -15,7 +15,11 @@ from apps.notifications.models import (
     OutboundMessage,
     outbound_backoff,
 )
-from apps.notifications.services.outbound import deliver_message, dispatch_due_messages
+from apps.notifications.services.outbound import (
+    CLAIM_TIMEOUT,
+    deliver_message,
+    dispatch_due_messages,
+)
 
 
 def _message(tenant, **overrides):
@@ -46,13 +50,28 @@ def test_backoff_is_2_5_15_60_then_hourly():
     assert OUTBOUND_GIVE_UP_AFTER == timedelta(hours=48)
 
 
-def test_scheduler_sends_the_queue_every_two_minutes_outside_a_request():
-    source = inspect.getsource(scheduler._run_scheduler_loop)
-    assert "outbound_interval_sec = 2 * 60" in source
-    assert "dispatch_due_messages()" in source
-    assert "dispatch_due_messages" not in inspect.getsource(
-        __import__("apps.notifications.views", fromlist=["views"])
-    )
+def test_queue_flush_runs_delivery_on_a_background_thread(monkeypatch):
+    from apps.notifications.services import owner_dispatch
+
+    completed = threading.Event()
+    caller_thread = threading.get_ident()
+    worker_threads = []
+
+    def dispatch():
+        worker_threads.append(threading.get_ident())
+        completed.set()
+
+    monkeypatch.setattr(owner_dispatch, "_dispatch_outbound_now", dispatch)
+    owner_dispatch._flush_outbound_queue()
+
+    assert completed.wait(timeout=5)
+    assert len(worker_threads) == 1
+    assert worker_threads[0] != caller_thread
+
+
+@pytest.mark.django_db
+def test_outbound_messages_are_not_audited():
+    assert "OutboundMessage" not in AUDITED_MODELS
 
 
 @pytest.mark.django_db
@@ -113,6 +132,76 @@ def test_dispatch_waits_for_next_attempt_then_marks_sent():
     assert waiting.sent_at == now + timedelta(minutes=2)
     assert waiting.next_attempt_at is None
     assert sent_ids == [waiting.pk]
+
+
+@pytest.mark.django_db
+def test_dispatch_recovers_a_stale_sending_claim():
+    tenant = Tenant.objects.create(name="Stale Claim Store")
+    now = timezone.now()
+    message = _message(tenant)
+    stale_claim = now - CLAIM_TIMEOUT - timedelta(seconds=1)
+    OutboundMessage.objects.filter(pk=message.pk).update(
+        status=OutboundMessage.Status.SENDING,
+        claimed_at=stale_claim,
+    )
+    sent_ids = []
+
+    assert dispatch_due_messages(now=now, send=lambda row: sent_ids.append(row.pk)) == 1
+
+    message.refresh_from_db()
+    assert sent_ids == [message.pk]
+    assert message.status == OutboundMessage.Status.SENT
+    assert message.claimed_at is None
+    assert message.sent_at == now
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_dispatch_threads_only_send_a_message_once():
+    from django.db import close_old_connections
+
+    tenant = Tenant.objects.create(name="Concurrent Queue Store")
+    message = _message(tenant)
+    now = timezone.now()
+    sending = threading.Event()
+    release_sender = threading.Event()
+    sent_ids = []
+    first_result = []
+    second_result = []
+    errors = []
+
+    def send(row):
+        sent_ids.append(row.pk)
+        sending.set()
+        if not release_sender.wait(timeout=5):
+            raise RuntimeError("test sender timed out")
+
+    def run_dispatch(result):
+        close_old_connections()
+        try:
+            result.append(dispatch_due_messages(now=now, send=send))
+        except Exception as exc:  # propagate worker-thread failures to pytest
+            errors.append(exc)
+        finally:
+            close_old_connections()
+
+    first = threading.Thread(target=run_dispatch, args=(first_result,))
+    second = threading.Thread(target=run_dispatch, args=(second_result,))
+    first.start()
+    assert sending.wait(timeout=5)
+    second.start()
+    second.join(timeout=5)
+    release_sender.set()
+    first.join(timeout=5)
+
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert errors == []
+    assert first_result == [1]
+    assert second_result == [0]
+    assert sent_ids == [message.pk]
+    message.refresh_from_db()
+    assert message.status == OutboundMessage.Status.SENT
+    assert message.claimed_at is None
 
 
 @pytest.mark.django_db
