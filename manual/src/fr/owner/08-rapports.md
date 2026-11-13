@@ -37,3 +37,10 @@ Le rapport **État du stock** certifie la valeur marchande globale des marchandi
 - **Valeur marchande potentielle (au prix de vente détail) :** Chiffre d'affaires potentiel attendu en cas d'écoulement complet du stock.
 - **Marge potentielle en stock :** Différence entre la valeur de vente et la valeur d'achat du stock existant.
 
+### D. Courbe des pointures et tailles cassées
+
+Dans **Rapports → Courbe des pointures** :
+1. Choisissez la période (8 semaines par défaut), une marque, une catégorie ou un genre.
+2. Le graphique et le tableau montrent, pour chaque pointure : paires vendues nettes des retours, part des ventes, stock, quantités encore en commande, semaines de couverture et taux d'écoulement.
+3. La liste **Tailles cassées** signale un modèle qui a encore du stock, mais dont une pointure centrale est à zéro. Les pointures centrales sont celles qui font au moins 70 % des ventes du modèle sur 52 semaines. Sans historique, le calcul utilise la catégorie, puis le genre, puis des pointures habituelles. Le montant immobilisé est valorisé au PAMP.
+

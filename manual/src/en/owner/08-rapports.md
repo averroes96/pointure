@@ -37,3 +37,10 @@ The **Stock Valuation Report** certifies the capital investment tied up in store
 - **Potential Retail Value (at Selling Price):** Potential revenue if current inventory sells through completely.
 - **Potential Gross Profit:** Projected margin residing in current stock.
 
+### D. Size curve and broken size runs
+
+In **Reports → Size curve**:
+1. Choose the period (8 weeks by default), a brand, a category, or a gender.
+2. The chart and table show, for each size: pairs sold net of returns, sales share, stock, quantity still on order, weeks of cover, and sell-through.
+3. **Broken size runs** lists a model that still has stock while one of its core sizes is at zero. Core sizes are those that make up at least 70% of that model's sales over 52 weeks. With no history, the calculation uses the category, then the gender, then the usual sizes. Tied-up stock is valued at weighted average cost.
+

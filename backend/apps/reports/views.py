@@ -17,6 +17,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, RolePermission]
     role_permissions = {
         "profit_loss": MANAGER_OR_OWNER,
+        "size_curve": MANAGER_OR_OWNER,
         "stock_valuation": MANAGER_OR_OWNER,
         "stock": MANAGER_OR_OWNER,
         "stock_pdf": MANAGER_OR_OWNER,
@@ -844,6 +845,25 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         response = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = 'attachment; filename="rapport.csv"'
         return response
+
+    @action(detail=False, methods=["get"], url_path="size-curve")
+    def size_curve(self, request):
+        """Net sales, cover and broken size runs. Manager and owner only."""
+        from .serializers import SizeCurveQuerySerializer
+        from .services.size_curve import build_size_curve
+
+        ser = SizeCurveQuerySerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        return Response(build_size_curve(
+            request.tenant,
+            today=timezone.localdate(),
+            product_id=data.get("product"),
+            brand=(data.get("brand") or "").strip(),
+            category=data.get("category") or "",
+            gender=data.get("gender") or "",
+            weeks=data.get("weeks") or 8,
+        ))
 
     @action(
         detail=False, methods=["get", "post"], url_path="templates",

@@ -1,7 +1,16 @@
 from rest_framework import serializers
+from apps.inventory.models import CategoryChoices, GenderChoices
 from .models import ReportTemplate
 from .field_registry import FIELD_REGISTRY
 from .query_engine import MAX_COLUMNS
+
+
+class SizeCurveQuerySerializer(serializers.Serializer):
+    product = serializers.UUIDField(required=False)
+    brand = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    category = serializers.ChoiceField(choices=CategoryChoices.choices, required=False)
+    gender = serializers.ChoiceField(choices=GenderChoices.choices, required=False)
+    weeks = serializers.IntegerField(required=False, min_value=1, max_value=104, default=8)
 
 
 class ReportTemplateSerializer(serializers.ModelSerializer):
