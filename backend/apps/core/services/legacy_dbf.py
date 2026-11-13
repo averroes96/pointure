@@ -1263,7 +1263,7 @@ class LegacyDBFImporter:
                 
                 client = self.client_map.get(data["client"])
                 
-                invoice = Invoice.objects.create(
+                invoice = Invoice(
                     tenant=self.tenant,
                     branch=self.branch,
                     client=client,
@@ -1271,11 +1271,15 @@ class LegacyDBFImporter:
                     date=data["date"],
                     due_date=data["date"],
                     status=InvoiceStatusChoices.PAID,
+                    apply_tva=False,
                     total_ht=total_amount,
                     tva_amount=Decimal("0.00"),
                     total_ttc=total_amount,
                     is_formal=False,
                 )
+                # Historical turnover is already settled. Opening debt comes from MT_RESTE.
+                invoice._skip_client_ledger = True
+                invoice.save()
                 
                 for sid in invoice_lines_data:
                     desc_size = f" - Size {sid['variant'].size_eu}" if sid['variant'].size_eu > 0 else ""
@@ -1288,6 +1292,6 @@ class LegacyDBFImporter:
                     )
 
                 invoice.compute_totals()
-                invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc"])
+                invoice.save(update_fields=["total_ht", "tva_amount", "timbre_fiscal", "total_ttc"])
                     
                 self.stats["sales_imported"] += 1

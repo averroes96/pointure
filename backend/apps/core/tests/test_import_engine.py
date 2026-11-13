@@ -1040,7 +1040,7 @@ def test_legacy_supplier_import_filters_client_rows_by_purchase_references(tenan
 
 
 @pytest.mark.django_db
-def test_legacy_wholesale_invoice_recalculates_totals_and_client_ledger(tenant, branch, monkeypatch):
+def test_legacy_wholesale_invoice_does_not_add_tva_or_client_debt(tenant, branch, monkeypatch):
     import datetime
 
     from apps.clients.models import Client, ClientLedger
@@ -1086,14 +1086,15 @@ def test_legacy_wholesale_invoice_recalculates_totals_and_client_ledger(tenant, 
     importer._import_invoices()
 
     invoice = Invoice.objects.get(tenant=tenant, number="LEG-001")
+    assert invoice.apply_tva is False
     assert invoice.total_ht == Decimal("200.00")
-    assert invoice.tva_amount == Decimal("38.00")
-    assert invoice.total_ttc == Decimal("238.00")
-    assert list(
-        ClientLedger.objects.filter(client=client, reference_type="Invoice").values_list("amount", flat=True)
-    ) == [Decimal("238.00")]
+    assert invoice.tva_amount == Decimal("0.00")
+    assert invoice.timbre_fiscal == Decimal("0.00")
+    assert invoice.total_ttc == Decimal("200.00")
+    assert invoice.status == "paid"
+    assert ClientLedger.objects.filter(client=client, reference_type="Invoice").count() == 0
     client.refresh_from_db()
-    assert client.cached_balance == Decimal("238.00")
+    assert client.cached_balance == Decimal("0.00")
 
 
 @pytest.mark.django_db
