@@ -15,6 +15,7 @@ import {
   HardDrive,
   Monitor,
   Printer,
+  Send,
   CheckCircle2,
   AlertCircle,
   Plus,
@@ -35,6 +36,7 @@ import DeliverySettingsTab from "@/features/deliveries/DeliverySettingsPage";
 import { LegacyImportSection } from "./LegacyImportSection";
 import { TaxIdentitySection } from "./components/TaxIdentitySection";
 import DesktopTab from "./DesktopTab";
+import RemotePatronSection from "./components/RemotePatronSection";
 import PrintersTab from "./PrintersTab";
 import type { User as UserType, Branch, StoreSettings, Tenant, BusinessMode } from "@/types";
 import { cn } from "@/lib/utils";
@@ -2091,7 +2093,8 @@ type TabKey =
   | "deliveries"
   | "imprimantes"
   | "migration"
-  | "desktop";
+  | "desktop"
+  | "patron";
 
 interface Tab {
   key: TabKey;
@@ -2119,6 +2122,7 @@ export default function SettingsPage() {
     { key: "imprimantes", label: t("settings.tab_printers", "Imprimantes"), icon: Printer, roles: ["owner", "manager"] },
     { key: "migration", label: t("settings.tab_migration"), icon: Database, roles: ["owner"] },
     { key: "desktop", label: t("settings.tab_desktop", "Sauvegardes & Application"), icon: HardDrive, roles: ["owner"] },
+    { key: "patron", label: t("settings.tab_remote_owner"), icon: Send, roles: ["owner"] },
   ];
 
   // Fetch tenant data for boutique tab
@@ -2225,6 +2229,8 @@ export default function SettingsPage() {
             {activeTab === "migration" && user?.role === "owner" && <LegacyImportSection />}
 
             {activeTab === "desktop" && user?.role === "owner" && <DesktopTab />}
+
+            {activeTab === "patron" && user?.role === "owner" && <RemotePatronSection />}
           </div>
         </div>
       </div>

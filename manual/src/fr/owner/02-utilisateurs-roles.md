@@ -37,6 +37,7 @@ ShoeDZ applique une hiérarchie stricte des privilèges :
 | **Gestion des utilisateurs & Rôles** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
 | **Clôture annuelle & Journal d'audit** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
 | **Restauration & Sauvegarde externe chiffrée** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
+| **Patron à distance (Telegram)** | ✓ | ✗ (bloqué) | ✗ (bloqué) |
 
 ---
 
