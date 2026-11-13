@@ -99,6 +99,44 @@ if (-not (Test-Path $PythonArchMarker)) {
     New-Item -ItemType File -Path $PythonArchMarker | Out-Null
 }
 
+# rapidocr-onnxruntime declares opencv-python, so pip installs both OpenCV
+# distributions even though requirements-desktop.txt explicitly requests the
+# headless build. Remove the GUI distribution and restore headless files because
+# both wheels write into the same cv2 package directory. Run this outside the
+# architecture-marker block so reused local Python bundles are repaired too.
+$OpenCvHeadlessVersion = "5.0.0.93"
+& "$PythonDist\python.exe" -c "from importlib.metadata import version; version('opencv-python')" 2>$null
+$HasOpenCvGui = $LASTEXITCODE -eq 0
+if ($HasOpenCvGui) {
+    Write-Host "Removing RapidOCR's GUI OpenCV dependency and restoring the headless wheel..." -ForegroundColor Cyan
+    & "$PythonDist\python.exe" -m pip uninstall -y opencv-python
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to remove the GUI OpenCV distribution ($Arch)!"
+    }
+
+    & "$PythonDist\python.exe" -m pip install --no-deps --force-reinstall "opencv-python-headless==$OpenCvHeadlessVersion"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to reinstall headless OpenCV ($Arch)!"
+    }
+}
+
+$OpenCvSmokeTest = @"
+import cv2
+from importlib.metadata import PackageNotFoundError, distribution
+assert distribution('opencv-python-headless').version == '$OpenCvHeadlessVersion'
+try:
+    distribution('opencv-python')
+except PackageNotFoundError:
+    pass
+else:
+    raise SystemExit('GUI opencv-python is still installed')
+print('Headless OpenCV smoke test passed')
+"@
+& "$PythonDist\python.exe" -c $OpenCvSmokeTest
+if ($LASTEXITCODE -ne 0) {
+    throw "Headless OpenCV verification failed ($Arch)!"
+}
+
 # Copy shodz_desktop package into Python dist
 $DestShodz = "$PythonDist\shodz_desktop"
 if (Test-Path $DestShodz) { Remove-Item $DestShodz -Recurse -Force }
