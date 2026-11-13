@@ -1,13 +1,16 @@
 """
 AuditLog signals — automatically record create/update/delete on financial models.
 """
-import datetime
-import decimal
+import json
+import logging
 import threading
-import uuid
 
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
+
+logger = logging.getLogger(__name__)
 
 # Track previous state for diff calculation
 _pre_save_state = threading.local()
@@ -60,22 +63,35 @@ def _get_tenant_from_instance(instance):
     return tenant
 
 
+class _AuditJSONEncoder(DjangoJSONEncoder):
+    """Django's encoder, then str() for anything JSON still cannot store."""
+
+    def default(self, o):
+        try:
+            return super().default(o)
+        except TypeError:
+            return str(o)
+
+
 def _json_safe(value):
-    """Convert a value to a JSON-serializable type."""
+    """Walk containers so files, sets and bytes reach the encoder as plain values."""
     from django.db.models.fields.files import FieldFile
     if isinstance(value, FieldFile):
         return value.name  # relative path string, or None
-    if isinstance(value, decimal.Decimal):
-        return str(value)
-    if isinstance(value, datetime.time):
-        return value.isoformat()
-    if isinstance(value, (datetime.date, datetime.datetime)):
-        return value.isoformat()
-    if isinstance(value, uuid.UUID):
-        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, set):
+        return [_json_safe(item) for item in value]
     if isinstance(value, (list, tuple)):
-        return [_json_safe(v) for v in value]
+        return [_json_safe(item) for item in value]
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", errors="replace")
     return value
+
+
+def _freeze_for_json(value):
+    """Return a structure json.dumps can store, including time, Decimal and JSON."""
+    return json.loads(json.dumps(_json_safe(value), cls=_AuditJSONEncoder))
 
 
 def _model_to_dict(instance):
@@ -119,15 +135,24 @@ def _write_audit(instance, action, diff=None):
                 "name": (getattr(authorizer, "get_full_name", lambda: "")() or getattr(authorizer, "email", str(authorizer))),
             }
 
-    AuditLog.objects.create(
-        tenant_id=tenant_id,
-        user_id=user_id,
-        action=action,
-        model_name=instance.__class__.__name__,
-        object_id=str(instance.pk),
-        object_repr=str(instance)[:300],
-        diff=diff,
-    )
+    try:
+        diff = _freeze_for_json(diff)
+        with transaction.atomic():
+            AuditLog.objects.create(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action=action,
+                model_name=instance.__class__.__name__,
+                object_id=str(instance.pk),
+                object_repr=str(instance)[:300],
+                diff=diff,
+            )
+    except Exception:
+        logger.exception(
+            "Audit log write failed for %s %s",
+            instance.__class__.__name__,
+            getattr(instance, "pk", None),
+        )
 
 
 # ── Signal receivers ──────────────────────────────────────────────────────────
@@ -182,8 +207,8 @@ def audit_post_save(sender, instance, created, **kwargs):
         before = getattr(_pre_save_state, "state", None) or {}
         diff = {
             field: {
-                "from": _json_safe(before.get(field)),
-                "to": _json_safe(after.get(field)),
+                "from": _freeze_for_json(_json_safe(before.get(field))),
+                "to": _freeze_for_json(_json_safe(after.get(field))),
             }
             for field in after
             if before.get(field) != after.get(field)
@@ -202,7 +227,7 @@ def audit_post_delete(sender, instance, **kwargs):
     before = _model_to_dict(instance)
     diff = {
         field: {
-            "from": _json_safe(before.get(field)),
+            "from": _freeze_for_json(_json_safe(before.get(field))),
             "to": None,
         }
         for field in before
@@ -210,10 +235,8 @@ def audit_post_delete(sender, instance, **kwargs):
     
     _write_audit(instance, "delete", diff)
 
-import json
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.core.serializers.json import DjangoJSONEncoder
 from django.forms.models import model_to_dict
 
 from .models import TenantScopedModel, SyncOutbox, AuditLog
@@ -241,25 +264,27 @@ def sync_outbox_post_save(sender, instance, created, **kwargs):
         
     action = AuditLog.ActionChoices.CREATE if created else AuditLog.ActionChoices.UPDATE
     payload = serialize_model(instance)
-    
-    # We must handle UUIDs in JSON
-    # It's better to just stringify the payload or rely on a robust serializer
-    try:
-        payload_json = json.loads(json.dumps(payload, cls=DjangoJSONEncoder))
-    except TypeError:
-        payload_json = {}
 
     tenant_id = getattr(instance, "tenant_id", None) or getattr(getattr(instance, "tenant", None), "pk", None)
     if not tenant_id:
         return
 
-    SyncOutbox.objects.create(
-        tenant_id=tenant_id,
-        model_name=sender.__name__,
-        object_id=str(instance.pk),
-        action=action,
-        payload=payload_json
-    )
+    try:
+        payload_json = _freeze_for_json(payload)
+        with transaction.atomic():
+            SyncOutbox.objects.create(
+                tenant_id=tenant_id,
+                model_name=sender.__name__,
+                object_id=str(instance.pk),
+                action=action,
+                payload=payload_json,
+            )
+    except Exception:
+        logger.exception(
+            "Sync outbox write failed for %s %s",
+            sender.__name__,
+            getattr(instance, "pk", None),
+        )
 
 @receiver(post_delete)
 def sync_outbox_post_delete(sender, instance, **kwargs):
@@ -275,10 +300,18 @@ def sync_outbox_post_delete(sender, instance, **kwargs):
     if not tenant_id:
         return
 
-    SyncOutbox.objects.create(
-        tenant_id=tenant_id,
-        model_name=sender.__name__,
-        object_id=str(instance.pk),
-        action=AuditLog.ActionChoices.DELETE,
-        payload={"id": str(instance.pk)}
-    )
+    try:
+        with transaction.atomic():
+            SyncOutbox.objects.create(
+                tenant_id=tenant_id,
+                model_name=sender.__name__,
+                object_id=str(instance.pk),
+                action=AuditLog.ActionChoices.DELETE,
+                payload={"id": str(instance.pk)},
+            )
+    except Exception:
+        logger.exception(
+            "Sync outbox delete failed for %s %s",
+            sender.__name__,
+            getattr(instance, "pk", None),
+        )

@@ -174,6 +174,82 @@ def test_additional_models_audit_logging(setup):
     assert AuditLog.objects.filter(tenant=tenant, model_name="StockTransfer", object_id=str(transfer.pk)).exists()
 
 
+def test_store_settings_update_records_time_and_decimal(setup):
+    tenant, _owner, _client = setup
+    settings = StoreSettings.objects.create(
+        tenant=tenant,
+        telegram_digest_time=datetime.time(21, 0),
+        alert_cash_gap_amount=Decimal("1000.00"),
+    )
+    settings.telegram_digest_time = datetime.time(22, 15)
+    settings.alert_cash_gap_amount = Decimal("2500.50")
+    settings.save()
+
+    log = AuditLog.objects.filter(
+        tenant=tenant, model_name="StoreSettings", object_id=str(settings.pk), action="update"
+    ).latest("timestamp")
+    assert log.diff["telegram_digest_time"]["from"] == "21:00:00"
+    assert log.diff["telegram_digest_time"]["to"] == "22:15:00"
+    assert log.diff["alert_cash_gap_amount"]["from"] == "1000.00"
+    assert log.diff["alert_cash_gap_amount"]["to"] == "2500.50"
+
+
+def test_product_audit_keeps_json_breakdown_and_decimal_price(setup):
+    from apps.inventory.models import CategoryChoices, Product
+
+    tenant, _owner, _client = setup
+    product = Product.objects.create(
+        tenant=tenant,
+        name="Carton audit",
+        category=CategoryChoices.SNEAKERS,
+        purchase_price=Decimal("1500.00"),
+        carton_breakdown={"42": 6, "43": 6},
+    )
+    product.purchase_price = Decimal("1800.50")
+    product.carton_breakdown = {"42": 4, "43": 8}
+    product.save()
+
+    log = AuditLog.objects.filter(
+        tenant=tenant, model_name="Product", object_id=str(product.pk), action="update"
+    ).latest("timestamp")
+    assert log.diff["purchase_price"]["from"] == "1500.00"
+    assert log.diff["purchase_price"]["to"] == "1800.50"
+    assert log.diff["carton_breakdown"]["to"] == {"42": 4, "43": 8}
+
+
+def test_audit_payload_serializes_nested_time_decimal_and_odd_types():
+    from apps.core.signals import _freeze_for_json
+
+    frozen = _freeze_for_json({
+        "when": datetime.time(21, 30),
+        "amount": Decimal("10.50"),
+        "meta": {"wait": datetime.timedelta(minutes=90)},
+        "tags": {"beta", "stable"},
+        "blob": b"ok",
+    })
+    assert frozen["when"] == "21:30:00"
+    assert frozen["amount"] == "10.50"
+    assert frozen["meta"]["wait"] == "P0DT01H30M00S"
+    assert sorted(frozen["tags"]) == ["beta", "stable"]
+    assert frozen["blob"] == "ok"
+
+
+def test_audit_and_outbox_failures_do_not_abort_the_save(setup, monkeypatch):
+    from apps.core.models import SyncOutbox
+
+    tenant, _owner, client_obj = setup
+
+    def boom(*args, **kwargs):
+        raise TypeError("audit storage failed")
+
+    monkeypatch.setattr(AuditLog.objects, "create", boom)
+    monkeypatch.setattr(SyncOutbox.objects, "create", boom)
+    client_obj.name = "Still saved"
+    client_obj.save()
+    client_obj.refresh_from_db()
+    assert client_obj.name == "Still saved"
+
+
 def test_signals_skip_historical_models_during_migrations(setup):
     """
     Ensure saving historical models (created by Django migrations under '__fake__')
