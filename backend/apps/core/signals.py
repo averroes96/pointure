@@ -67,6 +67,8 @@ def _json_safe(value):
         return value.name  # relative path string, or None
     if isinstance(value, decimal.Decimal):
         return str(value)
+    if isinstance(value, datetime.time):
+        return value.isoformat()
     if isinstance(value, (datetime.date, datetime.datetime)):
         return value.isoformat()
     if isinstance(value, uuid.UUID):
