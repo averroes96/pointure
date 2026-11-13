@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, Trash2, Unlink } from "lucide-react";
+import { Check, Copy, Loader2, Send, Trash2, Unlink } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 
 interface TelegramChat {
@@ -31,6 +31,7 @@ export default function RemotePatronSection() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [polling, setPolling] = useState(false);
+  const [copied, setCopied] = useState(false);
   const dismissedCode = useRef<string | null>(null);
 
   const statusQuery = useQuery({
@@ -186,14 +187,30 @@ export default function RemotePatronSection() {
         {pending && (
           <div className="rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-3">
             <p className="text-sm text-slate-600 dark:text-slate-400">{t("settings.remote_owner.code_help")}</p>
-            <p className="mt-2 font-mono text-3xl tracking-[0.3em] text-slate-900 dark:text-slate-100">{pending.code}</p>
+            <p className="mt-2 font-mono text-lg text-slate-900 dark:text-slate-100 select-all">
+              /start {pending.code}
+            </p>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
               {polling && <Loader2 size={14} className="animate-spin" />}
               {t("settings.remote_owner.waiting")}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-secondary mt-3"
+              className="btn-secondary"
+              onClick={() => {
+                void navigator.clipboard.writeText(`/start ${pending.code}`).then(() => {
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 2000);
+                });
+              }}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? t("settings.remote_owner.copied") : t("settings.remote_owner.copy")}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={() => {
                 dismissedCode.current = pending.code;
                 setPolling(false);
@@ -202,6 +219,7 @@ export default function RemotePatronSection() {
               <Unlink size={14} />
               {t("settings.remote_owner.cancel")}
             </button>
+            </div>
           </div>
         )}
         {status?.chats.length === 0 && !pending && (

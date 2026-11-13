@@ -40,7 +40,7 @@ Pour restaurer votre base de données (sur le poste actuel ou après installatio
 2. Cliquez sur **Restaurer cette sauvegarde** en face d'une archive locale, ou sur **Restaurer un fichier...** pour sélectionner un fichier `.sqlite3` ou `.shodzbak` depuis votre clé USB.
 3. Si le fichier est chiffré (`.shodzbak`), saisissez votre **Phrase de passe de restauration**.
 4. Tapez le mot de confirmation demandé (`RESTAURER`), puis cliquez sur **Restaurer et Redémarrer** : une sauvegarde automatique pré-restauration (`pre_restore_*.sqlite3`) est créée, puis l'application redémarre automatiquement avec vos données restaurées.
-
+'
 ---
 
 ### D. Patron à distance (Telegram)
