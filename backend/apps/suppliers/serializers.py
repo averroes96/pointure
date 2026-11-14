@@ -241,7 +241,9 @@ class POImportLineItemSerializer(serializers.Serializer):
     reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     description = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
     size = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
-    size_eu = serializers.IntegerField(min_value=0, max_value=60, required=False, default=0)
+    size_eu = serializers.IntegerField(
+        min_value=0, max_value=60, allow_null=True, required=False, default=0,
+    )
     colour = serializers.CharField(max_length=50, required=False, allow_blank=True, default="Standard")
     brand = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     location = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
@@ -249,6 +251,9 @@ class POImportLineItemSerializer(serializers.Serializer):
     cartons = serializers.IntegerField(min_value=0, required=False, default=0)
     pairs_per_carton = serializers.IntegerField(min_value=1, required=False, default=10)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"), default=Decimal("0.00"))
+    qty_warning = serializers.BooleanField(required=False, default=False)
+    size_warning = serializers.BooleanField(required=False, default=False)
+    price_warning = serializers.BooleanField(required=False, default=False)
     match_status = serializers.CharField(required=False, default="new_product")
     product_id = serializers.UUIDField(required=False, allow_null=True, default=None)
     product_name = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)

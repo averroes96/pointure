@@ -50,7 +50,12 @@ DEPLOYMENT_MODE = "local"
 # Security
 # ─────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="shodz-desktop-local-production-secret-key-change-me")
-DEBUG = config("DEBUG", default=False, cast=bool)
+def _cast_debug_flag(val):
+    if isinstance(val, bool):
+        return val
+    return str(val).strip().lower() in ("1", "true", "yes", "on", "t", "y", "debug")
+
+DEBUG = config("DEBUG", default=False, cast=_cast_debug_flag)
 
 # Strictly local loopback only (Single-PC v1)
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]

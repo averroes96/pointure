@@ -84,6 +84,7 @@ ShoeDZ intègre un module d'importation intelligent pour convertir directement l
    - **Mode Grille matricielle :** Détecte les colonnes de pointures (`36` à `46`) et transpose le tableau en lignes d'articles par taille.
 4. **Rapprochement catalogue et validation :**
    - Le tableau d'aperçu affiche le total des colis, paires et montants estimés, ainsi que l'état de rapprochement (produits existants, variantes à ajouter, nouveaux articles).
+   - Les quantités, pointures et prix illisibles sont signalés sur chaque ligne. Corrigez le fichier source et importez-le à nouveau : la création est bloquée tant qu'un avertissement subsiste.
    - L'option de création automatique génère instantanément les fiches produits et déclinaisons en catalogue.
    - Vous pouvez cocher **Enregistrer comme modèle d'import** pour mémoriser le format de ce fournisseur et accélérer les réapprovisionnements futurs.
 5. Vérifiez les lignes et totaux de l'aperçu. Si le mapping est incorrect, revenez à l'étape des colonnes pour le modifier, puis cliquez sur **Créer le bon de commande**. Le bon importé est créé en brouillon : vérifiez-le puis confirmez-le dans le circuit habituel des commandes.

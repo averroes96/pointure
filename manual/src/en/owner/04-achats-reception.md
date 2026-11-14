@@ -84,6 +84,7 @@ ShoeDZ provides an intelligent import engine to directly convert procurement spr
    - **Matrix Grid Mode:** Detects size column headers (`36` through `46`) and transposes them into individual order line items.
 4. **Catalog Reconciliation & Confirmation:**
    - The preview table summarizes total cartons, total pairs, and estimated total cost, flagging matched products, missing size variants, and new models.
+   - Unreadable quantities, sizes, and prices are flagged on each line. Correct the source file and upload it again; creation is blocked until all warnings are cleared.
    - The auto-create option instantly registers missing products and size variants into your store catalog.
    - Check **Save as template** to store this supplier's format for streamlined one-click imports in the future.
 5. Review the preview lines and totals. If the mapping is wrong, go back to the column mapping step to adjust it, then click **Create Purchase Order**. The imported order is created as a draft; review and confirm it through the normal purchase order workflow.
