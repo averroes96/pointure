@@ -531,19 +531,28 @@ class DeliveryNoteViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         from apps.clients.models import Client
         client = Client.objects.get(pk=data["client_id"], tenant=request.tenant)
-        
-        bls = DeliveryNote.objects.filter(
-            tenant=request.tenant, 
-            pk__in=data["delivery_note_ids"],
-            client=client,
-            invoice__isnull=True
-        ).prefetch_related("lines")
-        
-        if len(bls) != len(data["delivery_note_ids"]):
-            from rest_framework.response import Response
-            return Response({"error": "Some Delivery Notes were not found, don't belong to this client, or are already invoiced."}, status=400)
 
         with transaction.atomic():
+            bls = list(
+                DeliveryNote.objects.select_for_update().filter(
+                    tenant=request.tenant,
+                    pk__in=data["delivery_note_ids"],
+                    client=client,
+                    invoice__isnull=True,
+                ).prefetch_related("lines")
+            )
+            if len(bls) != len(data["delivery_note_ids"]):
+                from rest_framework.response import Response
+                return Response(
+                    {
+                        "error": (
+                            "Some Delivery Notes were not found, don't belong to this client, "
+                            "or are already invoiced."
+                        )
+                    },
+                    status=400,
+                )
+
             branch = None
             if data.get("branch_id"):
                 from apps.core.models import Branch

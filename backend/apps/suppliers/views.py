@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -876,6 +876,12 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         lines = data["lines"]
         if not lines:
             return Response({"detail": "Aucune ligne à importer."}, status=status.HTTP_400_BAD_REQUEST)
+        warning_fields = ("qty_warning", "size_warning", "price_warning")
+        if any(any(line.get(field) for field in warning_fields) for line in lines):
+            raise DRFValidationError(
+                _("Corrigez les quantités, pointures et prix signalés avant de confirmer l'import."),
+                code="import_warnings",
+            )
 
         fingerprint_data = json.dumps(
             {

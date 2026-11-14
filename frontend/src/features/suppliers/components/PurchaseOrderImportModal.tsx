@@ -87,6 +87,11 @@ export function PurchaseOrderImportModal({
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasImportWarnings = Boolean(
+    previewData?.preview_lines.some(
+      (line) => line.qty_warning || line.size_warning || line.price_warning
+    )
+  );
 
   // Load suppliers if not preselected
   useEffect(() => {
@@ -679,6 +684,26 @@ export function PurchaseOrderImportModal({
           {/* STEP 3: PREVIEW & RECONCILIATION */}
           {step === "preview" && previewData && (
             <div className="space-y-6">
+              {hasImportWarnings && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                >
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">
+                      {t("po_import.import_warnings_title", "Des valeurs doivent être corrigées")}
+                    </p>
+                    <p className="mt-1 text-sm">
+                      {t(
+                        "po_import.import_warnings_description",
+                        "Corrigez les quantités, pointures ou prix signalés dans le fichier source, puis chargez-le à nouveau. L'import reste bloqué tant qu'un avertissement subsiste."
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Summary Stats Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="card p-3 bg-surface/60 border border-border">
@@ -744,18 +769,37 @@ export function PurchaseOrderImportModal({
                   </thead>
                   <tbody>
                     {previewData.preview_lines.map((line, idx) => {
-                      const totalLine = (line.quantity * parseFloat(line.unit_price || "0")).toFixed(2);
+                      const totalLine = ((line.quantity ?? 0) * parseFloat(line.unit_price || "0")).toFixed(2);
                       return (
                         <tr key={idx}>
                           <td className="font-mono font-medium">{line.reference || "—"}</td>
                           <td className="truncate max-w-xs">{line.description}</td>
                           <td className="text-center font-mono font-medium">
-                            {line.size_eu > 0 ? line.size_eu : "—"}
+                            {line.size_eu && line.size_eu > 0 ? line.size_eu : line.size_warning ? line.size_raw || "—" : "—"}
+                            {line.size_warning && (
+                              <span className="mt-1 block text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                {t("po_import.warning_invalid_size", "Pointure illisible")}
+                              </span>
+                            )}
                           </td>
                           <td>{line.colour}</td>
-                          <td className="text-end font-mono font-bold">{line.quantity}</td>
+                          <td className="text-end font-mono font-bold">
+                            {line.quantity ?? "—"}
+                            {line.qty_warning && (
+                              <span className="mt-1 block text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                {t("po_import.warning_invalid_quantity", "Quantité illisible")}: {line.quantity_raw}
+                              </span>
+                            )}
+                          </td>
                           <td className="text-end font-mono text-text-muted">{line.cartons || "—"}</td>
-                          <td className="text-end font-mono">{formatDZD(line.unit_price)}</td>
+                          <td className="text-end font-mono">
+                            {formatDZD(line.unit_price)}
+                            {line.price_warning && (
+                              <span className="mt-1 block text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                {t("po_import.warning_invalid_price", "Prix illisible")}: {line.unit_price_raw}
+                              </span>
+                            )}
+                          </td>
                           <td className="text-end font-mono font-semibold">{formatDZD(totalLine)}</td>
                           <td>
                             {line.match_status === "matched" && (
@@ -914,7 +958,7 @@ export function PurchaseOrderImportModal({
             {step === "preview" && (
               <button
                 type="button"
-                disabled={confirmMutation.isPending}
+                disabled={confirmMutation.isPending || hasImportWarnings}
                 onClick={() => confirmMutation.mutate()}
                 className="btn-primary btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
               >

@@ -83,6 +83,10 @@ class TestOrderImporter:
         assert parse_decimal_value("2.450") == Decimal("2450.00")
         assert parse_decimal_value("1,250") == Decimal("1250.00")
         assert parse_decimal_value("12.500") == Decimal("12500.00")
+        assert parse_decimal_value("1200 dinars") == Decimal("1200.00")
+        assert parse_decimal_value("1.200 د.ج") == Decimal("1200.00")
+        assert parse_decimal_value("0,500") == Decimal("0.50")
+        assert parse_decimal_value("0.500") == Decimal("0.50")
 
         # Arabic text with currency
         assert parse_decimal_value("4500 دج") == Decimal("4500.00")
@@ -102,11 +106,11 @@ class TestOrderImporter:
         assert parse_integer_value(12.0) == 12
 
         # Non-integral decimal should not concatenate digits
-        assert parse_integer_value("38.5", default=0) == 0
+        assert parse_integer_value("38.5") is None
 
         # Ranges should not concatenate into one large integer
-        assert parse_integer_value("37 à 41", default=0) == 0
-        assert parse_integer_value("37-41", default=0) == 0
+        assert parse_integer_value("37 à 41") is None
+        assert parse_integer_value("37-41") is None
 
         # parse_pointure_range should support 'à', 'a', 'au'
         assert parse_pointure_range("37 à 41", []) == [37, 38, 39, 40, 41]
@@ -149,13 +153,57 @@ class TestOrderImporter:
         assert summary["total_pairs"] == 8
         assert summary["total_estimated_amount"] == Decimal("12500.00")
 
+    def test_invalid_quantity_size_and_price_are_preserved_as_warnings(self):
+        headers = ["Référence", "Pointure", "Quantité", "Prix Achat"]
+        data_rows = [
+            ["REF-BAD-1", "38.5", "2.5", "SUR DEMANDE"],
+            ["REF-BAD-2", "37 à 41", "3", "1200 dinars"],
+        ]
+        column_map = {
+            "Référence": "reference",
+            "Pointure": "size",
+            "Quantité": "quantity",
+            "Prix Achat": "unit_price",
+        }
+
+        expanded = expand_imported_order_lines(
+            headers=headers,
+            data_rows=data_rows,
+            column_map=column_map,
+            size_mode="single",
+            tenant=self.tenant,
+        )
+
+        assert len(expanded) == 2
+        assert expanded[0]["quantity"] is None
+        assert expanded[0]["quantity_raw"] == "2.5"
+        assert expanded[0]["qty_warning"] is True
+        assert expanded[0]["size_eu"] is None
+        assert expanded[0]["size_raw"] == "38.5"
+        assert expanded[0]["size_warning"] is True
+        assert expanded[0]["unit_price"] == Decimal("0.00")
+        assert expanded[0]["unit_price_raw"] == "SUR DEMANDE"
+        assert expanded[0]["price_warning"] is True
+        assert expanded[1]["quantity"] == 3
+        assert expanded[1]["qty_warning"] is False
+        assert expanded[1]["size_eu"] is None
+        assert expanded[1]["size_warning"] is True
+        assert expanded[1]["unit_price"] == Decimal("1200.00")
+        assert expanded[1]["price_warning"] is False
+
+        matched, summary = reconcile_with_catalog(expanded, tenant=self.tenant)
+        assert len(matched) == 2
+        assert summary["qty_warnings_count"] == 1
+        assert summary["size_warnings_count"] == 2
+        assert summary["price_warnings_count"] == 1
+
     # ── 2. Arabic CP1256 CSV Import ───────────────────────────────────────────
 
     def test_arabic_cp1256_csv_import(self):
         # CSV encoded in Windows CP1256 with Arabic headers
         csv_text = (
             "المرجع;التعيين;المقاس;الكمية;سعر الشراء;اللون\n"
-            "MOD-ARB-1;حذاء جلد كلاسيك;42;10;3 500,00 دج;بني\n"
+            "MOD-ARB-1;حذاءNike جلد كلاسيك;42;10;3 500,00 دج;بني\n"
             "MOD-ARB-2;حذاء رياضي;40;15;2800.00;أسود\n"
         )
         raw_bytes = csv_text.encode("cp1256")
@@ -189,6 +237,7 @@ class TestOrderImporter:
         )
         assert len(lines) == 2
         assert lines[0]["reference"] == "MOD-ARB-1"
+        assert lines[0]["description"] == "حذاءNike جلد كلاسيك"
         assert lines[0]["size_eu"] == 42
         assert lines[0]["quantity"] == 10
         assert lines[0]["unit_price"] == Decimal("3500.00")
@@ -468,6 +517,39 @@ class TestOrderImporter:
         assert po.lines.count() == 2
         assert Product.objects.filter(tenant=self.tenant, reference="PROD-NEW-01").exists()
         assert SupplierImportTemplate.objects.filter(tenant=self.tenant, name="Modèle Standard Nouveau").exists()
+
+    @pytest.mark.parametrize("warning_field", ["qty_warning", "size_warning", "price_warning"])
+    def test_api_import_confirm_rejects_preview_warning(self, warning_field):
+        self.client.force_authenticate(user=self.owner)
+        line = {
+            "reference": "WARNING-PRODUCT",
+            "description": "Basket avec valeur invalide",
+            "size_eu": None if warning_field == "size_warning" else 42,
+            "quantity": 1,
+            "unit_price": "0.00" if warning_field == "price_warning" else "2500.00",
+            warning_field: True,
+        }
+
+        response = self.client.post(
+            "/api/v1/suppliers/purchase-orders/import-confirm/",
+            {"supplier_id": str(self.supplier.id), "lines": [line]},
+            format="json",
+        )
+
+        expected_message = (
+            "Corrigez les quantités, pointures et prix signalés avant de confirmer l'import."
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "error": {
+                "code": "import_warnings",
+                "message": expected_message,
+                "details": {"non_field_errors": [expected_message]},
+                "status_code": status.HTTP_400_BAD_REQUEST,
+            }
+        }
+        assert PurchaseOrder.objects.filter(tenant=self.tenant).count() == 0
+        assert Product.objects.filter(tenant=self.tenant, reference="WARNING-PRODUCT").count() == 0
 
     def test_api_import_confirm_rejects_identical_supplier_lines_for_10_seconds(self):
         self.client.force_authenticate(user=self.owner)

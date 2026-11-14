@@ -673,6 +673,15 @@ class Quote(TenantScopedModel):
             if quote.converted_invoice:
                 raise ValueError(_("Ce devis a déjà été converti en facture."))
 
+            delivery_note = None
+            if quote.converted_delivery_note_id:
+                delivery_note = DeliveryNote.objects.select_for_update().get(
+                    pk=quote.converted_delivery_note_id,
+                    tenant_id=quote.tenant_id,
+                )
+                if delivery_note.invoice_id:
+                    raise ValueError(_("Ce bon de livraison est déjà lié à une facture."))
+
             _assert_client_not_blocked(
                 quote.client_id,
                 quote.tenant,
@@ -715,9 +724,9 @@ class Quote(TenantScopedModel):
             invoice.compute_totals()
             invoice.save(update_fields=["total_ht", "tva_amount", "total_ttc", "timbre_fiscal"])
 
-            if quote.converted_delivery_note:
-                quote.converted_delivery_note.invoice = invoice
-                quote.converted_delivery_note.save(update_fields=["invoice"])
+            if delivery_note:
+                delivery_note.invoice = invoice
+                delivery_note.save(update_fields=["invoice"])
 
             quote.converted_invoice = invoice
             quote.status = QuoteStatusChoices.CONVERTED

@@ -829,14 +829,20 @@ export interface POImportLineItem {
   row_index: number;
   reference: string;
   description: string;
-  size_eu: number;
+  size_eu: number | null;
+  size_raw: string;
+  size_warning: boolean;
   colour: string;
   brand: string;
   location: string;
-  quantity: number;
+  quantity: number | null;
+  quantity_raw: string;
+  qty_warning: boolean;
   cartons: number;
   pairs_per_carton: number;
   unit_price: string;
+  unit_price_raw: string;
+  price_warning: boolean;
   match_status: "matched" | "missing_variant" | "new_product";
   product_id: string | null;
   product_name: string | null;
@@ -867,6 +873,9 @@ export interface POImportPreviewResponse {
     matched_count: number;
     missing_variants_count: number;
     new_products_count: number;
+    qty_warnings_count: number;
+    size_warnings_count: number;
+    price_warnings_count: number;
   };
 }
 

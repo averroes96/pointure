@@ -122,8 +122,10 @@ def parse_decimal_value(val: Any) -> Optional[Decimal]:
     if not s:
         return None
 
-    # Strip currency suffixes and symbols without requiring word boundary
-    s = re.sub(r"(?i)(da|dzd|eur|usd|dinar|dinars)", "", s)
+    # Match longer Latin currency names first ("dinar" before "dinars" leaves "s").
+    s = re.sub(r"(?i)(dinars|dinar|dzd|da|eur|usd)", "", s)
+    # Algerian Arabic currency notation, with or without the separating dot.
+    s = re.sub(r"د\s*\.?\s*ج", "", s)
     s = re.sub(r"[دج\$€£\s\xa0]", "", s).strip()
     if not s:
         return None
@@ -136,7 +138,7 @@ def parse_decimal_value(val: Any) -> Optional[Decimal]:
         else:
             # English style: 1,250.50 -> 1250.50
             s = s.replace(",", "")
-    elif re.match(r"^\d{1,3}([.,]\d{3})+$", s):
+    elif re.match(r"^[1-9]\d{0,2}([.,]\d{3})+$", s):
         # Thousand grouping without decimals: "2.450", "1,250", "12.000", "1.250.000"
         s = re.sub(r"[.,]", "", s)
     elif "," in s:
@@ -150,9 +152,9 @@ def parse_decimal_value(val: Any) -> Optional[Decimal]:
         return None
 
 
-def parse_integer_value(val: Any, default: int = 0) -> int:
-    """Safely parse integer from string, float, or int, guaranteeing an int return."""
-    safe_default = 0
+def parse_integer_value(val: Any, default: Optional[int] = None) -> Optional[int]:
+    """Parse an integral value, returning None for invalid input unless defaulted."""
+    safe_default = None
     if default is not None:
         try:
             safe_default = int(default)
@@ -229,19 +231,23 @@ def detect_encoding_and_decode(raw_bytes: bytes) -> Tuple[str, str]:
         pass
 
     if text_1252 is not None and text_1256 is not None:
-        # Check for genuine Arabic words (2 or more consecutive Arabic letters)
+        # Genuine Arabic words should outweigh stray Arabic glyphs produced when
+        # cp1252 text is decoded as cp1256.
         arabic_words_1256 = len(re.findall(r"[\u0600-\u06FF]{2,}", text_1256))
-        # Check for mojibake: Arabic character isolated adjacent to Latin letters (e.g. RةFةRENCE)
-        mixed_mojibake_1256 = len(re.findall(r"[A-Za-z][\u0600-\u06FF]|[\u0600-\u06FF][A-Za-z]", text_1256))
+        # Mojibake letters are surrounded by Latin (e.g. RةFةRENCE). A genuine
+        # mixed-script word such as "حذاءNike" only touches Latin on one side.
+        mixed_mojibake_1256 = len(
+            re.findall(r"(?<=[A-Za-z])[\u0600-\u06FF](?=[A-Za-z])", text_1256)
+        )
         # Check French accented letters in cp1252
         french_accents_1252 = len(re.findall(r"[éèêëàâîïôùûçÉÈÊËÀÂÎÏÔÙÛÇœæ]", text_1252))
 
-        if arabic_words_1256 > 0 and mixed_mojibake_1256 == 0:
+        if mixed_mojibake_1256 > arabic_words_1256:
+            return text_1252, "cp1252"
+        if arabic_words_1256 > 0:
             return text_1256, "cp1256"
         if french_accents_1252 > 0 or mixed_mojibake_1256 > 0:
             return text_1252, "cp1252"
-        if arabic_words_1256 > french_accents_1252:
-            return text_1256, "cp1256"
         return text_1252, "cp1252"
 
     if text_1252 is not None:
@@ -650,6 +656,11 @@ def expand_imported_order_lines(
         colour = get_val(row, "colour") or default_colour or "Standard"
         brand = get_val(row, "brand")
         location = get_val(row, "location")
+        raw_quantity = get_val(row, "quantity")
+        parsed_quantity = parse_integer_value(raw_quantity, default=None)
+        qty_warning = bool(raw_quantity.strip()) and (
+            parsed_quantity is None or parsed_quantity < 0
+        )
 
         price_raw = get_val(row, "unit_price")
         parsed_price = parse_decimal_value(price_raw)
@@ -672,9 +683,13 @@ def expand_imported_order_lines(
                 if h_idx is None or h_idx >= len(row):
                     continue
                 cell_val = row[h_idx]
-                qty = parse_integer_value(cell_val, default=0)
-                if qty <= 0:
+                quantity_raw = str(cell_val if cell_val is not None else "").strip()
+                qty = parse_integer_value(cell_val, default=None)
+                qty_warning = bool(quantity_raw) and (qty is None or qty < 0)
+                if not quantity_raw or qty == 0:
                     continue
+                if qty_warning:
+                    qty = None
 
                 line_desc = desc or f"{ref} - {colour} - EU {sz}".strip(" -")
                 expanded_lines.append({
@@ -682,23 +697,30 @@ def expand_imported_order_lines(
                     "reference": ref,
                     "description": line_desc,
                     "size_eu": sz,
+                    "size_raw": str(sz),
+                    "size_warning": False,
                     "colour": colour,
                     "brand": brand,
                     "location": location,
                     "quantity": qty,
+                    "quantity_raw": quantity_raw,
+                    "qty_warning": qty_warning,
                     "cartons": cartons_raw,
                     "pairs_per_carton": ppc_val,
                     "unit_price": unit_price,
+                    "unit_price_raw": price_raw,
                     "price_warning": has_price_warning,
                 })
 
         # ── RANGE MODE: Plages de pointures (ex: 37-41) ──────────────────────
         elif size_mode == "range":
             raw_size = get_val(row, "size")
-            qty_raw = parse_integer_value(get_val(row, "quantity"), default=0)
+            qty_raw = parsed_quantity
 
             # Check if this row is a size range
             parsed_sizes = parse_pointure_range(raw_size, default_sizes=[])
+            parsed_single_size = parse_integer_value(raw_size, default=None)
+            size_warning = bool(raw_size.strip()) and not parsed_sizes and parsed_single_size is None
             matched_prod = product_map.get(ref.lower()) if ref else None
 
             if len(parsed_sizes) > 1:
@@ -714,24 +736,35 @@ def expand_imported_order_lines(
                                 "reference": ref,
                                 "description": line_desc,
                                 "size_eu": s_int,
+                                "size_raw": raw_size,
+                                "size_warning": False,
                                 "colour": colour,
                                 "brand": brand,
                                 "location": location,
                                 "quantity": pairs_qty,
+                                "quantity_raw": raw_quantity,
+                                "qty_warning": qty_warning,
                                 "cartons": cartons_raw,
                                 "pairs_per_carton": ppc_val,
                                 "unit_price": unit_price,
+                                "unit_price_raw": price_raw,
                                 "price_warning": has_price_warning,
                             })
                 else:
                     # Distribute total pairs across sizes
-                    total_pairs = qty_raw
-                    if total_pairs <= 0 and cartons_raw > 0:
+                    if qty_warning and cartons_raw <= 0:
+                        total_pairs = None
+                    else:
+                        total_pairs = qty_raw or 0
+                    if (total_pairs is None or total_pairs <= 0) and cartons_raw > 0:
                         total_pairs = cartons_raw * ppc_val
 
-                    distribution = distribute_quantity(total_pairs, parsed_sizes)
+                    if total_pairs is None:
+                        distribution = {size: None for size in parsed_sizes}
+                    else:
+                        distribution = distribute_quantity(total_pairs, parsed_sizes)
                     for sz, sz_qty in distribution.items():
-                        if sz_qty <= 0:
+                        if sz_qty is not None and sz_qty <= 0:
                             continue
                         line_desc = desc or f"{ref} - {colour} - EU {sz}".strip(" -")
                         expanded_lines.append({
@@ -739,41 +772,64 @@ def expand_imported_order_lines(
                             "reference": ref,
                             "description": line_desc,
                             "size_eu": sz,
+                            "size_raw": raw_size,
+                            "size_warning": False,
                             "colour": colour,
                             "brand": brand,
                             "location": location,
                             "quantity": sz_qty,
+                            "quantity_raw": raw_quantity,
+                            "qty_warning": qty_warning,
                             "cartons": cartons_raw,
                             "pairs_per_carton": ppc_val,
                             "unit_price": unit_price,
+                            "unit_price_raw": price_raw,
                             "price_warning": has_price_warning,
                         })
             else:
                 # Single size or empty
-                single_sz = parsed_sizes[0] if parsed_sizes else parse_integer_value(raw_size, default=0)
-                tot_qty = qty_raw if qty_raw > 0 else (cartons_raw * ppc_val if cartons_raw > 0 else 1)
+                single_sz = parsed_sizes[0] if parsed_sizes else parsed_single_size
+                if qty_warning and cartons_raw <= 0:
+                    tot_qty = None
+                else:
+                    tot_qty = (
+                        qty_raw if qty_raw is not None and qty_raw > 0
+                        else (cartons_raw * ppc_val if cartons_raw > 0 else 1)
+                    )
                 line_desc = desc or f"{ref} - {colour} - EU {single_sz}".strip(" -")
                 expanded_lines.append({
                     "row_index": row_idx,
                     "reference": ref,
                     "description": line_desc,
                     "size_eu": single_sz,
+                    "size_raw": raw_size,
+                    "size_warning": size_warning,
                     "colour": colour,
                     "brand": brand,
                     "location": location,
                     "quantity": tot_qty,
+                    "quantity_raw": raw_quantity,
+                    "qty_warning": qty_warning,
                     "cartons": cartons_raw,
                     "pairs_per_carton": ppc_val,
                     "unit_price": unit_price,
+                    "unit_price_raw": price_raw,
                     "price_warning": has_price_warning,
                 })
 
         # ── SINGLE MODE: 1 row = 1 size/variant ──────────────────────────────
         else:
             raw_size = get_val(row, "size")
-            size_eu = parse_integer_value(raw_size, default=0)
-            qty_raw = parse_integer_value(get_val(row, "quantity"), default=0)
-            tot_qty = qty_raw if qty_raw > 0 else (cartons_raw * ppc_val if cartons_raw > 0 else 1)
+            size_eu = parse_integer_value(raw_size, default=None)
+            size_warning = bool(raw_size.strip()) and size_eu is None
+            qty_raw = parsed_quantity
+            if qty_warning and cartons_raw <= 0:
+                tot_qty = None
+            else:
+                tot_qty = (
+                    qty_raw if qty_raw is not None and qty_raw > 0
+                    else (cartons_raw * ppc_val if cartons_raw > 0 else 1)
+                )
 
             line_desc = desc or f"{ref} - {colour} - EU {size_eu}".strip(" -")
             expanded_lines.append({
@@ -781,13 +837,18 @@ def expand_imported_order_lines(
                 "reference": ref,
                 "description": line_desc,
                 "size_eu": size_eu,
+                "size_raw": raw_size,
+                "size_warning": size_warning,
                 "colour": colour,
                 "brand": brand,
                 "location": location,
                 "quantity": tot_qty,
+                "quantity_raw": raw_quantity,
+                "qty_warning": qty_warning,
                 "cartons": cartons_raw,
                 "pairs_per_carton": ppc_val,
                 "unit_price": unit_price,
+                "unit_price_raw": price_raw,
                 "price_warning": has_price_warning,
             })
 
@@ -818,6 +879,8 @@ def reconcile_with_catalog(
             "matched_count": 0,
             "missing_variants_count": 0,
             "new_products_count": 0,
+            "qty_warnings_count": 0,
+            "size_warnings_count": 0,
             "price_warnings_count": 0,
         }
 
@@ -896,6 +959,8 @@ def reconcile_with_catalog(
         "matched_count": matched_count,
         "missing_variants_count": missing_variants_count,
         "new_products_count": len(seen_new_products) if seen_new_products else new_products_count,
+        "qty_warnings_count": sum(1 for line in matched_lines if line.get("qty_warning")),
+        "size_warnings_count": sum(1 for line in matched_lines if line.get("size_warning")),
         "price_warnings_count": sum(1 for l in matched_lines if l.get("price_warning")),
     }
 
