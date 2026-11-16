@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ProviderConfig, CustomerOrder, SocialIntegration
+from .models import ProviderConfig, CustomerOrder
 
 
 class ProviderConfigSerializer(serializers.ModelSerializer):
@@ -75,24 +75,3 @@ class CustomerOrderDispatchSerializer(serializers.Serializer):
         if len(attrs["variant_ids"]) != len(attrs["quantities"]):
             raise serializers.ValidationError("variant_ids and quantities must be the same length.")
         return attrs
-
-
-class SocialIntegrationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SocialIntegration
-        fields = [
-            "id",
-            "platform",
-            "page_id",
-            "page_name",
-            "access_token",
-            "is_active",
-            "ai_enabled",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-        extra_kwargs = {
-            "access_token": {"write_only": True}
-        }
-
