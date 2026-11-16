@@ -33,13 +33,15 @@ class DzshipClient:
     TIMEOUT_SECONDS = 30
 
     @classmethod
-    def create_order(cls, courier, credentials, order_data):
+    def create_order(cls, courier, credentials, order_data, base_url=""):
         """
         Calls the dzship unified API to create a delivery order.
 
-        :param courier: 'yalidine', 'zr_express', 'maystro', etc.
-        :param credentials: dict with 'apiId' and 'apiToken' (mapped below to what the courier expects)
+        :param courier: a dzship catalogue key ('maystro', 'yalidine', 'dhd', ...).
+        :param credentials: the ProviderConfig credentials, already named as the catalogue's
+            `requiredCredentials` (e.g. {"apiKey": ...}); sent unchanged.
         :param order_data: dict with recipient details, product list and an optional `reference`.
+        :param base_url: only for the generic 'ecotrack' key (sent as options.baseUrl).
         :return: dict with trackingNumber and status
         :raises DzshipError: when no parcel was confirmed.
 
@@ -47,26 +49,13 @@ class DzshipClient:
         """
         url = f"{cls.BASE_URL}/orders"
 
-        # Map our internal apiId/apiToken to what the specific courier expects via dzship
-        mapped_credentials = {}
-        if courier == "maystro":
-            mapped_credentials = {"apiKey": credentials.get("apiToken")}
-        elif courier == "zr_express":
-            mapped_credentials = {"client": credentials.get("apiId"), "token": credentials.get("apiToken")}
-        elif courier == "noest":
-            mapped_credentials = {"token": credentials.get("apiToken")}
-        else:
-            # Default (Yalidine, etc.)
-            mapped_credentials = {
-                "apiId": credentials.get("apiId"),
-                "apiToken": credentials.get("apiToken")
-            }
-
         payload = {
             "courier": courier,
-            "credentials": mapped_credentials,
-            "order": order_data
+            "credentials": dict(credentials or {}),
+            "order": order_data,
         }
+        if base_url:
+            payload["options"] = {"baseUrl": base_url}
 
         try:
             response = requests.post(

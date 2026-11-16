@@ -31,7 +31,7 @@ def store(db):
         for role in (RoleChoices.OWNER, RoleChoices.MANAGER, RoleChoices.CASHIER)
     }
     config = ProviderConfig.objects.create(
-        tenant=tenant, provider="maystro", api_id="", api_secret="secret-key", is_active=True
+        tenant=tenant, courier="maystro", credentials={"apiKey": "secret-key"}, is_active=True
     )
     product = Product.objects.create(
         tenant=tenant, name="Basket", reference="B-1", sale_price=Decimal("4500.00")

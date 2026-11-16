@@ -214,9 +214,11 @@ export default function DraftOrdersPage() {
             <div className="mb-4">
               <label className="form-label">{t("deliveries.select_provider")}</label>
               <select id="providerSelect" className="form-input">
-                {providers.filter((p: any) => p.is_active).map((p: any) => (
-                  <option key={p.id} value={p.provider}>{p.provider}</option>
-                ))}
+                {providers
+                  .filter((p: any) => p.is_active && p.missing_credentials.length === 0)
+                  .map((p: any) => (
+                    <option key={p.id} value={p.courier}>{p.courier_name}</option>
+                  ))}
               </select>
             </div>
             

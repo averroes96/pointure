@@ -34,25 +34,50 @@ class CustomerOrderSourceChoices(models.TextChoices):
 
 
 class ProviderConfig(TenantScopedModel):
-    """Stores API credentials for delivery agencies (via dzship)."""
-    provider = models.CharField(
-        _("Provider"), max_length=20, choices=ProviderChoices.choices
+    """
+    One courier account of a store: the dzship courier key and the credentials that
+    courier needs (names from the dzship catalogue, e.g. {"apiKey": "..."}).
+    The same credentials serve dzship (writes) and Pointure's read connectors
+    (docs/plans/delivery-v1-plan.md §1, P1.4).
+    """
+    # Fields never copied into SyncOutbox payloads (apps.core.signals.serialize_model).
+    SYNC_EXCLUDED_FIELDS = ("credentials", "api_id", "api_secret")
+
+    courier = models.CharField(
+        _("Courier"), max_length=50, blank=True, default="",
+        help_text=_("dzship courier key, e.g. maystro, yalidine, dhd."),
     )
-    api_id = models.CharField(_("API ID / Token"), max_length=255, blank=True)
-    api_secret = models.CharField(_("API Secret / Key"), max_length=255, blank=True)
+    credentials = models.JSONField(_("Credentials"), default=dict, blank=True)
+    base_url = models.CharField(
+        _("Courier API address"), max_length=255, blank=True, default="",
+        help_text=_("Only for the generic Ecotrack courier (*.ecotrack.dz)."),
+    )
     is_active = models.BooleanField(_("Active"), default=True)
-    
+
+    # Legacy columns (before P1.4). Read once by migration 0007, removed in a later release.
+    provider = models.CharField(
+        _("Provider (legacy)"), max_length=20, choices=ProviderChoices.choices, blank=True, default=""
+    )
+    api_id = models.CharField(_("API ID / Token (legacy)"), max_length=255, blank=True)
+    api_secret = models.CharField(_("API Secret / Key (legacy)"), max_length=255, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _("Delivery Provider Config")
         verbose_name_plural = _("Delivery Provider Configs")
-        unique_together = [["tenant", "provider"]]
-        ordering = ["provider"]
+        ordering = ["courier"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "courier"],
+                condition=~models.Q(courier=""),
+                name="deliv_providerconfig_tenant_courier_uniq",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.get_provider_display()} ({self.tenant.name})"
+        return f"{self.courier or self.provider} ({self.tenant.name})"
 
 
 class CustomerOrder(TenantScopedModel):
@@ -83,9 +108,8 @@ class CustomerOrder(TenantScopedModel):
     shipping_fee = models.DecimalField(_("Shipping Fee"), max_digits=10, decimal_places=2, default=0.00)
     
     # Integration tracking
-    provider = models.CharField(
-        _("Delivery Provider"), max_length=20, choices=ProviderChoices.choices, blank=True, null=True
-    )
+    # dzship courier key of the ProviderConfig used to dispatch (e.g. "maystro").
+    provider = models.CharField(_("Delivery Provider"), max_length=50, blank=True, null=True)
     tracking_number = models.CharField(_("Tracking Number"), max_length=100, blank=True, null=True)
     
     # Session tracking — ties messages from the same social user to one draft

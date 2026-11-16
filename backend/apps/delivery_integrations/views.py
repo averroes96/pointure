@@ -90,9 +90,11 @@ class CourierCatalogueView(DeliveryIntegrationsGuardMixin, views.APIView):
 
 
 class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
-    """Manage delivery API credentials (dzship configs)."""
+    """Manage the store's courier accounts (courier key + credentials, P1.4)."""
     serializer_class = ProviderConfigSerializer
-    ordering = ["provider"]
+    ordering = ["courier"]
+    # PATCH merges credentials (replace one field at a time); no PUT.
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     # Managers and owners only (no role_permissions map → RolePermission default).
     permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 
@@ -143,10 +145,18 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
 
         # 1. Validate locally before any courier call.
         provider_config = ProviderConfig.objects.filter(
-            tenant=tenant, provider=provider_name, is_active=True
+            tenant=tenant, courier=provider_name, is_active=True
         ).first()
         if not provider_config:
             raise ValidationError(_("Ce transporteur n'est pas configuré ou est désactivé."))
+        entry = catalogue.get_courier(provider_config.courier)
+        required = entry["required_credentials"] if entry else []
+        saved = provider_config.credentials or {}
+        if not saved or any(not saved.get(name) for name in required):
+            raise ValidationError(_(
+                "Les identifiants de ce transporteur sont incomplets. Complétez-les dans "
+                "Paramètres → Livraison."
+            ))
 
         variant_map = {
             str(v.id): v
@@ -183,11 +193,11 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
             "productList": " / ".join(f"{v.product.name} x{qty}" for v, qty, _price in sale_items),
             "codAmount": float(total_price),  # The store-set price, delivery fees handled by delivery service
         }
-        credentials = {"apiId": provider_config.api_id, "apiToken": provider_config.api_secret}
-
         # 3. Courier call, outside any transaction.
         try:
-            dzship_response = DzshipClient.create_order(provider_name, credentials, order_data)
+            dzship_response = DzshipClient.create_order(
+                provider_config.courier, saved, order_data, base_url=provider_config.base_url
+            )
         except Exception as exc:
             self._release_claim(customer_order, tenant)
             if isinstance(exc, DzshipError) and exc.outcome_uncertain:

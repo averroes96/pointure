@@ -39,7 +39,7 @@ def _setup():
     )
     StoreSettings.objects.create(tenant=tenant, enable_delivery_integrations=True)
     ProviderConfig.objects.create(
-        tenant=tenant, provider="maystro", api_id="", api_secret="secret-key", is_active=True
+        tenant=tenant, courier="maystro", credentials={"apiKey": "secret-key"}, is_active=True
     )
     product = Product.objects.create(
         tenant=tenant, name="Basket Air", reference="BA-1", sale_price=Decimal("4500.00")
@@ -195,6 +195,53 @@ def test_dzship_client_sends_timeout_and_reference():
     kwargs = post.call_args.kwargs
     assert kwargs["timeout"] == DzshipClient.TIMEOUT_SECONDS
     assert kwargs["json"]["order"]["reference"] == "ref-1"
+    assert "options" not in kwargs["json"]
+
+
+@pytest.mark.parametrize("courier,credentials", [
+    # K8: credentials go to dzship unchanged, under the catalogue's names.
+    ("zrexpress", {"token": "t", "key": "k"}),
+    ("noest", {"apiToken": "t", "guid": "g"}),
+    ("maystro", {"apiKey": "k"}),
+])
+def test_dzship_client_sends_credentials_unchanged(courier, credentials):
+    response = mock.Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"trackingNumber": "X"}
+    with mock.patch("apps.delivery_integrations.services.dzship_client.requests.post",
+                    return_value=response) as post:
+        DzshipClient.create_order(courier, credentials, {})
+    body = post.call_args.kwargs["json"]
+    assert body["courier"] == courier
+    assert body["credentials"] == credentials
+
+
+def test_dzship_client_sends_base_url_for_generic_ecotrack():
+    response = mock.Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"trackingNumber": "X"}
+    with mock.patch("apps.delivery_integrations.services.dzship_client.requests.post",
+                    return_value=response) as post:
+        DzshipClient.create_order("ecotrack", {"token": "t"}, {}, base_url="https://shop.ecotrack.dz")
+    assert post.call_args.kwargs["json"]["options"] == {"baseUrl": "https://shop.ecotrack.dz"}
+
+
+@pytest.mark.django_db
+def test_dispatch_sends_the_saved_credentials_and_refuses_incomplete_ones():
+    tenant, client, variant, order = _setup()
+    with mock.patch(CREATE_ORDER, return_value={"trackingNumber": "MAY-5"}) as create:
+        res = _dispatch(client, order, variant)
+    assert res.status_code == status.HTTP_200_OK
+    assert create.call_args.args[:2] == ("maystro", {"apiKey": "secret-key"})
+
+    other = CustomerOrder.objects.create(
+        tenant=tenant, customer_name="B", customer_phone="0661234567", wilaya="16", commune="Kouba",
+    )
+    ProviderConfig.objects.filter(tenant=tenant, courier="maystro").update(credentials={})
+    with mock.patch(CREATE_ORDER) as create:
+        res = _dispatch(client, other, variant)
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    create.assert_not_called()
 
 
 def test_dzship_client_maps_timeout_and_error_envelope():

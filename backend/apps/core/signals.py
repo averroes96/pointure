@@ -198,9 +198,15 @@ from django.forms.models import model_to_dict
 from .models import TenantScopedModel, SyncOutbox, AuditLog
 
 def serialize_model(instance):
-    """Safely serialize a Django model instance to JSON dict."""
+    """
+    Safely serialize a Django model instance to JSON dict.
+
+    A model can list secret fields in `SYNC_EXCLUDED_FIELDS`; they are never copied
+    into SyncOutbox payloads (e.g. courier credentials, AGENTS.md §4.11).
+    """
     try:
-        return model_to_dict(instance)
+        excluded = list(getattr(type(instance), "SYNC_EXCLUDED_FIELDS", ()))
+        return model_to_dict(instance, exclude=excluded)
     except Exception:
         return {}
 
