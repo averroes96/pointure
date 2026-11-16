@@ -1,5 +1,5 @@
 import logging
-from rest_framework import viewsets, views, status
+from rest_framework import serializers, viewsets, views, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -22,6 +22,7 @@ from .serializers import (
     ProviderConfigSerializer, CustomerOrderSerializer,
     CustomerOrderDispatchSerializer,
 )
+from .services import catalogue
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -64,6 +65,28 @@ class DeliveryIntegrationsGuardMixin:
         else:
             if not StoreSettings.objects.filter(enable_delivery_integrations=True).exists():
                 raise Http404("Delivery integrations are disabled.")
+
+
+class CourierCatalogueQuerySerializer(serializers.Serializer):
+    refresh = serializers.BooleanField(required=False, default=False)
+
+
+class CourierCatalogueView(DeliveryIntegrationsGuardMixin, views.APIView):
+    """
+    GET /api/v1/deliveries/couriers/[?refresh=true]
+
+    The couriers dzship supports, from the saved snapshot. Answers at once; a missing
+    or stale snapshot (or ?refresh=true) is refreshed in the background, and the
+    page reads again when `refreshing` turns false (docs/plans/delivery-v1-plan.md P1.3).
+    No tenant data: the catalogue is the same for every store.
+    """
+    # Managers and owners only (no role_permissions map → RolePermission default).
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
+
+    def get(self, request):
+        query = CourierCatalogueQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        return Response(catalogue.get_catalogue(force_refresh=query.validated_data["refresh"]))
 
 
 class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
