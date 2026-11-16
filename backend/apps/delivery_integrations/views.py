@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.closing.services.lock import assert_period_open
 from apps.core.models import StoreSettings, Tenant
+from apps.core.permissions import RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices
@@ -69,7 +70,8 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
     """Manage delivery API credentials (dzship configs)."""
     serializer_class = ProviderConfigSerializer
     ordering = ["provider"]
-    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
+    # Managers and owners only (no role_permissions map → RolePermission default).
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 
     def get_queryset(self):
         return ProviderConfig.objects.filter(tenant=self.request.user.tenant)
@@ -78,7 +80,8 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
 class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage Draft/External Orders and Dispatch them."""
     serializer_class = CustomerOrderSerializer
-    permission_classes = [IsAuthenticated, PlanRequired("pro_retail")]
+    # Managers and owners only (no role_permissions map → RolePermission default).
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 
     def get_queryset(self):
         return CustomerOrder.objects.filter(tenant=self.request.user.tenant)
