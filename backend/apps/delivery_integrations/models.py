@@ -56,6 +56,12 @@ class ProviderConfig(TenantScopedModel):
     )
     is_active = models.BooleanField(_("Active"), default=True)
 
+    # Sync bookkeeping (P1.9), written with queryset.update() so no SyncOutbox row per sync.
+    sync_cursor = models.DateTimeField(_("Latest courier change read"), null=True, blank=True)
+    payout_cursor = models.DateField(_("Latest courier payout read"), null=True, blank=True)
+    last_synced_at = models.DateTimeField(_("Last sync"), null=True, blank=True)
+    last_sync_error = models.CharField(_("Last sync error"), max_length=50, blank=True, default="")
+
     # Legacy columns (before P1.4). Read once by migration 0007, removed in a later release.
     provider = models.CharField(
         _("Provider (legacy)"), max_length=20, choices=ProviderChoices.choices, blank=True, default=""
