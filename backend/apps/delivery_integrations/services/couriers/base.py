@@ -200,6 +200,9 @@ class CourierReadConnector:
     capabilities: frozenset = frozenset()
     BASE_URL_OVERRIDE: str = ""
     TIMEOUT_SECONDS = 20
+    # False while the connector is built from documentation only, before a probe on a
+    # real merchant account confirmed the field meanings (shown on "Test connection").
+    verified: bool = True
 
     def __init__(self, courier_key: str, credentials: dict, base_url: str):
         self.courier_key = courier_key
@@ -240,6 +243,13 @@ class CourierReadConnector:
         """tuple[PayoutLine, ...] of the payout the courier is preparing (the "ready" stage)."""
         raise ConnectorNotSupported()
 
+    # ── hooks (e.g. a courier's own quota rules) ──────────────────────────────
+    def _before_request(self) -> None:
+        """Called before every HTTP call; may raise ConnectorRateLimited."""
+
+    def _after_response(self, response) -> None:
+        """Called with every HTTP response (any status), before errors are mapped."""
+
     # ── shared ────────────────────────────────────────────────────────────────
     def supports(self, capability: str) -> bool:
         return capability in self.capabilities
@@ -261,6 +271,7 @@ class CourierReadConnector:
         url = self._url(path)
         if urlparse(url).scheme != "https":
             raise ConnectorError("insecure_url")
+        self._before_request()
         try:
             response = requests.request(
                 method,
@@ -276,6 +287,7 @@ class CourierReadConnector:
             logger.warning("Courier %s: network error on %s %s", self.courier_key, method, urlparse(url).path)
             raise ConnectorUnavailable("network_error")
 
+        self._after_response(response)
         status = response.status_code
         if status >= 400:
             logger.warning("Courier %s: HTTP %s on %s %s", self.courier_key, status, method, urlparse(url).path)

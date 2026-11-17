@@ -280,6 +280,8 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
             "capabilities": sorted(connector.capabilities),
             # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts.
             "limited": not connector.supports(couriers.Capability.LIST),
+            # Built from the courier's documentation, not yet checked on a real account (P3.1).
+            "verified": connector.verified,
         })
     # Managers and owners only (no role_permissions map → RolePermission default).
     permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]

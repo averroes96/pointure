@@ -8,9 +8,10 @@ export function testResultMessage(
 ): { tone: "success" | "warning" | "danger"; text: string } {
   switch (r.result) {
     case "ok":
-      return r.limited
-        ? { tone: "warning", text: t("deliveries.test_ok_limited") }
-        : { tone: "success", text: t("deliveries.test_ok") };
+      if (r.limited) return { tone: "warning", text: t("deliveries.test_ok_limited") };
+      // Connector built from the courier's documentation, not yet checked on a real account.
+      if (r.verified === false) return { tone: "warning", text: t("deliveries.test_ok_unverified") };
+      return { tone: "success", text: t("deliveries.test_ok") };
     case "refused":
       return { tone: "danger", text: t("deliveries.test_refused") };
     case "forbidden":

@@ -1890,7 +1890,8 @@
     "payout_manual_title": "Payout from the agency sheet",
     "payout_manual_intro": "For a courier without online payouts, or a partial pickup: paste the sheet's numbers, check them, then enter the amount counted. This money does not go into the till.",
     "payout_history": "Recorded payouts",
-    "payout_waiting": "{{count}} payouts to confirm"
+    "payout_waiting": "{{count}} payouts to confirm",
+    "test_ok_unverified": "Connection works. Tracking for this courier was built from its documentation and is not yet verified on a real account: report any status or amount that looks wrong."
   },
   "carton": {
     "add_cartons_title": "Add Cartons (Series)",

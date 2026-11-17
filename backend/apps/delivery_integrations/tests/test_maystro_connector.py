@@ -321,7 +321,7 @@ def _test(user, config):
 
 
 @pytest.mark.parametrize("http,expected", [
-    (_resp({"current_balance": 1}), {"result": "ok", "limited": False}),
+    (_resp({"current_balance": 1}), {"result": "ok", "limited": False, "verified": True}),
     (_resp(status_code=401), {"result": "refused"}),
     (_resp(status_code=403), {"result": "forbidden"}),
     (_resp(status_code=503), {"result": "unreachable"}),
@@ -344,7 +344,7 @@ def test_test_action_with_integration_key_is_ok_but_limited(store):
     ProviderConfig.objects.filter(pk=config.pk).update(credentials={"apiKey": "ak_1_x"})
     with mock.patch(REQUEST, return_value=_resp({"current_balance": 1})):
         body = _test(users[RoleChoices.OWNER], config).json()
-    assert body == {"result": "ok", "capabilities": ["balance", "test"], "limited": True}
+    assert body == {"result": "ok", "capabilities": ["balance", "test"], "limited": True, "verified": True}
 
 
 def test_test_action_for_a_courier_without_connector(store):

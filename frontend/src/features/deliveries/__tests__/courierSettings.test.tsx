@@ -149,6 +149,8 @@ describe("CourierAccountCard", () => {
   const resultCases: [CourierTestResult, string][] = [
     [{ result: "ok", capabilities: ["list", "test"], limited: false }, "deliveries.test_ok"],
     [{ result: "ok", capabilities: ["test"], limited: true }, "deliveries.test_ok_limited"],
+    [{ result: "ok", capabilities: ["list", "test"], limited: false, verified: false }, "deliveries.test_ok_unverified"],
+    [{ result: "ok", capabilities: ["list", "test"], limited: false, verified: true }, "deliveries.test_ok"],
     [{ result: "refused" }, "deliveries.test_refused"],
     [{ result: "unreachable" }, "deliveries.test_unreachable"],
     [{ result: "not_supported", reason: "no_connector" }, "deliveries.test_not_supported"],

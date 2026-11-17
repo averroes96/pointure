@@ -19,7 +19,7 @@ export interface CourierCatalogue {
 
 /** POST /deliveries/provider-configs/{id}/test/ */
 export type CourierTestResult =
-  | { result: "ok"; capabilities: string[]; limited: boolean }
+  | { result: "ok"; capabilities: string[]; limited: boolean; verified?: boolean }
   | { result: "rate_limited"; retry_after: number }
   | { result: "not_supported"; reason: string }
   | { result: "refused" | "forbidden" | "unreachable" | "error" };
