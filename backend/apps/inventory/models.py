@@ -58,6 +58,9 @@ class MovementReasonChoices(models.TextChoices):
     LAYAWAY_LOCK = "layaway_lock", _("Mise de côté (Réservation)")
     LAYAWAY_RELEASE = "layaway_release", _("Annulation réservation (Libération stock)")
     STOCKTAKE = "stocktake", _("Ajustement inventaire")
+    # Delivery orders (docs/plans/delivery-v1-plan.md DL2.2): out at dispatch, back on return.
+    DELIVERY_OUT = "delivery_out", _("Envoi livraison")
+    DELIVERY_RETURN = "delivery_return", _("Retour livraison")
 
 
 class TransferStatusChoices(models.TextChoices):

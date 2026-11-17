@@ -69,8 +69,5 @@ uvicorn[standard]==0.30.6   # UvicornWorker enables async/ASGI views under gunic
 whitenoise[brotli]==6.7.0
 pypdf2==3.0.1
 
-# AI — Gemini for social message parsing
-google-generativeai==0.8.5
-
-# HTTP client (for Meta webhook verification, etc.)
+# HTTP client (licensing, courier APIs, etc.)
 requests==2.32.3

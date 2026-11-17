@@ -58,6 +58,7 @@ const PAYMENT_METHOD_MAP: Record<string, Record<SupportedLang, string>> = {
   virement: { fr: "Virement bancaire", ar: "تحويل بنكي", en: "Bank Transfer" },
   cheque: { fr: "Chèque", ar: "شيك", en: "Cheque" },
   account: { fr: "À crédit (Compte client)", ar: "على الحساب (دين)", en: "Client Credit" },
+  courier: { fr: "Encaissé par le livreur", ar: "حصّله عامل التوصيل", en: "Collected by courier" },
 };
 
 const SALE_STATUS_MAP: Record<string, Record<SupportedLang, string>> = {

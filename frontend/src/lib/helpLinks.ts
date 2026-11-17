@@ -48,6 +48,9 @@ export const ROUTE_ANCHOR_MAP: HelpRouteMapping[] = [
   { prefix: "/delivery-notes", cashierAnchor: "connexion", ownerAnchor: "facturation" },
   { prefix: "/credit-notes", cashierAnchor: "retour-echange", ownerAnchor: "facturation" },
 
+  // Deliveries & shipments
+  { prefix: "/deliveries", cashierAnchor: "connexion", ownerAnchor: "livraisons" },
+
   // Reports
   { prefix: "/reports", cashierAnchor: "fermer-caisse", ownerAnchor: "rapports" },
 

@@ -95,6 +95,7 @@ const WebhooksPage = lazy(() => import("@/features/webhooks/WebhooksPage"));
 // Deliveries
 const DeliverySettingsPage = lazy(() => import("@/features/deliveries/DeliverySettingsPage"));
 const DraftOrdersPage = lazy(() => import("@/features/deliveries/DraftOrdersPage"));
+const ShipmentsPage = lazy(() => import("@/features/deliveries/ShipmentsPage"));
 
 // Loyalty
 const LoyaltyPage = lazy(() => import("@/features/loyalty/LoyaltyPage"));
@@ -223,6 +224,7 @@ function AppRoutes() {
           {enableDeliveryIntegrations && (
             <Route path="deliveries">
               <Route path="drafts" element={<DraftOrdersPage />} />
+              <Route path="shipments" element={<ShipmentsPage />} />
             </Route>
           )}
 

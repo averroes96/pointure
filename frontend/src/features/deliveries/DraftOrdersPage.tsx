@@ -1,422 +1,95 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Truck, Check, X, Package, Plus, Trash2, MessageCircle, Laptop } from "lucide-react";
-import api, { getApiError, formatDate } from "@/lib/api";
-import { cn, getStatusBadgeClass } from "@/lib/utils";
-import { useWilayas, useCommunes } from "@/hooks/useLocationData";
-import { VariantSearchInput } from "@/components/ui/VariantSearchInput";
-import type { Variant } from "@/types";
+import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ORDER_TABS, useDeliveryOrders, type DeliveryOrder, type OrderTab } from "./deliveryOrders";
+import DeliveryOrderModal from "./components/DeliveryOrderModal";
+import DeliveryOrderTable from "./components/DeliveryOrderTable";
 
+/** Delivery orders: prepare, send to the courier, follow (docs/plans/delivery-v1-plan.md P2.6). */
 export default function DraftOrdersPage() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [toast, setToast] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [newOrder, setNewOrder] = useState({
-    customer_name: "",
-    customer_phone: "",
-    wilaya: "16",
-    commune: "",
-    address: "",
-    customer_notes: "",
-    source: "manual"
-  });
+  const [tab, setTab] = useState<OrderTab>("all");
+  const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<DeliveryOrder | "new" | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const { data, isLoading, isError } = useDeliveryOrders(tab, page);
+  const orders = data?.results ?? [];
 
-  const { data: wilayas } = useWilayas();
-  const { data: communes } = useCommunes(newOrder.wilaya);
-  const { data: selectedCommunes } = useCommunes(selectedOrder?.wilaya || "16");
-  
-  const [dispatchItems, setDispatchItems] = useState<{variant: Variant, quantity: number}[]>([]);
-  const [totalPrice, setTotalPrice] = useState<string>("0");
-
-  const { data: ordersData, isLoading } = useQuery({
-    queryKey: ["customer-orders"],
-    queryFn: async () => {
-      const res = await api.get("/deliveries/customer-orders/");
-      return res.data.results || res.data;
-    },
-  });
-
-  const { data: providersData } = useQuery({
-    queryKey: ["provider-configs"],
-    queryFn: async () => {
-      const res = await api.get("/deliveries/provider-configs/");
-      return res.data.results || res.data;
-    },
-  });
-
-  const dispatchMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/deliveries/customer-orders/${data.id}/dispatch_order/`, data.payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
-      setToast(t("deliveries.dispatch_success"));
-      setSelectedOrder(null);
-      setTimeout(() => setToast(null), 5000);
-    },
-    onError: (err) => setToast(getApiError(err)),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.post("/deliveries/customer-orders/", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
-      setToast(t("deliveries.draft_created", "Manual draft order created successfully!"));
-      setIsCreating(false);
-      setNewOrder({
-        customer_name: "", customer_phone: "", wilaya: "16", commune: "", address: "", customer_notes: "", source: "manual"
-      });
-      setTimeout(() => setToast(null), 5000);
-    },
-    onError: (err) => setToast(getApiError(err)),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => api.patch(`/deliveries/customer-orders/${data.id}/`, data.payload),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/deliveries/customer-orders/${id}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
-      setToast(t("deliveries.draft_deleted", "Draft order deleted successfully!"));
-      setSelectedOrder(null);
-      setTimeout(() => setToast(null), 5000);
-    },
-    onError: (err) => setToast(getApiError(err)),
-  });
-
-  if (isLoading) return <div>{t("common.loading", "Loading...")}</div>;
-
-  const orders = ordersData || [];
-  const providers = providersData || [];
+  const done = (message: string) => {
+    setEditing(null);
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 6000);
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t("deliveries.draft_orders_title")}</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t("delivery_orders.title")}</h1>
+          <p className="text-sm text-text-muted dark:text-slate-400">{t("delivery_orders.subtitle")}</p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={() => { setIsCreating(true); setSelectedOrder(null); }}>
-          <Plus size={16} /> {t("deliveries.new_manual_order", "New Manual Order")}
+        <button type="button" className="btn-primary inline-flex items-center gap-2 focus-visible:ring-2"
+                onClick={() => setEditing("new")}>
+          <Plus size={16} aria-hidden /> {t("delivery_orders.new")}
         </button>
       </div>
 
-      {toast && <div className="p-3 bg-success-light text-success border border-success/20 rounded">{toast}</div>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          {orders.map((order: any) => (
-            <div key={order.id} className="card p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-text-primary">{order.customer_name || <span className="text-text-muted italic">{t("deliveries.unnamed_customer")}</span>}</h3>
-                  <div className="text-sm text-text-muted">{order.customer_phone || <span className="italic">{t("deliveries.no_phone")}</span>}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn("px-2 py-1 text-xs font-medium rounded capitalize", order.status === 'draft' ? 'bg-amber-100 text-amber-800' : 'bg-primary-50 text-primary-600')}>
-                    {order.status}
-                  </span>
-                  {order.status === 'draft' && (
-                    <button 
-                      onClick={() => {
-                        if (confirm(t("deliveries.confirm_delete", "Are you sure you want to delete this draft order?"))) {
-                          deleteMutation.mutate(order.id);
-                        }
-                      }}
-                      className="p-1.5 text-error/80 hover:text-error hover:bg-error/10 rounded transition-colors"
-                      title={t("deliveries.delete_draft")}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <span className="text-text-muted block text-xs">{t("deliveries.source")}</span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {order.source === 'messenger' ? <MessageCircle size={14} className="text-blue-500" /> : order.source === 'instagram' ? <MessageCircle size={14} className="text-pink-500" /> : <Laptop size={14} className="text-text-muted" />}
-                    <span className="capitalize text-text-primary">{order.source}</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-text-muted block text-xs">{t("deliveries.destination")}</span>
-                  <div className="mt-0.5 text-text-primary">
-                    {order.wilaya ? `${order.wilaya}, ${order.commune}` : <span className="text-text-muted italic">{t("common.unknown")}</span>}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-text-muted block text-xs mb-1">{t("deliveries.customer_notes")}</span>
-                  <p className="bg-bg-alt/50 border border-border p-3 rounded-lg text-text-secondary text-sm whitespace-pre-wrap line-clamp-3">
-                    {order.customer_notes || <span className="italic text-text-muted">{t("deliveries.no_notes", "No notes available.")}</span>}
-                  </p>
-                </div>
-              </div>
-
-              {order.status === "draft" && (
-                <button
-                  className="btn-primary"
-                  onClick={() => { setSelectedOrder(order); setIsCreating(false); }}
-                >
-                  {t("deliveries.validate_and_dispatch")}
-                </button>
-              )}
-              {order.tracking_number && (
-                <div className="mt-4 p-3 bg-bg-alt rounded flex items-center gap-2 text-sm">
-                  <Package className="w-4 h-4" />
-                  {t("deliveries.tracking")}: <span className="font-semibold">{order.tracking_number}</span> ({order.provider})
-                </div>
-              )}
-            </div>
-          ))}
-          {orders.length === 0 && (
-            <div className="text-center p-8 text-text-muted border border-dashed border-border rounded-lg">
-              {t("deliveries.no_draft_orders")}
-            </div>
-          )}
+      {notice && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300" role="status">
+          {notice}
         </div>
+      )}
 
-        {/* Dispatch Sidebar */}
-        {selectedOrder && (
-          <div className="card p-5 h-fit sticky top-24">
-            <h2 className="text-lg font-bold mb-4 text-text-primary">{t("deliveries.dispatch_order")}</h2>
-            <div className="mb-4 space-y-3 p-4 border border-border rounded bg-surface">
-              <h3 className="font-semibold text-sm text-text-primary mb-2">{t("deliveries.edit_customer_details")}</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="form-label text-xs">{t("client.name")}</label>
-                  <input className="form-input text-sm" value={selectedOrder.customer_name || ''} onChange={(e) => setSelectedOrder({...selectedOrder, customer_name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="form-label text-xs">{t("client.phone")}</label>
-                  <input className="form-input text-sm" value={selectedOrder.customer_phone || ''} onChange={(e) => setSelectedOrder({...selectedOrder, customer_phone: e.target.value})} />
-                </div>
-                <div>
-                  <label className="form-label text-xs">{t("client.wilaya")}</label>
-                  <select className="form-input text-sm" value={selectedOrder.wilaya || ''} onChange={(e) => setSelectedOrder({...selectedOrder, wilaya: e.target.value, commune: ""})}>
-                    <option value="">{t("deliveries.select_wilaya")}</option>
-                    {wilayas?.map((w: any) => <option key={w.code} value={w.code}>{w.code} - {w.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label text-xs">{t("deliveries.commune")}</label>
-                  <select className="form-input text-sm" value={selectedOrder.commune || ''} onChange={(e) => setSelectedOrder({...selectedOrder, commune: e.target.value})}>
-                    <option value="">{t("deliveries.select_commune")}</option>
-                    {selectedCommunes?.map((c: any) => <option key={c.name} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
+      <div className="flex flex-wrap gap-1.5" role="tablist">
+        {ORDER_TABS.map((key) => (
+          <button
+            key={key} type="button" role="tab" aria-selected={tab === key}
+            onClick={() => { setTab(key); setPage(1); }}
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-medium transition-colors focus-visible:ring-2",
+              tab === key
+                ? "bg-primary-600 text-white dark:bg-primary-500"
+                : "bg-bg-alt text-text-secondary hover:bg-border dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800",
+            )}
+          >
+            {t(`delivery_orders.tab.${key}`)}
+          </button>
+        ))}
+      </div>
 
-            <div className="mb-4">
-              <label className="form-label">{t("deliveries.select_provider")}</label>
-              <select id="providerSelect" className="form-input">
-                {providers.filter((p: any) => p.is_active).map((p: any) => (
-                  <option key={p.id} value={p.provider}>{p.provider}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="mb-4">
-              <label className="form-label">{t("deliveries.total_price", "Total Price (COD)")}</label>
-              <input 
-                type="number" 
-                className="form-input" 
-                value={totalPrice}
-                onChange={(e) => setTotalPrice(e.target.value)}
-                placeholder="Enter total price..."
-              />
-              <p className="text-xs text-text-muted mt-1">{t("deliveries.total_price_hint", "The amount the customer pays on delivery. Delivery fees are calculated by the delivery service.")}</p>
-            </div>
-
-              <div className="mb-6 p-4 border border-border rounded bg-surface">
-              <label className="form-label mb-2">{t("deliveries.variant_to_include")}</label>
-              <div className="mb-2">
-                <VariantSearchInput 
-                  value={null} 
-                  onSelect={(v) => {
-                    setDispatchItems(prev => {
-                      if (prev.find(item => item.variant.id === v.id)) return prev;
-                      return [...prev, { variant: v, quantity: 1 }];
-                    });
-                  }} 
-                />
-              </div>
-              
-              {dispatchItems.length > 0 && (
-                <div className="flex flex-col gap-2 mt-3 max-h-48 overflow-y-auto">
-                  {dispatchItems.map((item, index) => (
-                    <div key={item.variant.id} className="flex items-center gap-2 bg-background p-2 rounded border border-border text-sm">
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate font-medium text-text-primary">{item.variant.product_name}</div>
-                        <div className="text-xs text-text-muted truncate">
-                          {item.variant.size_eu > 0
-                            ? `T${item.variant.size_eu} · ${item.variant.colour === "N/A" ? "N/A" : item.variant.colour}`
-                            : (item.variant.colour && item.variant.colour !== "Standard" && item.variant.colour !== "N/A"
-                                ? item.variant.colour
-                                : "Article standard")}
-                        </div>
-                      </div>
-                      <input 
-                        type="number" 
-                        min="1"
-                        className="form-input w-20 h-8 text-sm text-center"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          setDispatchItems(prev => prev.map((p, i) => i === index ? { ...p, quantity: val } : p));
-                        }}
-                      />
-                      <button 
-                        className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
-                        onClick={() => {
-                          setDispatchItems(prev => prev.filter((_, i) => i !== index));
-                        }}
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button 
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
-                onClick={async () => {
-                  const provider = (document.getElementById('providerSelect') as HTMLSelectElement).value;
-                  
-                  if (dispatchItems.length === 0) {
-                    setToast(t("deliveries.missing_variant_id"));
-                    return;
-                  }
-
-                  if (!totalPrice || Number(totalPrice) <= 0) {
-                    setToast(t("deliveries.missing_total_price", "Please set a total price."));
-                    return;
-                  }
-
-                  try {
-                    // Update the draft order details first
-                    await updateMutation.mutateAsync({
-                      id: selectedOrder.id,
-                      payload: {
-                        customer_name: selectedOrder.customer_name,
-                        customer_phone: selectedOrder.customer_phone,
-                        wilaya: selectedOrder.wilaya,
-                        commune: selectedOrder.commune,
-                      }
-                    });
-
-                    // Then dispatch it
-                    dispatchMutation.mutate({
-                      id: selectedOrder.id,
-                      payload: {
-                        provider,
-                        total_price: totalPrice,
-                        variant_ids: dispatchItems.map(item => item.variant.id),
-                        quantities: dispatchItems.map(item => item.quantity)
-                      }
-                    });
-                  } catch (e) {
-                    setToast("Failed to update customer details.");
-                  }
-                }}
-                disabled={dispatchMutation.isPending || updateMutation.isPending}
-              >
-                <Truck className="w-4 h-4" /> Dispatch
-              </button>
-              <button 
-                className="btn-danger flex items-center justify-center gap-2 px-3"
-                onClick={() => {
-                  if (confirm(t("deliveries.confirm_delete", "Are you sure you want to delete this draft order?"))) {
-                    deleteMutation.mutate(selectedOrder.id);
-                  }
-                }}
-                disabled={deleteMutation.isPending}
-                title={t("deliveries.delete_draft")}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <button className="btn-secondary" onClick={() => { setSelectedOrder(null); setDispatchItems([]); }}>{t("common.cancel")}</button>
-            </div>
-          </div>
-        )}
-
-        {/* Creation Sidebar */}
-        {isCreating && !selectedOrder && (
-          <div className="card p-5 h-fit sticky top-24">
-            <h2 className="text-lg font-bold mb-4 text-text-primary">{t("deliveries.new_manual_order", "New Manual Order")}</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="form-label">{t("client.name", "Name")}</label>
-                <input className="form-input" value={newOrder.customer_name} onChange={(e) => setNewOrder({...newOrder, customer_name: e.target.value})} />
-              </div>
-              <div>
-                <label className="form-label">{t("client.phone", "Phone")}</label>
-                <input className="form-input" value={newOrder.customer_phone} onChange={(e) => setNewOrder({...newOrder, customer_phone: e.target.value})} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="form-label">{t("client.wilaya", "Wilaya")}</label>
-                  <select 
-                    className="form-input" 
-                    value={newOrder.wilaya} 
-                    onChange={(e) => {
-                      // When wilaya changes, reset commune
-                      setNewOrder({...newOrder, wilaya: e.target.value, commune: ""});
-                    }}
-                  >
-                    <option value="">{t("common.select", "Select...")}</option>
-                    {wilayas?.map((w) => (
-                      <option key={w.id} value={w.code}>{w.code} - {w.name} ({w.ar_name})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">{t("client.commune", "Commune")}</label>
-                  <select 
-                    className="form-input" 
-                    value={newOrder.commune} 
-                    onChange={(e) => setNewOrder({...newOrder, commune: e.target.value})}
-                    disabled={!newOrder.wilaya}
-                  >
-                    <option value="">{t("common.select", "Select...")}</option>
-                    {communes?.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name} ({c.ar_name})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="form-label">{t("deliveries.customer_notes", "Customer Notes")}</label>
-                <textarea className="form-input" rows={3} value={newOrder.customer_notes} onChange={(e) => setNewOrder({...newOrder, customer_notes: e.target.value})}></textarea>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              <button 
-                className="btn-primary flex-1 flex items-center justify-center"
-                onClick={() => createMutation.mutate(newOrder)}
-                disabled={createMutation.isPending || !newOrder.customer_name || !newOrder.customer_phone}
-              >
-                {createMutation.isPending ? t("common.saving", "Saving...") : t("common.save", "Save")}
-              </button>
-              <button 
-                className="btn-secondary flex-1"
-                onClick={() => setIsCreating(false)}
-              >
-                {t("common.cancel", "Cancel")}
-              </button>
-            </div>
-          </div>
+      <div className="card p-0 bg-white dark:bg-slate-900 dark:border-slate-800">
+        {isLoading ? (
+          <p className="p-6 text-sm text-text-muted dark:text-slate-400">{t("common.loading")}</p>
+        ) : isError ? (
+          <p className="p-6 text-sm text-red-600 dark:text-rose-400">{t("delivery_orders.load_error")}</p>
+        ) : orders.length === 0 ? (
+          <p className="p-8 text-center text-sm text-text-muted dark:text-slate-400">{t("delivery_orders.empty")}</p>
+        ) : (
+          <DeliveryOrderTable orders={orders} onOpen={(order) => setEditing(order)} />
         )}
       </div>
+
+      {data && (data.next || data.previous) && (
+        <div className="flex items-center justify-end gap-2 text-sm">
+          <button type="button" className="btn-secondary btn-sm" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
+            {t("delivery_orders.previous")}
+          </button>
+          <span className="text-text-muted dark:text-slate-400">{t("delivery_orders.page", { page })}</span>
+          <button type="button" className="btn-secondary btn-sm" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
+            {t("delivery_orders.next")}
+          </button>
+        </div>
+      )}
+
+      {editing && (
+        <DeliveryOrderModal
+          key={editing === "new" ? "new" : editing.id}
+          order={editing === "new" ? null : editing}
+          onClose={() => setEditing(null)}
+          onDone={done}
+        />
+      )}
     </div>
   );
 }
