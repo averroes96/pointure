@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import TenantScopedModel
@@ -384,6 +385,13 @@ class Shipment(TenantScopedModel):
             "is_terminal": snapshot.status in TERMINAL_STATUSES,
             "courier_updated_at": snapshot.updated_at,
         }
+        # Couriers whose list gives no times (Ecotrack, P3.5): a new status is dated when
+        # Pointure first sees it; otherwise the stored times are kept, never blanked.
+        status_moved = self.status != snapshot.status or self.raw_status != values["raw_status"]
+        seen_at = timezone.now()
+        for name in ("status_at", "courier_updated_at"):
+            if values[name] is None:
+                values[name] = seen_at if status_moved or getattr(self, name) is None else getattr(self, name)
         keeps_payout_stage = self.payout_id is not None or (  # cash recorded at the agency stays paid
             self.cash_status in (CashStatus.PAID, CashStatus.READY)
             and snapshot.cash_status == CashStatus.HELD_BY_COURIER

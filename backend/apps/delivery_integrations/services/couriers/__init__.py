@@ -26,3 +26,4 @@ from .vocabulary import TERMINAL_STATUSES, CashStatus, ShipmentStatus  # noqa: F
 # Connector modules: importing them runs their @register.
 from . import maystro  # noqa: F401,E402
 from . import yalidine  # noqa: F401,E402
+from . import ecotrack  # noqa: F401,E402

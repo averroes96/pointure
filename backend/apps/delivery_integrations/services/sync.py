@@ -176,7 +176,9 @@ def _sync_orders(config, connector, result):
     cursor = None
     reached_floor = False
 
-    while result.pages < MAX_PAGES:
+    # A connector whose list is not a "changed since" feed (Ecotrack) caps its own run.
+    page_limit = getattr(connector, "max_list_pages", None) or MAX_PAGES
+    while result.pages < page_limit:
         page = connector.list_parcels(cursor)          # network, outside any transaction
         result.pages += 1
         batch = []
@@ -196,7 +198,7 @@ def _sync_orders(config, connector, result):
         cursor = page.next_cursor
     else:
         result.partial = True
-        logger.warning("Shipment sync %s stopped at %d pages before reaching its cursor", config.courier, MAX_PAGES)
+        logger.warning("Shipment sync %s stopped at %d pages before reaching its cursor", config.courier, page_limit)
 
     # History of status changes (outside transactions, capped). New parcels of Pointure
     # orders that are already final get theirs too: "cancelled before pickup" needs it.
