@@ -285,10 +285,11 @@ class CourierReadConnector:
             return path
         return f"{self.base_url}/{path.lstrip('/')}"
 
-    def _request(self, method: str, path: str, params=None):
+    def _request(self, method: str, path: str, params=None, json=None):
         """
         One HTTP call with timeout and error mapping. Returns parsed JSON.
-        Never logs credentials, query values or response bodies.
+        `json` is a request body for couriers whose searches are POST reads (ZR Express, P3.9).
+        Never logs credentials, query values, bodies or responses.
         """
         url = self._url(path)
         if urlparse(url).scheme != "https":
@@ -299,6 +300,7 @@ class CourierReadConnector:
                 method,
                 url,
                 params=params,
+                json=json,
                 headers={"Accept": "application/json", **self.auth_headers()},
                 timeout=self.TIMEOUT_SECONDS,
             )

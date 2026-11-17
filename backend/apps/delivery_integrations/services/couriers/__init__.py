@@ -28,3 +28,4 @@ from .vocabulary import TERMINAL_STATUSES, CashStatus, ShipmentStatus  # noqa: F
 from . import maystro  # noqa: F401,E402
 from . import yalidine  # noqa: F401,E402
 from . import ecotrack  # noqa: F401,E402
+from . import zrexpress  # noqa: F401,E402
