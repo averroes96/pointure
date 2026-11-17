@@ -1,6 +1,6 @@
 ## 16. Deliveries: Couriers and Shipment Tracking {#livraisons}
 
-ShoeDZ reads your parcels directly from your courier (today: **Maystro**): where each parcel is, which were delivered or returned, and **where the money is**. Parcels created in the courier's app or in DZBuild are read-only: they change neither your sales, your stock nor your till. Parcels **sent from ShoeDZ** (section H) take the stock out when sent and become a sale when delivered. None of this appears in cash sessions or Z reports.
+ShoeDZ reads your parcels directly from your courier (today: **Maystro**, and the **Yalidine** family: Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services): where each parcel is, which were delivered or returned, and **where the money is**. Parcels created in the courier's app or in DZBuild are read-only: they change neither your sales, your stock nor your till. Parcels **sent from ShoeDZ** (section H) take the stock out when sent and become a sale when delivered. None of this appears in cash sessions or Z reports.
 
 > Owner and managers only, on the Pro plan.
 
@@ -18,6 +18,8 @@ ShoeDZ reads your parcels directly from your courier (today: **Maystro**): where
 4. Click **Test connection** to check the credentials.
 
 **Maystro:** use the **store token** (40 characters) Maystro gives you. An integration key starting with `ak_` is accepted, but Maystro does not let it read orders or payouts; the test says so.
+
+**Yalidine family** (Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services): enter the **API ID** and **API token** from your courier's developer area. Tracking for these couriers was built from their documentation and **is not yet verified on a real account**; the connection test says so. Report any status or amount that looks wrong. These couriers limit the number of requests: when the limit gets close, ShoeDZ stops and resumes later (message "too many requests, retrying later").
 
 A courier that already has shipments cannot be deleted: deactivate it instead.
 
@@ -71,23 +73,25 @@ In a parcel's details:
 | credentials refused | Replace the credentials in **Delivery Settings**, then test the connection. |
 | these credentials cannot read orders | Use the Maystro store token instead of an `ak_` key. |
 | courier unreachable | Check the internet connection, then click **Refresh**. |
-| too many requests, retrying later | Wait a few minutes: updating will resume. |
-| tracking not available for this courier yet | Tracking exists today for Maystro; other couriers will follow. |
+| too many requests, retrying later | Wait: updating resumes by itself (a few minutes; up to a few hours for the Yalidine family when its daily quota is nearly used). |
+| tracking not available for this courier yet | Tracking exists today for Maystro and the Yalidine family; other couriers will follow. |
 | partial update | Many changes at once: click **Refresh** again. |
 
 ### G. Payouts Picked Up at the Agency
 
 Money picked up at the courier's agency is recorded in the **Payouts** tab of the **Shipments** page. This money **does not go into the till**: it appears neither in cash sessions nor in Z reports. The number next to the tab shows how many payouts are waiting for your confirmation.
 
-**Confirming a payout reported by the courier (Maystro)**
+**Confirming a payout reported by the courier (Maystro, Yalidine family)**
 
-ShoeDZ knows the payouts Maystro has already made. They are listed under **Maystro payouts to confirm**, with the date, the number of parcels and the expected amount (what the courier owes the store).
+ShoeDZ knows the payouts the courier has already made. They are listed under **Maystro payouts to confirm** (or your courier's name), with the date, the number of parcels and the expected amount (what the courier owes the store).
 
 1. Click **Confirm** on the line of the payout you picked up.
 2. In **Amount counted**, enter what you actually received (the expected amount is suggested). The **difference** appears: green when it is zero, red when money is missing, amber when there is too much.
 3. Add the **date**, the **courier's reference** and a **note** if needed, then click **Record the payout**.
 
 **Old payouts already received:** tick them (or tick the header box to select all), then click **Confirm selected**. Each payout is recorded for its expected amount, on its payment date.
+
+**Yalidine family:** the courier says which parcels are paid and in which payout, but **not the payout date**. The line shows "Date not given" with the payout number; the date recorded is the one you enter (today for a bulk confirm). For now the expected amount is the amount collected minus the delivery fee: check it against the courier's sheet.
 
 **Manual entry (agency sheet)**
 

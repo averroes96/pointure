@@ -1,6 +1,6 @@
 ## 16. Livraisons : transporteurs et suivi des expéditions {#livraisons}
 
-ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Les colis créés dans l'application du transporteur ou dans DZBuild sont en lecture seule : ils ne modifient ni vos ventes, ni votre stock, ni votre caisse. Les colis **envoyés depuis ShoeDZ** (section H) font sortir le stock à l'envoi et deviennent une vente à la livraison. Rien de tout cela n'apparaît dans les sessions de caisse ni dans les rapports Z.
+ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**, et la famille **Yalidine** : Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Les colis créés dans l'application du transporteur ou dans DZBuild sont en lecture seule : ils ne modifient ni vos ventes, ni votre stock, ni votre caisse. Les colis **envoyés depuis ShoeDZ** (section H) font sortir le stock à l'envoi et deviennent une vente à la livraison. Rien de tout cela n'apparaît dans les sessions de caisse ni dans les rapports Z.
 
 > Réservé au propriétaire et aux managers, avec la formule Pro.
 
@@ -18,6 +18,8 @@ ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystr
 4. Cliquez sur **Tester la connexion** pour vérifier les identifiants.
 
 **Maystro :** utilisez le **jeton boutique** (40 caractères) fourni par Maystro. Une clé d'intégration qui commence par `ak_` est acceptée, mais Maystro ne lui permet pas de lire les commandes ni les versements : le test l'indique.
+
+**Famille Yalidine** (Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services) : saisissez l'**API ID** et le **jeton API (token)** de l'espace développeur de votre transporteur. Le suivi de ces transporteurs a été construit d'après leur documentation et **n'est pas encore vérifié sur un vrai compte** : le test de connexion l'indique. Signalez tout statut ou montant qui vous paraît faux. Ces transporteurs limitent le nombre de demandes : quand la limite approche, ShoeDZ s'arrête et reprend plus tard (message « trop de demandes, réessai plus tard »).
 
 Un transporteur qui a déjà des expéditions ne peut pas être supprimé : désactivez-le à la place.
 
@@ -71,23 +73,25 @@ Dans le détail d'un colis :
 | identifiants refusés | Remplacez les identifiants dans **Paramètres de Livraison**, puis testez la connexion. |
 | ces identifiants ne permettent pas de lire les commandes | Utilisez le jeton boutique Maystro au lieu d'une clé `ak_`. |
 | transporteur injoignable | Vérifiez la connexion Internet, puis cliquez sur **Actualiser**. |
-| trop de demandes, réessai plus tard | Attendez quelques minutes : la mise à jour reprendra. |
-| suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro ; d'autres transporteurs suivront. |
+| trop de demandes, réessai plus tard | Attendez : la mise à jour reprendra d'elle-même (quelques minutes ; jusqu'à quelques heures pour la famille Yalidine si son quota du jour est presque épuisé). |
+| suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro et la famille Yalidine ; d'autres transporteurs suivront. |
 | mise à jour partielle | Beaucoup de changements d'un coup : cliquez de nouveau sur **Actualiser**. |
 
 ### G. Versements récupérés à l'agence
 
 L'argent récupéré à l'agence du transporteur s'enregistre dans l'onglet **Versements** de la page **Expéditions**. Cet argent **n'entre pas dans la caisse** : il n'apparaît ni dans les sessions de caisse ni dans les rapports Z. Le chiffre à côté de l'onglet indique combien de versements attendent votre confirmation.
 
-**Confirmer un versement annoncé par le transporteur (Maystro)**
+**Confirmer un versement annoncé par le transporteur (Maystro, famille Yalidine)**
 
-ShoeDZ connaît les versements que Maystro a déjà faits. Ils apparaissent dans **Versements Maystro à confirmer**, avec la date, le nombre de colis et le montant attendu (ce que le transporteur doit à la boutique).
+ShoeDZ connaît les versements que le transporteur a déjà faits. Ils apparaissent dans **Versements Maystro à confirmer** (ou le nom de votre transporteur), avec la date, le nombre de colis et le montant attendu (ce que le transporteur doit à la boutique).
 
 1. Cliquez sur **Confirmer** sur la ligne du versement récupéré.
 2. Dans **Montant compté**, saisissez ce que vous avez réellement reçu (le montant attendu est proposé). L'**écart** s'affiche : vert s'il est nul, rouge s'il manque de l'argent, orange s'il y en a trop.
 3. Ajoutez si besoin la **date**, la **référence du transporteur** et une **remarque**, puis cliquez sur **Enregistrer le versement**.
 
 **Anciens versements déjà reçus :** cochez-les (ou cochez la case de l'en-tête pour tout sélectionner), puis cliquez sur **Confirmer la sélection**. Chaque versement est enregistré pour son montant attendu, à sa date de paiement.
+
+**Famille Yalidine :** le transporteur indique quels colis sont payés et dans quel versement, mais **pas la date du versement**. La ligne affiche « Date non fournie » avec le numéro du versement ; la date enregistrée est celle que vous saisissez (aujourd'hui pour une confirmation groupée). Le montant attendu est, pour l'instant, le montant encaissé moins les frais de livraison : comparez-le au bordereau du transporteur.
 
 **Saisie manuelle (bordereau)**
 
