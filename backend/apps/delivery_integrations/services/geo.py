@@ -69,9 +69,15 @@ def get_communes(wilaya_code=None):
 
 # ─── Desks and quotes for a courier account ───────────────────────────────────
 
-def _from_wilaya(config):
+def origin_wilaya(config):
+    """The store's wilaya as the parcel origin (1–58; a 2025 wilaya ships as its parent), or None."""
+    from .communes import ship_wilaya    # communes imports this module
+
     code = (getattr(config.tenant, "wilaya", "") or "").strip()
-    return int(code) if code.isdigit() and 1 <= int(code) <= 58 else None
+    try:
+        return ship_wilaya(code)
+    except ValueError:
+        return None
 
 
 def desks_for(config, wilaya_code):
@@ -87,7 +93,7 @@ def desks_for(config, wilaya_code):
 
 def quote_for(config, *, to_wilaya, delivery_type, to_commune="", cod_amount=None):
     """Fee quote for one route with the account's own prices (cached an hour). Raises DzshipError/ValueError."""
-    from_wilaya = _from_wilaya(config)
+    from_wilaya = origin_wilaya(config)
     key = ":".join(str(p) for p in (
         "deliv:rates", config.pk, from_wilaya or "", int(to_wilaya), delivery_type, to_commune or "",
         int(cod_amount) if cod_amount is not None else "",

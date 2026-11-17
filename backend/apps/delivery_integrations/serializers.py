@@ -481,25 +481,8 @@ class CourierPayoutDetailSerializer(CourierPayoutSerializer):
 
 class CustomerOrderDispatchSerializer(serializers.Serializer):
     """
-    Serializer used when a store manager validates a draft order and dispatches it.
+    Dispatch input (P2.4): only the courier account. Everything else (lines, COD, desk,
+    commune) comes from the saved draft, so what is sent is what was reviewed.
     """
-    # The courier key of one of the store's active ProviderConfigs (e.g. "maystro").
-    provider = serializers.CharField(max_length=50)
-    # The total price the customer pays on delivery (COD amount).
-    # Stores set this manually — it may or may not match the sum of product prices.
-    total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
-    # The manager must select the specific variants that correspond to what the customer ordered.
-    variant_ids = serializers.ListField(
-        child=serializers.UUIDField(),
-        allow_empty=False,
-        help_text="The exact inventory variants to include in the Sale."
-    )
-    quantities = serializers.ListField(
-        child=serializers.IntegerField(min_value=1),
-        allow_empty=False
-    )
+    provider_config = serializers.UUIDField()
 
-    def validate(self, attrs):
-        if len(attrs["variant_ids"]) != len(attrs["quantities"]):
-            raise serializers.ValidationError("variant_ids and quantities must be the same length.")
-        return attrs

@@ -2,6 +2,7 @@
 Delivery endpoints are for managers and owners only, enforced on the server
 (docs/plans/delivery-v1-plan.md P1.2, DL.2, K7; AGENTS.md §4.5).
 """
+import json
 from decimal import Decimal
 from unittest import mock
 
@@ -9,19 +10,29 @@ import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from django.utils import timezone
+
 from apps.core.models import PlanChoices, RoleChoices, StoreSettings, Tenant, User
 from apps.delivery_integrations.models import (
     CustomerOrder,
+    CustomerOrderLine,
     CustomerOrderStatusChoices,
     ProviderConfig,
 )
+from apps.delivery_integrations.services import communes, geo
 from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
 
 CREATE_ORDER = "apps.delivery_integrations.services.dzship_client.DzshipClient.create_order"
 
 
 @pytest.fixture
-def store(db):
+def store(db, settings, tmp_path):
+    settings.DATA_DIR = tmp_path
+    communes._index_cache.update(fetched_at=None, index=None)
+    geo.communes_store.path().write_text(json.dumps({
+        "fetched_at": timezone.now().isoformat(),
+        "rows": [{"wilaya_code": 16, "name_fr": "Bab Ezzouar", "name_ar": "", "ship_as": None}],
+    }), encoding="utf-8")
     tenant = Tenant.objects.create(name="Roles Store", plan=PlanChoices.PRO_RETAIL)
     StoreSettings.objects.create(tenant=tenant, enable_delivery_integrations=True)
     users = {
@@ -44,6 +55,7 @@ def store(db):
         tenant=tenant, customer_name="Client Test", customer_phone="0551234567",
         wilaya="16", commune="Bab Ezzouar",
     )
+    CustomerOrderLine.objects.create(order=order, variant=variant, quantity=1, unit_price=Decimal("4500.00"))
     return tenant, users, config, variant, order
 
 
@@ -93,8 +105,7 @@ def test_cashier_cannot_dispatch_and_courier_is_never_called(store):
     with mock.patch(CREATE_ORDER) as create:
         res = client.post(
             f"/api/v1/deliveries/customer-orders/{order.pk}/dispatch_order/",
-            {"provider": "maystro", "total_price": "4500.00",
-             "variant_ids": [str(variant.pk)], "quantities": [1]},
+            {"provider_config": str(config.pk)},
             format="json",
         )
 
@@ -102,7 +113,7 @@ def test_cashier_cannot_dispatch_and_courier_is_never_called(store):
     create.assert_not_called()
     order.refresh_from_db()
     assert order.status == CustomerOrderStatusChoices.DRAFT
-    assert StockMovement.objects.filter(variant=variant, reason=MovementReasonChoices.SALE).count() == 0
+    assert StockMovement.objects.filter(variant=variant).exclude(reason=MovementReasonChoices.INITIAL).count() == 0
 
 
 @pytest.mark.parametrize("role", [RoleChoices.MANAGER, RoleChoices.OWNER])
@@ -112,11 +123,11 @@ def test_manager_and_owner_can_use_delivery_endpoints(store, role):
 
     assert client.get("/api/v1/deliveries/provider-configs/").status_code == status.HTTP_200_OK
     assert client.get("/api/v1/deliveries/customer-orders/").status_code == status.HTTP_200_OK
-    with mock.patch(CREATE_ORDER, return_value={"trackingNumber": "MAY-R1"}):
+    with mock.patch(CREATE_ORDER, return_value={"trackingNumber": "MAY-R1"}), \
+            mock.patch("apps.delivery_integrations.views.sync.request_sync"):
         res = client.post(
             f"/api/v1/deliveries/customer-orders/{order.pk}/dispatch_order/",
-            {"provider": "maystro", "total_price": "4500.00",
-             "variant_ids": [str(variant.pk)], "quantities": [1]},
+            {"provider_config": str(config.pk)},
             format="json",
         )
     assert res.status_code == status.HTTP_200_OK

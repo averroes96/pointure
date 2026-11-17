@@ -14,12 +14,9 @@ from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.closing.services.lock import assert_period_open
 from apps.core.models import Commune, StoreSettings, Tenant
 from apps.core.permissions import RolePermission
 from apps.core.plan_permissions import PlanRequired
-from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
-from apps.sales.models import Sale, SaleItem, SaleStatusChoices
 from .models import (
     ProviderConfig, CustomerOrder, CustomerOrderStatusChoices, Shipment,
 )
@@ -31,7 +28,7 @@ from .serializers import (
     CourierPayoutSerializer, ConfirmCourierPayoutsSerializer,
 )
 from .models import CourierPayout
-from .services import catalogue, communes, couriers, geo, payouts, sync
+from .services import catalogue, communes, couriers, dispatch, geo, payouts, sync
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -225,12 +222,7 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
         config = self.get_object()
         if not config.is_active:
             raise ValidationError(_("Ce transporteur est désactivé."))
-        # The catalogue names the credentials each courier needs (none for the sandbox).
-        # Unknown to the snapshot (offline first run): let dzship answer.
-        entry = catalogue.get_courier(config.courier)
-        required = entry["required_credentials"] if entry else []
-        saved = config.credentials or {}
-        if any(not saved.get(name) for name in required):
+        if not dispatch.credentials_complete(config):
             raise ValidationError(_("Les identifiants de ce transporteur sont incomplets."))
         return config
 
@@ -323,140 +315,67 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
     @action(detail=True, methods=["post"])
     def dispatch_order(self, request, pk=None):
         """
-        Validates a draft order, sends it to the courier through dzship, then records
-        the Sale, its lines and one SALE StockMovement per line.
+        POST …/customer-orders/{id}/dispatch_order/ {"provider_config": "<uuid>"}
 
-        Order of operations (AGENTS.md §3, §4.4, §4.7):
-          1. validate everything locally (variants, courier config, open period);
-          2. claim the draft with a conditional UPDATE so a double click cannot send twice;
-          3. call the courier OUTSIDE any transaction;
-          4. record Sale + stock in one short transaction.
-        If the courier refuses, the order goes back to draft and nothing is recorded.
+        Sends the saved draft to the courier through dzship (docs/plans/delivery-v1-plan.md
+        P2.4; steps in services/dispatch.py). Stock leaves once the courier took the
+        parcel; the sale is created at delivery (P2.5). If the courier refuses, the order
+        goes back to draft and nothing is recorded.
         """
         customer_order = self.get_object()
         tenant = self._get_tenant()
-        if customer_order.status != CustomerOrderStatusChoices.DRAFT:
-            raise ValidationError(_("Cette commande n'est plus un brouillon."))
-
         serializer = CustomerOrderDispatchSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        provider_name = serializer.validated_data["provider"]
-        total_price = serializer.validated_data["total_price"]  # COD amount set by the store
-        variant_ids = serializer.validated_data["variant_ids"]
-        quantities = serializer.validated_data["quantities"]
-
-        # 1. Validate locally before any courier call.
-        provider_config = ProviderConfig.objects.filter(
-            tenant=tenant, courier=provider_name, is_active=True
+        config = ProviderConfig.objects.filter(
+            tenant=tenant, pk=serializer.validated_data["provider_config"]
         ).first()
-        if not provider_config:
-            raise ValidationError(_("Ce transporteur n'est pas configuré ou est désactivé."))
-        entry = catalogue.get_courier(provider_config.courier)
-        required = entry["required_credentials"] if entry else []
-        saved = provider_config.credentials or {}
-        if not saved or any(not saved.get(name) for name in required):
-            raise ValidationError(_(
-                "Les identifiants de ce transporteur sont incomplets. Complétez-les dans "
-                "Paramètres → Paramètres de Livraison."
-            ))
+        if config is None:
+            raise ValidationError({"provider_config": [_("Ce transporteur n'est pas configuré.")]})
 
-        variant_map = {
-            str(v.id): v
-            for v in Variant.objects.select_related("product").filter(tenant=tenant, id__in=variant_ids)
-        }
-        sale_items = []
-        for v_id, qty in zip(variant_ids, quantities):
-            variant = variant_map.get(str(v_id))
-            if variant is None:
-                raise ValidationError(_("Un des articles sélectionnés est introuvable."))
-            sale_items.append((variant, qty, variant.product.sale_price))
+        # 1. Local checks and the payload; nothing has changed yet.
+        plan = dispatch.prepare(customer_order, config, tenant)
 
-        # StockMovement.save() refuses a closed fiscal period; refuse before shipping anything.
-        assert_period_open(tenant, timezone.localdate())
+        # 2. Claim the draft (atomic conditional UPDATE; select_for_update is a no-op on SQLite).
+        if not dispatch.claim(customer_order, tenant):
+            raise ValidationError({"status": [_("Cette commande n'est plus un brouillon.")]})
 
-        # 2. Claim the draft. On SQLite select_for_update() is a no-op, but a
-        #    conditional UPDATE is atomic: only one request can move draft → confirmed.
-        claimed = CustomerOrder.objects.filter(
-            pk=customer_order.pk, tenant=tenant, status=CustomerOrderStatusChoices.DRAFT
-        ).update(status=CustomerOrderStatusChoices.CONFIRMED, updated_at=timezone.now())
-        if not claimed:
-            raise ValidationError(_("Cette commande n'est plus un brouillon."))
-
-        order_data = {
-            # Our id, so the parcel can be found on the courier side if the answer is lost.
-            "reference": str(customer_order.pk),
-            "recipient": {
-                "fullName": customer_order.customer_name,
-                "phone": customer_order.customer_phone,
-                "wilayaCode": int(customer_order.wilaya) if customer_order.wilaya.isdigit() else None,
-                "communeName": customer_order.commune,
-            },
-            "deliveryType": "home",
-            "productList": " / ".join(f"{v.product.name} x{qty}" for v, qty, _price in sale_items),
-            "codAmount": float(total_price),  # The store-set price, delivery fees handled by delivery service
-        }
         # 3. Courier call, outside any transaction.
         try:
-            dzship_response = DzshipClient.create_order(
-                provider_config.courier, saved, order_data, base_url=provider_config.base_url
+            answer = DzshipClient.create_order(
+                config.courier, config.credentials or {}, plan.order_data,
+                base_url=config.base_url, from_wilaya=plan.from_wilaya,
             )
         except Exception as exc:
-            self._release_claim(customer_order, tenant)
+            dispatch.release(customer_order, tenant)
             if isinstance(exc, DzshipError) and exc.outcome_uncertain:
                 raise CourierUnreachable()
             if not isinstance(exc, DzshipError):
-                logger.exception("Unexpected error while sending order %s to %s", customer_order.pk, provider_name)
-            raise CourierUnavailable()
+                logger.exception("Unexpected error while sending order %s to %s", customer_order.pk, config.courier)
+                raise CourierUnavailable()
+            raise CourierUnavailable(detail={
+                "message": CourierUnavailable.default_detail,
+                "courier_message": exc.courier_message,
+            })
 
-        tracking_number = (dzship_response or {}).get("trackingNumber")
+        tracking_number = str((answer or {}).get("trackingNumber") or "")[:100] or None
 
-        # 4. Record the sale and the stock in one short transaction.
+        # 4. Stock out and order dispatched, in one short transaction.
         try:
-            with transaction.atomic():
-                sale = Sale.objects.create(
-                    tenant=tenant,
-                    cashier=request.user,
-                    status=SaleStatusChoices.COMPLETED,
-                    total_amount=total_price,
-                    notes=f"Delivery Order: {customer_order.id}",
-                )
-                for variant, qty, price in sale_items:
-                    SaleItem.objects.create(sale=sale, variant=variant, quantity=qty, unit_price=price)
-                    StockMovement.objects.create(
-                        tenant=tenant,
-                        variant=variant,
-                        quantity_delta=-qty,
-                        reason=MovementReasonChoices.SALE,
-                        reference_id=str(sale.pk),
-                        reference_type="Sale",
-                        notes=f"Delivery Order: {customer_order.id}",
-                        user=request.user,
-                    )
-
-                customer_order.refresh_from_db()
-                customer_order.sale = sale
-                customer_order.provider = provider_name
-                customer_order.status = CustomerOrderStatusChoices.DISPATCHED
-                customer_order.tracking_number = tracking_number
-                customer_order.save()
+            order = dispatch.record_dispatch(customer_order, plan, config, tracking_number, request.user)
         except Exception:
-            # The parcel exists at the courier: keep the order out of draft (no resend)
-            # and keep its tracking number, then tell the manager.
+            # The parcel exists at the courier: keep the order out of draft (no resend).
             logger.exception(
                 "Order %s was accepted by %s (tracking %s) but could not be recorded",
-                customer_order.pk, provider_name, tracking_number,
+                customer_order.pk, config.courier, tracking_number,
             )
-            CustomerOrder.objects.filter(pk=customer_order.pk, tenant=tenant).update(
-                provider=provider_name, tracking_number=tracking_number, updated_at=timezone.now()
-            )
+            dispatch.keep_accepted(customer_order, tenant, config, tracking_number)
             return Response(
                 {
                     "error": {
                         "code": "recorded_failed",
                         "message": str(_(
-                            "Le colis a été créé chez le transporteur (suivi %(tracking)s) mais la vente "
-                            "n'a pas pu être enregistrée. Ne renvoyez pas la commande ; contactez le support."
+                            "Le colis a été créé chez le transporteur (suivi %(tracking)s) mais le stock "
+                            "n'a pas pu être enregistré. Ne renvoyez pas la commande ; contactez le support."
                         ) % {"tracking": tracking_number or "-"}),
                         "details": {},
                         "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -465,14 +384,20 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        return Response({"detail": _("Commande envoyée au transporteur."), "trackingNumber": tracking_number})
+        # 5. Fetch the new parcel in the background so its Shipment appears and links back.
+        transaction.on_commit(lambda: _request_sync_quietly(config.pk))
+        return Response({
+            "detail": _("Commande envoyée au transporteur."),
+            "trackingNumber": tracking_number,
+            "order": CustomerOrderSerializer(order, context=self.get_serializer_context()).data,
+        })
 
-    @staticmethod
-    def _release_claim(customer_order, tenant):
-        """Put a claimed order back to draft after the courier did not take it."""
-        CustomerOrder.objects.filter(
-            pk=customer_order.pk, tenant=tenant, status=CustomerOrderStatusChoices.CONFIRMED
-        ).update(status=CustomerOrderStatusChoices.DRAFT, updated_at=timezone.now())
+
+def _request_sync_quietly(config_id):
+    try:
+        sync.request_sync(config_id, "dispatch")
+    except Exception:
+        logger.exception("Could not start the shipment sync after a dispatch")
 
 
 class ShipmentRefreshThrottle(UserRateThrottle):

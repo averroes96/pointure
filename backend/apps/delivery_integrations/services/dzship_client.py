@@ -26,10 +26,13 @@ class DzshipError(Exception):
 
     UNCERTAIN_CODES = frozenset({"TIMEOUT", "NETWORK_ERROR"})
 
-    def __init__(self, code, status_code=None):
+    def __init__(self, code, status_code=None, courier_message=""):
         super().__init__(code)
         self.code = code
         self.status_code = status_code
+        # dzship's explanation of a refusal (e.g. Maystro's 24 h duplicate rule). It may
+        # echo the customer's details: shown to the store's manager, never logged.
+        self.courier_message = courier_message
 
     @property
     def outcome_uncertain(self):
@@ -66,9 +69,9 @@ class DzshipClient:
             raise DzshipError("TIMEOUT")
         except requests.HTTPError as e:
             status_code = getattr(e.response, "status_code", None)
-            code = cls._error_code(e.response)
+            code, message = cls._error(e.response)
             logger.warning("dzship %s refused (courier=%s, http=%s, code=%s)", op, courier, status_code, code)
-            raise DzshipError(code, status_code)
+            raise DzshipError(code, status_code, message)
         except requests.RequestException:
             logger.warning("dzship %s network error (courier=%s)", op, courier, exc_info=True)
             raise DzshipError("NETWORK_ERROR")
@@ -93,14 +96,16 @@ class DzshipClient:
         return payload
 
     @staticmethod
-    def _error_code(response):
-        """Read dzship's error envelope {"error": {"code": ...}} without trusting its shape."""
+    def _error(response):
+        """(code, message) from dzship's envelope {"error": {"code", "message"}}, without trusting its shape."""
         try:
             error = (response.json() or {}).get("error") or {}
             code = error.get("code")
-            return str(code) if code else "HTTP_ERROR"
+            message = error.get("message")
         except (ValueError, AttributeError):
-            return "HTTP_ERROR"
+            return "HTTP_ERROR", ""
+        message = " ".join(message.split())[:300] if isinstance(message, str) else ""
+        return (str(code)[:50] if code else "HTTP_ERROR"), message
 
     # ── create ────────────────────────────────────────────────────────────────
     @classmethod
