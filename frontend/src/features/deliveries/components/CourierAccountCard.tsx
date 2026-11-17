@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, KeyRound, Trash2 } from "lucide-react";
-import type { CourierAccount } from "../types";
+import { AlertTriangle, KeyRound, PlugZap, Trash2 } from "lucide-react";
+import type { CourierAccount, CourierTestResult } from "../types";
 import { credentialLabel } from "../credentialLabels";
+import { testResultMessage } from "../testResultMessage";
 
 interface Props {
   account: CourierAccount;
@@ -10,13 +11,27 @@ interface Props {
   onSaveCredential: (name: string, value: string) => void;
   onToggleActive: () => void;
   onDelete: () => void;
+  onTest: () => void;
+  testing: boolean;
+  testResult?: CourierTestResult;
 }
+
+const TONE_CLASS = { success: "badge badge-success", warning: "badge badge-warning", danger: "badge badge-danger" };
 
 /**
  * One configured courier. Saved secrets are never shown: each credential reads
  * "saved" with a Replace button, and missing ones can be filled in place.
  */
-export default function CourierAccountCard({ account, saving, onSaveCredential, onToggleActive, onDelete }: Props) {
+export default function CourierAccountCard({
+  account,
+  saving,
+  onSaveCredential,
+  onToggleActive,
+  onDelete,
+  onTest,
+  testing,
+  testResult,
+}: Props) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState("");
@@ -82,6 +97,23 @@ export default function CourierAccountCard({ account, saving, onSaveCredential, 
           </span>
         </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onTest}
+          disabled={testing || account.missing_credentials.length > 0}
+        >
+          <PlugZap className="w-4 h-4" />
+          <span>{testing ? t("deliveries.test_running") : t("deliveries.test_connection")}</span>
+        </button>
+        {testResult && !testing && (
+          <span role="status" className={TONE_CLASS[testResultMessage(t, testResult).tone]}>
+            {testResultMessage(t, testResult).text}
+          </span>
+        )}
+      </div>
 
       <ul className="divide-y divide-slate-100 dark:divide-slate-800">
         {names.map((name) => {

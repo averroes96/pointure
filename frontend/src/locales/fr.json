@@ -1759,7 +1759,17 @@
     "cred_key": "Clé",
     "cred_publicKey": "Clé publique",
     "cred_tenantId": "Identifiant du compte (Tenant ID)",
-    "cred_token": "Jeton (token)"
+    "cred_token": "Jeton (token)",
+    "test_connection": "Tester la connexion",
+    "test_running": "Vérification…",
+    "test_ok": "Connexion réussie.",
+    "test_ok_limited": "Connexion réussie, mais ces identifiants ne permettent pas de lire les commandes ni les versements.",
+    "test_refused": "Identifiants refusés par le transporteur.",
+    "test_forbidden": "Identifiants valides, mais l'accès à ces informations est refusé.",
+    "test_rate_limited": "Trop de vérifications. Réessayez dans {{seconds}} s.",
+    "test_unreachable": "Transporteur injoignable. Vérifiez la connexion Internet.",
+    "test_not_supported": "Vérification pas encore disponible pour ce transporteur.",
+    "test_error": "La vérification a échoué. Réessayez plus tard."
   },
   "carton": {
     "add_cartons_title": "Ajouter des cartons (Série)",

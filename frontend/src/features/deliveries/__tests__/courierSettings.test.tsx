@@ -5,7 +5,7 @@ import i18n from "@/lib/i18n";
 import AddCourierForm from "../components/AddCourierForm";
 import CourierAccountCard from "../components/CourierAccountCard";
 import { credentialLabel } from "../credentialLabels";
-import type { CourierAccount, CourierCatalogueEntry } from "../types";
+import type { CourierAccount, CourierCatalogueEntry, CourierTestResult } from "../types";
 
 const t = i18n.t.bind(i18n);
 
@@ -118,6 +118,8 @@ describe("CourierAccountCard", () => {
         onSaveCredential={onSaveCredential}
         onToggleActive={vi.fn()}
         onDelete={vi.fn()}
+        onTest={vi.fn()}
+        testing={false}
       />,
     );
 
@@ -134,5 +136,39 @@ describe("CourierAccountCard", () => {
     await user.type(input, "new-token");
     await user.click(screen.getByRole("button", { name: t("common.save") }));
     expect(onSaveCredential).toHaveBeenCalledWith("apiToken", "new-token");
+  });
+
+  it("disables the test while credentials are missing", () => {
+    render(
+      <CourierAccountCard account={account} saving={false} onSaveCredential={vi.fn()} onToggleActive={vi.fn()}
+        onDelete={vi.fn()} onTest={vi.fn()} testing={false} />,
+    );
+    expect(screen.getByRole("button", { name: t("deliveries.test_connection") })).toBeDisabled();
+  });
+
+  const resultCases: [CourierTestResult, string][] = [
+    [{ result: "ok", capabilities: ["list", "test"], limited: false }, "deliveries.test_ok"],
+    [{ result: "ok", capabilities: ["test"], limited: true }, "deliveries.test_ok_limited"],
+    [{ result: "refused" }, "deliveries.test_refused"],
+    [{ result: "unreachable" }, "deliveries.test_unreachable"],
+    [{ result: "not_supported", reason: "no_connector" }, "deliveries.test_not_supported"],
+  ];
+
+  it.each(resultCases)("runs the test and shows the result %#", async (testResult, key) => {
+    const user = userEvent.setup();
+    const onTest = vi.fn();
+    const complete = { ...account, saved_credentials: ["apiId", "apiToken"], missing_credentials: [] };
+    const { rerender } = render(
+      <CourierAccountCard account={complete} saving={false} onSaveCredential={vi.fn()} onToggleActive={vi.fn()}
+        onDelete={vi.fn()} onTest={onTest} testing={false} />,
+    );
+    await user.click(screen.getByRole("button", { name: t("deliveries.test_connection") }));
+    expect(onTest).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <CourierAccountCard account={complete} saving={false} onSaveCredential={vi.fn()} onToggleActive={vi.fn()}
+        onDelete={vi.fn()} onTest={onTest} testing={false} testResult={testResult} />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(t(key));
   });
 });

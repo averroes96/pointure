@@ -17,6 +17,13 @@ export interface CourierCatalogue {
   refreshing: boolean;
 }
 
+/** POST /deliveries/provider-configs/{id}/test/ */
+export type CourierTestResult =
+  | { result: "ok"; capabilities: string[]; limited: boolean }
+  | { result: "rate_limited"; retry_after: number }
+  | { result: "not_supported"; reason: string }
+  | { result: "refused" | "forbidden" | "unreachable" | "error" };
+
 /** One courier account of the store (GET /deliveries/provider-configs/). Secrets are never returned. */
 export interface CourierAccount {
   id: string;

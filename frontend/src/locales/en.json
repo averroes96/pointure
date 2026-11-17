@@ -1759,7 +1759,17 @@
     "cred_key": "Key",
     "cred_publicKey": "Public key",
     "cred_tenantId": "Account ID (tenant ID)",
-    "cred_token": "Token"
+    "cred_token": "Token",
+    "test_connection": "Test connection",
+    "test_running": "Checking…",
+    "test_ok": "Connection works.",
+    "test_ok_limited": "Connection works, but these credentials cannot read orders or payouts.",
+    "test_refused": "The courier refused these credentials.",
+    "test_forbidden": "The credentials are valid, but access to this information is refused.",
+    "test_rate_limited": "Too many checks. Try again in {{seconds}} s.",
+    "test_unreachable": "The courier cannot be reached. Check the internet connection.",
+    "test_not_supported": "Checking is not available for this courier yet.",
+    "test_error": "The check failed. Try again later."
   },
   "carton": {
     "add_cartons_title": "Add Cartons (Series)",

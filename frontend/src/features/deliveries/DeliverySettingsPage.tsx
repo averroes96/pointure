@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Truck } from "lucide-react";
 import api, { getApiError } from "@/lib/api";
 import AddCourierForm from "./components/AddCourierForm";
 import CourierAccountCard from "./components/CourierAccountCard";
-import type { CourierAccount } from "./types";
+import type { CourierAccount, CourierTestResult } from "./types";
 import { useCourierCatalogue } from "./useCourierCatalogue";
 
 const ACCOUNTS_KEY = ["provider-configs"];
@@ -47,6 +47,14 @@ export default function DeliverySettingsPage() {
     mutationFn: ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
       api.patch(`/deliveries/provider-configs/${id}/`, payload),
     onSuccess: onDone,
+    onError: (err) => flash("error", getApiError(err)),
+  });
+
+  const [testResults, setTestResults] = useState<Record<string, CourierTestResult>>({});
+  const testMutation = useMutation({
+    mutationFn: async (id: string) =>
+      (await api.post<CourierTestResult>(`/deliveries/provider-configs/${id}/test/`)).data,
+    onSuccess: (data, id) => setTestResults((prev) => ({ ...prev, [id]: data })),
     onError: (err) => flash("error", getApiError(err)),
   });
 
@@ -117,6 +125,9 @@ export default function DeliverySettingsPage() {
             onDelete={() => {
               if (window.confirm(t("deliveries.delete_courier_confirm"))) deleteMutation.mutate(account.id);
             }}
+            onTest={() => testMutation.mutate(account.id)}
+            testing={testMutation.isPending && testMutation.variables === account.id}
+            testResult={testResults[account.id]}
           />
         ))}
         {accounts.length === 0 && (

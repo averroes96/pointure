@@ -236,6 +236,10 @@ class CourierReadConnector:
         """tuple[PayoutLine, ...] for one payout."""
         raise ConnectorNotSupported()
 
+    def pending_payout_lines(self) -> tuple:
+        """tuple[PayoutLine, ...] of the payout the courier is preparing (the "ready" stage)."""
+        raise ConnectorNotSupported()
+
     # ── shared ────────────────────────────────────────────────────────────────
     def supports(self, capability: str) -> bool:
         return capability in self.capabilities

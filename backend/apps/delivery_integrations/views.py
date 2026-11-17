@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.throttling import UserRateThrottle
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
@@ -22,7 +23,7 @@ from .serializers import (
     ProviderConfigSerializer, CustomerOrderSerializer,
     CustomerOrderDispatchSerializer,
 )
-from .services import catalogue
+from .services import catalogue, couriers
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -67,6 +68,12 @@ class DeliveryIntegrationsGuardMixin:
                 raise Http404("Delivery integrations are disabled.")
 
 
+class CourierTestThrottle(UserRateThrottle):
+    """Each test calls the courier's API: 10 per minute per user is plenty."""
+    scope = "courier_test"
+    rate = "10/min"
+
+
 class CourierCatalogueQuerySerializer(serializers.Serializer):
     refresh = serializers.BooleanField(required=False, default=False)
 
@@ -95,6 +102,40 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
     ordering = ["courier"]
     # PATCH merges credentials (replace one field at a time); no PUT.
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    @action(detail=True, methods=["post"], throttle_classes=[CourierTestThrottle])
+    def test(self, request, pk=None):
+        """
+        POST /deliveries/provider-configs/{id}/test/ — check the saved credentials with the
+        courier's own API (read connector, P1.7). Always 200 with a `result`:
+        ok | refused | forbidden | rate_limited | unreachable | not_supported | error.
+        No database write; the courier call is outside any transaction.
+        """
+        config = self.get_object()
+        try:
+            connector = couriers.get_connector(config)
+            connector.test_credentials()
+        except couriers.ConnectorNotSupported as exc:
+            return Response({"result": "not_supported", "reason": exc.reason})
+        except couriers.ConnectorAuthError:
+            return Response({"result": "refused"})
+        except couriers.ConnectorForbidden:
+            return Response({"result": "forbidden"})
+        except couriers.ConnectorRateLimited as exc:
+            return Response({"result": "rate_limited", "retry_after": exc.retry_after})
+        except couriers.ConnectorUnavailable:
+            return Response({"result": "unreachable"})
+        except couriers.ConnectorError:
+            return Response({"result": "error"})
+        except Exception:
+            logger.exception("Courier test failed unexpectedly (config %s)", config.pk)
+            return Response({"result": "error"})
+        return Response({
+            "result": "ok",
+            "capabilities": sorted(connector.capabilities),
+            # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts.
+            "limited": not connector.supports(couriers.Capability.LIST),
+        })
     # Managers and owners only (no role_permissions map → RolePermission default).
     permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 

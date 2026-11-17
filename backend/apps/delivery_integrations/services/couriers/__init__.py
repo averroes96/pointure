@@ -22,3 +22,6 @@ from .base import (  # noqa: F401
 )
 from .registry import get_connector, register  # noqa: F401
 from .vocabulary import TERMINAL_STATUSES, CashStatus, ShipmentStatus  # noqa: F401
+
+# Connector modules: importing them runs their @register.
+from . import maystro  # noqa: F401,E402
