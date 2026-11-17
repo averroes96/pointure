@@ -74,3 +74,19 @@ In a parcel's details:
 | too many requests, retrying later | Wait a few minutes: updating will resume. |
 | tracking not available for this courier yet | Tracking exists today for Maystro; other couriers will follow. |
 | partial update | Many changes at once: click **Refresh** again. |
+
+### G. Recording a Payout Picked Up at the Agency
+
+When you collect your parcels' money at the courier's agency, record it to know what was paid and to check the amount. This money **does not go into the till**: it appears neither in cash sessions nor in Z reports.
+
+1. On the **Shipments** page, click **Record a payout**.
+2. Choose the paid parcels, one way or both:
+   - **Payout reported by the courier:** for Maystro, ShoeDZ knows the payouts already made. Click the matching line (date, number of parcels, amount).
+   - **Tracking numbers from the agency sheet:** paste or scan the numbers, one per line.
+3. Click **Check the parcels**. ShoeDZ shows the number of parcels and the **expected amount** (what the courier owes the store). Unknown numbers and parcels that are not delivered or already recorded are listed: fix the list and check again.
+4. In **Amount counted**, enter what you actually received. The **difference** appears: green when it is zero, red when money is missing, amber when there is too much.
+5. Add the **date**, the **courier's reference** and a **note** if needed, then click **Record the payout**.
+
+The parcels become **Paid**. The **Payouts** tab lists the recorded payouts: date, courier, number of parcels, expected, received and difference. Click a line's arrow to see its parcels. "Not confirmed by the courier" marks parcels the courier has not reported as paid yet: check them with the courier.
+
+**Made a mistake?** Click **Void** on the payout's line: every parcel gets back the state it had before, and you can record the payout again. A payout cannot be edited or deleted.

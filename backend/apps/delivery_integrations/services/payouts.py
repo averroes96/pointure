@@ -44,11 +44,11 @@ def expected_expression():
     )
 
 
-def record_payout(*, tenant, user, courier, amount_received, picked_up_on=None, courier_reference="",
-                  notes="", shipment_ids=(), trackings=(), courier_payout_ref="") -> CourierPayout:
+def _resolve(*, tenant, courier, shipment_ids=(), trackings=(), courier_payout_ref=""):
     """
-    Create a payout covering the given parcels. All-or-nothing: any unknown,
-    ineligible or already-recorded parcel refuses the whole payout with the list.
+    Turn the requested parcels into (config, eligible shipments, expected amount).
+    Raises ValidationError listing unknown or refused parcels. Reads only.
+    Shared by `preview_payout` and `record_payout` so both apply the same rules.
     """
     config = ProviderConfig.objects.unscoped().filter(tenant=tenant, courier=courier).first()
     if config is None:
@@ -74,23 +74,51 @@ def record_payout(*, tenant, user, courier, amount_received, picked_up_on=None, 
     if not ids:
         raise ValidationError({"shipments": _("Choisissez au moins un colis.")})
 
-    with transaction.atomic():
-        shipments = list(mine.filter(pk__in=ids))
-        if len(shipments) != len(ids):
-            raise ValidationError({"shipments": _("Certains colis sont introuvables pour ce transporteur.")})
-        refused = sorted(
-            s.tracking_number or str(s.pk) for s in shipments
-            if s.payout_id is not None or s.cash_status not in ELIGIBLE_CASH
-        )
-        if refused:
-            raise ValidationError({
-                "shipments": _(
-                    "Ces colis ne peuvent pas être inclus (non livrés, sans montant ou déjà enregistrés) : %(list)s"
-                ) % {"list": ", ".join(refused)},
-                "refused_trackings": refused,
-            })
+    shipments = list(mine.filter(pk__in=ids))
+    if len(shipments) != len(ids):
+        raise ValidationError({"shipments": _("Certains colis sont introuvables pour ce transporteur.")})
+    refused = sorted(
+        s.tracking_number or str(s.pk) for s in shipments
+        if s.payout_id is not None or s.cash_status not in ELIGIBLE_CASH
+    )
+    if refused:
+        raise ValidationError({
+            "shipments": _(
+                "Ces colis ne peuvent pas être inclus (non livrés, sans montant ou déjà enregistrés) : %(list)s"
+            ) % {"list": ", ".join(refused)},
+            "refused_trackings": refused,
+        })
+    expected = sum((expected_for(s) for s in shipments), ZERO).quantize(CENT)
+    return config, shipments, expected
 
-        expected = sum((expected_for(s) for s in shipments), ZERO).quantize(CENT)
+
+def preview_payout(*, tenant, courier, shipment_ids=(), trackings=(), courier_payout_ref="") -> dict:
+    """Dry run of `record_payout`: same checks and totals, nothing written."""
+    config, shipments, expected = _resolve(
+        tenant=tenant, courier=courier, shipment_ids=shipment_ids, trackings=trackings,
+        courier_payout_ref=courier_payout_ref,
+    )
+    return {
+        "courier": courier,
+        "count": len(shipments),
+        "expected_amount": str(expected),
+        "shipment_ids": sorted(str(s.pk) for s in shipments),
+        "trackings": sorted(s.tracking_number for s in shipments if s.tracking_number),
+    }
+
+
+def record_payout(*, tenant, user, courier, amount_received, picked_up_on=None, courier_reference="",
+                  notes="", shipment_ids=(), trackings=(), courier_payout_ref="") -> CourierPayout:
+    """
+    Create a payout covering the given parcels. All-or-nothing: any unknown,
+    ineligible or already-recorded parcel refuses the whole payout with the list.
+    """
+    with transaction.atomic():
+        config, shipments, expected = _resolve(
+            tenant=tenant, courier=courier, shipment_ids=shipment_ids, trackings=trackings,
+            courier_payout_ref=courier_payout_ref,
+        )
+        ids = {str(s.pk) for s in shipments}
         received = Decimal(amount_received).quantize(CENT)
         payout = CourierPayout.objects.create(
             tenant=tenant,

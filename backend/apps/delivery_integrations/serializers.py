@@ -243,18 +243,22 @@ class ShipmentQuerySerializer(serializers.Serializer):
         return attrs
 
 
-class CourierPayoutCreateSerializer(serializers.Serializer):
-    """Input for POST /deliveries/payouts/. Totals are never accepted from the client."""
+class CourierPayoutPreviewSerializer(serializers.Serializer):
+    """Parcels of a payout: by id, pasted tracking numbers and/or one courier payout."""
     courier = serializers.CharField(max_length=50)
-    amount_received = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
-    picked_up_on = serializers.DateField(required=False)
-    courier_reference = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
-    notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
     shipment_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list, max_length=1000)
     trackings = serializers.ListField(
         child=serializers.CharField(max_length=64, allow_blank=True), required=False, default=list, max_length=1000,
     )
     courier_payout_ref = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+
+
+class CourierPayoutCreateSerializer(CourierPayoutPreviewSerializer):
+    """Input for POST /deliveries/payouts/. Totals are never accepted from the client."""
+    amount_received = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
+    picked_up_on = serializers.DateField(required=False)
+    courier_reference = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
 
     def validate_picked_up_on(self, value):
         if value > timezone.localdate():

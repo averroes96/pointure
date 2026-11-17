@@ -27,7 +27,8 @@ from .serializers import (
     ProviderConfigSerializer, CustomerOrderSerializer,
     CustomerOrderDispatchSerializer, ShipmentDetailSerializer,
     ShipmentQuerySerializer, ShipmentSerializer,
-    CourierPayoutCreateSerializer, CourierPayoutDetailSerializer, CourierPayoutSerializer,
+    CourierPayoutCreateSerializer, CourierPayoutDetailSerializer, CourierPayoutPreviewSerializer,
+    CourierPayoutSerializer,
 )
 from .models import CourierPayout
 from .services import catalogue, couriers, payouts, sync
@@ -529,6 +530,13 @@ class CourierPayoutViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
     @action(detail=False, methods=["get"], url_path="to-record")
     def to_record(self, request):
         return Response({"couriers": payouts.to_record(self._get_tenant())})
+
+    @action(detail=False, methods=["post"])
+    def preview(self, request):
+        """Same checks and expected amount as recording, without writing anything."""
+        data = CourierPayoutPreviewSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        return Response(payouts.preview_payout(tenant=self._get_tenant(), **data.validated_data))
 
 
 class ExternalOrderIngestionView(DeliveryIntegrationsGuardMixin, views.APIView):

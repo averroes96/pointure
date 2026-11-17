@@ -74,3 +74,19 @@ Dans le détail d'un colis :
 | trop de demandes, réessai plus tard | Attendez quelques minutes : la mise à jour reprendra. |
 | suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro ; d'autres transporteurs suivront. |
 | mise à jour partielle | Beaucoup de changements d'un coup : cliquez de nouveau sur **Actualiser**. |
+
+### G. Enregistrer un versement récupéré à l'agence
+
+Quand vous récupérez l'argent de vos colis à l'agence du transporteur, enregistrez-le pour savoir ce qui a été payé et vérifier le montant. Cet argent **n'entre pas dans la caisse** : il n'apparaît ni dans les sessions de caisse ni dans les rapports Z.
+
+1. Sur la page **Expéditions**, cliquez sur **Enregistrer un versement**.
+2. Choisissez les colis payés, de l'une ou des deux façons :
+   - **Versement annoncé par le transporteur :** pour Maystro, ShoeDZ connaît les versements déjà faits. Cliquez sur la ligne qui correspond (date, nombre de colis, montant).
+   - **Numéros de suivi du bordereau de l'agence :** collez ou scannez les numéros, un par ligne.
+3. Cliquez sur **Vérifier les colis**. ShoeDZ affiche le nombre de colis et le **montant attendu** (ce que le transporteur doit à la boutique). Les numéros inconnus, les colis non livrés ou déjà enregistrés sont listés : corrigez la liste et vérifiez de nouveau.
+4. Dans **Montant compté**, saisissez ce que vous avez réellement reçu. L'**écart** s'affiche : vert s'il est nul, rouge s'il manque de l'argent, orange s'il y en a trop.
+5. Ajoutez si besoin la **date**, la **référence du transporteur** et une **remarque**, puis cliquez sur **Enregistrer le versement**.
+
+Les colis passent à **Versé**. L'onglet **Versements** liste les versements enregistrés : date, transporteur, nombre de colis, attendu, reçu et écart. Cliquez sur la flèche d'une ligne pour voir ses colis. La mention « non confirmés par le transporteur » signale des colis que le transporteur n'a pas encore déclarés payés : vérifiez-les avec lui.
+
+**Erreur de saisie ?** Cliquez sur **Annuler** sur la ligne du versement : chaque colis retrouve l'état qu'il avait avant, et vous pouvez enregistrer le versement de nouveau. Un versement ne se modifie pas et ne se supprime pas.

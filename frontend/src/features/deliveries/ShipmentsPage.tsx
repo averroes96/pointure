@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { PackageSearch } from "lucide-react";
 import { getApiError } from "@/lib/api";
 import api from "@/lib/api";
+import PayoutsPanel from "./components/PayoutsPanel";
+import RecordPayoutModal from "./components/RecordPayoutModal";
 import ShipmentDrawer from "./components/ShipmentDrawer";
 import ShipmentFiltersBar from "./components/ShipmentFiltersBar";
 import ShipmentSummaryCards, { type CardKey } from "./components/ShipmentSummaryCards";
@@ -42,6 +44,8 @@ export default function ShipmentsPage() {
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"shipments" | "payouts">("shipments");
+  const [recordOpen, setRecordOpen] = useState(false);
 
   // Debounce typing in the search box.
   useEffect(() => {
@@ -93,12 +97,32 @@ export default function ShipmentsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          {t("deliveries.shipments_title")}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("deliveries.shipments_subtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            {t("deliveries.shipments_title")}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("deliveries.shipments_subtitle")}</p>
+        </div>
+        {accounts.length > 0 && (
+          <button type="button" className="btn-primary shrink-0" onClick={() => setRecordOpen(true)}>
+            {t("deliveries.payout_record_button")}
+          </button>
+        )}
       </div>
+
+      {accounts.length > 0 && (
+        <div role="tablist" className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
+          {(["shipments", "payouts"] as const).map((key) => (
+            <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)}
+              className={"px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors " + (tab === key
+                ? "border-primary-600 text-primary-700 dark:text-primary-300"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200")}>
+              {key === "shipments" ? t("deliveries.tab_shipments") : t("deliveries.tab_payouts")}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div role="alert" className="p-3 rounded-xl text-sm border bg-red-50 dark:bg-rose-950/40 text-red-800 dark:text-rose-300 border-red-200 dark:border-rose-800/60">
@@ -112,6 +136,8 @@ export default function ShipmentsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-300">{t("deliveries.no_courier_configured")}</p>
           <Link to="/settings" className="btn-primary inline-flex">{t("deliveries.open_delivery_settings")}</Link>
         </div>
+      ) : tab === "payouts" ? (
+        <PayoutsPanel />
       ) : (
         <>
           <ShipmentSyncBar
@@ -167,6 +193,12 @@ export default function ShipmentsPage() {
       )}
 
       <ShipmentDrawer shipmentId={openId} onClose={() => setOpenId(null)} />
+      <RecordPayoutModal
+        open={recordOpen}
+        accounts={accounts}
+        onClose={() => setRecordOpen(false)}
+        onRecorded={() => { setRecordOpen(false); setTab("payouts"); }}
+      />
     </div>
   );
 }

@@ -270,3 +270,43 @@ def test_payouts_never_touch_the_till_sales_stock_or_ledger(store):
     after = (CashSession.objects.count(), CashMovement.objects.count(), Sale.objects.count(),
              StockMovement.objects.count(), ClientLedger.objects.count())
     assert after == before
+
+
+# ─── Preview (P1.13) ──────────────────────────────────────────────────────────
+
+def test_preview_matches_what_recording_would_compute_and_writes_nothing(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1)
+    _ship(tenant, config, 2, cash=CashStatus.PAID, courier_payout_ref="mp-3", store_amount="1000.00")
+    client = _client(users[RoleChoices.OWNER])
+    body = {"courier": "maystro", "trackings": ["T1"], "courier_payout_ref": "mp-3"}
+
+    preview = client.post(f"{URL}preview/", body, format="json")
+
+    assert preview.status_code == status.HTTP_200_OK
+    data = preview.json()
+    assert (data["count"], data["expected_amount"], data["trackings"]) == (2, "5500.00", ["T1", "T2"])
+    assert CourierPayout.objects.count() == 0
+    assert Shipment.objects.unscoped().filter(payout__isnull=False).count() == 0
+
+    recorded = client.post(URL, {**body, "amount_received": "5500.00"}, format="json").json()
+    assert (recorded["expected_amount"], recorded["shipment_count"]) == (data["expected_amount"], data["count"])
+
+
+def test_preview_reports_problems_like_recording(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1, cash=CashStatus.AWAITING_DELIVERY)
+    client = _client(users[RoleChoices.OWNER])
+    unknown = client.post(f"{URL}preview/", {"courier": "maystro", "trackings": ["NOPE"]}, format="json")
+    assert unknown.status_code == 400
+    assert unknown.json()["error"]["details"]["unknown_trackings"] == ["NOPE"]
+    refused = client.post(f"{URL}preview/", {"courier": "maystro", "trackings": ["T1"]}, format="json")
+    assert refused.json()["error"]["details"]["refused_trackings"] == ["T1"]
+
+
+def test_preview_refuses_cashiers(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1)
+    res = _client(users[RoleChoices.CASHIER]).post(f"{URL}preview/", {"courier": "maystro", "trackings": ["T1"]},
+                                                   format="json")
+    assert res.status_code == status.HTTP_403_FORBIDDEN

@@ -129,3 +129,75 @@ export interface ShipmentFilters {
   date_to: string;
   search: string;
 }
+
+// ─── Courier payouts (GET /deliveries/payouts/…, P1.12) ───────────────────────
+
+export interface CourierPayout {
+  id: string;
+  courier: string;
+  courier_name: string;
+  picked_up_on: string;
+  amount_received: string;
+  expected_amount: string;
+  difference: string;
+  courier_reference: string;
+  notes: string;
+  status: "recorded" | "voided";
+  recorded_by_name: string;
+  created_at: string;
+  voided_at: string | null;
+  voided_by_name: string;
+  shipment_count: number;
+  unconfirmed_count: number;
+}
+
+export interface PayoutShipment {
+  id: string;
+  tracking_number: string;
+  recipient_name: string;
+  cod_amount: string | null;
+  delivery_fee: string | null;
+  store_amount: string | null;
+  courier_payout_ref: string;
+  courier_paid_on: string | null;
+}
+
+export interface CourierPayoutDetail extends CourierPayout {
+  shipments: PayoutShipment[];
+}
+
+export interface PayoutPage {
+  count: number;
+  total_pages: number;
+  current_page: number;
+  results: CourierPayout[];
+}
+
+export interface CourierPayoutToRecord {
+  courier_payout_ref: string;
+  paid_on: string | null;
+  count: number;
+  expected_amount: string;
+}
+
+export interface CourierToRecord {
+  courier: string;
+  courier_payouts: CourierPayoutToRecord[];
+  held: { count: number; expected_amount: string } | null;
+  ready: { count: number; expected_amount: string } | null;
+}
+
+export interface PayoutPreview {
+  courier: string;
+  count: number;
+  expected_amount: string;
+  shipment_ids: string[];
+  trackings: string[];
+}
+
+/** What a payout covers: pasted tracking numbers and/or one courier payout. */
+export interface PayoutParcels {
+  courier: string;
+  trackings: string[];
+  courier_payout_ref: string;
+}
