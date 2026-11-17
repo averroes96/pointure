@@ -3,13 +3,14 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CourierCatalogueView, ProviderConfigViewSet, CustomerOrderViewSet,
-    ExternalOrderIngestionView, ShipmentViewSet,
+    ExternalOrderIngestionView, ShipmentViewSet, CourierPayoutViewSet,
 )
 
 router = DefaultRouter()
 router.register(r'provider-configs', ProviderConfigViewSet, basename='providerconfig')
 router.register(r'customer-orders', CustomerOrderViewSet, basename='customerorder')
 router.register(r'shipments', ShipmentViewSet, basename='shipment')
+router.register(r'payouts', CourierPayoutViewSet, basename='courierpayout')
 
 urlpatterns = [
     path('couriers/', CourierCatalogueView.as_view(), name='courier-catalogue'),

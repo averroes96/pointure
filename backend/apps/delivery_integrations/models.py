@@ -189,6 +189,13 @@ class Shipment(TenantScopedModel):
     # Set when the courier itself reports the parcel as paid (e.g. a Maystro payout statement).
     courier_payout_ref = models.CharField(_("Courier payout id"), max_length=64, blank=True)
     courier_paid_on = models.DateField(_("Paid by courier on"), null=True, blank=True)
+    # Set when a manager records the cash picked up at the agency (P1.12).
+    payout = models.ForeignKey(
+        "CourierPayout", on_delete=models.PROTECT, null=True, blank=True, related_name="shipments",
+        verbose_name=_("Recorded payout"),
+    )
+    # Cash status before the payout, restored if the payout is voided.
+    payout_previous_cash = models.CharField(max_length=30, blank=True, default="")
 
     courier_updated_at = models.DateTimeField(_("Changed at courier"), null=True, blank=True)
     last_synced_at = models.DateTimeField(_("Last read"), null=True, blank=True)
@@ -238,7 +245,7 @@ class Shipment(TenantScopedModel):
             "is_terminal": snapshot.status in TERMINAL_STATUSES,
             "courier_updated_at": snapshot.updated_at,
         }
-        keeps_payout_stage = (
+        keeps_payout_stage = self.payout_id is not None or (  # cash recorded at the agency stays paid
             self.cash_status in (CashStatus.PAID, CashStatus.READY)
             and snapshot.cash_status == CashStatus.HELD_BY_COURIER
         )
@@ -295,3 +302,49 @@ class ShipmentEvent(models.Model):
 
     def __str__(self):
         return f"{self.raw_status or self.status} @ {self.occurred_at:%Y-%m-%d %H:%M}"
+
+
+class CourierPayoutStatus(models.TextChoices):
+    RECORDED = "recorded", _("Enregistré")
+    VOIDED = "voided", _("Annulé")
+
+
+class CourierPayout(TenantScopedModel):
+    """
+    Cash picked up at a courier's agency, recorded by a manager (P1.12, DL.8).
+
+    Never linked to a CashSession: delivery money is kept apart from the till (DL.3).
+    Totals are computed by the server from the shipments (`expected_amount`) and the
+    amount typed by the manager (`amount_received`).
+    """
+    provider_config = models.ForeignKey(
+        ProviderConfig, on_delete=models.PROTECT, related_name="payouts", verbose_name=_("Courier account"),
+    )
+    courier = models.CharField(_("Courier"), max_length=50)
+    picked_up_on = models.DateField(_("Picked up on"))
+    amount_received = models.DecimalField(_("Amount received"), max_digits=12, decimal_places=2)
+    expected_amount = models.DecimalField(_("Expected amount"), max_digits=12, decimal_places=2)
+    difference = models.DecimalField(_("Difference"), max_digits=12, decimal_places=2)
+    courier_reference = models.CharField(_("Courier's reference"), max_length=64, blank=True)
+    notes = models.CharField(_("Notes"), max_length=500, blank=True)
+    status = models.CharField(
+        _("Status"), max_length=10, choices=CourierPayoutStatus.choices, default=CourierPayoutStatus.RECORDED,
+    )
+    recorded_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, related_name="+", verbose_name=_("Recorded by"),
+    )
+    voided_at = models.DateTimeField(_("Voided at"), null=True, blank=True)
+    voided_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name=_("Voided by"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Courier payout")
+        verbose_name_plural = _("Courier payouts")
+        ordering = ["-picked_up_on", "-created_at"]
+        indexes = [models.Index(fields=["tenant", "-picked_up_on"], name="deliv_payout_tenant_date_idx")]
+
+    def __str__(self):
+        return f"{self.courier} {self.picked_up_on} {self.amount_received}"

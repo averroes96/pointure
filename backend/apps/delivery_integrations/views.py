@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from rest_framework import serializers, viewsets, views, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -27,8 +27,10 @@ from .serializers import (
     ProviderConfigSerializer, CustomerOrderSerializer,
     CustomerOrderDispatchSerializer, ShipmentDetailSerializer,
     ShipmentQuerySerializer, ShipmentSerializer,
+    CourierPayoutCreateSerializer, CourierPayoutDetailSerializer, CourierPayoutSerializer,
 )
-from .services import catalogue, couriers, sync
+from .models import CourierPayout
+from .services import catalogue, couriers, payouts, sync
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -476,6 +478,57 @@ class ShipmentViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, 
 
 def _money(value):
     return str((value or Decimal("0")).quantize(Decimal("0.01")))
+
+
+class CourierPayoutViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    Cash picked up at a courier's agency (docs/plans/delivery-v1-plan.md P1.12).
+
+    GET  /deliveries/payouts/[?courier=&status=]   list
+    GET  /deliveries/payouts/{id}/                 detail with its parcels
+    POST /deliveries/payouts/                      record (courier, amount_received, parcels)
+    POST /deliveries/payouts/{id}/void/            complete reversal
+    GET  /deliveries/payouts/to-record/            what the courier paid or holds, not recorded yet
+
+    Kept apart from the till: no CashSession or CashMovement is ever written (DL.3).
+    """
+    queryset = CourierPayout.objects.all()
+    serializer_class = CourierPayoutSerializer
+    # Managers and owners only (no role_permissions map → RolePermission default).
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
+    http_method_names = ["get", "post", "head", "options"]
+    filterset_fields = ["courier", "status"]
+    ordering = ["-picked_up_on", "-created_at"]
+
+    def get_serializer_class(self):
+        return CourierPayoutDetailSerializer if self.action == "retrieve" else CourierPayoutSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related("recorded_by", "voided_by")
+        if self.action == "list":
+            qs = qs.annotate(
+                n_shipments=Count("shipments"),
+                n_unconfirmed=Count("shipments", filter=Q(shipments__courier_payout_ref="")),
+            )
+        elif self.action == "retrieve":
+            qs = qs.prefetch_related("shipments")
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        data = CourierPayoutCreateSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        payout = payouts.record_payout(tenant=self._get_tenant(), user=request.user, **data.validated_data)
+        return Response(CourierPayoutDetailSerializer(payout, context=self.get_serializer_context()).data,
+                        status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def void(self, request, pk=None):
+        payout = payouts.void_payout(payout=self.get_object(), user=request.user)
+        return Response(CourierPayoutSerializer(payout, context=self.get_serializer_context()).data)
+
+    @action(detail=False, methods=["get"], url_path="to-record")
+    def to_record(self, request):
+        return Response({"couriers": payouts.to_record(self._get_tenant())})
 
 
 class ExternalOrderIngestionView(DeliveryIntegrationsGuardMixin, views.APIView):

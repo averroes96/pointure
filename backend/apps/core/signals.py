@@ -29,6 +29,7 @@ AUDITED_MODELS = [
 
     # Cash, Promotions, Loyalty, Stock & Supplier operations
     "CashSession", "CashMovement", "Promotion", "LoyaltyAccount",
+    "CourierPayout",
     "StockTransfer", "DefectItem", "StocktakeSession",
     "SupplierPayment", "PurchaseOrder",
 

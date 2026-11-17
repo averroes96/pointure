@@ -1,9 +1,11 @@
+from decimal import Decimal
 from urllib.parse import urlparse
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .models import ProviderConfig, CustomerOrder, Shipment, ShipmentEvent
+from .models import CourierPayout, ProviderConfig, CustomerOrder, Shipment, ShipmentEvent
 from .services import catalogue
 from .services.couriers.vocabulary import CashStatus, ShipmentStatus
 
@@ -239,6 +241,86 @@ class ShipmentQuerySerializer(serializers.Serializer):
         if attrs.get("date_from") and attrs.get("date_to") and attrs["date_from"] > attrs["date_to"]:
             raise serializers.ValidationError({"date_to": _("La date de fin précède la date de début.")})
         return attrs
+
+
+class CourierPayoutCreateSerializer(serializers.Serializer):
+    """Input for POST /deliveries/payouts/. Totals are never accepted from the client."""
+    courier = serializers.CharField(max_length=50)
+    amount_received = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
+    picked_up_on = serializers.DateField(required=False)
+    courier_reference = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    shipment_ids = serializers.ListField(child=serializers.UUIDField(), required=False, default=list, max_length=1000)
+    trackings = serializers.ListField(
+        child=serializers.CharField(max_length=64, allow_blank=True), required=False, default=list, max_length=1000,
+    )
+    courier_payout_ref = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+
+    def validate_picked_up_on(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError(_("La date ne peut pas être dans le futur."))
+        return value
+
+
+class PayoutShipmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shipment
+        fields = ["id", "tracking_number", "recipient_name", "cod_amount", "delivery_fee", "store_amount",
+                  "courier_payout_ref", "courier_paid_on"]
+        read_only_fields = fields
+
+
+class CourierPayoutSerializer(serializers.ModelSerializer):
+    courier_name = serializers.SerializerMethodField()
+    recorded_by_name = serializers.SerializerMethodField()
+    voided_by_name = serializers.SerializerMethodField()
+    shipment_count = serializers.SerializerMethodField()
+    unconfirmed_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourierPayout
+        fields = ["id", "courier", "courier_name", "picked_up_on", "amount_received", "expected_amount",
+                  "difference", "courier_reference", "notes", "status", "recorded_by_name", "created_at",
+                  "voided_at", "voided_by_name", "shipment_count", "unconfirmed_count"]
+        read_only_fields = fields
+
+    def get_courier_name(self, obj):
+        cache = self.context.get("_courier_names")
+        if cache is None:
+            snapshot = catalogue.load_snapshot()
+            cache = {c["key"]: c["name"] for c in (snapshot["couriers"] if snapshot else [])}
+            self.context["_courier_names"] = cache
+        return cache.get(obj.courier, obj.courier)
+
+    @staticmethod
+    def _name(user):
+        return (user.get_full_name() or user.email or user.phone or "") if user else ""
+
+    def get_recorded_by_name(self, obj):
+        return self._name(obj.recorded_by)
+
+    def get_voided_by_name(self, obj):
+        return self._name(obj.voided_by)
+
+    def get_shipment_count(self, obj):
+        # The list annotates the counts in SQL; the detail and create responses count directly.
+        if hasattr(obj, "n_shipments"):
+            return obj.n_shipments
+        return obj.shipments.count()
+
+    def get_unconfirmed_count(self, obj):
+        """Parcels in this payout that the courier itself has not reported as paid (yet)."""
+        if hasattr(obj, "n_unconfirmed"):
+            return obj.n_unconfirmed
+        return obj.shipments.filter(courier_payout_ref="").count()
+
+
+class CourierPayoutDetailSerializer(CourierPayoutSerializer):
+    shipments = PayoutShipmentSerializer(many=True, read_only=True)
+
+    class Meta(CourierPayoutSerializer.Meta):
+        fields = CourierPayoutSerializer.Meta.fields + ["shipments"]
+        read_only_fields = fields
 
 
 class CustomerOrderDispatchSerializer(serializers.Serializer):
