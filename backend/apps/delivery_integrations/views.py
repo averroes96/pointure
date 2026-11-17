@@ -103,6 +103,14 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
     # PATCH merges credentials (replace one field at a time); no PUT.
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
+    def perform_destroy(self, instance):
+        # Shipments keep their courier account (on_delete=PROTECT): their history must stay readable.
+        if instance.shipments.exists():
+            raise ValidationError(_(
+                "Ce transporteur a des expéditions enregistrées : désactivez-le au lieu de le supprimer."
+            ))
+        instance.delete()
+
     @action(detail=True, methods=["post"], throttle_classes=[CourierTestThrottle])
     def test(self, request, pk=None):
         """
