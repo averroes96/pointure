@@ -253,6 +253,12 @@ class CourierPayoutPreviewSerializer(serializers.Serializer):
     courier_payout_ref = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
 
 
+class ConfirmCourierPayoutsSerializer(serializers.Serializer):
+    courier = serializers.CharField(max_length=50)
+    refs = serializers.ListField(child=serializers.CharField(max_length=64), min_length=1, max_length=100)
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+
+
 class CourierPayoutCreateSerializer(CourierPayoutPreviewSerializer):
     """Input for POST /deliveries/payouts/. Totals are never accepted from the client."""
     amount_received = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))

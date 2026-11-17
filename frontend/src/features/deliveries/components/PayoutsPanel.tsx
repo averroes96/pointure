@@ -1,8 +1,9 @@
 import { Fragment, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "../shipments";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import api, { formatDZD, formatDate, getApiError } from "@/lib/api";
+import api, { formatDate, getApiError } from "@/lib/api";
 import { differenceTone, useInvalidatePayouts, usePayoutDetail, usePayoutList } from "../payouts";
 
 const TONE = {
@@ -22,7 +23,7 @@ function PayoutParcels({ id }: { id: string }) {
         <li key={s.id} className="flex justify-between gap-3">
           <span className="font-mono text-slate-700 dark:text-slate-300">{s.tracking_number}</span>
           <span className="text-slate-500 dark:text-slate-400 truncate">{s.recipient_name}</span>
-          <span className="font-mono">{formatDZD(s.store_amount, i18n.language)}</span>
+          <span className="font-mono">{formatMoney(s.store_amount, i18n.language)}</span>
         </li>
       ))}
     </ul>
@@ -99,10 +100,10 @@ export default function PayoutsPanel() {
                             </div>
                           )}
                         </td>
-                        <td className="text-end font-mono whitespace-nowrap">{formatDZD(p.expected_amount, i18n.language)}</td>
-                        <td className="text-end font-mono whitespace-nowrap">{formatDZD(p.amount_received, i18n.language)}</td>
+                        <td className="text-end font-mono whitespace-nowrap">{formatMoney(p.expected_amount, i18n.language)}</td>
+                        <td className="text-end font-mono whitespace-nowrap">{formatMoney(p.amount_received, i18n.language)}</td>
                         <td className={"text-end font-mono whitespace-nowrap font-semibold " + TONE[differenceTone(p.difference)]}>
-                          {formatDZD(p.difference, i18n.language)}
+                          {formatMoney(p.difference, i18n.language)}
                         </td>
                         <td>
                           <span className={voided ? "badge badge-neutral" : "badge badge-success"}>

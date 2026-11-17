@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { formatDZD } from "@/lib/api";
+import { formatMoney } from "../shipments";
 import type { SummaryCards } from "../shipments";
 
 export type CardKey = "in_progress" | "follow_up" | "held" | "ready" | "paid" | "returned";
@@ -17,11 +17,11 @@ export default function ShipmentSummaryCards({ cards, active, onSelect }: Props)
     { key: "in_progress", label: t("deliveries.card_in_progress"), value: String(cards.inProgress) },
     { key: "follow_up", label: t("deliveries.card_follow_up"), value: String(cards.followUp),
       sub: t("deliveries.card_follow_up_hint") },
-    { key: "held", label: t("deliveries.card_held"), value: formatDZD(cards.held.amount, i18n.language),
+    { key: "held", label: t("deliveries.card_held"), value: formatMoney(cards.held.amount, i18n.language),
       sub: t("deliveries.card_parcels", { count: cards.held.count }) },
-    { key: "ready", label: t("deliveries.card_ready"), value: formatDZD(cards.ready.amount, i18n.language),
+    { key: "ready", label: t("deliveries.card_ready"), value: formatMoney(cards.ready.amount, i18n.language),
       sub: t("deliveries.card_parcels", { count: cards.ready.count }) },
-    { key: "paid", label: t("deliveries.card_paid"), value: formatDZD(cards.paid.amount, i18n.language),
+    { key: "paid", label: t("deliveries.card_paid"), value: formatMoney(cards.paid.amount, i18n.language),
       sub: t("deliveries.card_parcels", { count: cards.paid.count }) },
     { key: "returned", label: t("deliveries.card_returned"), value: String(cards.returned) },
   ];

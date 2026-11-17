@@ -75,18 +75,26 @@ Dans le détail d'un colis :
 | suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro ; d'autres transporteurs suivront. |
 | mise à jour partielle | Beaucoup de changements d'un coup : cliquez de nouveau sur **Actualiser**. |
 
-### G. Enregistrer un versement récupéré à l'agence
+### G. Versements récupérés à l'agence
 
-Quand vous récupérez l'argent de vos colis à l'agence du transporteur, enregistrez-le pour savoir ce qui a été payé et vérifier le montant. Cet argent **n'entre pas dans la caisse** : il n'apparaît ni dans les sessions de caisse ni dans les rapports Z.
+L'argent récupéré à l'agence du transporteur s'enregistre dans l'onglet **Versements** de la page **Expéditions**. Cet argent **n'entre pas dans la caisse** : il n'apparaît ni dans les sessions de caisse ni dans les rapports Z. Le chiffre à côté de l'onglet indique combien de versements attendent votre confirmation.
 
-1. Sur la page **Expéditions**, cliquez sur **Enregistrer un versement**.
-2. Choisissez les colis payés, de l'une ou des deux façons :
-   - **Versement annoncé par le transporteur :** pour Maystro, ShoeDZ connaît les versements déjà faits. Cliquez sur la ligne qui correspond (date, nombre de colis, montant).
-   - **Numéros de suivi du bordereau de l'agence :** collez ou scannez les numéros, un par ligne.
-3. Cliquez sur **Vérifier les colis**. ShoeDZ affiche le nombre de colis et le **montant attendu** (ce que le transporteur doit à la boutique). Les numéros inconnus, les colis non livrés ou déjà enregistrés sont listés : corrigez la liste et vérifiez de nouveau.
-4. Dans **Montant compté**, saisissez ce que vous avez réellement reçu. L'**écart** s'affiche : vert s'il est nul, rouge s'il manque de l'argent, orange s'il y en a trop.
-5. Ajoutez si besoin la **date**, la **référence du transporteur** et une **remarque**, puis cliquez sur **Enregistrer le versement**.
+**Confirmer un versement annoncé par le transporteur (Maystro)**
 
-Les colis passent à **Versé**. L'onglet **Versements** liste les versements enregistrés : date, transporteur, nombre de colis, attendu, reçu et écart. Cliquez sur la flèche d'une ligne pour voir ses colis. La mention « non confirmés par le transporteur » signale des colis que le transporteur n'a pas encore déclarés payés : vérifiez-les avec lui.
+ShoeDZ connaît les versements que Maystro a déjà faits. Ils apparaissent dans **Versements Maystro à confirmer**, avec la date, le nombre de colis et le montant attendu (ce que le transporteur doit à la boutique).
 
-**Erreur de saisie ?** Cliquez sur **Annuler** sur la ligne du versement : chaque colis retrouve l'état qu'il avait avant, et vous pouvez enregistrer le versement de nouveau. Un versement ne se modifie pas et ne se supprime pas.
+1. Cliquez sur **Confirmer** sur la ligne du versement récupéré.
+2. Dans **Montant compté**, saisissez ce que vous avez réellement reçu (le montant attendu est proposé). L'**écart** s'affiche : vert s'il est nul, rouge s'il manque de l'argent, orange s'il y en a trop.
+3. Ajoutez si besoin la **date**, la **référence du transporteur** et une **remarque**, puis cliquez sur **Enregistrer le versement**.
+
+**Anciens versements déjà reçus :** cochez-les (ou cochez la case de l'en-tête pour tout sélectionner), puis cliquez sur **Confirmer la sélection**. Chaque versement est enregistré pour son montant attendu, à sa date de paiement.
+
+**Saisie manuelle (bordereau)**
+
+Pour un transporteur sans versements en ligne, ou un retrait partiel : cliquez sur **Saisie manuelle (bordereau)**, collez ou scannez les numéros de suivi du bordereau (un par ligne), cliquez sur **Vérifier les colis**, puis saisissez le montant compté et enregistrez. Les numéros inconnus, les colis non livrés ou déjà enregistrés sont listés pour être corrigés.
+
+**Versements enregistrés**
+
+Les colis d'un versement passent à **Versé**. La liste **Versements enregistrés** montre la date, le transporteur, le nombre de colis, l'attendu, le reçu et l'écart ; la flèche d'une ligne affiche ses colis. La mention « non confirmés par le transporteur » signale des colis que le transporteur n'a pas encore déclarés payés : vérifiez-les avec lui.
+
+**Erreur de saisie ?** Cliquez sur **Annuler** sur la ligne du versement : chaque colis retrouve l'état qu'il avait avant, et vous pouvez l'enregistrer de nouveau. Un versement ne se modifie pas et ne se supprime pas.

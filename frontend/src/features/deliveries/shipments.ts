@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import api, { formatDZD } from "@/lib/api";
 import type {
   CashStatus,
   ShipmentDetail,
@@ -100,6 +100,12 @@ export function summarizeShipments(summary: ShipmentSummary | undefined): Summar
     money("paid", cards.paid);
   }
   return cards;
+}
+
+/** Amount with its currency, as elsewhere in the app ("4 900,00 DZD"); "—" when missing. */
+export function formatMoney(value: string | number | null | undefined, lang?: string): string {
+  const formatted = formatDZD(value, lang);
+  return formatted === "—" ? formatted : `${formatted} DZD`;
 }
 
 /** Date and time in the user's language (same locale rule as formatDate in @/lib/api). */

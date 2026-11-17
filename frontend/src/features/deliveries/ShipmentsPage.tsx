@@ -5,8 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PackageSearch } from "lucide-react";
 import { getApiError } from "@/lib/api";
 import api from "@/lib/api";
-import PayoutsPanel from "./components/PayoutsPanel";
-import RecordPayoutModal from "./components/RecordPayoutModal";
+import PayoutsTab from "./components/PayoutsTab";
 import ShipmentDrawer from "./components/ShipmentDrawer";
 import ShipmentFiltersBar from "./components/ShipmentFiltersBar";
 import ShipmentSummaryCards, { type CardKey } from "./components/ShipmentSummaryCards";
@@ -19,6 +18,7 @@ import {
   useShipmentList,
   useShipmentSummary,
 } from "./shipments";
+import { usePayoutsToRecord } from "./payouts";
 import { SHIPMENT_STATUSES } from "./types";
 import type { ShipmentFilters } from "./types";
 
@@ -45,7 +45,6 @@ export default function ShipmentsPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"shipments" | "payouts">("shipments");
-  const [recordOpen, setRecordOpen] = useState(false);
 
   // Debounce typing in the search box.
   useEffect(() => {
@@ -94,21 +93,16 @@ export default function ShipmentsPage() {
   };
 
   const noAccount = summary.isSuccess && accounts.length === 0;
+  const toRecord = usePayoutsToRecord(accounts.length > 0);
+  const toConfirm = (toRecord.data?.couriers || []).reduce((n, c) => n + c.courier_payouts.length, 0);
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            {t("deliveries.shipments_title")}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("deliveries.shipments_subtitle")}</p>
-        </div>
-        {accounts.length > 0 && (
-          <button type="button" className="btn-primary shrink-0" onClick={() => setRecordOpen(true)}>
-            {t("deliveries.payout_record_button")}
-          </button>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          {t("deliveries.shipments_title")}
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("deliveries.shipments_subtitle")}</p>
       </div>
 
       {accounts.length > 0 && (
@@ -119,6 +113,11 @@ export default function ShipmentsPage() {
                 ? "border-primary-600 text-primary-700 dark:text-primary-300"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200")}>
               {key === "shipments" ? t("deliveries.tab_shipments") : t("deliveries.tab_payouts")}
+              {key === "payouts" && toConfirm > 0 && (
+                <span className="ms-2 badge badge-warning" aria-label={t("deliveries.payout_waiting", { count: toConfirm })}>
+                  {toConfirm}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -137,7 +136,7 @@ export default function ShipmentsPage() {
           <Link to="/settings" className="btn-primary inline-flex">{t("deliveries.open_delivery_settings")}</Link>
         </div>
       ) : tab === "payouts" ? (
-        <PayoutsPanel />
+        <PayoutsTab accounts={accounts} />
       ) : (
         <>
           <ShipmentSyncBar
@@ -193,12 +192,6 @@ export default function ShipmentsPage() {
       )}
 
       <ShipmentDrawer shipmentId={openId} onClose={() => setOpenId(null)} />
-      <RecordPayoutModal
-        open={recordOpen}
-        accounts={accounts}
-        onClose={() => setRecordOpen(false)}
-        onRecorded={() => { setRecordOpen(false); setTab("payouts"); }}
-      />
     </div>
   );
 }

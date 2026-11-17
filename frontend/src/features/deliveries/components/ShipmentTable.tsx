@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { formatDZD } from "@/lib/api";
-import { formatDateTime } from "../shipments";
+import { formatDateTime, formatMoney } from "../shipments";
 import type { Shipment } from "../types";
 import { CashStatusBadge, ShipmentStatusBadge } from "./ShipmentBadges";
 
@@ -43,7 +42,7 @@ export default function ShipmentTable({ rows, onOpen }: Props) {
                 <div className="text-xs text-slate-500 dark:text-slate-400 font-mono" dir="ltr">{row.recipient_phone}</div>
               </td>
               <td>{row.commune || "—"}</td>
-              <td className="text-end font-mono whitespace-nowrap">{formatDZD(row.cod_amount, i18n.language)}</td>
+              <td className="text-end font-mono whitespace-nowrap">{formatMoney(row.cod_amount, i18n.language)}</td>
               <td><ShipmentStatusBadge status={row.status} raw={row.raw_status} /></td>
               <td><CashStatusBadge cash={row.cash_status} /></td>
               <td className="whitespace-nowrap text-xs">{formatDateTime(row.courier_updated_at, i18n.language)}</td>

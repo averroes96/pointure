@@ -28,7 +28,7 @@ from .serializers import (
     CustomerOrderDispatchSerializer, ShipmentDetailSerializer,
     ShipmentQuerySerializer, ShipmentSerializer,
     CourierPayoutCreateSerializer, CourierPayoutDetailSerializer, CourierPayoutPreviewSerializer,
-    CourierPayoutSerializer,
+    CourierPayoutSerializer, ConfirmCourierPayoutsSerializer,
 )
 from .models import CourierPayout
 from .services import catalogue, couriers, payouts, sync
@@ -537,6 +537,15 @@ class CourierPayoutViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
         data = CourierPayoutPreviewSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         return Response(payouts.preview_payout(tenant=self._get_tenant(), **data.validated_data))
+
+    @action(detail=False, methods=["post"], url_path="confirm-courier-payouts")
+    def confirm_courier_payouts(self, request):
+        """Record courier-reported payouts as received for their expected amount (backlog clearing)."""
+        data = ConfirmCourierPayoutsSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        result = payouts.confirm_courier_payouts(tenant=self._get_tenant(), user=request.user, **data.validated_data)
+        code = status.HTTP_201_CREATED if result["created"] else status.HTTP_400_BAD_REQUEST
+        return Response(result, status=code)
 
 
 class ExternalOrderIngestionView(DeliveryIntegrationsGuardMixin, views.APIView):

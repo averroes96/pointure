@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, X } from "lucide-react";
-import { formatDZD, formatDate } from "@/lib/api";
-import { formatDateTime, useShipmentDetail } from "../shipments";
+import { formatDate } from "@/lib/api";
+import { formatDateTime, useShipmentDetail, formatMoney } from "../shipments";
 import { CashStatusBadge, ShipmentStatusBadge } from "./ShipmentBadges";
 
 interface Props {
@@ -73,9 +73,9 @@ export default function ShipmentDrawer({ shipmentId, onClose }: Props) {
             </dl>
 
             <dl className="divide-y divide-slate-100 dark:divide-slate-800">
-              {row(t("deliveries.amount_cod"), formatDZD(data.cod_amount, i18n.language))}
-              {row(t("deliveries.amount_delivery_fee"), formatDZD(data.delivery_fee, i18n.language))}
-              {row(t("deliveries.amount_store"), formatDZD(data.store_amount, i18n.language))}
+              {row(t("deliveries.amount_cod"), formatMoney(data.cod_amount, i18n.language))}
+              {row(t("deliveries.amount_delivery_fee"), formatMoney(data.delivery_fee, i18n.language))}
+              {row(t("deliveries.amount_store"), formatMoney(data.store_amount, i18n.language))}
               {data.courier_paid_on && row(t("deliveries.paid_on"), formatDate(data.courier_paid_on, i18n.language))}
               {data.courier_payout_ref && row(t("deliveries.payout_ref"), <span className="font-mono text-xs">{data.courier_payout_ref}</span>)}
             </dl>

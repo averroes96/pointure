@@ -310,3 +310,53 @@ def test_preview_refuses_cashiers(store):
     res = _client(users[RoleChoices.CASHIER]).post(f"{URL}preview/", {"courier": "maystro", "trackings": ["T1"]},
                                                    format="json")
     assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ─── Confirm courier payouts as received (backlog) ────────────────────────────
+
+def test_confirm_courier_payouts_records_each_for_its_expected_amount(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1, cash=CashStatus.PAID, courier_payout_ref="mp-1", courier_paid_on=date(2026, 10, 1))
+    _ship(tenant, config, 2, cash=CashStatus.PAID, courier_payout_ref="mp-1", courier_paid_on=date(2026, 10, 1),
+          store_amount="1000.00")
+    _ship(tenant, config, 3, cash=CashStatus.PAID, courier_payout_ref="mp-2", courier_paid_on=date(2026, 10, 8))
+    client = _client(users[RoleChoices.OWNER])
+
+    res = client.post(f"{URL}confirm-courier-payouts/", {"courier": "maystro", "refs": ["mp-1", "mp-2", "mp-1"]},
+                      format="json")
+
+    assert res.status_code == status.HTTP_201_CREATED, res.content
+    assert len(res.json()["created"]) == 2 and res.json()["failed"] == []
+    rows = {p.picked_up_on: p for p in CourierPayout.objects.filter(tenant=tenant)}
+    assert set(rows) == {date(2026, 10, 1), date(2026, 10, 8)}
+    first = rows[date(2026, 10, 1)]
+    assert (first.expected_amount, first.amount_received, first.difference) == (
+        Decimal("5500.00"), Decimal("5500.00"), Decimal("0.00"))
+    assert first.shipments.count() == 2
+    assert client.get(f"{URL}to-record/").json() == {"couriers": []}
+
+
+def test_confirm_courier_payouts_reports_failures_without_undoing_successes(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1, cash=CashStatus.PAID, courier_payout_ref="mp-1", courier_paid_on=date(2026, 10, 1))
+    client = _client(users[RoleChoices.OWNER])
+
+    res = client.post(f"{URL}confirm-courier-payouts/", {"courier": "maystro", "refs": ["mp-1", "mp-unknown"]},
+                      format="json")
+
+    assert res.status_code == status.HTTP_201_CREATED
+    body = res.json()
+    assert len(body["created"]) == 1
+    assert [f["courier_payout_ref"] for f in body["failed"]] == ["mp-unknown"]
+    again = client.post(f"{URL}confirm-courier-payouts/", {"courier": "maystro", "refs": ["mp-1"]}, format="json")
+    assert again.status_code == status.HTTP_400_BAD_REQUEST     # already recorded: nothing created
+    assert CourierPayout.objects.count() == 1
+
+
+def test_confirm_courier_payouts_refuses_cashiers(store):
+    tenant, users, config = store
+    _ship(tenant, config, 1, cash=CashStatus.PAID, courier_payout_ref="mp-1", courier_paid_on=date(2026, 10, 1))
+    res = _client(users[RoleChoices.CASHIER]).post(f"{URL}confirm-courier-payouts/",
+                                                   {"courier": "maystro", "refs": ["mp-1"]}, format="json")
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert CourierPayout.objects.count() == 0

@@ -173,6 +173,33 @@ def void_payout(*, payout, user) -> CourierPayout:
     return payout
 
 
+def confirm_courier_payouts(*, tenant, user, courier, refs, notes="") -> dict:
+    """
+    Record several courier-reported payouts as received for exactly their expected
+    amount (difference 0), each dated on the courier's payment date. For clearing a
+    backlog of payouts the store has already received. Each payout is its own
+    transaction: one failure does not undo the others, and it is reported.
+    """
+    created, failed = [], []
+    for ref in dict.fromkeys(r for r in refs if r):     # de-duplicated, order kept
+        paid_on = (
+            Shipment.objects.unscoped()
+            .filter(tenant=tenant, courier=courier, courier_payout_ref=ref, payout__isnull=True)
+            .values_list("courier_paid_on", flat=True).first()
+        )
+        try:
+            _, _, expected = _resolve(tenant=tenant, courier=courier, courier_payout_ref=ref)
+            payout = record_payout(
+                tenant=tenant, user=user, courier=courier, amount_received=expected,
+                picked_up_on=min(paid_on, timezone.localdate()) if paid_on else None,
+                notes=notes, courier_payout_ref=ref,
+            )
+            created.append(str(payout.pk))
+        except ValidationError as exc:
+            failed.append({"courier_payout_ref": ref, "detail": exc.detail})
+    return {"created": created, "failed": failed}
+
+
 def to_record(tenant):
     """
     Per courier: what the courier says it paid but no payout records yet (grouped by its
