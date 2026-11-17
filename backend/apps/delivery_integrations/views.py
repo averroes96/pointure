@@ -1,4 +1,8 @@
 import logging
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import Count, Sum
 from rest_framework import serializers, viewsets, views, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -17,13 +21,14 @@ from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
 from apps.sales.models import Sale, SaleItem, SaleStatusChoices
 from .models import (
-    ProviderConfig, CustomerOrder, CustomerOrderStatusChoices,
+    ProviderConfig, CustomerOrder, CustomerOrderStatusChoices, Shipment,
 )
 from .serializers import (
     ProviderConfigSerializer, CustomerOrderSerializer,
-    CustomerOrderDispatchSerializer,
+    CustomerOrderDispatchSerializer, ShipmentDetailSerializer,
+    ShipmentQuerySerializer, ShipmentSerializer,
 )
-from .services import catalogue, couriers
+from .services import catalogue, couriers, sync
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -319,6 +324,158 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
         CustomerOrder.objects.filter(
             pk=customer_order.pk, tenant=tenant, status=CustomerOrderStatusChoices.CONFIRMED
         ).update(status=CustomerOrderStatusChoices.DRAFT, updated_at=timezone.now())
+
+
+class ShipmentRefreshThrottle(UserRateThrottle):
+    """Each refresh starts courier reads in the background: 6 per minute per user."""
+    scope = "shipment_refresh"
+    rate = "6/min"
+
+
+STALE_AFTER = timedelta(minutes=10)
+
+
+class ShipmentViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    Shipments read from the store's couriers (docs/plans/delivery-v1-plan.md P1.10).
+
+    GET  /deliveries/shipments/            list (filters: status, cash_status, courier,
+                                           date_from, date_to on the courier's last change;
+                                           search; ordering)
+    GET  /deliveries/shipments/{id}/       detail with tracking history
+    GET  /deliveries/shipments/summary/    counts and money per courier + sync state
+    POST /deliveries/shipments/refresh/    start a background sync now
+
+    Reading never blocks on a courier: stale data triggers a background sync and the
+    response says so (`syncing` / `refreshing`), so the page can read again later.
+    """
+    queryset = Shipment.objects.all()
+    serializer_class = ShipmentSerializer
+    # Managers and owners only (no role_permissions map → RolePermission default).
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
+    http_method_names = ["get", "post", "head", "options"]
+    search_fields = ["tracking_number", "reference", "recipient_name", "recipient_phone", "external_id"]
+    ordering_fields = ["courier_updated_at", "status_at", "cod_amount", "created_at"]
+    ordering = ["-courier_updated_at", "-created_at"]
+
+    def get_serializer_class(self):
+        return ShipmentDetailSerializer if self.action == "retrieve" else ShipmentSerializer
+
+    def _filters(self):
+        query = ShipmentQuerySerializer(data=self.request.query_params)
+        query.is_valid(raise_exception=True)
+        return query.validated_data
+
+    def _apply_filters(self, qs, filters, with_states=True):
+        if filters.get("courier"):
+            qs = qs.filter(courier=filters["courier"])
+        if filters.get("date_from"):
+            qs = qs.filter(courier_updated_at__date__gte=filters["date_from"])
+        if filters.get("date_to"):
+            qs = qs.filter(courier_updated_at__date__lte=filters["date_to"])
+        if with_states and filters.get("status"):
+            qs = qs.filter(status__in=filters["status"])
+        if with_states and filters.get("cash_status"):
+            qs = qs.filter(cash_status__in=filters["cash_status"])
+        return qs
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == "list":
+            qs = self._apply_filters(qs, self._filters())
+        elif self.action == "retrieve":
+            qs = qs.prefetch_related("events")
+        return qs
+
+    # ── background freshness ──────────────────────────────────────────────────
+    def _active_configs(self):
+        return ProviderConfig.objects.filter(tenant=self._get_tenant(), is_active=True)
+
+    def _sync_stale_configs(self):
+        now = timezone.now()
+        for config in self._active_configs():
+            stale = config.last_synced_at is None or now - config.last_synced_at > STALE_AFTER
+            if stale and not sync.is_running(config.pk):
+                sync.request_sync(config.pk, "page_open")
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        self._sync_stale_configs()
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        shipment = self.get_object()
+        stale = (
+            shipment.last_synced_at is None
+            or timezone.now() - shipment.last_synced_at > STALE_AFTER
+            or not shipment.events.exists()
+        )
+        if stale and shipment.provider_config.is_active:
+            sync.request_shipment_refresh(shipment.pk)
+        data = self.get_serializer(shipment).data
+        data["refreshing"] = sync.shipment_refreshing(shipment.pk)
+        return Response(data)
+
+    # ── summary ───────────────────────────────────────────────────────────────
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Counts per status and money per cash status, per courier, for the date/courier filters."""
+        filters = self._filters()
+        qs = self._apply_filters(super().get_queryset(), filters, with_states=False)
+
+        per_courier = {}
+
+        def bucket(courier):
+            return per_courier.setdefault(courier, {"courier": courier, "total": 0, "by_status": {}, "by_cash": {}})
+
+        for row in qs.values("courier", "status").annotate(n=Count("id")).order_by():
+            b = bucket(row["courier"])
+            b["by_status"][row["status"]] = row["n"]
+            b["total"] += row["n"]
+        for row in qs.values("courier", "cash_status").annotate(
+            n=Count("id"), cod=Sum("cod_amount"), store=Sum("store_amount"),
+        ).order_by():
+            bucket(row["courier"])["by_cash"][row["cash_status"]] = {
+                "count": row["n"],
+                "cod_amount": _money(row["cod"]),
+                "store_amount": _money(row["store"]),
+            }
+
+        names = {}
+        snapshot = catalogue.load_snapshot()
+        if snapshot:
+            names = {c["key"]: c["name"] for c in snapshot["couriers"]}
+        accounts = []
+        for config in self._active_configs():
+            accounts.append({
+                "courier": config.courier,
+                "courier_name": names.get(config.courier, config.courier),
+                "last_synced_at": config.last_synced_at,
+                "last_sync_error": config.last_sync_error,
+                "syncing": sync.is_running(config.pk),
+            })
+            bucket(config.courier)
+        for courier, b in per_courier.items():
+            b["courier_name"] = names.get(courier, courier)
+        return Response({
+            "couriers": sorted(per_courier.values(), key=lambda b: b["courier_name"]),
+            "accounts": accounts,
+        })
+
+    # ── refresh ───────────────────────────────────────────────────────────────
+    @action(detail=False, methods=["post"], throttle_classes=[ShipmentRefreshThrottle])
+    def refresh(self, request):
+        """Start a background sync of every active courier account (or one with ?courier=)."""
+        filters = self._filters()
+        configs = self._active_configs()
+        if filters.get("courier"):
+            configs = configs.filter(courier=filters["courier"])
+        started = {config.courier: sync.request_sync(config.pk, "refresh") for config in configs}
+        return Response({"sync": started}, status=status.HTTP_202_ACCEPTED)
+
+
+def _money(value):
+    return str((value or Decimal("0")).quantize(Decimal("0.01")))
 
 
 class ExternalOrderIngestionView(DeliveryIntegrationsGuardMixin, views.APIView):

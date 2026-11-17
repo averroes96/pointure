@@ -324,6 +324,49 @@ def _sync_payouts(config, connector, result):
 
 # ─── One shipment (opened in the UI) ──────────────────────────────────────────
 
+_shipments_running: set = set()
+
+
+def shipment_refreshing(shipment_id) -> bool:
+    with _lock:
+        return str(shipment_id) in _shipments_running
+
+
+def request_shipment_refresh(shipment_id) -> str:
+    """Re-read one shipment in the background (once at a time). Returns "started" or "running"."""
+    key = str(shipment_id)
+    with _lock:
+        if key in _shipments_running:
+            return "running"
+        _shipments_running.add(key)
+    try:
+        _start_shipment_thread(key)
+    except Exception:
+        with _lock:
+            _shipments_running.discard(key)
+        logger.exception("Could not start the shipment refresh thread")
+        return "error"
+    return "started"
+
+
+def _start_shipment_thread(key):
+    threading.Thread(target=_run_shipment, args=(key,), name=f"shipment-refresh-{key[:8]}", daemon=True).start()
+
+
+def _run_shipment(key):
+    try:
+        close_old_connections()
+        shipment = Shipment.objects.unscoped().select_related("provider_config").filter(pk=key).first()
+        if shipment is not None and shipment.provider_config.is_active:
+            sync_shipment(shipment)
+    except Exception:
+        logger.exception("Shipment refresh crashed (shipment %s)", key)
+    finally:
+        with _lock:
+            _shipments_running.discard(key)
+        connection.close()
+
+
 def sync_shipment(shipment) -> str:
     """
     Re-read one shipment and its full history. Called in the background when a

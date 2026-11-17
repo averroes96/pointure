@@ -3,8 +3,9 @@ from urllib.parse import urlparse
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .models import ProviderConfig, CustomerOrder
+from .models import ProviderConfig, CustomerOrder, Shipment, ShipmentEvent
 from .services import catalogue
+from .services.couriers.vocabulary import CashStatus, ShipmentStatus
 
 
 class ProviderConfigSerializer(serializers.ModelSerializer):
@@ -174,6 +175,70 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class ShipmentEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShipmentEvent
+        fields = ["occurred_at", "status", "raw_status", "note"]
+        read_only_fields = fields
+
+
+class ShipmentSerializer(serializers.ModelSerializer):
+    """Read-only shipment row (docs/plans/delivery-v1-plan.md P1.10)."""
+    courier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Shipment
+        fields = [
+            "id", "courier", "courier_name", "tracking_number", "reference", "customer_order",
+            "recipient_name", "recipient_phone", "wilaya_code", "commune",
+            "cod_amount", "delivery_fee", "store_amount",
+            "status", "raw_status", "status_at", "is_terminal",
+            "cash_status", "courier_payout_ref", "courier_paid_on",
+            "courier_updated_at", "last_synced_at",
+        ]
+        read_only_fields = fields
+
+    def get_courier_name(self, obj):
+        cache = self.context.get("_courier_names")
+        if cache is None:
+            snapshot = catalogue.load_snapshot()
+            cache = {c["key"]: c["name"] for c in (snapshot["couriers"] if snapshot else [])}
+            self.context["_courier_names"] = cache
+        return cache.get(obj.courier, obj.courier)
+
+
+class ShipmentDetailSerializer(ShipmentSerializer):
+    events = ShipmentEventSerializer(many=True, read_only=True)
+
+    class Meta(ShipmentSerializer.Meta):
+        fields = ShipmentSerializer.Meta.fields + ["events"]
+        read_only_fields = fields
+
+
+class ShipmentQuerySerializer(serializers.Serializer):
+    """Filters for the shipments list and summary. Lists are comma-separated."""
+    status = serializers.CharField(required=False, allow_blank=True)
+    cash_status = serializers.CharField(required=False, allow_blank=True)
+    courier = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    date_from = serializers.DateField(required=False)
+    date_to = serializers.DateField(required=False)
+
+    @staticmethod
+    def _choices(value, allowed, field):
+        items = [v.strip() for v in (value or "").split(",") if v.strip()]
+        bad = [v for v in items if v not in allowed]
+        if bad:
+            raise serializers.ValidationError({field: _("Valeur inconnue : %(v)s") % {"v": ", ".join(bad)}})
+        return items
+
+    def validate(self, attrs):
+        attrs["status"] = self._choices(attrs.get("status"), ShipmentStatus.values, "status")
+        attrs["cash_status"] = self._choices(attrs.get("cash_status"), CashStatus.values, "cash_status")
+        if attrs.get("date_from") and attrs.get("date_to") and attrs["date_from"] > attrs["date_to"]:
+            raise serializers.ValidationError({"date_to": _("La date de fin précède la date de début.")})
+        return attrs
 
 
 class CustomerOrderDispatchSerializer(serializers.Serializer):
