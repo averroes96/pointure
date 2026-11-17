@@ -27,6 +27,18 @@ class CustomerOrderStatusChoices(models.TextChoices):
     FAILED = "failed", _("Failed")
 
 
+class OrderAttentionChoices(models.TextChoices):
+    """Why the shipment lifecycle (P2.5) left a delivery order for the owner instead of acting."""
+    NONE = "", _("—")
+    PERIOD_CLOSED = "period_closed", _("Livré dans une période clôturée : vente non créée")
+    RETURNED_AFTER_DELIVERY = "returned_after_delivery", _("Retourné après livraison : faire un retour en caisse")
+    CANCELLED_AFTER_PICKUP = "cancelled_after_pickup", _("Annulé après ramassage : vérifier le retour du colis")
+    LOST = "lost", _("Colis perdu")
+    NOT_RECORDED = "not_recorded", _("Colis chez le transporteur, envoi non enregistré dans Pointure")
+    STATUS_CONFLICT = "status_conflict", _("Statut du transporteur contraire à la commande")
+    SALE_FAILED = "sale_failed", _("La vente n'a pas pu être créée")
+
+
 class DeliveryTypeChoices(models.TextChoices):
     HOME = "home", _("Home delivery")
     STOPDESK = "stopdesk", _("Stop desk")
@@ -150,6 +162,10 @@ class CustomerOrder(TenantScopedModel):
     )
     dispatched_at = models.DateTimeField(_("Dispatched at"), null=True, blank=True)
     stock_returned_at = models.DateTimeField(_("Stock returned at"), null=True, blank=True)
+    # Set by the shipment lifecycle (P2.5) when it refuses to act alone; never from request data.
+    attention = models.CharField(
+        _("Needs attention"), max_length=30, choices=OrderAttentionChoices.choices, blank=True, default="",
+    )
     
     # Integration tracking
     # dzship courier key of the ProviderConfig used to dispatch (e.g. "maystro").

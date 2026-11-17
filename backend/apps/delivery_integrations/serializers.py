@@ -234,6 +234,7 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "dispatched_by",
             "dispatched_at",
             "stock_returned_at",
+            "attention",
             "created_at",
             "updated_at",
         ]
@@ -246,6 +247,7 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "dispatched_by",
             "dispatched_at",
             "stock_returned_at",
+            "attention",
             "created_at",
             "updated_at",
         ]

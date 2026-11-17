@@ -16,7 +16,7 @@ import logging
 import threading
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 from django.db import close_old_connections, connection, transaction
@@ -24,7 +24,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from ..models import CustomerOrder, ProviderConfig, Shipment
-from . import couriers
+from . import couriers, lifecycle
 from .couriers import CashStatus, Capability
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ class SyncResult:
     unready: int = 0
     error: str = ""
     partial: bool = False
+    lifecycle: dict = field(default_factory=dict)   # outcome → count (P2.5)
 
 
 # ─── Run bookkeeping (process-local) ──────────────────────────────────────────
@@ -154,9 +155,10 @@ def sync_courier(config) -> SyncResult:
         last_synced_at=timezone.now(), last_sync_error=result.error,
     )
     logger.info(
-        "Shipment sync %s: pages=%d created=%d updated=%d events=%d paid=%d ready=%d unready=%d error=%s",
+        "Shipment sync %s: pages=%d created=%d updated=%d events=%d paid=%d ready=%d unready=%d "
+        "orders=%s error=%s",
         config.courier, result.pages, result.created, result.updated, result.events,
-        result.paid, result.ready, result.unready, result.error or "-",
+        result.paid, result.ready, result.unready, result.lifecycle or "-", result.error or "-",
     )
     return result
 
@@ -167,6 +169,7 @@ def _sync_orders(config, connector, result):
     )
     newest = config.sync_cursor
     changed_status = []
+    linked = []          # shipments of Pointure orders that reached a status the lifecycle acts on
     cursor = None
     reached_floor = False
 
@@ -182,7 +185,9 @@ def _sync_orders(config, connector, result):
             if snap.updated_at and (newest is None or snap.updated_at > newest):
                 newest = snap.updated_at
         if batch:
-            changed_status += _save_page(config, batch, result)
+            page_changed, page_linked = _save_page(config, batch, result)
+            changed_status += page_changed
+            linked += page_linked
         if reached_floor or not page.next_cursor:
             break
         cursor = page.next_cursor
@@ -190,12 +195,20 @@ def _sync_orders(config, connector, result):
         result.partial = True
         logger.warning("Shipment sync %s stopped at %d pages before reaching its cursor", config.courier, MAX_PAGES)
 
-    # History of status changes (outside transactions, capped).
+    # History of status changes (outside transactions, capped). New parcels of Pointure
+    # orders that are already final get theirs too: "cancelled before pickup" needs it.
     if connector.supports(Capability.HISTORY):
-        for shipment in changed_status[:MAX_HISTORY_CALLS]:
+        wanted = changed_status + [s for s in linked if s not in changed_status]
+        for shipment in wanted[:MAX_HISTORY_CALLS]:
             events = connector.history(shipment.external_id)
             with transaction.atomic():
                 result.events += shipment.merge_events(events)
+
+    # Pointure orders: sale at delivery, stock back on return (P2.5). One transaction each.
+    for shipment in linked:
+        outcome = lifecycle.apply(shipment)
+        if outcome:
+            result.lifecycle[outcome] = result.lifecycle.get(outcome, 0) + 1
 
     if newest is not None and newest != config.sync_cursor:
         ProviderConfig.objects.unscoped().filter(pk=config.pk).update(sync_cursor=newest)
@@ -208,6 +221,7 @@ def _save_page(config, snapshots, result):
     ids = [s.external_id for s in snapshots]
     now = timezone.now()
     status_changed = []
+    linked = []
     with transaction.atomic():
         existing = {
             s.external_id: s
@@ -226,6 +240,8 @@ def _save_page(config, snapshots, result):
                 shipment.last_synced_at = now
                 shipment.save()
                 result.created += 1
+                if lifecycle.needs_lifecycle(shipment):
+                    linked.append(shipment)
                 continue
             changed = shipment.apply_snapshot(snap)
             if changed:
@@ -234,7 +250,9 @@ def _save_page(config, snapshots, result):
                 result.updated += 1
                 if "status" in changed:
                     status_changed.append(shipment)
-    return status_changed
+                    if lifecycle.needs_lifecycle(shipment):
+                        linked.append(shipment)
+    return status_changed, linked
 
 
 def _orders_by_key(tenant, snapshots, existing):
