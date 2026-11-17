@@ -86,6 +86,8 @@ class Capability:
     HISTORY = "history"
     BALANCE = "balance"
     PAYOUTS = "payouts"
+    # Payment stage read per parcel (couriers without a payout list, e.g. Yalidine, P3.2).
+    PARCEL_CASH = "parcel_cash"
 
 
 @dataclass(frozen=True)
@@ -241,6 +243,10 @@ class CourierReadConnector:
 
     def pending_payout_lines(self) -> tuple:
         """tuple[PayoutLine, ...] of the payout the courier is preparing (the "ready" stage)."""
+        raise ConnectorNotSupported()
+
+    def parcel_cash(self, trackings) -> dict:
+        """{tracking: (CashStatus, payout_ref or "")} for these parcels; unknown ones are left out."""
         raise ConnectorNotSupported()
 
     # ── hooks (e.g. a courier's own quota rules) ──────────────────────────────

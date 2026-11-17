@@ -25,7 +25,7 @@ from django.utils import timezone
 
 from ..models import CustomerOrder, ProviderConfig, Shipment
 from . import couriers, lifecycle
-from .couriers import CashStatus, Capability
+from .couriers import CashStatus, Capability, ShipmentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ CURSOR_OVERLAP = timedelta(minutes=5)
 MAX_HISTORY_CALLS = 30          # history of status changes; the rest loads when a shipment is opened
 MAX_PAYOUT_PAGES = 10
 MAX_STATEMENTS = 20
+MAX_PARCEL_CASH = 1000          # parcels asked about per run (Yalidine: 10 calls of 100)
 PAYOUT_OVERLAP = timedelta(days=1)
 
 
@@ -127,6 +128,8 @@ def sync_courier(config) -> SyncResult:
             _sync_orders(config, connector, result)
         if connector.supports(Capability.PAYOUTS):
             _sync_payouts(config, connector, result)
+        elif connector.supports(Capability.PARCEL_CASH):
+            _sync_parcel_cash(config, connector, result)
         else:
             # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts.
             result.error = "key_scope" if not connector.supports(Capability.LIST) else ""
@@ -338,6 +341,43 @@ def _sync_payouts(config, connector, result):
             shipment.cash_status = CashStatus.HELD_BY_COURIER
             shipment.save(update_fields=["cash_status", "updated_at"])
             result.unready += 1
+
+
+def _sync_parcel_cash(config, connector, result):
+    """
+    Couriers that report payment per parcel and have no payout list (Yalidine, P3.2).
+    Asks only about delivered parcels whose money is not yet settled (not "paid with a
+    payout ref", not recorded at the agency), newest first and capped, so the number of
+    calls stays bounded. `courier_paid_on` stays empty: no payment date is given.
+    """
+    candidates = list(
+        Shipment.objects.unscoped()
+        .filter(tenant=config.tenant, courier=config.courier, status=ShipmentStatus.DELIVERED, payout__isnull=True)
+        .exclude(cash_status=CashStatus.NOT_APPLICABLE)
+        .exclude(Q(cash_status=CashStatus.PAID) & ~Q(courier_payout_ref=""))
+        .exclude(tracking_number="")
+        .order_by("-courier_updated_at")[:MAX_PARCEL_CASH]
+    )
+    if not candidates:
+        return
+    answers = connector.parcel_cash([s.tracking_number for s in candidates])   # network, outside transactions
+    with transaction.atomic():
+        for shipment in candidates:
+            answer = answers.get(shipment.tracking_number)
+            if answer is None:
+                continue
+            cash, ref = answer
+            if (shipment.cash_status, shipment.courier_payout_ref) == (cash, ref):
+                continue
+            if cash == CashStatus.PAID:
+                result.paid += 1
+            elif cash == CashStatus.READY:
+                result.ready += 1
+            elif shipment.cash_status == CashStatus.READY:
+                result.unready += 1
+            shipment.cash_status = cash
+            shipment.courier_payout_ref = ref
+            shipment.save(update_fields=["cash_status", "courier_payout_ref", "updated_at"])
 
 
 # ─── One shipment (opened in the UI) ──────────────────────────────────────────

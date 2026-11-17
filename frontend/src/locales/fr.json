@@ -1891,7 +1891,8 @@
     "payout_manual_intro": "Pour un transporteur sans versements en ligne, ou un retrait partiel : collez les numéros du bordereau, vérifiez, puis saisissez le montant compté. L'argent n'entre pas dans la caisse.",
     "payout_history": "Versements enregistrés",
     "payout_waiting": "{{count}} versements à confirmer",
-    "test_ok_unverified": "Connexion réussie. Le suivi de ce transporteur a été construit d'après sa documentation et n'a pas encore été vérifié sur un vrai compte : signalez tout statut ou montant qui vous paraît faux."
+    "test_ok_unverified": "Connexion réussie. Le suivi de ce transporteur a été construit d'après sa documentation et n'a pas encore été vérifié sur un vrai compte : signalez tout statut ou montant qui vous paraît faux.",
+    "payout_no_date": "Date non fournie (versement {{ref}})"
   },
   "carton": {
     "add_cartons_title": "Ajouter des cartons (Série)",

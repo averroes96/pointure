@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
-import api, { formatDate, getApiError } from "@/lib/api";
+import api, { getApiError } from "@/lib/api";
 import { getTrustedDateString } from "@/lib/time";
 import { formatMoney } from "../shipments";
-import { differenceTone, payoutDifference, useInvalidatePayouts } from "../payouts";
+import { differenceTone, payoutDateLabel, payoutDifference, useInvalidatePayouts } from "../payouts";
 import type { CourierPayoutToRecord } from "../types";
 
 interface Props {
@@ -81,7 +81,7 @@ export default function ConfirmPayoutModal({ courier, courierName, item, onClose
         <form className="modal-body space-y-4" onSubmit={(e) => { e.preventDefault(); if (amountValid) save.mutate(); }}>
           <dl className="grid grid-cols-3 gap-3 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
             <div><dt className="text-xs text-slate-500 dark:text-slate-400">{t("deliveries.payout_paid_on")}</dt>
-              <dd className="font-medium">{formatDate(item.paid_on, i18n.language)}</dd></div>
+              <dd className="font-medium">{payoutDateLabel(t, item, i18n.language)}</dd></div>
             <div><dt className="text-xs text-slate-500 dark:text-slate-400">{t("deliveries.payout_parcels")}</dt>
               <dd className="font-medium">{item.count}</dd></div>
             <div><dt className="text-xs text-slate-500 dark:text-slate-400">{t("deliveries.payout_expected")}</dt>

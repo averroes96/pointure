@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import i18n from "@/lib/i18n";
-import { differenceTone, parseTrackings, payoutDifference } from "../payouts";
+import { differenceTone, parseTrackings, payoutDateLabel, payoutDifference } from "../payouts";
+import { formatDate } from "@/lib/api";
 import { formatMoney } from "../shipments";
 
 const t = i18n.t.bind(i18n);
@@ -41,6 +42,13 @@ describe("helpers", () => {
     );
   });
 
+  it("payoutDateLabel says when the courier gives no payment date (Yalidine)", () => {
+    expect(payoutDateLabel(t, { paid_on: "2026-11-16", courier_payout_ref: "mp-9" }, "fr"))
+      .toBe(formatDate("2026-11-16", "fr"));
+    expect(payoutDateLabel(t, { paid_on: null, courier_payout_ref: "M-5" }))
+      .toBe(t("deliveries.payout_no_date", { ref: "M-5" }));
+  });
+
   it("formatMoney adds the currency, and keeps the dash for missing values", () => {
     expect(formatMoney("4900", "en")).toBe("4,900.00 DZD");
     expect(formatMoney(null)).toBe("—");
@@ -69,6 +77,24 @@ describe("ConfirmPayoutModal", () => {
     expect(body).toMatchObject({ courier: "maystro", courier_payout_ref: "mp-9", amount_received: "53900" });
     expect(body).not.toHaveProperty("expected_amount");
     expect(body).not.toHaveProperty("difference");
+  });
+});
+
+describe("ConfirmPayoutModal without a courier date", () => {
+  beforeEach(() => { get.mockReset(); post.mockReset(); });
+
+  it("shows that the date was not given and sends the pickup date entered", async () => {
+    const user = userEvent.setup();
+    post.mockResolvedValue({ data: { id: "p2" } });
+    withQuery(<ConfirmPayoutModal courier="guepex" courierName="Guepex"
+      item={{ courier_payout_ref: "M-5", paid_on: null, count: 2, expected_amount: "7100.00" }} onClose={vi.fn()} />);
+
+    expect(screen.getByText(t("deliveries.payout_no_date", { ref: "M-5" }))).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: t("deliveries.payout_confirm") }));
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    const body = post.mock.calls[0][1];
+    expect(body).toMatchObject({ courier: "guepex", courier_payout_ref: "M-5", amount_received: "7100.00" });
+    expect(body.picked_up_on).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 

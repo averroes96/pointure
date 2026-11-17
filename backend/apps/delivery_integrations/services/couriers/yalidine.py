@@ -35,6 +35,8 @@ from .vocabulary import CashStatus, ShipmentStatus
 
 PAGE_SIZE = 100
 MIN_INTERVAL = 0.3          # seconds between calls: well inside 5/s
+CASH_BATCH = 100            # trackings per payment lookup
+CASH_FIELDS = "tracking,last_status,payment_status,payment_id,has_recouvrement,price"
 
 # Stop the run when a quota gets this low; wait that long before the next run.
 QUOTA_FLOORS = (
@@ -109,7 +111,9 @@ def cash_status_for(status, payment_status, cod):
 @register
 class YalidineConnector(CourierReadConnector):
     platform = "yalidine"
-    capabilities = frozenset({Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY})
+    capabilities = frozenset({
+        Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY, Capability.PARCEL_CASH,
+    })
     verified = False
 
     def __init__(self, courier_key, credentials, base_url):
@@ -179,6 +183,29 @@ class YalidineConnector(CourierReadConnector):
             events.append(TrackingEvent(status=status, raw_status=raw, occurred_at=occurred, note=note[:255]))
         events.sort(key=lambda e: e.occurred_at)
         return tuple(events)
+
+    def parcel_cash(self, trackings):
+        """
+        Payment stage of these parcels, CASH_BATCH per call (`GET /v1/parcels/?tracking=a,b&fields=…`).
+        A payment does not move `date_last_status`, so the order sync alone would miss it (P3.2).
+        `payment_id` becomes the payout ref only once the parcel is paid.
+        """
+        refs = [_safe_ref(t) for t in dict.fromkeys(trackings) if t]
+        found = {}
+        for start in range(0, len(refs), CASH_BATCH):
+            batch = refs[start:start + CASH_BATCH]
+            data = _dict(self._request("GET", "/v1/parcels/", params={
+                "tracking": ",".join(batch), "fields": CASH_FIELDS, "page_size": CASH_BATCH,
+            }))
+            for row in _rows(data):
+                tracking = str(row.get("tracking") or "")
+                if tracking not in batch:
+                    continue
+                status, _label = map_status(row.get("last_status"))
+                cash = cash_status_for(status, row.get("payment_status"), has_cod(row))
+                ref = str(row.get("payment_id") or "")[:64] if cash == CashStatus.PAID else ""
+                found[tracking] = (cash, ref)
+        return found
 
     def _snapshot(self, row):
         status, raw = map_status(row.get("last_status"))

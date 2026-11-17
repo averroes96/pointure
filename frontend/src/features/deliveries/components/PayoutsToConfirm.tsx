@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import api, { formatDate, getApiError } from "@/lib/api";
+import api, { getApiError } from "@/lib/api";
 import { formatMoney } from "../shipments";
-import { useInvalidatePayouts } from "../payouts";
+import { payoutDateLabel, useInvalidatePayouts } from "../payouts";
 import type { CourierPayoutToRecord, CourierToRecord } from "../types";
 import ConfirmPayoutModal from "./ConfirmPayoutModal";
 
@@ -100,10 +100,12 @@ export default function PayoutsToConfirm({ courier, courierName }: Props) {
               {rows.map((r) => (
                 <tr key={r.courier_payout_ref}>
                   <td>
-                    <input type="checkbox" aria-label={formatDate(r.paid_on, i18n.language)}
+                    <input type="checkbox" aria-label={payoutDateLabel(t, r, i18n.language)}
                       checked={selected.includes(r.courier_payout_ref)} onChange={() => toggle(r.courier_payout_ref)} />
                   </td>
-                  <td className="whitespace-nowrap">{formatDate(r.paid_on, i18n.language)}</td>
+                  <td className={r.paid_on ? "whitespace-nowrap" : "text-slate-500 dark:text-slate-400"}>
+                    {payoutDateLabel(t, r, i18n.language)}
+                  </td>
                   <td className="text-end">{r.count}</td>
                   <td className="text-end font-mono whitespace-nowrap">{formatMoney(r.expected_amount, i18n.language)}</td>
                   <td className="text-end">

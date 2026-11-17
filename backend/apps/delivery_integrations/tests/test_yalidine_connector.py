@@ -326,7 +326,7 @@ def test_test_action_says_the_connector_is_unverified(store):
     with mock.patch(REQUEST, return_value=_resp(_page([]))):
         res = client.post(f"/api/v1/deliveries/provider-configs/{config.pk}/test/")
     assert res.status_code == status.HTTP_200_OK
-    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "test"],
+    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "parcel_cash", "test"],
                           "limited": False, "verified": False}
     assert CREDS["apiToken"] not in res.content.decode()
 
@@ -339,6 +339,8 @@ def test_sync_reads_pages_and_saves_shipments(store):
     }
 
     def answer(method, url, params=None, **kwargs):
+        if "/v1/parcels/" in url and "tracking" in params:          # payment lookup (P3.2)
+            return _resp(_page([parcel(payment_status="ready")]))
         if "/v1/parcels/" in url:
             return pages[params["page"]]
         return _resp(_page([]))                     # histories
@@ -346,10 +348,10 @@ def test_sync_reads_pages_and_saves_shipments(store):
     with mock.patch(REQUEST, side_effect=answer):
         result = sync.sync_courier(config)
 
-    assert (result.created, result.error) == (3, "")
+    assert (result.created, result.error, result.ready) == (3, "", 1)
     ships = {s.tracking_number: s for s in Shipment.objects.unscoped().filter(tenant=tenant)}
     assert (ships["yal-123456"].status, ships["yal-123456"].cash_status) == (
-        ShipmentStatus.DELIVERED, CashStatus.HELD_BY_COURIER)
+        ShipmentStatus.DELIVERED, CashStatus.READY)                    # set by the payment lookup
     assert (ships["yal-2"].status, ships["yal-2"].is_terminal) == (ShipmentStatus.RETURNED, True)
     assert ships["yal-3"].status == ShipmentStatus.IN_TRANSIT
     config.refresh_from_db()
@@ -377,3 +379,105 @@ def test_logs_never_contain_the_credentials(caplog):
         base_logger.removeHandler(caplog.handler)
     assert "HTTP 401" in caplog.text
     assert CREDS["apiToken"] not in caplog.text and CREDS["apiId"] not in caplog.text
+
+
+# ─── Payment per parcel (P3.2) ────────────────────────────────────────────────
+
+def test_parcel_cash_asks_in_batches_with_only_the_needed_fields(monkeypatch):
+    monkeypatch.setattr(yalidine, "CASH_BATCH", 2)
+    rows = {
+        "yal-1": parcel(tracking="yal-1", payment_status="payed", payment_id="M-77"),
+        "yal-2": parcel(tracking="yal-2", payment_status="ready", payment_id="M-78"),
+        "yal-3": parcel(tracking="yal-3", payment_status="not-ready"),
+    }
+
+    def answer(method, url, params=None, **kwargs):
+        asked = params["tracking"].split(",")
+        return _resp(_page([rows[t] for t in asked if t in rows] + [parcel(tracking="yal-other")]))
+
+    with mock.patch(REQUEST, side_effect=answer) as req:
+        found = _conn().parcel_cash(["yal-1", "yal-2", "yal-3", "yal-1", "yal-404"])
+
+    assert [c.kwargs["params"]["tracking"] for c in req.call_args_list] == ["yal-1,yal-2", "yal-3,yal-404"]
+    assert req.call_args.kwargs["params"]["fields"] == yalidine.CASH_FIELDS
+    assert found == {
+        "yal-1": (CashStatus.PAID, "M-77"),
+        "yal-2": (CashStatus.READY, ""),             # the manifest id counts only once paid
+        "yal-3": (CashStatus.HELD_BY_COURIER, ""),
+    }                                                # unknown and foreign rows left out
+
+
+def test_parcel_cash_refuses_unsafe_trackings_before_any_call():
+    with mock.patch(REQUEST) as req, pytest.raises(ConnectorError):
+        _conn().parcel_cash(["yal-1", "yal 2"])
+    req.assert_not_called()
+
+
+def _ship(tenant, config, tracking, **fields):
+    defaults = dict(status=ShipmentStatus.DELIVERED, cash_status=CashStatus.HELD_BY_COURIER,
+                    courier_updated_at=timezone.now())
+    defaults.update(fields)
+    return Shipment.objects.create(tenant=tenant, provider_config=config, courier="guepex",
+                                   external_id=tracking, tracking_number=tracking, **defaults)
+
+
+def test_cash_step_asks_only_about_unsettled_delivered_parcels(store):
+    from apps.delivery_integrations.models import CourierPayout
+    tenant, owner, config = store
+    _ship(tenant, config, "yal-held")
+    _ship(tenant, config, "yal-ready", cash_status=CashStatus.READY)
+    _ship(tenant, config, "yal-paid-noref", cash_status=CashStatus.PAID)
+    _ship(tenant, config, "yal-paid", cash_status=CashStatus.PAID, courier_payout_ref="M-1")       # settled
+    _ship(tenant, config, "yal-transit", status=ShipmentStatus.IN_TRANSIT,
+          cash_status=CashStatus.AWAITING_DELIVERY)                                              # not delivered
+    _ship(tenant, config, "yal-free", cash_status=CashStatus.NOT_APPLICABLE)                     # no cash
+    payout = CourierPayout.objects.create(tenant=tenant, provider_config=config, courier="guepex",
+                                          picked_up_on=timezone.localdate(), amount_received=Decimal("1"),
+                                          expected_amount=Decimal("1"), difference=Decimal("0"), recorded_by=owner)
+    _ship(tenant, config, "yal-agency", cash_status=CashStatus.PAID, payout=payout)              # recorded by the store
+    answers = {"yal-held": (CashStatus.PAID, "M-9"), "yal-ready": (CashStatus.HELD_BY_COURIER, ""),
+               "yal-paid-noref": (CashStatus.PAID, "M-9")}
+
+    with mock.patch.object(YalidineConnector, "parcel_cash", side_effect=lambda t: {k: answers[k] for k in t if k in answers}) as ask:
+        result = sync.SyncResult()
+        sync._sync_parcel_cash(config, get_connector(config), result)
+
+    assert sorted(ask.call_args.args[0]) == ["yal-held", "yal-paid-noref", "yal-ready"]
+    assert (result.paid, result.ready, result.unready) == (2, 0, 1)
+    states = dict(Shipment.objects.unscoped().filter(tenant=tenant).values_list("tracking_number", "cash_status"))
+    refs = dict(Shipment.objects.unscoped().filter(tenant=tenant).values_list("tracking_number", "courier_payout_ref"))
+    assert (states["yal-held"], refs["yal-held"]) == (CashStatus.PAID, "M-9")
+    assert states["yal-ready"] == CashStatus.HELD_BY_COURIER                     # left the manifest
+    assert (states["yal-paid-noref"], refs["yal-paid-noref"]) == (CashStatus.PAID, "M-9")
+    assert states["yal-agency"] == CashStatus.PAID and refs["yal-agency"] == ""  # untouched
+    assert Shipment.objects.unscoped().get(tracking_number="yal-held").courier_paid_on is None
+
+
+def test_cash_step_is_capped(store, monkeypatch):
+    tenant, owner, config = store
+    for n in range(5):
+        _ship(tenant, config, f"yal-{n}", courier_updated_at=timezone.now() - timezone.timedelta(minutes=n))
+    monkeypatch.setattr(sync, "MAX_PARCEL_CASH", 3)
+    with mock.patch.object(YalidineConnector, "parcel_cash", return_value={}) as ask:
+        sync._sync_parcel_cash(config, get_connector(config), sync.SyncResult())
+    assert ask.call_args.args[0] == ["yal-0", "yal-1", "yal-2"]       # newest first
+
+
+def test_yalidine_payout_appears_to_confirm_without_a_date_and_can_be_recorded(store):
+    from apps.delivery_integrations.services import payouts
+    tenant, owner, config = store
+    _ship(tenant, config, "yal-a", cash_status=CashStatus.PAID, courier_payout_ref="M-5",
+          cod_amount=Decimal("4900"), delivery_fee=Decimal("400"))
+    _ship(tenant, config, "yal-b", cash_status=CashStatus.PAID, courier_payout_ref="M-5",
+          cod_amount=Decimal("3000"), delivery_fee=Decimal("400"))
+
+    rows = payouts.to_record(tenant)
+    assert rows == [{"courier": "guepex", "held": None, "ready": None, "courier_payouts": [
+        {"courier_payout_ref": "M-5", "paid_on": None, "count": 2, "expected_amount": "7100.00"}]}]
+
+    outcome = payouts.confirm_courier_payouts(tenant=tenant, user=owner, courier="guepex", refs=["M-5"])
+    assert outcome["failed"] == [] and len(outcome["created"]) == 1
+    from apps.delivery_integrations.models import CourierPayout
+    recorded = CourierPayout.objects.get(pk=outcome["created"][0])
+    assert (recorded.picked_up_on, recorded.expected_amount, recorded.amount_received) == (
+        timezone.localdate(), Decimal("7100.00"), Decimal("7100.00"))

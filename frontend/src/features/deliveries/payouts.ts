@@ -1,6 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
-import type { CourierPayoutDetail, CourierToRecord, PayoutPage } from "./types";
+import type { TFunction } from "i18next";
+import api, { formatDate } from "@/lib/api";
+import type { CourierPayoutDetail, CourierPayoutToRecord, CourierToRecord, PayoutPage } from "./types";
+
+/**
+ * The courier's payment date, or "date not given (payout M-5)" for couriers that
+ * report payment per parcel without a date (Yalidine family, P3.2).
+ */
+export function payoutDateLabel(
+  t: TFunction, item: Pick<CourierPayoutToRecord, "paid_on" | "courier_payout_ref">, lang?: string,
+): string {
+  return item.paid_on
+    ? formatDate(item.paid_on, lang)
+    : t("deliveries.payout_no_date", { ref: item.courier_payout_ref });
+}
 
 /**
  * Tracking numbers pasted or scanned from the agency sheet: one per line, or
