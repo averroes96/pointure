@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.closing.services.lock import assert_period_open
-from apps.core.models import StoreSettings, Tenant
+from apps.core.models import Commune, StoreSettings, Tenant
 from apps.core.permissions import RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.inventory.models import MovementReasonChoices, StockMovement, Variant
@@ -31,7 +31,7 @@ from .serializers import (
     CourierPayoutSerializer, ConfirmCourierPayoutsSerializer,
 )
 from .models import CourierPayout
-from .services import catalogue, couriers, geo, payouts, sync
+from .services import catalogue, communes, couriers, geo, payouts, sync
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -142,6 +142,68 @@ class CourierCatalogueView(DeliveryIntegrationsGuardMixin, views.APIView):
         query = CourierCatalogueQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         return Response(catalogue.get_catalogue(force_refresh=query.validated_data["refresh"]))
+
+
+class CommuneQuerySerializer(serializers.Serializer):
+    wilaya = serializers.IntegerField(min_value=1, max_value=69)
+    name = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+
+
+def _pointure_communes():
+    # Loaded by core migration 0004 from apps/core/fixtures/communes.json.
+    return Commune.objects.order_by("wilaya__code", "name")
+
+
+class CommuneMatchView(DeliveryIntegrationsGuardMixin, views.APIView):
+    """
+    GET /api/v1/deliveries/communes/?wilaya=62[&name=Bir El Ater]
+
+    The wilaya's Pointure communes with the courier spelling dzship expects (or none),
+    the courier's own list for a manual pick, and, with `name`, the match for one
+    typed commune. Reference data only (no tenant rows); no network: the dzship
+    list comes from its snapshot (P2.1), refreshed in the background (P2.2).
+    """
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
+
+    def get(self, request):
+        query = CommuneQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        code, name = query.validated_data["wilaya"], query.validated_data["name"].strip()
+        index, meta = communes.load_index()
+        rows = []
+        for c in _pointure_communes().filter(wilaya__code=f"{code:02d}").values("id", "name", "ar_name"):
+            match = index.match(code, c["name"], c["ar_name"])
+            rows.append({**c, "courier": communes.courier_name(match), "matched": match is not None})
+        return Response({
+            "wilaya": code,
+            "ship_wilaya": communes.ship_wilaya(code),
+            "available": bool(index.by_wilaya),
+            "communes": rows,
+            "courier_communes": [communes.courier_name(r) for r in index.communes(code)],
+            "match": communes.courier_name(index.match(code, name, name)) if name else None,
+            **meta,
+        })
+
+
+class UnmatchedCommunesView(DeliveryIntegrationsGuardMixin, views.APIView):
+    """
+    GET /api/v1/deliveries/communes/unmatched/
+
+    Pointure communes with no courier spelling, for the owner to review (never guessed).
+    Empty with `available: false` while the dzship list has not been fetched yet.
+    """
+    permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
+
+    def get(self, request):
+        index, meta = communes.load_index()
+        rows = []
+        if index.by_wilaya:
+            for c in _pointure_communes().values("id", "name", "ar_name", "wilaya__code"):
+                code = int(c["wilaya__code"])
+                if index.match(code, c["name"], c["ar_name"]) is None:
+                    rows.append({"id": c["id"], "name": c["name"], "ar_name": c["ar_name"],
+                                 "wilaya": code, "ship_wilaya": communes.ship_wilaya(code)})
+        return Response({"available": bool(index.by_wilaya), "count": len(rows), "communes": rows, **meta})
 
 
 class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
