@@ -278,8 +278,10 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
         return Response({
             "result": "ok",
             "capabilities": sorted(connector.capabilities),
-            # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts.
-            "limited": not connector.supports(couriers.Capability.LIST),
+            # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts. A courier with no
+            # list that follows known parcels (NOEST, P3.13) is not limited.
+            "limited": not (connector.supports(couriers.Capability.LIST)
+                            or connector.supports(couriers.Capability.PARCEL_STATES)),
             # Built from the courier's documentation, not yet checked on a real account (P3.1).
             "verified": connector.verified,
         })

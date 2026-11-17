@@ -37,6 +37,8 @@ MAX_PAYOUT_PAGES = 10
 MAX_STATEMENTS = 20
 MAX_PARCEL_CASH = 1000          # parcels asked about per run (Yalidine: 10 calls of 100)
 MAX_PARCEL_STATES = 300         # parcels missing from the list asked about per run (Ecotrack: 3 calls)
+# Pointure orders whose parcel exists at the courier (`confirmed` = accepted but recording failed, P2.4).
+SENT_ORDER_STATUSES = ("dispatched", "confirmed")
 PAYOUT_OVERLAP = timedelta(days=1)
 
 
@@ -125,15 +127,18 @@ def sync_courier(config) -> SyncResult:
     result = SyncResult()
     try:
         connector = couriers.get_connector(config)
+        follows_parcels = connector.supports(Capability.LIST) or connector.supports(Capability.PARCEL_STATES)
         if connector.supports(Capability.LIST):
             _sync_orders(config, connector, result)
+        elif connector.supports(Capability.PARCEL_STATES):
+            _sync_known_parcels(config, connector, result)      # no list: NOEST (P3.13)
         if connector.supports(Capability.PAYOUTS):
             _sync_payouts(config, connector, result)
         elif connector.supports(Capability.PARCEL_CASH):
             _sync_parcel_cash(config, connector, result)
         else:
             # e.g. a Maystro ak_ key: valid, but cannot read orders or payouts.
-            result.error = "key_scope" if not connector.supports(Capability.LIST) else ""
+            result.error = "key_scope" if not follows_parcels else ""
     except couriers.ConnectorNotSupported as exc:
         result.error = exc.reason[:50]
     except couriers.ConnectorRateLimited as exc:
@@ -209,20 +214,7 @@ def _sync_orders(config, connector, result):
         changed_status += [s for s in states_changed if s not in changed_status]
         linked += [s for s in states_linked if s not in linked]
 
-    # History of status changes (outside transactions, capped). New parcels of Pointure
-    # orders that are already final get theirs too: "cancelled before pickup" needs it.
-    if connector.supports(Capability.HISTORY):
-        wanted = changed_status + [s for s in linked if s not in changed_status]
-        for shipment in wanted[:MAX_HISTORY_CALLS]:
-            events = connector.history(shipment.external_id)
-            with transaction.atomic():
-                result.events += shipment.merge_events(events)
-
-    # Pointure orders: sale at delivery, stock back on return (P2.5). One transaction each.
-    for shipment in linked:
-        outcome = lifecycle.apply(shipment)
-        if outcome:
-            result.lifecycle[outcome] = result.lifecycle.get(outcome, 0) + 1
+    _history_and_lifecycle(connector, result, changed_status, linked)
 
     if newest is not None and newest != config.sync_cursor:
         ProviderConfig.objects.unscoped().filter(pk=config.pk).update(sync_cursor=newest)
@@ -352,6 +344,67 @@ def _sync_payouts(config, connector, result):
             shipment.cash_status = CashStatus.HELD_BY_COURIER
             shipment.save(update_fields=["cash_status", "updated_at"])
             result.unready += 1
+
+
+def _history_and_lifecycle(connector, result, changed_status, linked):
+    """
+    History of status changes (outside transactions, capped). New parcels of Pointure
+    orders that are already final get theirs too: "cancelled before pickup" needs it.
+    Then the Pointure orders: sale at delivery, stock back on return (P2.5), one
+    transaction each.
+    """
+    if connector.supports(Capability.HISTORY):
+        wanted = changed_status + [s for s in linked if s not in changed_status]
+        for shipment in wanted[:MAX_HISTORY_CALLS]:
+            events = connector.history(shipment.external_id)
+            with transaction.atomic():
+                result.events += shipment.merge_events(events)
+    for shipment in linked:
+        outcome = lifecycle.apply(shipment)
+        if outcome:
+            result.lifecycle[outcome] = result.lifecycle.get(outcome, 0) + 1
+
+
+def _sync_known_parcels(config, connector, result):
+    """
+    Couriers with no parcel list (NOEST, P3.13): Pointure follows the parcels it knows.
+      1. A shipment is created for each Pointure order sent with this courier that has a
+         tracking number but no shipment yet (customer, commune and COD from the order).
+      2. Every open shipment is then asked about (`parcel_states`, the P3.6 step with
+         nothing "seen"), followed by history and the lifecycle.
+    Parcels created in the courier's own dashboard are added by tracking (P3.14).
+    """
+    result.created += _seed_from_orders(config)
+    changed, linked = _sync_parcel_states(config, connector, result, seen=set())
+    _history_and_lifecycle(connector, result, changed, linked)
+
+
+def _seed_from_orders(config):
+    tenant, courier = config.tenant, config.courier
+    known = set(Shipment.objects.unscoped().filter(tenant=tenant, courier=courier).values_list("tracking_number", flat=True))
+    orders = (
+        CustomerOrder.objects.unscoped()
+        .filter(tenant=tenant, provider=courier, status__in=SENT_ORDER_STATUSES)
+        .exclude(tracking_number__isnull=True).exclude(tracking_number="")
+        .prefetch_related("lines")
+    )
+    created, now = 0, timezone.now()
+    with transaction.atomic():
+        for order in orders:
+            tracking = order.tracking_number.strip()[:64]
+            if not tracking or tracking in known:
+                continue
+            Shipment.objects.create(
+                tenant=tenant, provider_config=config, courier=courier, external_id=tracking,
+                tracking_number=tracking, reference=str(order.pk), customer_order=order,
+                recipient_name=(order.customer_name or "")[:200], recipient_phone=(order.customer_phone or "")[:20],
+                wilaya_code=(order.wilaya or "")[:10], commune=(order.commune or "")[:100],
+                cod_amount=order.cod_to_collect(), status=ShipmentStatus.CREATED, status_at=now,
+                courier_updated_at=now, cash_status=CashStatus.AWAITING_DELIVERY, last_synced_at=now,
+            )
+            known.add(tracking)
+            created += 1
+    return created
 
 
 def _sync_parcel_states(config, connector, result, seen):
