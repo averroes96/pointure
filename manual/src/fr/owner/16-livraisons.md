@@ -1,6 +1,6 @@
 ## 16. Livraisons : transporteurs et suivi des expéditions {#livraisons}
 
-ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Ces informations sont en lecture seule : elles ne modifient ni vos ventes, ni votre stock, ni votre caisse, et n'apparaissent pas dans les sessions de caisse ni dans les rapports Z.
+ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Les colis créés dans l'application du transporteur ou dans DZBuild sont en lecture seule : ils ne modifient ni vos ventes, ni votre stock, ni votre caisse. Les colis **envoyés depuis ShoeDZ** (section H) font sortir le stock à l'envoi et deviennent une vente à la livraison. Rien de tout cela n'apparaît dans les sessions de caisse ni dans les rapports Z.
 
 > Réservé au propriétaire et aux managers, avec la formule Pro.
 
@@ -8,7 +8,7 @@ ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystr
 
 1. Ouvrez **Paramètres → Politiques & Mode** (propriétaire).
 2. Cochez **Activer les intégrations de livraison**.
-3. L'onglet **Paramètres de Livraison** apparaît dans les Paramètres, et le menu **Expéditions** apparaît dans la barre latérale, sous **Ventes**.
+3. L'onglet **Paramètres de Livraison** apparaît dans les Paramètres, et les menus **Commandes à livrer** et **Expéditions** apparaissent dans la barre latérale, sous **Ventes**.
 
 ### B. Ajouter un compte transporteur
 
@@ -98,3 +98,36 @@ Pour un transporteur sans versements en ligne, ou un retrait partiel : cliquez s
 Les colis d'un versement passent à **Versé**. La liste **Versements enregistrés** montre la date, le transporteur, le nombre de colis, l'attendu, le reçu et l'écart ; la flèche d'une ligne affiche ses colis. La mention « non confirmés par le transporteur » signale des colis que le transporteur n'a pas encore déclarés payés : vérifiez-les avec lui.
 
 **Erreur de saisie ?** Cliquez sur **Annuler** sur la ligne du versement : chaque colis retrouve l'état qu'il avait avant, et vous pouvez l'enregistrer de nouveau. Un versement ne se modifie pas et ne se supprime pas.
+
+### H. Envoyer un colis depuis ShoeDZ
+
+Ouvrez **Ventes → Commandes à livrer**, puis cliquez sur **Nouvelle commande** (ou sur **Ouvrir** pour un brouillon).
+
+1. **Client :** nom complet, téléphone, et un second téléphone si besoin.
+2. **Livraison :** la wilaya, puis la commune **telle que le transporteur l'écrit** (la liste vient du transporteur). Choisissez **À domicile** ou **Point relais (bureau)** ; pour un bureau, choisissez-le dans la liste du transporteur.
+3. **Articles :** recherchez-les dans le stock (nom, référence ou code-barres). Ajouter deux fois le même article augmente sa quantité. Le prix et la remise de chaque ligne sont modifiables.
+4. **Montants :**
+   - **Frais de livraison payés par le client :** le tarif du transporteur s'affiche. S'il est différent de vos frais, cliquez sur **Utiliser ce tarif** pour le reprendre.
+   - **Livraison gratuite**, **Le client peut ouvrir le colis** et **Note pour le livreur** sont transmis au transporteur.
+   - **Montant à encaisser :** par défaut, les articles plus la livraison (sauf livraison gratuite). Saisissez un montant plus petit si le client a déjà payé un acompte. Il doit être en dinars entiers et ne peut pas dépasser les articles plus la livraison.
+5. Cliquez sur **Enregistrer le brouillon** pour finir plus tard, ou choisissez le **Transporteur** puis cliquez sur **Envoyer au transporteur**.
+
+**Après l'envoi :**
+
+- Le **stock sort** aussitôt (mouvement « Envoi livraison »). Aucune vente n'est encore créée, et rien n'entre dans la caisse.
+- Le colis apparaît dans **Expéditions** à la mise à jour suivante.
+- **Livré :** ShoeDZ crée la vente, datée du jour de la livraison, payée « Encaissé par le livreur ». Elle compte dans le chiffre d'affaires du jour mais pas dans la caisse ni dans les rapports Z. L'argent se suit ensuite dans **Versements** (section G).
+- **Retourné**, ou **annulé avant ramassage :** le stock revient tout seul (mouvement « Retour livraison »).
+
+**Si le transporteur refuse**, la commande reste un brouillon et sa réponse s'affiche (par exemple : même client et même téléphone en moins de 24 h chez Maystro). Corrigez puis renvoyez. **S'il ne répond pas**, vérifiez dans son application si le colis a été créé avant de renvoyer la commande.
+
+**Onglet « À vérifier » :** ShoeDZ n'agit pas seul dans ces cas.
+
+| Message | Que faire |
+|---|---|
+| Retournée après livraison | La vente existe : faites un retour en caisse quand le colis revient. |
+| Annulée après ramassage | Le colis est peut-être en route vers la boutique : le stock reviendra quand il sera marqué retourné. |
+| Colis perdu | Voyez avec le transporteur. Le stock ne revient pas. |
+| Colis créé chez le transporteur, envoi non enregistré | Souvent après un envoi resté sans réponse : vérifiez le colis dans l'application du transporteur. |
+| Période clôturée | La date tombe dans un exercice clôturé : rien n'a été enregistré. |
+| La vente n'a pas pu être créée | ShoeDZ réessaie à la prochaine mise à jour ; si le message reste, contactez le support. |

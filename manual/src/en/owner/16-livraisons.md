@@ -1,6 +1,6 @@
 ## 16. Deliveries: Couriers and Shipment Tracking {#livraisons}
 
-ShoeDZ reads your parcels directly from your courier (today: **Maystro**): where each parcel is, which were delivered or returned, and **where the money is**. This information is read-only: it changes neither your sales, your stock nor your till, and it does not appear in cash sessions or Z reports.
+ShoeDZ reads your parcels directly from your courier (today: **Maystro**): where each parcel is, which were delivered or returned, and **where the money is**. Parcels created in the courier's app or in DZBuild are read-only: they change neither your sales, your stock nor your till. Parcels **sent from ShoeDZ** (section H) take the stock out when sent and become a sale when delivered. None of this appears in cash sessions or Z reports.
 
 > Owner and managers only, on the Pro plan.
 
@@ -8,7 +8,7 @@ ShoeDZ reads your parcels directly from your courier (today: **Maystro**): where
 
 1. Open **Settings → Policies & Mode** (owner).
 2. Tick **Enable delivery integrations**.
-3. A **Delivery Settings** tab appears in Settings, and a **Shipments** menu appears in the sidebar, under **Sales**.
+3. A **Delivery Settings** tab appears in Settings, and **Delivery orders** and **Shipments** menus appear in the sidebar, under **Sales**.
 
 ### B. Adding a courier account
 
@@ -98,3 +98,36 @@ For a courier without online payouts, or a partial pickup: click **Manual entry 
 A payout's parcels become **Paid**. The **Recorded payouts** list shows the date, courier, number of parcels, expected, received and difference; a line's arrow shows its parcels. "Not confirmed by the courier" marks parcels the courier has not reported as paid yet: check them with the courier.
 
 **Made a mistake?** Click **Void** on the payout's line: every parcel gets back the state it had before, and you can record it again. A payout cannot be edited or deleted.
+
+### H. Sending a parcel from ShoeDZ
+
+Open **Sales → Delivery orders**, then click **New order** (or **Open** on a draft).
+
+1. **Customer:** full name, phone, and a second phone if needed.
+2. **Delivery:** the wilaya, then the commune **as the courier spells it** (the list comes from the courier). Choose **Home delivery** or **Stop desk (courier office)**; for a desk, pick it from the courier's list.
+3. **Articles:** search the stock (name, reference or barcode). Adding the same article twice raises its quantity. Each line's price and discount can be changed.
+4. **Amounts:**
+   - **Delivery fee paid by the customer:** the courier's rate is shown. If it differs from your fee, click **Use this rate** to take it.
+   - **Free delivery**, **Customer may open the package** and **Note for the driver** are passed to the courier.
+   - **Amount to collect:** by default, the goods plus delivery (unless delivery is free). Enter a smaller amount if the customer already paid a deposit. It must be whole dinars and cannot exceed goods plus delivery.
+5. Click **Save draft** to finish later, or choose the **Courier** and click **Send to courier**.
+
+**After sending:**
+
+- The **stock goes out** at once (movement "Delivery dispatch"). No sale is created yet, and nothing goes into the till.
+- The parcel appears in **Shipments** at the next update.
+- **Delivered:** ShoeDZ creates the sale, dated on the delivery day, paid "Collected by courier". It counts in the day's revenue but not in the till or the Z reports. The money is then followed in **Payouts** (section G).
+- **Returned**, or **cancelled before pickup:** the stock comes back by itself (movement "Delivery return").
+
+**If the courier refuses**, the order stays a draft and the courier's answer is shown (for example: same customer and phone within 24 h at Maystro). Fix it and send again. **If the courier does not answer**, check in its app whether the parcel was created before sending again.
+
+**"Needs attention" tab:** ShoeDZ does not act alone in these cases.
+
+| Message | What to do |
+|---|---|
+| Returned after delivery | The sale exists: do a POS return when the parcel comes back. |
+| Cancelled after pickup | The parcel may be on its way back: the stock returns when it is marked returned. |
+| Parcel lost | See the courier. The stock does not come back. |
+| Parcel exists at the courier, dispatch not recorded | Usually after a send that got no answer: check the parcel in the courier's app. |
+| Closed period | The date falls in a closed fiscal year: nothing was recorded. |
+| The sale could not be created | ShoeDZ retries at the next update; if the message stays, contact support. |
