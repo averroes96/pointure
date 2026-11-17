@@ -209,7 +209,7 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
         if not saved or any(not saved.get(name) for name in required):
             raise ValidationError(_(
                 "Les identifiants de ce transporteur sont incomplets. Complétez-les dans "
-                "Paramètres → Livraison."
+                "Paramètres → Paramètres de Livraison."
             ))
 
         variant_map = {

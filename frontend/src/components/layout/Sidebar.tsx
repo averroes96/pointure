@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, ShoppingCart, History, FileText, FileSpreadsheet, Truck, FileX,
+  LayoutDashboard, ShoppingCart, History, FileText, FileSpreadsheet, Truck, FileX, PackageSearch,
   Package, BarChart2, AlertTriangle, Users, TrendingDown, CreditCard,
   Factory, PieChart, CalendarDays, BarChart, BookOpen,
   Settings, ShoppingBag, ArrowLeftRight, Shield, Gift, ClipboardCheck, ScanBarcode, Tag, Receipt, Webhook,
@@ -55,6 +55,7 @@ function useNavSections(): NavSection[] {
         { to: "/sales/reconciliation", labelKey: "nav.reconciliation", icon: ClipboardCheck },
         { to: "/promotions", labelKey: "nav.promotions", icon: Tag, managerOnly: true },
         { to: "/deliveries/drafts", labelKey: "nav.draft_orders", icon: Truck, managerOnly: true, minPlan: "pro_retail" },
+        { to: "/deliveries/shipments", labelKey: "nav.shipments", icon: PackageSearch, managerOnly: true, minPlan: "pro_retail" },
       ],
     },
     {

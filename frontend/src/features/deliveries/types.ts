@@ -38,3 +38,94 @@ export interface CourierAccount {
   created_at: string;
   updated_at: string;
 }
+
+// ─── Shipments (GET /deliveries/shipments/…, P1.10) ───────────────────────────
+
+export const SHIPMENT_STATUSES = [
+  "created", "pending_pickup", "picked_up", "in_transit", "at_hub", "out_for_delivery",
+  "delivery_attempted", "delivered", "on_hold", "return_in_transit", "returned", "cancelled", "lost", "unknown",
+] as const;
+export type ShipmentStatus = (typeof SHIPMENT_STATUSES)[number];
+
+export const CASH_STATUSES = ["awaiting_delivery", "held_by_courier", "ready", "paid", "not_applicable"] as const;
+export type CashStatus = (typeof CASH_STATUSES)[number];
+
+export interface Shipment {
+  id: string;
+  courier: string;
+  courier_name: string;
+  tracking_number: string;
+  reference: string;
+  customer_order: string | null;
+  recipient_name: string;
+  recipient_phone: string;
+  wilaya_code: string;
+  commune: string;
+  cod_amount: string | null;
+  delivery_fee: string | null;
+  store_amount: string | null;
+  status: ShipmentStatus;
+  raw_status: string;
+  status_at: string | null;
+  is_terminal: boolean;
+  cash_status: CashStatus;
+  courier_payout_ref: string;
+  courier_paid_on: string | null;
+  courier_updated_at: string | null;
+  last_synced_at: string | null;
+}
+
+export interface ShipmentEvent {
+  occurred_at: string;
+  status: ShipmentStatus;
+  raw_status: string;
+  note: string;
+}
+
+export interface ShipmentDetail extends Shipment {
+  events: ShipmentEvent[];
+  refreshing: boolean;
+}
+
+export interface ShipmentPage {
+  count: number;
+  total_pages: number;
+  current_page: number;
+  results: Shipment[];
+}
+
+export interface CashBucket {
+  count: number;
+  cod_amount: string;
+  store_amount: string;
+}
+
+export interface CourierSummary {
+  courier: string;
+  courier_name: string;
+  total: number;
+  by_status: Partial<Record<ShipmentStatus, number>>;
+  by_cash: Partial<Record<CashStatus, CashBucket>>;
+}
+
+export interface CourierSyncState {
+  courier: string;
+  courier_name: string;
+  last_synced_at: string | null;
+  last_sync_error: string;
+  syncing: boolean;
+}
+
+export interface ShipmentSummary {
+  couriers: CourierSummary[];
+  accounts: CourierSyncState[];
+}
+
+export interface ShipmentFilters {
+  status: string;      // one ShipmentStatus or a comma list, "" = all
+  cash_status: string; // one CashStatus, "" = all
+  courier: string;
+  date_from: string;   // YYYY-MM-DD
+  date_to: string;
+  search: string;
+}
