@@ -296,7 +296,7 @@ def test_test_action_says_the_connector_is_unverified(store):
     with mock.patch(REQUEST, return_value=_resp(_page([]))):
         res = client.post(f"/api/v1/deliveries/provider-configs/{config.pk}/test/")
     assert res.status_code == status.HTTP_200_OK
-    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "test"],
+    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "payouts", "test"],
                           "limited": False, "verified": False}
     assert CREDS["apiKey"] not in res.content.decode()
 
@@ -337,3 +337,122 @@ def test_logs_never_contain_the_key_or_tenant(caplog):
         base_logger.removeHandler(caplog.handler)
     assert "HTTP 401" in caplog.text
     assert CREDS["apiKey"] not in caplog.text and CREDS["tenantId"] not in caplog.text
+
+
+# ─── Payouts (P3.10) ──────────────────────────────────────────────────────────
+
+PAYMENTS = "https://api.zrexpress.app/api/v1/supplier-payment/search"
+LINES = "https://api.zrexpress.app/api/v1/treasury-transactions/search/supplier-payment/by-supplier-payment/"
+
+
+def payment(pid, status_="Completed", accepted="2026-11-14T10:00:00", created="2026-11-13T09:00:00", **over):
+    row = {"id": pid, "amount": 9000.0, "totalParcelsDelivered": 2, "createdAt": created, "acceptedAt": accepted,
+           "referenceId": f"PAY-{pid}", "status": status_}
+    row.update(over)
+    return row
+
+
+def transaction(tracking, amount=4500.0, fee=400.0):
+    return {"id": f"t-{tracking}", "amount": amount, "type": "delivery",
+            "parcel": {"trackingNumber": tracking, "deliveryPrice": fee}} if tracking else {"id": "t-x", "amount": amount}
+
+
+def test_list_payouts_returns_paid_payments_and_remembers_the_rest():
+    rows = [payment("p-paid"), payment("p-accepted", status_="Pending"),            # acceptedAt → paid
+            payment("p-prep", status_="Pending", accepted=None), {"id": ""}, "junk",
+            payment("p-nodate", accepted=None, created=None)]
+    with mock.patch(REQUEST, return_value=_resp(_page(rows, has_next=True))) as req:
+        conn = _conn()
+        payouts, cursor = conn.list_payouts()
+
+    args, kwargs = req.call_args
+    assert args == ("POST", PAYMENTS)
+    assert kwargs["json"] == {"pageNumber": 1, "pageSize": 50, "orderBy": ["createdAt desc"]}
+    assert cursor == "2"
+    assert [(p.external_id, p.paid_on, p.amount, p.order_count) for p in payouts] == [
+        ("p-paid", datetime(2026, 11, 14).date(), Decimal("9000.00"), 2),
+        ("p-accepted", datetime(2026, 11, 14).date(), Decimal("9000.00"), 2),
+        ("p-nodate", None, Decimal("9000.00"), 2),
+    ]
+    assert conn._preparing == ["p-prep"]
+
+
+def test_payout_lines_page_through_and_keep_only_positive_parcel_amounts():
+    pages = {
+        1: _page([transaction("DZ-1"), transaction("DZ-2", amount=-200.0), transaction(None)], has_next=True),
+        2: _page([transaction("DZ-3", amount=0), transaction("DZ-4", amount=3000.0, fee=350.0)], number=2),
+    }
+    with mock.patch(REQUEST, side_effect=lambda m, url, params=None, json=None, **k: _resp(pages[json["pageNumber"]])) as req:
+        lines = _conn().payout_lines("p-paid")
+
+    assert [c.args for c in req.call_args_list] == [("POST", LINES + "p-paid")] * 2
+    assert req.call_args_list[0].kwargs["json"] == {"pageNumber": 1, "pageSize": 100, "supplierPaymentId": "p-paid"}
+    assert [(l.tracking, l.amount, l.delivery_fee) for l in lines] == [
+        ("DZ-1", Decimal("4500.00"), Decimal("400.00")),
+        ("DZ-4", Decimal("3000.00"), Decimal("350.00")),
+    ]
+
+
+def test_payout_lines_are_capped(monkeypatch):
+    monkeypatch.setattr(zrexpress, "MAX_LINE_PAGES", 2)
+    with mock.patch(REQUEST, return_value=_resp(_page([transaction("DZ-1")], has_next=True))) as req:
+        _conn().payout_lines("p")
+    assert req.call_count == 2
+
+
+def test_payout_lines_refuse_unsafe_ids_before_any_call():
+    with mock.patch(REQUEST) as req, pytest.raises(ConnectorError):
+        _conn().payout_lines("p/../x")
+    req.assert_not_called()
+
+
+def test_pending_lines_come_from_payments_still_being_prepared():
+    def answer(method, url, params=None, json=None, **kwargs):
+        if url == PAYMENTS:
+            return _resp(_page([payment("p-paid"), payment("p-prep", status_="Pending", accepted=None)]))
+        return _resp(_page([transaction("DZ-9")]))
+
+    with mock.patch(REQUEST, side_effect=answer) as req:
+        lines = _conn().pending_payout_lines()          # lists the payments itself when needed
+    assert [l.tracking for l in lines] == ["DZ-9"]
+    assert [c.args[1] for c in req.call_args_list] == [PAYMENTS, LINES + "p-prep"]
+
+
+def test_sync_marks_paid_and_ready_parcels_and_offers_the_payout_to_confirm(store):
+    from apps.delivery_integrations.services import payouts as payouts_service
+    tenant, owner, config = store
+    for tracking in ("DZ-1", "DZ-2", "DZ-9", "DZ-held"):
+        Shipment.objects.create(tenant=tenant, provider_config=config, courier="zrexpressnew",
+                                external_id=f"id-{tracking}", tracking_number=tracking,
+                                status=ShipmentStatus.DELIVERED, cash_status=CashStatus.HELD_BY_COURIER,
+                                cod_amount=Decimal("4900"), delivery_fee=Decimal("400"))
+
+    def answer(method, url, params=None, json=None, **kwargs):
+        if url == SEARCH:
+            return _resp(_page([]))
+        if url == PAYMENTS:
+            return _resp(_page([payment("p-paid", accepted="2026-11-14T10:00:00"),
+                                payment("p-prep", status_="Pending", accepted=None)]))
+        if url == LINES + "p-paid":
+            return _resp(_page([transaction("DZ-1"), transaction("DZ-2")]))
+        if url == LINES + "p-prep":
+            return _resp(_page([transaction("DZ-9")]))
+        raise AssertionError(url)
+
+    with mock.patch(REQUEST, side_effect=answer):
+        result = sync.sync_courier(config)
+
+    assert (result.error, result.paid, result.ready) == ("", 2, 1)
+    ships = {s.tracking_number: s for s in Shipment.objects.unscoped().filter(tenant=tenant)}
+    for tracking in ("DZ-1", "DZ-2"):
+        assert (ships[tracking].cash_status, ships[tracking].courier_payout_ref, ships[tracking].courier_paid_on) == (
+            CashStatus.PAID, "p-paid", datetime(2026, 11, 14).date())
+    assert ships["DZ-9"].cash_status == CashStatus.READY
+    assert ships["DZ-held"].cash_status == CashStatus.HELD_BY_COURIER
+    config.refresh_from_db()
+    assert config.payout_cursor == datetime(2026, 11, 14).date()
+
+    rows = payouts_service.to_record(tenant)
+    assert rows[0]["courier_payouts"] == [{"courier_payout_ref": "p-paid", "paid_on": datetime(2026, 11, 14).date(),
+                                           "count": 2, "expected_amount": "9000.00"}]
+    assert rows[0]["ready"] == {"count": 1, "expected_amount": "4500.00"}

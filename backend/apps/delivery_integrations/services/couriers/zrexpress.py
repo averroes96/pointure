@@ -25,7 +25,10 @@ from .base import (
     CourierReadConnector,
     ParcelPage,
     ParcelSnapshot,
+    Payout,
+    PayoutLine,
     TrackingEvent,
+    to_date,
     to_datetime,
     to_decimal,
 )
@@ -37,6 +40,12 @@ PAGE_SIZE = 100
 MIN_INTERVAL = 0.5           # seconds between calls (no documented limit)
 REMAINING_FLOOR = 3          # stop the run when a throttle header says this few are left…
 REMAINING_WAIT = 60          # …and wait a minute
+PAYOUT_PAGE_SIZE = 50
+LINE_PAGE_SIZE = 100
+MAX_LINE_PAGES = 20          # 2,000 parcels per payment
+# A payment in one of these statuses (or with `acceptedAt`) is paid; any other status is
+# still being prepared ("ready"). Only "Completed" is documented (unverified, P3.12).
+PAID_STATUSES = frozenset({"completed", "accepted", "paid"})
 
 _S = ShipmentStatus
 _STATES = {
@@ -77,7 +86,7 @@ def map_state(name, is_return=False):
 
 
 def cash_status_for(status, cod):
-    """Cash stage from the parcel alone; `ready` and `paid` come from payouts (P3.10)."""
+    """Cash stage from the parcel alone; `ready` and `paid` come from the payout sync (P3.10)."""
     if not cod or status in NO_CASH:
         return CashStatus.NOT_APPLICABLE
     if status == ShipmentStatus.DELIVERED:
@@ -88,7 +97,9 @@ def cash_status_for(status, cod):
 @register
 class ZRExpressConnector(CourierReadConnector):
     platform = "zrexpressapp"
-    capabilities = frozenset({Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY})
+    capabilities = frozenset({
+        Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY, Capability.PAYOUTS,
+    })
     verified = False
 
     def __init__(self, courier_key, credentials, base_url):
@@ -97,6 +108,7 @@ class ZRExpressConnector(CourierReadConnector):
         self.tenant_id = str(self.credentials.get("tenantId") or "").strip()
         self._last_call = None
         self._wait = None
+        self._preparing = None      # ids of payments still being prepared, seen by list_payouts
 
     def auth_headers(self):
         return {"X-Api-Key": self.api_key, "X-Tenant": self.tenant_id}
@@ -160,6 +172,71 @@ class ZRExpressConnector(CourierReadConnector):
         events.sort(key=lambda e: e.occurred_at)
         return tuple(events)
 
+    # ── payouts (treasury) ────────────────────────────────────────────────────
+    def list_payouts(self, cursor=None):
+        """
+        Paid supplier payments, newest first (`POST supplier-payment/search`). Payments still
+        being prepared are remembered for `pending_payout_lines`. Date = `acceptedAt`, else `createdAt`.
+        """
+        page = _page_number(cursor)
+        data = _dict(self._request("POST", f"{API}/supplier-payment/search", json={
+            "pageNumber": page, "pageSize": PAYOUT_PAGE_SIZE, "orderBy": ["createdAt desc"],
+        }))
+        if self._preparing is None or page == 1:
+            self._preparing = []
+        paid = []
+        for row in data.get("items") if isinstance(data.get("items"), list) else []:
+            if not isinstance(row, dict) or not row.get("id"):
+                continue
+            if not _is_paid(row):
+                self._preparing.append(str(row["id"]))
+                continue
+            count = row.get("totalParcelsDelivered")
+            paid.append(Payout(
+                external_id=str(row["id"])[:64],
+                paid_on=to_date(row.get("acceptedAt")) or to_date(row.get("createdAt")),
+                amount=to_decimal(row.get("amount")),
+                order_count=count if isinstance(count, int) and not isinstance(count, bool) else None,
+            ))
+        return tuple(paid), (str(page + 1) if data.get("hasNext") is True else None)
+
+    def payout_lines(self, payout_id):
+        """
+        The payment's parcels (`treasury-transactions/…/by-supplier-payment/{id}`, paged). A
+        transaction is a payout line only when it names a parcel and pays a positive amount, so
+        fee or return deductions never mark a parcel as paid (unverified, P3.12).
+        """
+        ref = _safe_ref(payout_id)
+        lines, page = [], 1
+        while page <= MAX_LINE_PAGES:
+            data = _dict(self._request(
+                "POST", f"{API}/treasury-transactions/search/supplier-payment/by-supplier-payment/{ref}",
+                json={"pageNumber": page, "pageSize": LINE_PAGE_SIZE, "supplierPaymentId": ref},
+            ))
+            for row in data.get("items") if isinstance(data.get("items"), list) else []:
+                parcel = _dict(_dict(row).get("parcel"))
+                amount = to_decimal(_dict(row).get("amount"))
+                if not parcel.get("trackingNumber") or amount is None or amount <= 0:
+                    continue
+                lines.append(PayoutLine(
+                    tracking=str(parcel["trackingNumber"])[:64],
+                    amount=amount,
+                    delivery_fee=to_decimal(parcel.get("deliveryPrice")),
+                ))
+            if data.get("hasNext") is not True:
+                break
+            page += 1
+        return tuple(lines)
+
+    def pending_payout_lines(self):
+        """Parcels of the payments still being prepared (the "ready" stage)."""
+        if self._preparing is None:
+            self.list_payouts()
+        lines = []
+        for payment_id in self._preparing:
+            lines.extend(self.payout_lines(payment_id))
+        return tuple(lines)
+
     def _snapshot(self, row):
         state = _dict(row.get("state"))
         status, raw = map_state(state.get("name"), is_return=row.get("isReturn") is True)
@@ -192,6 +269,10 @@ class ZRExpressConnector(CourierReadConnector):
 
 def _dict(value):
     return value if isinstance(value, dict) else {}
+
+
+def _is_paid(payment):
+    return bool(payment.get("acceptedAt")) or _key(payment.get("status")) in PAID_STATUSES
 
 
 def _page_number(cursor):
