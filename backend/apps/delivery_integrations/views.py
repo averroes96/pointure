@@ -288,6 +288,15 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
         return ProviderConfig.objects.filter(tenant=self.request.user.tenant)
 
 
+class CustomerOrderListQuerySerializer(serializers.Serializer):
+    # One status or several, comma-separated (e.g. "draft" or "dispatched,confirmed").
+    status = serializers.RegexField(
+        r"^(%s)(,(%s))*$" % ("|".join(CustomerOrderStatusChoices.values), "|".join(CustomerOrderStatusChoices.values)),
+        required=False, allow_blank=True,
+    )
+    attention = serializers.BooleanField(required=False, default=False)
+
+
 class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ModelViewSet):
     """Manage Draft/External Orders and Dispatch them."""
     serializer_class = CustomerOrderSerializer
@@ -295,10 +304,19 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
     permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 
     def get_queryset(self):
-        return (
+        qs = (
             CustomerOrder.objects.filter(tenant=self.request.user.tenant)
-            .prefetch_related("lines__variant__product")
+            .select_related("sale")
+            .prefetch_related("lines__variant__product", "shipments")
         )
+        if self.action == "list":
+            query = CustomerOrderListQuerySerializer(data=self.request.query_params)
+            query.is_valid(raise_exception=True)
+            if query.validated_data.get("status"):
+                qs = qs.filter(status__in=query.validated_data["status"].split(","))
+            if query.validated_data.get("attention"):
+                qs = qs.exclude(attention="")
+        return qs
 
     def perform_update(self, serializer):
         # Lines and amounts drive stock and the sale at delivery (P2.4, P2.5): drafts only.

@@ -198,6 +198,8 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
     `cod_amount` is only accepted when check_cod() allows it.
     """
     lines = CustomerOrderLineSerializer(many=True, required=False)
+    shipment = serializers.SerializerMethodField()
+    sale_receipt = serializers.SerializerMethodField()
     goods_total = serializers.SerializerMethodField()
     expected_cod = serializers.SerializerMethodField()
     cod_to_collect = serializers.SerializerMethodField()
@@ -235,6 +237,8 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "dispatched_at",
             "stock_returned_at",
             "attention",
+            "shipment",
+            "sale_receipt",
             "created_at",
             "updated_at",
         ]
@@ -257,6 +261,24 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
         }
 
     # ── read ──────────────────────────────────────────────────────────────────
+    def get_shipment(self, order):
+        """The parcel the sync linked to this order (latest one), or None. Uses the view's prefetch."""
+        shipments = list(order.shipments.all())
+        if not shipments:
+            return None
+        latest = max(shipments, key=lambda s: (s.courier_updated_at or s.created_at, s.created_at))
+        return {
+            "id": str(latest.pk),
+            "status": latest.status,
+            "raw_status": latest.raw_status,
+            "status_at": latest.status_at.isoformat() if latest.status_at else None,
+            "cash_status": latest.cash_status,
+            "tracking_number": latest.tracking_number,
+        }
+
+    def get_sale_receipt(self, order):
+        return order.sale.receipt_number if order.sale_id and order.sale else None
+
     def get_goods_total(self, order):
         return str(order.goods_total())
 

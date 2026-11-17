@@ -323,3 +323,44 @@ def test_pos_sale_with_courier_payment_is_refused(store):
     assert client.post("/api/v1/sales/", payload, format="json").status_code == status.HTTP_201_CREATED
     v42.refresh_from_db()
     assert v42.stock_qty == 2                # only the cash sale moved stock
+
+
+# ─── List: shipment and sale summary, filters (P2.6) ──────────────────────────
+
+def test_list_shows_the_linked_shipment_and_sale_and_filters(store, django_assert_max_num_queries):
+    from apps.delivery_integrations.models import ProviderConfig, Shipment
+    from apps.sales.models import Sale
+
+    tenant, users, v42, v43 = store
+    client = _client(users[RoleChoices.OWNER])
+    draft_id = client.post(URL, _payload(v42, v43), format="json").json()["id"]
+    sent_id = client.post(URL, _payload(v42, v43, customer_name="Sent"), format="json").json()["id"]
+    sale = Sale.objects.create(tenant=tenant, total_amount=Decimal("13000"), receipt_number="LV-T9")
+    CustomerOrder.objects.filter(pk=sent_id).update(
+        status=CustomerOrderStatusChoices.DELIVERED, tracking_number="T9", sale=sale, attention="returned_after_delivery")
+    config = ProviderConfig.objects.create(tenant=tenant, courier="maystro", credentials={"apiKey": "k"})
+    when = timezone.now()
+    Shipment.objects.create(tenant=tenant, provider_config=config, courier="maystro", external_id="old",
+                            tracking_number="T8", status="cancelled", customer_order_id=sent_id,
+                            courier_updated_at=when - timezone.timedelta(days=2))
+    Shipment.objects.create(tenant=tenant, provider_config=config, courier="maystro", external_id="new",
+                            tracking_number="T9", status="delivered", raw_status="livré", status_at=when,
+                            cash_status="held_by_courier", customer_order_id=sent_id, courier_updated_at=when)
+
+    with django_assert_max_num_queries(12):        # no query per order
+        rows = {o["id"]: o for o in client.get(URL).json()["results"]}
+    assert rows[draft_id]["shipment"] is None and rows[draft_id]["sale_receipt"] is None
+    assert rows[sent_id]["sale_receipt"] == "LV-T9"
+    assert rows[sent_id]["shipment"] == {
+        "id": str(Shipment.objects.get(external_id="new").pk), "status": "delivered", "raw_status": "livré",
+        "status_at": when.isoformat(), "cash_status": "held_by_courier", "tracking_number": "T9",
+    }
+
+    def ids(params):
+        return [o["id"] for o in client.get(URL, params).json()["results"]]
+
+    assert ids({"status": "draft"}) == [draft_id]
+    assert sorted(ids({"status": "draft,delivered"})) == sorted([draft_id, sent_id])
+    assert ids({"attention": "true"}) == [sent_id]
+    bad = client.get(URL, {"status": "draft;drop"})
+    assert bad.status_code == status.HTTP_400_BAD_REQUEST
