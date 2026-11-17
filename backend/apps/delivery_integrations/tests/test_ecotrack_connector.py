@@ -365,7 +365,7 @@ def test_test_action_says_the_connector_is_unverified(store):
     client.force_authenticate(user=owner)
     with mock.patch(REQUEST, return_value=_resp([])):
         res = client.post(f"/api/v1/deliveries/provider-configs/{config.pk}/test/")
-    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "test"],
+    assert res.json() == {"result": "ok", "capabilities": ["get", "history", "list", "parcel_states", "test"],
                           "limited": False, "verified": False}
     assert res.status_code == status.HTTP_200_OK
     assert TOKEN not in res.content.decode()
@@ -420,3 +420,215 @@ def test_logs_never_contain_the_token(caplog):
     finally:
         base_logger.removeHandler(caplog.handler)
     assert "HTTP 401" in caplog.text and TOKEN not in caplog.text
+
+
+# ─── Parcels that leave the list (P3.6) ───────────────────────────────────────
+
+def _states(entries):
+    return {"data": entries}
+
+
+def test_parcel_states_batches_with_the_token_as_query_parameter(monkeypatch):
+    monkeypatch.setattr(ecotrack, "STATES_BATCH", 2)
+    entries = {
+        "E1": {"status": "paye_et_archive", "activity": [
+            {"status": "livred", "date": "2026-11-10", "time": "11:00:00"},
+            {"status": "payed", "date": "2026-11-14", "time": "09:30:00"}]},
+        "E2": {"status": "retour_recu"},
+        "E3": {"status": "all"},                       # no bucket for it: left out
+        "E4": {"status": "en_livraison"},
+    }
+
+    def answer(method, url, params=None, **kwargs):
+        asked = params["trackings"].split(",")
+        return _resp(_states({t: entries[t] for t in asked if t in entries} | {"OTHER": {"status": "annule"}}))
+
+    with mock.patch(REQUEST, side_effect=answer) as req:
+        found = _conn().parcel_states(["E1", "E2", "E3", "E1", "E4", "E404"])
+
+    url = "https://packers.ecotrack.dz/api/v1/get/orders/status"
+    assert [c.args for c in req.call_args_list] == [("GET", url)] * 3
+    assert [c.kwargs["params"] for c in req.call_args_list] == [
+        {"api_token": TOKEN, "trackings": "E1,E2", "status": "all"},
+        {"api_token": TOKEN, "trackings": "E3,E4", "status": "all"},
+        {"api_token": TOKEN, "trackings": "E404", "status": "all"},
+    ]
+    assert set(found) == {"E1", "E2", "E4"}
+    assert (found["E1"].status, found["E1"].raw_status, found["E1"].cash_status) == (
+        ShipmentStatus.DELIVERED, "paye_et_archive", CashStatus.PAID)
+    assert found["E1"].status_at == datetime(2026, 11, 14, 9, 30, tzinfo=ALGIERS)   # last dated activity
+    assert (found["E2"].status, found["E2"].cash_status, found["E2"].status_at) == (
+        ShipmentStatus.RETURNED, CashStatus.NOT_APPLICABLE, None)
+    assert found["E4"].status == ShipmentStatus.OUT_FOR_DELIVERY
+    assert found["E1"].payout_ref == ""                # no payout id in this answer
+
+
+@pytest.mark.parametrize("payload", [
+    {"data": [{"tracking": "OTHER", "status": "annule"}, {"tracking": "E1", "status": "retour_recu"}]},
+    [{"tracking": "E1", "status": "retour_recu"}],
+])
+def test_parcel_states_accepts_list_answers_and_uses_the_exact_tracking(payload):
+    with mock.patch(REQUEST, return_value=_resp(payload)):
+        found = _conn().parcel_states(["E1"])
+    assert list(found) == ["E1"] and found["E1"].status == ShipmentStatus.RETURNED
+
+
+def test_parcel_states_refuses_unsafe_trackings_before_any_call():
+    with mock.patch(REQUEST) as req, pytest.raises(ConnectorError):
+        _conn().parcel_states(["E1", "E1&api_token=x"])
+    req.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", [_resp(status_code=500), _resp(status_code=401)])
+def test_the_query_token_never_reaches_the_logs(caplog, failure):
+    base_logger = logging.getLogger("apps.delivery_integrations.services.couriers.base")
+    base_logger.addHandler(caplog.handler)
+    try:
+        with mock.patch(REQUEST, return_value=failure), pytest.raises(ConnectorError):
+            _conn().parcel_states(["E1"])
+        with mock.patch(REQUEST, side_effect=__import__("requests").Timeout(f"https://x/?api_token={TOKEN}")), \
+                pytest.raises(ConnectorError):
+            _conn().parcel_states(["E1"])
+    finally:
+        base_logger.removeHandler(caplog.handler)
+    assert "get/orders/status" in caplog.text
+    assert TOKEN not in caplog.text
+
+
+def _ship(tenant, config, tracking, **fields):
+    defaults = dict(status=ShipmentStatus.IN_TRANSIT, raw_status="vers_hub", cash_status=CashStatus.AWAITING_DELIVERY,
+                    cod_amount=Decimal("5300"), delivery_fee=Decimal("400"), courier_updated_at=timezone.now())
+    defaults.update(fields)
+    defaults.setdefault("is_terminal", defaults["status"] in (ShipmentStatus.DELIVERED, ShipmentStatus.RETURNED,
+                                                              ShipmentStatus.CANCELLED, ShipmentStatus.LOST))
+    return Shipment.objects.create(tenant=tenant, provider_config=config, courier="dhd",
+                                   external_id=tracking, tracking_number=tracking, **defaults)
+
+
+def test_sync_asks_only_about_open_parcels_missing_from_the_list(store):
+    from apps.delivery_integrations.models import CourierPayout
+    tenant, owner, config = store
+    _ship(tenant, config, "LISTED")                                                     # returned by the list
+    _ship(tenant, config, "GONE-TRANSIT")                                               # open, missing
+    _ship(tenant, config, "GONE-HELD", status=ShipmentStatus.DELIVERED, raw_status="encaisse_non_paye",
+          cash_status=CashStatus.HELD_BY_COURIER)                                       # money not settled
+    _ship(tenant, config, "GONE-ZERO", status=ShipmentStatus.DELIVERED, raw_status="livre_non_encaisse",
+          cash_status=CashStatus.NOT_APPLICABLE, cod_amount=Decimal("0"))               # settled: no cash
+    _ship(tenant, config, "GONE-PAID", status=ShipmentStatus.DELIVERED, cash_status=CashStatus.PAID)   # settled
+    _ship(tenant, config, "GONE-RETURNED", status=ShipmentStatus.RETURNED, raw_status="retour_recu",
+          cash_status=CashStatus.NOT_APPLICABLE)                                        # final
+    payout = CourierPayout.objects.create(tenant=tenant, provider_config=config, courier="dhd",
+                                          picked_up_on=timezone.localdate(), amount_received=Decimal("1"),
+                                          expected_amount=Decimal("1"), difference=Decimal("0"), recorded_by=owner)
+    _ship(tenant, config, "GONE-AGENCY", status=ShipmentStatus.DELIVERED, raw_status="encaisse_non_paye",
+          cash_status=CashStatus.PAID, payout=payout)                                   # recorded at the agency
+    asked = []
+
+    def answer(method, url, params=None, **kwargs):
+        if url.endswith("/get/orders"):
+            return _resp(_page([order(tracking="LISTED", status="vers_hub")]))
+        if url.endswith("/get/orders/status"):
+            asked.extend(params["trackings"].split(","))
+            return _resp(_states({
+                "GONE-TRANSIT": {"status": "retour_archive"},
+                "GONE-HELD": {"status": "paye_et_archive",
+                              "activity": [{"status": "payed", "date": "2026-11-14", "time": "09:30:00"}]},
+            }))
+        return _resp({"activity": []})
+
+    with mock.patch(REQUEST, side_effect=answer):
+        result = sync.sync_courier(config)
+
+    assert result.error == ""
+    assert sorted(asked) == ["GONE-HELD", "GONE-TRANSIT"]
+    ships = {s.tracking_number: s for s in Shipment.objects.unscoped().filter(tenant=tenant)}
+    assert (ships["GONE-TRANSIT"].status, ships["GONE-TRANSIT"].is_terminal, ships["GONE-TRANSIT"].raw_status) == (
+        ShipmentStatus.RETURNED, True, "retour_archive")
+    assert (ships["GONE-HELD"].status, ships["GONE-HELD"].cash_status) == (ShipmentStatus.DELIVERED, CashStatus.PAID)
+    assert ships["GONE-HELD"].status_at == datetime(2026, 11, 14, 9, 30, tzinfo=ALGIERS)
+    assert ships["GONE-AGENCY"].cash_status == CashStatus.PAID and ships["GONE-AGENCY"].payout_id == payout.pk
+
+
+def test_cash_recorded_at_the_agency_is_kept_when_asked(store):
+    from apps.delivery_integrations.models import CourierPayout
+    tenant, owner, config = store
+    payout = CourierPayout.objects.create(tenant=tenant, provider_config=config, courier="dhd",
+                                          picked_up_on=timezone.localdate(), amount_received=Decimal("1"),
+                                          expected_amount=Decimal("1"), difference=Decimal("0"), recorded_by=owner)
+    _ship(tenant, config, "AG", status=ShipmentStatus.IN_TRANSIT, cash_status=CashStatus.PAID, payout=payout)
+
+    def answer(method, url, params=None, **kwargs):
+        if url.endswith("/get/orders"):
+            return _resp(_page([]))
+        return _resp(_states({"AG": {"status": "encaisse_non_paye"}}))
+
+    with mock.patch(REQUEST, side_effect=answer):
+        sync.sync_courier(config)
+    ship = Shipment.objects.unscoped().get(tracking_number="AG")
+    assert (ship.status, ship.cash_status) == (ShipmentStatus.DELIVERED, CashStatus.PAID)
+
+
+def test_states_are_capped_newest_first(store, monkeypatch):
+    tenant, owner, config = store
+    for n in range(4):
+        _ship(tenant, config, f"G{n}", courier_updated_at=timezone.now() - timedelta(minutes=n))
+    monkeypatch.setattr(sync, "MAX_PARCEL_STATES", 2)
+    asked = []
+
+    def answer(method, url, params=None, **kwargs):
+        if url.endswith("/get/orders"):
+            return _resp(_page([]))
+        asked.append(params["trackings"])
+        return _resp(_states({}))
+
+    with mock.patch(REQUEST, side_effect=answer):
+        sync.sync_courier(config)
+    assert asked == ["G0,G1"]
+
+
+def test_archived_parcels_of_pointure_orders_reach_the_lifecycle(store):
+    from apps.delivery_integrations.models import CustomerOrder, CustomerOrderLine
+    from apps.inventory.models import MovementReasonChoices, Product, StockMovement, Variant
+    from apps.sales.models import Payment, Sale
+
+    tenant, owner, config = store
+    product = Product.objects.create(tenant=tenant, name="Basket", reference="B-1", sale_price=Decimal("4500"))
+    variant = Variant.objects.create(tenant=tenant, product=product, size_eu=42)
+    StockMovement.objects.create(tenant=tenant, variant=variant, quantity_delta=5, reason=MovementReasonChoices.INITIAL)
+
+    def sent_order(tracking):
+        o = CustomerOrder.objects.create(tenant=tenant, customer_name="C", customer_phone="0551234567",
+                                         status="dispatched", provider="dhd", tracking_number=tracking,
+                                         dispatched_by=owner, dispatched_at=timezone.now())
+        CustomerOrderLine.objects.create(order=o, variant=variant, quantity=1, unit_price=Decimal("4500"))
+        StockMovement.objects.create(tenant=tenant, variant=variant, quantity_delta=-1,
+                                     reason=MovementReasonChoices.DELIVERY_OUT, reference_id=str(o.pk),
+                                     reference_type="CustomerOrder")
+        return o
+
+    sold, back = sent_order("ARCH-PAID"), sent_order("ARCH-RET")
+    _ship(tenant, config, "ARCH-PAID", customer_order=sold)
+    _ship(tenant, config, "ARCH-RET", customer_order=back)
+
+    def answer(method, url, params=None, **kwargs):
+        if url.endswith("/get/orders"):
+            return _resp(_page([]))
+        if url.endswith("/get/orders/status"):
+            return _resp(_states({
+                "ARCH-PAID": {"status": "paye_et_archive",
+                              "activity": [{"status": "livred", "date": "2026-11-12", "time": "16:00:00"}]},
+                "ARCH-RET": {"status": "retour_recu"},
+            }))
+        return _resp({"activity": []})
+
+    with mock.patch(REQUEST, side_effect=answer):
+        result = sync.sync_courier(config)
+
+    assert result.lifecycle == {"sale": 1, "stock_back": 1}
+    sold.refresh_from_db(); back.refresh_from_db()
+    sale = Sale.objects.get(pk=sold.sale_id)
+    assert (sold.status, sale.created_at) == ("delivered", datetime(2026, 11, 12, 16, 0, tzinfo=ALGIERS))
+    assert Payment.objects.get(sale=sale).method == "courier"
+    assert back.status == "returned" and back.stock_returned_at is not None
+    variant.refresh_from_db()
+    assert variant.stock_qty == 4            # 5 − 2 sent + 1 back

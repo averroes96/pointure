@@ -16,6 +16,7 @@ from .base import (  # noqa: F401
     CourierReadConnector,
     ParcelPage,
     ParcelSnapshot,
+    ParcelState,
     Payout,
     PayoutLine,
     TrackingEvent,

@@ -30,6 +30,7 @@ from .base import (
     CourierReadConnector,
     ParcelPage,
     ParcelSnapshot,
+    ParcelState,
     TrackingEvent,
     to_datetime,
     to_decimal,
@@ -42,6 +43,7 @@ MAX_LIST_PAGES = 10          # 40 orders per page → 400 in-process orders per 
 MIN_INTERVAL = 1.3           # seconds between calls: under 50 a minute
 REMAINING_FLOOR = 3          # stop the run when the throttle says this few are left…
 REMAINING_WAIT = 60          # …and wait a minute
+STATES_BATCH = 100           # trackings per get/orders/status call (Ecotrack's limit)
 
 _S, _C = ShipmentStatus, CashStatus
 
@@ -115,7 +117,9 @@ def cash_status_for(status, delivered_stage, cod):
 @register
 class EcotrackConnector(CourierReadConnector):
     platform = "ecotrack"
-    capabilities = frozenset({Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY})
+    capabilities = frozenset({
+        Capability.TEST, Capability.LIST, Capability.GET, Capability.HISTORY, Capability.PARCEL_STATES,
+    })
     verified = False
     max_list_pages = MAX_LIST_PAGES
 
@@ -197,6 +201,38 @@ class EcotrackConnector(CourierReadConnector):
         events.sort(key=lambda e: e.occurred_at)
         return tuple(events)
 
+    def parcel_states(self, trackings):
+        """
+        Current bucket of these parcels, STATES_BATCH per call, including archived ones that
+        `get/orders` no longer lists (paid and archived, returns archived) (P3.6).
+
+        `get/orders/status` authenticates only with `api_token` as a query parameter (Ecotrack's
+        rule); the base request never logs query strings. The status time is the parcel's last
+        dated activity when the answer carries one. No payout id comes back here.
+        """
+        refs = [_safe_ref(t) for t in dict.fromkeys(trackings) if t]
+        found = {}
+        for start in range(0, len(refs), STATES_BATCH):
+            batch = refs[start:start + STATES_BATCH]
+            data = self._get("get/orders/status", params={
+                "api_token": self.token, "trackings": ",".join(batch), "status": "all",
+            })
+            for ref in batch:
+                entry = _tracking_entry(data, ref)
+                bucket = _key(entry.get("status"))
+                if not bucket or bucket == "all":
+                    continue
+                status, stage, raw = map_bucket(entry.get("status"))
+                found[ref] = ParcelState(
+                    status=status,
+                    raw_status=raw,
+                    # A tracked parcel is assumed to collect cash; a zero amount is already known
+                    # from the list and kept by the sync.
+                    cash_status=cash_status_for(status, stage, True),
+                    status_at=_last_activity_at(entry),
+                )
+        return found
+
     def _snapshot(self, row):
         status, delivered_stage, raw = map_bucket(row.get("status"))
         cod = to_decimal(row.get("montant"))
@@ -251,6 +287,17 @@ def _tracking_entry(data, ref):
         if isinstance(entry, dict) and str(entry.get("tracking") or "") == ref:
             return entry
     return {}
+
+
+def _last_activity_at(entry):
+    times = []
+    for row in entry.get("activity") if isinstance(entry.get("activity"), list) else []:
+        if isinstance(row, dict):
+            date, clock = row.get("date"), row.get("time")
+            when = to_datetime(f"{date} {clock}" if date and clock else date)
+            if when is not None:
+                times.append(when)
+    return max(times) if times else None
 
 
 def _page_number(cursor):

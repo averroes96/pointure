@@ -25,7 +25,7 @@ from django.utils import timezone
 
 from ..models import CustomerOrder, ProviderConfig, Shipment
 from . import couriers, lifecycle
-from .couriers import CashStatus, Capability, ShipmentStatus
+from .couriers import CashStatus, Capability, ParcelSnapshot, ShipmentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ MAX_HISTORY_CALLS = 30          # history of status changes; the rest loads when
 MAX_PAYOUT_PAGES = 10
 MAX_STATEMENTS = 20
 MAX_PARCEL_CASH = 1000          # parcels asked about per run (Yalidine: 10 calls of 100)
+MAX_PARCEL_STATES = 300         # parcels missing from the list asked about per run (Ecotrack: 3 calls)
 PAYOUT_OVERLAP = timedelta(days=1)
 
 
@@ -173,6 +174,7 @@ def _sync_orders(config, connector, result):
     newest = config.sync_cursor
     changed_status = []
     linked = []          # shipments of Pointure orders that reached a status the lifecycle acts on
+    seen = set()         # external ids the list returned in this run
     cursor = None
     reached_floor = False
 
@@ -181,6 +183,7 @@ def _sync_orders(config, connector, result):
     while result.pages < page_limit:
         page = connector.list_parcels(cursor)          # network, outside any transaction
         result.pages += 1
+        seen.update(snap.external_id for snap in page.items)
         batch = []
         for snap in page.items:
             if snap.updated_at is not None and snap.updated_at <= floor:
@@ -199,6 +202,12 @@ def _sync_orders(config, connector, result):
     else:
         result.partial = True
         logger.warning("Shipment sync %s stopped at %d pages before reaching its cursor", config.courier, page_limit)
+
+    # Parcels the list no longer shows (Ecotrack archive): ask for their state directly.
+    if connector.supports(Capability.PARCEL_STATES):
+        states_changed, states_linked = _sync_parcel_states(config, connector, result, seen)
+        changed_status += [s for s in states_changed if s not in changed_status]
+        linked += [s for s in states_linked if s not in linked]
 
     # History of status changes (outside transactions, capped). New parcels of Pointure
     # orders that are already final get theirs too: "cancelled before pickup" needs it.
@@ -343,6 +352,66 @@ def _sync_payouts(config, connector, result):
             shipment.cash_status = CashStatus.HELD_BY_COURIER
             shipment.save(update_fields=["cash_status", "updated_at"])
             result.unready += 1
+
+
+def _sync_parcel_states(config, connector, result, seen):
+    """
+    Couriers whose list drops parcels before they are settled (Ecotrack archives paid parcels
+    and received returns, P3.6). Asks about this courier's shipments that the run's list did
+    not return and that are still open: not final, or delivered with money not yet settled.
+    Newest first, capped. The answers go through `apply_snapshot`, so the usual rules hold
+    (times, cash recorded at the agency kept). Returns (status changed, lifecycle candidates).
+    """
+    open_parcels = (
+        Shipment.objects.unscoped()
+        .filter(tenant=config.tenant, courier=config.courier)
+        .filter(Q(is_terminal=False) | Q(
+            status=ShipmentStatus.DELIVERED,
+            cash_status__in=(CashStatus.AWAITING_DELIVERY, CashStatus.HELD_BY_COURIER, CashStatus.READY),
+        ))
+        .exclude(tracking_number="")
+        .exclude(external_id__in=seen)
+        .order_by("-courier_updated_at")[:MAX_PARCEL_STATES]
+    )
+    candidates = list(open_parcels)
+    if not candidates:
+        return [], []
+    states = connector.parcel_states([s.tracking_number for s in candidates])   # network, outside transactions
+
+    status_changed, linked, now = [], [], timezone.now()
+    with transaction.atomic():
+        for shipment in candidates:
+            state = states.get(shipment.tracking_number)
+            if state is None:
+                continue
+            no_cash = shipment.cod_amount is not None and shipment.cod_amount <= 0
+            snapshot = ParcelSnapshot(
+                external_id=shipment.external_id, tracking=shipment.tracking_number,
+                status=state.status, raw_status=state.raw_status,
+                status_at=state.status_at, updated_at=state.status_at,
+                reference=shipment.reference, recipient_name=shipment.recipient_name,
+                recipient_phone=shipment.recipient_phone, wilaya_code=shipment.wilaya_code,
+                commune=shipment.commune, cod_amount=shipment.cod_amount, delivery_fee=shipment.delivery_fee,
+                store_amount=shipment.store_amount,
+                cash_status=CashStatus.NOT_APPLICABLE if no_cash else state.cash_status,
+                cash_raw=shipment.cash_raw,
+            )
+            old_status = shipment.status
+            changed = shipment.apply_snapshot(snapshot)
+            if state.payout_ref and shipment.cash_status == CashStatus.PAID and shipment.payout_id is None \
+                    and shipment.courier_payout_ref != state.payout_ref[:64]:
+                shipment.courier_payout_ref = state.payout_ref[:64]
+                changed.append("courier_payout_ref")
+            if not changed:
+                continue
+            shipment.last_synced_at = now
+            shipment.save(update_fields=changed + ["last_synced_at", "updated_at"])
+            result.updated += 1
+            if shipment.status != old_status:
+                status_changed.append(shipment)
+                if lifecycle.needs_lifecycle(shipment):
+                    linked.append(shipment)
+    return status_changed, linked
 
 
 def _sync_parcel_cash(config, connector, result):

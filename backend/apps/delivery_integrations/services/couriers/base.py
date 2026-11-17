@@ -88,6 +88,8 @@ class Capability:
     PAYOUTS = "payouts"
     # Payment stage read per parcel (couriers without a payout list, e.g. Yalidine, P3.2).
     PARCEL_CASH = "parcel_cash"
+    # Current state of given parcels, including ones the list no longer shows (Ecotrack archive, P3.6).
+    PARCEL_STATES = "parcel_states"
 
 
 @dataclass(frozen=True)
@@ -117,6 +119,16 @@ class ParcelSnapshot:
     cash_status: str = CashStatus.AWAITING_DELIVERY
     cash_raw: str = ""
     events: tuple = ()                    # tuple[TrackingEvent, ...], oldest first
+
+
+@dataclass(frozen=True)
+class ParcelState:
+    """What `parcel_states()` knows about one parcel (P3.6)."""
+    status: str                           # ShipmentStatus value
+    raw_status: str
+    cash_status: str                      # CashStatus value
+    status_at: Optional[datetime] = None  # when the courier gives it (e.g. last history entry)
+    payout_ref: str = ""                  # the courier's payout id, only once paid
 
 
 @dataclass(frozen=True)
@@ -247,6 +259,10 @@ class CourierReadConnector:
 
     def parcel_cash(self, trackings) -> dict:
         """{tracking: (CashStatus, payout_ref or "")} for these parcels; unknown ones are left out."""
+        raise ConnectorNotSupported()
+
+    def parcel_states(self, trackings) -> dict:
+        """{tracking: ParcelState} for these parcels; unknown ones are left out."""
         raise ConnectorNotSupported()
 
     # ── hooks (e.g. a courier's own quota rules) ──────────────────────────────
