@@ -245,18 +245,19 @@ class NoestConnector(CourierReadConnector):
         entry = self._trackings_info([ref]).get(ref)
         if not isinstance(entry, dict):
             raise ConnectorNotFound()
-        info = entry.get("OrderInfo") if isinstance(entry.get("OrderInfo"), dict) else {}
-        cod = _cod(entry)
-        status, raw, cash, when = summarise(entry, cod is None or cod > 0)
-        return ParcelSnapshot(
-            external_id=ref, tracking=ref, status=status, raw_status=raw, status_at=when, updated_at=when,
-            reference=str(info.get("reference") or "")[:100],
-            recipient_name=str(info.get("client") or "")[:200],
-            recipient_phone=str(info.get("phone") or "")[:20],
-            wilaya_code=str(info.get("wilaya_id") or "")[:10],
-            commune=str(info.get("commune") or "")[:100],
-            cod_amount=cod, delivery_fee=None, store_amount=None, cash_status=cash, cash_raw="",
-        )
+        return _snapshot(ref, entry)
+
+    def parcel_snapshots(self, trackings):
+        """Full snapshots, BATCH per call, for parcels added by tracking (P3.14). Unknown ones left out."""
+        refs = [_safe_ref(t) for t in dict.fromkeys(trackings) if t]
+        found = {}
+        for start in range(0, len(refs), BATCH):
+            batch = refs[start:start + BATCH]
+            data = self._trackings_info(batch)
+            for ref in batch:
+                if isinstance(data.get(ref), dict):
+                    found[ref] = _snapshot(ref, data[ref])
+        return found
 
     def history(self, ref):
         ref = _safe_ref(ref)
@@ -271,6 +272,21 @@ class NoestConnector(CourierReadConnector):
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
+
+def _snapshot(ref, entry):
+    info = entry.get("OrderInfo") if isinstance(entry.get("OrderInfo"), dict) else {}
+    cod = _cod(entry)
+    status, raw, cash, when = summarise(entry, cod is None or cod > 0)
+    return ParcelSnapshot(
+        external_id=ref, tracking=ref, status=status, raw_status=raw, status_at=when, updated_at=when,
+        reference=str(info.get("reference") or "")[:100],
+        recipient_name=str(info.get("client") or "")[:200],
+        recipient_phone=str(info.get("phone") or "")[:20],
+        wilaya_code=str(info.get("wilaya_id") or "")[:10],
+        commune=str(info.get("commune") or "")[:100],
+        cod_amount=cod, delivery_fee=None, store_amount=None, cash_status=cash, cash_raw="",
+    )
+
 
 def _cod(entry):
     info = entry.get("OrderInfo") if isinstance(entry.get("OrderInfo"), dict) else {}

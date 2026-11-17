@@ -265,6 +265,14 @@ class CourierReadConnector:
         """{tracking: ParcelState} for these parcels; unknown ones are left out."""
         raise ConnectorNotSupported()
 
+    def parcel_snapshots(self, trackings) -> dict:
+        """{tracking: ParcelSnapshot} for parcels added by tracking (couriers without a list, P3.14)."""
+        raise ConnectorNotSupported()
+
+    def follows_by_tracking(self) -> bool:
+        """No parcel list, but known parcels can be followed: parcels are added by tracking (NOEST)."""
+        return self.supports(Capability.PARCEL_STATES) and not self.supports(Capability.LIST)
+
     # ── hooks (e.g. a courier's own quota rules) ──────────────────────────────
     def _before_request(self) -> None:
         """Called before every HTTP call; may raise ConnectorRateLimited."""

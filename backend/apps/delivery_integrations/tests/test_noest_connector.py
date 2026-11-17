@@ -351,3 +351,136 @@ def test_logs_never_contain_the_token_or_guid(caplog):
         base_logger.removeHandler(caplog.handler)
     assert "HTTP 404" in caplog.text
     assert CREDS["apiToken"] not in caplog.text and CREDS["guid"] not in caplog.text
+
+
+# ─── Add parcels by tracking (P3.14) ──────────────────────────────────────────
+
+ADD = "/api/v1/deliveries/shipments/add-by-tracking/"
+
+
+def _client_for(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+def test_parcel_snapshots_in_one_call_per_batch(monkeypatch):
+    monkeypatch.setattr(noest, "BATCH", 2)
+    answers = {"N1": entry(ev("livred")), "N3": entry(ev("fdr_activated"))}
+    with mock.patch(REQUEST, side_effect=lambda m, url, params=None, json=None, **k: _resp(
+            {t: answers[t] for t in json["trackings"] if t in answers})) as req:
+        found = _conn().parcel_snapshots(["N1", "N2", "N3"])
+    assert req.call_count == 2
+    assert {t: (s.status, s.recipient_name, s.cod_amount) for t, s in found.items()} == {
+        "N1": (ShipmentStatus.DELIVERED, "Client Test", Decimal("4900.00")),
+        "N3": (ShipmentStatus.OUT_FOR_DELIVERY, "Client Test", Decimal("4900.00")),
+    }
+
+
+def test_add_by_tracking_follows_new_parcels_and_reports_the_rest(store):
+    tenant, owner, config, variant = store
+    Shipment.objects.create(tenant=tenant, provider_config=config, courier="noest", external_id="N-OLD",
+                            tracking_number="N-OLD", status=ShipmentStatus.IN_TRANSIT)
+    answers = {"N-NEW": entry(ev("fdr_activated", date="2026-11-16 09:00:00"))}
+
+    def answer(method, url, params=None, json=None, **kwargs):
+        known = {t: answers[t] for t in json["trackings"] if t in answers}
+        return _resp(known) if known else _resp({"message": "Trackings non trouvés"}, 404)
+
+    with mock.patch(REQUEST, side_effect=answer) as req:
+        res = _client_for(owner).post(ADD, {"provider_config": str(config.pk),
+                                            "trackings": ["N-NEW", "N-OLD", "N-404", "N-NEW"]}, format="json")
+
+    assert res.status_code == status.HTTP_200_OK, res.content
+    assert res.json() == {"added": ["N-NEW"], "already_followed": ["N-OLD"], "unknown": ["N-404"]}
+    assert req.call_args.kwargs["json"]["trackings"] == ["N-NEW", "N-404"]       # the known one is not asked
+    ship = Shipment.objects.unscoped().get(tenant=tenant, tracking_number="N-NEW")
+    assert (ship.status, ship.customer_order_id, ship.recipient_name, ship.cod_amount) == (
+        ShipmentStatus.OUT_FOR_DELIVERY, None, "Client Test", Decimal("4900.00"))   # read-only: no order
+    assert Shipment.objects.unscoped().filter(tenant=tenant).count() == 2
+
+
+def test_a_tracking_of_a_pointure_order_is_linked_and_goes_through_the_lifecycle(store):
+    from apps.sales.models import Sale
+    tenant, owner, config, variant = store
+    order = _sent(tenant, owner, variant, "N-MINE")
+    answers = {"N-MINE": entry(ev("livred", date="2026-11-16 15:00:00"))}
+    with mock.patch(REQUEST, return_value=_resp(answers)):
+        res = _client_for(owner).post(ADD, {"provider_config": str(config.pk), "trackings": ["N-MINE"]},
+                                      format="json")
+    assert res.json()["added"] == ["N-MINE"]
+    order.refresh_from_db()
+    assert Shipment.objects.unscoped().get(tracking_number="N-MINE").customer_order_id == order.pk
+    assert order.status == "delivered" and Sale.objects.filter(pk=order.sale_id).exists()
+
+
+def test_add_by_tracking_is_for_managers_and_owners_only(store):
+    tenant, owner, config, variant = store
+    cashier = User.objects.create_user(email="cashier-noest@test.com", password="password123",
+                                       role=RoleChoices.CASHIER, tenant=tenant)
+    with mock.patch(REQUEST) as req:
+        res = _client_for(cashier).post(ADD, {"provider_config": str(config.pk), "trackings": ["N1"]}, format="json")
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    req.assert_not_called()
+
+
+@pytest.mark.parametrize("body,field", [
+    ({"trackings": ["N1"]}, "provider_config"),
+    ({"provider_config": "not-a-uuid", "trackings": ["N1"]}, "provider_config"),
+    ({"provider_config": None, "trackings": []}, "provider_config"),
+    ({"trackings": []}, "provider_config"),
+])
+def test_add_by_tracking_input_errors(store, body, field):
+    tenant, owner, config, variant = store
+    with mock.patch(REQUEST) as req:
+        res = _client_for(owner).post(ADD, body, format="json")
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert field in res.json()["error"]["details"]
+    req.assert_not_called()
+
+
+@pytest.mark.parametrize("trackings", [[], ["N 1"], ["x" * 65], [f"N{i}" for i in range(51)]])
+def test_add_by_tracking_refuses_bad_tracking_lists(store, trackings):
+    tenant, owner, config, variant = store
+    with mock.patch(REQUEST) as req:
+        res = _client_for(owner).post(ADD, {"provider_config": str(config.pk), "trackings": trackings}, format="json")
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert list(res.json()["error"]["details"].keys()) == ["trackings"]
+    req.assert_not_called()
+
+
+def test_add_by_tracking_refused_for_couriers_with_a_list_and_inactive_accounts(store):
+    tenant, owner, config, variant = store
+    snapshot = json.loads(catalogue.snapshot_path().read_text(encoding="utf-8"))
+    snapshot["couriers"].append(catalogue.clean_entry({
+        "key": "maystro", "name": "Maystro", "platform": "maystro", "requiredCredentials": ["apiKey"],
+        "capabilities": {}, "endpoint": "https://backend.example-courier.dz/api"}))
+    catalogue.snapshot_path().write_text(json.dumps(snapshot), encoding="utf-8")
+    maystro = ProviderConfig.objects.create(tenant=tenant, courier="maystro", credentials={"apiKey": "x" * 40})
+    client = _client_for(owner)
+    with mock.patch(REQUEST) as req:
+        listed = client.post(ADD, {"provider_config": str(maystro.pk), "trackings": ["N1"]}, format="json")
+        ProviderConfig.objects.filter(pk=config.pk).update(is_active=False)
+        inactive = client.post(ADD, {"provider_config": str(config.pk), "trackings": ["N1"]}, format="json")
+    assert listed.status_code == inactive.status_code == status.HTTP_400_BAD_REQUEST
+    assert list(listed.json()["error"]["details"]) == list(inactive.json()["error"]["details"]) == ["provider_config"]
+    req.assert_not_called()
+
+
+@pytest.mark.parametrize("http,code", [
+    (_resp({"message": "Partenaire introuvable"}, 404), status.HTTP_400_BAD_REQUEST),
+    (_resp(status_code=503), status.HTTP_502_BAD_GATEWAY),
+])
+def test_add_by_tracking_courier_errors(store, http, code):
+    tenant, owner, config, variant = store
+    with mock.patch(REQUEST, return_value=http):
+        res = _client_for(owner).post(ADD, {"provider_config": str(config.pk), "trackings": ["N1"]}, format="json")
+    assert res.status_code == code
+    assert Shipment.objects.unscoped().filter(tenant=tenant).count() == 0
+
+
+def test_summary_marks_couriers_followed_by_tracking(store):
+    tenant, owner, config, variant = store
+    with mock.patch("apps.delivery_integrations.views.sync.request_sync"):
+        body = _client_for(owner).get("/api/v1/deliveries/shipments/summary/").json()
+    assert [(a["id"], a["courier"], a["by_tracking"]) for a in body["accounts"]] == [(str(config.pk), "noest", True)]

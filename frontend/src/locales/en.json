@@ -1892,7 +1892,17 @@
     "payout_history": "Recorded payouts",
     "payout_waiting": "{{count}} payouts to confirm",
     "test_ok_unverified": "Connection works. Tracking for this courier was built from its documentation and is not yet verified on a real account: report any status or amount that looks wrong.",
-    "payout_no_date": "Date not given (payout {{ref}})"
+    "payout_no_date": "Date not given (payout {{ref}})",
+    "add_by_tracking": "Add parcels by tracking number",
+    "add_by_tracking_help": "For parcels created in the courier's own dashboard (this courier does not let Pointure list your parcels). Paste or scan the tracking numbers, one per line. Parcels sent from ShoeDZ are followed automatically.",
+    "add_by_tracking_numbers": "Tracking numbers",
+    "add_by_tracking_count": "Numbers: {{count}}",
+    "add_by_tracking_too_many": "At most {{max}} numbers at a time.",
+    "add_by_tracking_submit": "Add",
+    "add_by_tracking_checking": "Checking…",
+    "add_by_tracking_added": "Parcels added: {{count}}",
+    "add_by_tracking_already": "Already followed: {{list}}",
+    "add_by_tracking_unknown": "Unknown to the courier: {{list}}"
   },
   "carton": {
     "add_cartons_title": "Add Cartons (Series)",

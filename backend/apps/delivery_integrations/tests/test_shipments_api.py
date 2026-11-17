@@ -218,8 +218,9 @@ def test_summary_counts_and_money_per_courier(store):
     assert maystro["by_cash"]["held_by_courier"] == {"count": 2, "cod_amount": "8000.50", "store_amount": "7200.50"}
     assert maystro["by_cash"]["paid"] == {"count": 1, "cod_amount": "1000.00", "store_amount": "600.00"}
     assert body["accounts"] == [{
+        "id": str(config.pk),
         "courier": "maystro", "courier_name": "maystro", "last_synced_at": body["accounts"][0]["last_synced_at"],
-        "last_sync_error": "", "syncing": False,
+        "last_sync_error": "", "syncing": False, "by_tracking": False,
     }]
 
     dated = _client(users[RoleChoices.OWNER]).get(f"{URL}summary/?date_from=2026-11-10").json()

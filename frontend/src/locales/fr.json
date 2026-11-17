@@ -1892,7 +1892,17 @@
     "payout_history": "Versements enregistrés",
     "payout_waiting": "{{count}} versements à confirmer",
     "test_ok_unverified": "Connexion réussie. Le suivi de ce transporteur a été construit d'après sa documentation et n'a pas encore été vérifié sur un vrai compte : signalez tout statut ou montant qui vous paraît faux.",
-    "payout_no_date": "Date non fournie (versement {{ref}})"
+    "payout_no_date": "Date non fournie (versement {{ref}})",
+    "add_by_tracking": "Ajouter des colis par numéro de suivi",
+    "add_by_tracking_help": "Pour les colis créés dans l'espace du transporteur (ce transporteur ne permet pas de lister vos colis). Collez ou scannez les numéros de suivi, un par ligne. Les colis envoyés depuis ShoeDZ sont suivis automatiquement.",
+    "add_by_tracking_numbers": "Numéros de suivi",
+    "add_by_tracking_count": "Numéros : {{count}}",
+    "add_by_tracking_too_many": "Au plus {{max}} numéros à la fois.",
+    "add_by_tracking_submit": "Ajouter",
+    "add_by_tracking_checking": "Vérification…",
+    "add_by_tracking_added": "Colis ajoutés : {{count}}",
+    "add_by_tracking_already": "Déjà suivis : {{list}}",
+    "add_by_tracking_unknown": "Inconnus du transporteur : {{list}}"
   },
   "carton": {
     "add_cartons_title": "Ajouter des cartons (Série)",

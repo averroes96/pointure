@@ -379,6 +379,55 @@ def _sync_known_parcels(config, connector, result):
     _history_and_lifecycle(connector, result, changed, linked)
 
 
+MAX_ADD_BY_TRACKING = 50
+
+
+def add_by_tracking(config, trackings):
+    """
+    Follow parcels created outside Pointure, for a courier without a parcel list (NOEST, P3.14).
+    Returns {"added", "already_followed", "unknown"} (tracking lists). The courier is asked
+    outside any transaction; the new shipments are saved in one short transaction. A tracking
+    that matches one of this store's Pointure orders for this courier is linked to it (and goes
+    through the lifecycle); any other parcel stays read-only (DL2.7).
+    Raises couriers.ConnectorError subclasses for the view to map.
+    """
+    wanted = list(dict.fromkeys(t.strip() for t in trackings if t and t.strip()))[:MAX_ADD_BY_TRACKING]
+    tenant, courier = config.tenant, config.courier
+    already = set(
+        Shipment.objects.unscoped().filter(tenant=tenant, courier=courier, tracking_number__in=wanted)
+        .values_list("tracking_number", flat=True)
+    )
+    new = [t for t in wanted if t not in already]
+    snapshots = couriers.get_connector(config).parcel_snapshots(new) if new else {}   # network
+
+    orders = {
+        o.tracking_number: o for o in CustomerOrder.objects.unscoped().filter(
+            tenant=tenant, provider=courier, tracking_number__in=list(snapshots))
+    }
+    added, linked, now = [], [], timezone.now()
+    with transaction.atomic():
+        for tracking in new:
+            snap = snapshots.get(tracking)
+            if snap is None:
+                continue
+            shipment = Shipment(tenant=tenant, provider_config=config, courier=courier,
+                                external_id=snap.external_id[:64])
+            shipment.apply_snapshot(snap)
+            shipment.customer_order = orders.get(tracking)
+            shipment.last_synced_at = now
+            shipment.save()
+            added.append(tracking)
+            if lifecycle.needs_lifecycle(shipment):
+                linked.append(shipment)
+    for shipment in linked:
+        lifecycle.apply(shipment)
+    return {
+        "added": added,
+        "already_followed": [t for t in wanted if t in already],
+        "unknown": [t for t in new if t not in snapshots],
+    }
+
+
 def _seed_from_orders(config):
     tenant, courier = config.tenant, config.courier
     known = set(Shipment.objects.unscoped().filter(tenant=tenant, courier=courier).values_list("tracking_number", flat=True))

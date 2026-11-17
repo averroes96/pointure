@@ -136,7 +136,8 @@ describe("ManualPayoutModal", () => {
       isAxiosError: true,
       response: { status: 400, data: { error: { message: "Numéros inconnus", details: { unknown_trackings: ["NOPE-1"] } } } },
     }));
-    const accounts = [{ courier: "maystro", courier_name: "Maystro", last_synced_at: null, last_sync_error: "", syncing: false }];
+    const accounts = [{ id: "acc-1", courier: "maystro", courier_name: "Maystro", last_synced_at: null,
+                        last_sync_error: "", syncing: false, by_tracking: false }];
     withQuery(<ManualPayoutModal open accounts={accounts} onClose={vi.fn()} />);
 
     await user.type(screen.getByLabelText(t("deliveries.payout_step_trackings")), "T1\nNOPE-1");

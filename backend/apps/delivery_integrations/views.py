@@ -431,6 +431,19 @@ class ShipmentRefreshThrottle(UserRateThrottle):
 STALE_AFTER = timedelta(minutes=10)
 
 
+class AddByTrackingThrottle(UserRateThrottle):
+    """Each call asks the courier about up to 50 parcels: 10 per minute per user."""
+    scope = "add_by_tracking"
+    rate = "10/min"
+
+
+class AddByTrackingSerializer(serializers.Serializer):
+    provider_config = serializers.UUIDField()
+    trackings = serializers.ListField(
+        child=serializers.RegexField(r"^[A-Za-z0-9_-]{1,64}$"), min_length=1, max_length=sync.MAX_ADD_BY_TRACKING,
+    )
+
+
 class ShipmentViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """
     Shipments read from the store's couriers (docs/plans/delivery-v1-plan.md P1.10).
@@ -544,11 +557,14 @@ class ShipmentViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, 
         accounts = []
         for config in self._active_configs():
             accounts.append({
+                "id": str(config.pk),
                 "courier": config.courier,
                 "courier_name": names.get(config.courier, config.courier),
                 "last_synced_at": config.last_synced_at,
                 "last_sync_error": config.last_sync_error,
                 "syncing": sync.is_running(config.pk),
+                # No parcel list at this courier: parcels created outside Pointure are added by tracking.
+                "by_tracking": _follows_by_tracking(config),
             })
             bucket(config.courier)
         for courier, b in per_courier.items():
@@ -568,6 +584,41 @@ class ShipmentViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMixin, 
             configs = configs.filter(courier=filters["courier"])
         started = {config.courier: sync.request_sync(config.pk, "refresh") for config in configs}
         return Response({"sync": started}, status=status.HTTP_202_ACCEPTED)
+
+
+    # ── add parcels by tracking (couriers without a list, P3.14) ──────────────
+    @action(detail=False, methods=["post"], url_path="add-by-tracking", throttle_classes=[AddByTrackingThrottle])
+    def add_by_tracking(self, request):
+        """
+        POST …/shipments/add-by-tracking/ {"provider_config": "<uuid>", "trackings": ["…", …]}
+        Follow parcels created in the courier's own dashboard. The courier is asked outside any
+        transaction. Answers {"added", "already_followed", "unknown"}.
+        """
+        data = AddByTrackingSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        config = self._active_configs().filter(pk=data.validated_data["provider_config"]).first()
+        if config is None:
+            raise ValidationError({"provider_config": [_("Ce transporteur n'est pas configuré ou est désactivé.")]})
+        if not _follows_by_tracking(config):
+            raise ValidationError({"provider_config": [_(
+                "Les colis de ce transporteur sont lus automatiquement : inutile de les ajouter."
+            )]})
+        try:
+            result = sync.add_by_tracking(config, data.validated_data["trackings"])
+        except (couriers.ConnectorAuthError, couriers.ConnectorForbidden):
+            raise ValidationError({"provider_config": [_(
+                "Le transporteur a refusé les identifiants : vérifiez-les dans Paramètres de Livraison."
+            )]})
+        except couriers.ConnectorError:
+            raise CourierReadUnavailable()
+        return Response(result)
+
+
+def _follows_by_tracking(config):
+    try:
+        return couriers.get_connector(config).follows_by_tracking()
+    except couriers.ConnectorError:
+        return False
 
 
 def _money(value):

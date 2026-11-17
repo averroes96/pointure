@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PackageSearch } from "lucide-react";
 import { getApiError } from "@/lib/api";
 import api from "@/lib/api";
+import AddByTracking from "./components/AddByTracking";
 import PayoutsTab from "./components/PayoutsTab";
 import ShipmentDrawer from "./components/ShipmentDrawer";
 import ShipmentFiltersBar from "./components/ShipmentFiltersBar";
@@ -144,6 +145,7 @@ export default function ShipmentsPage() {
             refreshing={refresh.isPending}
             onRefresh={() => { setError(null); refresh.mutate(); }}
           />
+          <div className="flex justify-end empty:hidden"><AddByTracking accounts={accounts} /></div>
           <ShipmentSummaryCards cards={cards} active={activeCard} onSelect={selectCard} />
           <ShipmentFiltersBar
             filters={{ ...filters, search: searchInput }}
