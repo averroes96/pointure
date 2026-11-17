@@ -1,6 +1,6 @@
 ## 16. Deliveries: Couriers and Shipment Tracking {#livraisons}
 
-ShoeDZ reads your parcels directly from your courier (today: **Maystro**, and the **Yalidine** family: Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services; and the couriers on the **Ecotrack** platform: DHD, Conexlog, MSM Go, World Express, Packers and about 80 more): where each parcel is, which were delivered or returned, and **where the money is**. Parcels created in the courier's app or in DZBuild are read-only: they change neither your sales, your stock nor your till. Parcels **sent from ShoeDZ** (section H) take the stock out when sent and become a sale when delivered. None of this appears in cash sessions or Z reports.
+ShoeDZ reads your parcels directly from your courier (today: **Maystro**, and the **Yalidine** family: Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services; and the couriers on the **Ecotrack** platform: DHD, Conexlog, MSM Go, World Express, Packers and about 80 more; and **ZR Express** (new platform)): where each parcel is, which were delivered or returned, and **where the money is**. Parcels created in the courier's app or in DZBuild are read-only: they change neither your sales, your stock nor your till. Parcels **sent from ShoeDZ** (section H) take the stock out when sent and become a sale when delivered. None of this appears in cash sessions or Z reports.
 
 > Owner and managers only, on the Pro plan.
 
@@ -26,6 +26,8 @@ ShoeDZ reads your parcels directly from your courier (today: **Maystro**, and th
 - Each courier names its statuses its own way: ShoeDZ reads their codes. A code it does not know shows as **Unknown status**; hover over it to see the courier's code.
 - The courier's list gives no times for changes: ShoeDZ dates a new status when it sees it, unless the parcel's history gives the exact time.
 - These couriers accept about 50 requests a minute: ShoeDZ spaces its requests and reads at most 400 parcels in progress per update (beyond that the message is "partial update"). Paid or returned parcels the courier archives are followed separately.
+
+**ZR Express (new platform)**: choose **ZR Express (new platform)** and enter the **API key** and the **account ID (tenant ID)** from your ZR Express area (menu **API Rest → Token API**). ZR Express tracking and payouts were built from its official documentation and **are not yet verified on a real account**. **ZR Express keys expire** (after the period chosen when creating them: 7 days to 1 year): when the test or an update says "credentials refused", create a new key in ZR Express, then click **Replace** in ShoeDZ. The old ZR Express platform (Procolis) is not followed.
 
 A courier that already has shipments cannot be deleted: deactivate it instead.
 
@@ -76,18 +78,18 @@ In a parcel's details:
 
 | Message | What to do |
 |---|---|
-| credentials refused | Replace the credentials in **Delivery Settings**, then test the connection. |
+| credentials refused | Replace the credentials in **Delivery Settings**, then test the connection. With ZR Express the key has often simply expired: create a new one. |
 | these credentials cannot read orders | Use the Maystro store token instead of an `ak_` key. |
 | courier unreachable | Check the internet connection, then click **Refresh**. |
 | too many requests, retrying later | Wait: updating resumes by itself (a few minutes; up to a few hours for the Yalidine family when its daily quota is nearly used). |
-| tracking not available for this courier yet | Tracking exists today for Maystro, the Yalidine family and the Ecotrack couriers; other couriers will follow. |
+| tracking not available for this courier yet | Tracking exists today for Maystro, ZR Express (new platform), the Yalidine family and the Ecotrack couriers; other couriers will follow. |
 | partial update | Many changes at once: click **Refresh** again. |
 
 ### G. Payouts Picked Up at the Agency
 
 Money picked up at the courier's agency is recorded in the **Payouts** tab of the **Shipments** page. This money **does not go into the till**: it appears neither in cash sessions nor in Z reports. The number next to the tab shows how many payouts are waiting for your confirmation.
 
-**Confirming a payout reported by the courier (Maystro, Yalidine family)**
+**Confirming a payout reported by the courier (Maystro, ZR Express, Yalidine family)**
 
 ShoeDZ knows the payouts the courier has already made. They are listed under **Maystro payouts to confirm** (or your courier's name), with the date, the number of parcels and the expected amount (what the courier owes the store).
 
@@ -98,6 +100,8 @@ ShoeDZ knows the payouts the courier has already made. They are listed under **M
 **Old payouts already received:** tick them (or tick the header box to select all), then click **Confirm selected**. Each payout is recorded for its expected amount, on its payment date.
 
 **Yalidine family:** the courier says which parcels are paid and in which payout, but **not the payout date**. The line shows "Date not given" with the payout number; the date recorded is the one you enter (today for a bulk confirm). For now the expected amount is the amount collected minus the delivery fee: check it against the courier's sheet.
+
+**ZR Express:** ShoeDZ reads ZR Express's payments: a completed payment moves its parcels to **Paid** and appears to confirm with its date; a payment still being prepared moves its parcels to **Ready to be paid**.
 
 **Ecotrack couriers:** ShoeDZ sees which parcels are paid, but not the payout number, so these payouts do not appear in the list to confirm. Record the money you pick up with **Manual entry (agency sheet)** below, scanning the sheet's tracking numbers.
 
