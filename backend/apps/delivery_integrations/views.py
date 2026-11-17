@@ -31,7 +31,7 @@ from .serializers import (
     CourierPayoutSerializer, ConfirmCourierPayoutsSerializer,
 )
 from .models import CourierPayout
-from .services import catalogue, couriers, payouts, sync
+from .services import catalogue, couriers, geo, payouts, sync
 from .services.dzship_client import DzshipClient, DzshipError
 
 from apps.core.mixins import TenantScopedViewSetMixin
@@ -82,6 +82,46 @@ class CourierTestThrottle(UserRateThrottle):
     rate = "10/min"
 
 
+class CourierGeoThrottle(UserRateThrottle):
+    """Desk lists and fee quotes call dzship (cached): 30 per minute per user."""
+    scope = "courier_geo"
+    rate = "30/min"
+
+
+class CourierReadUnavailable(APIException):
+    """dzship or the courier could not answer a read (desks, fees)."""
+    status_code = status.HTTP_502_BAD_GATEWAY
+    default_code = "courier_unavailable"
+    default_detail = _("Le transporteur ne répond pas pour le moment. Réessayez dans un instant.")
+
+
+class CourierFeatureNotSupported(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_code = "not_supported"
+    default_detail = _("Ce transporteur ne propose pas cette information.")
+
+
+class DesksQuerySerializer(serializers.Serializer):
+    wilaya = serializers.IntegerField(min_value=1, max_value=58)
+
+
+class RatesQuerySerializer(serializers.Serializer):
+    to_wilaya = serializers.IntegerField(min_value=1, max_value=58)
+    delivery_type = serializers.ChoiceField(choices=["home", "stopdesk"])
+    to_commune = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    cod_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False)
+
+
+def _courier_read(call):
+    """Run a dzship read; map its errors to clean API errors (never the raw message)."""
+    try:
+        return call()
+    except DzshipError as exc:
+        if exc.not_supported:
+            raise CourierFeatureNotSupported()
+        raise CourierReadUnavailable()
+
+
 class CourierCatalogueQuerySerializer(serializers.Serializer):
     refresh = serializers.BooleanField(required=False, default=False)
 
@@ -118,6 +158,41 @@ class ProviderConfigViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetM
                 "Ce transporteur a des expéditions enregistrées : désactivez-le au lieu de le supprimer."
             ))
         instance.delete()
+
+    def _usable_config(self):
+        config = self.get_object()
+        if not config.is_active:
+            raise ValidationError(_("Ce transporteur est désactivé."))
+        # The catalogue names the credentials each courier needs (none for the sandbox).
+        # Unknown to the snapshot (offline first run): let dzship answer.
+        entry = catalogue.get_courier(config.courier)
+        required = entry["required_credentials"] if entry else []
+        saved = config.credentials or {}
+        if any(not saved.get(name) for name in required):
+            raise ValidationError(_("Les identifiants de ce transporteur sont incomplets."))
+        return config
+
+    @action(detail=True, methods=["get"], throttle_classes=[CourierGeoThrottle])
+    def desks(self, request, pk=None):
+        """GET …/provider-configs/{id}/desks/?wilaya=16 — the courier's stop desks in one wilaya (P2.1)."""
+        config = self._usable_config()
+        query = DesksQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        desks = _courier_read(lambda: geo.desks_for(config, query.validated_data["wilaya"]))
+        return Response({"desks": desks})
+
+    @action(detail=True, methods=["get"], throttle_classes=[CourierGeoThrottle])
+    def rates(self, request, pk=None):
+        """GET …/provider-configs/{id}/rates/?to_wilaya=&delivery_type=&to_commune=&cod_amount= (P2.1)."""
+        config = self._usable_config()
+        query = RatesQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        q = query.validated_data
+        quote = _courier_read(lambda: geo.quote_for(
+            config, to_wilaya=q["to_wilaya"], delivery_type=q["delivery_type"],
+            to_commune=q["to_commune"], cod_amount=q.get("cod_amount"),
+        ))
+        return Response({k: (str(v) if isinstance(v, Decimal) else v) for k, v in quote.items()})
 
     @action(detail=True, methods=["post"], throttle_classes=[CourierTestThrottle])
     def test(self, request, pk=None):
