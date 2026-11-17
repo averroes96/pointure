@@ -1155,7 +1155,8 @@
     "cheque": "Chèque",
     "ccp": "CCP",
     "virement": "Virement",
-    "account": "Compte client"
+    "account": "Compte client",
+    "courier": "Encaissé par le livreur"
   },
   "category": {
     "sneakers": "Sneakers",
@@ -1444,7 +1445,9 @@
     "initial": "Stock initial",
     "layaway_lock": "Mise de côté (Réservation)",
     "layaway_release": "Annulation réservation (Libération)",
-    "stocktake": "Ajustement inventaire"
+    "stocktake": "Ajustement inventaire",
+    "delivery_out": "Envoi livraison",
+    "delivery_return": "Retour livraison"
   },
   "report": {
     "amount": "Montant",

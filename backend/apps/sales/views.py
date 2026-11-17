@@ -18,7 +18,7 @@ from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, OWNER_ONLY, RoleP
 from apps.inventory.models import MovementReasonChoices, StockMovement
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
-    CashSessionStatus, HeldSale, Payment, Return, Sale,
+    CashSessionStatus, HeldSale, Payment, POS_PAYMENT_METHOD_CHOICES, Return, Sale,
 )
 from .serializers import (
     AddPaymentSerializer, CashMovementCreateSerializer, CashMovementSerializer,
@@ -218,6 +218,11 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
                     )
 
                 method = request.data.get("method", "cash")
+                if method not in dict(POS_PAYMENT_METHOD_CHOICES):
+                    return Response(
+                        {"detail": _("Mode de paiement invalide.")},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 notes = request.data.get("notes", "Règlement solde retrait réservation")
                 active_session = CashSession.get_open_session(
                     tenant=sale.tenant,

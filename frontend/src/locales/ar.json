@@ -1155,7 +1155,8 @@
     "cheque": "شيك",
     "ccp": "CCP",
     "virement": "تحويل بنكي",
-    "account": "رصيد الحساب"
+    "account": "رصيد الحساب",
+    "courier": "حصّله عامل التوصيل"
   },
   "category": {
     "sneakers": "أحذية رياضية",
@@ -1430,7 +1431,9 @@
     "initial": "مخزون أولي",
     "layaway_lock": "حجز في المحل (تسبيق)",
     "layaway_release": "إلغاء الحجز (تحرير المخزون)",
-    "stocktake": "تسوية الجرد الفعلي"
+    "stocktake": "تسوية الجرد الفعلي",
+    "delivery_out": "إرسال توصيل",
+    "delivery_return": "إرجاع توصيل"
   },
   "payment": {
     "record": "تسجيل دفعة",

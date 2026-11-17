@@ -19,6 +19,15 @@ class PaymentMethodChoices(models.TextChoices):
     ACCOUNT = "account", _("Client Account Balance")
     TPE = "tpe", _("TPE (Carte CIB / Edahabia)")
     BARIDIMOB = "baridimob", _("BaridiMob")
+    # Cash collected by a delivery courier (DL2.5): set only by the delivery lifecycle,
+    # never at the POS, and never part of a cash session.
+    COURIER = "courier", _("Encaissé par le livreur")
+
+
+# What a cashier may choose at the POS (payments, refunds, exchanges).
+POS_PAYMENT_METHOD_CHOICES = [
+    choice for choice in PaymentMethodChoices.choices if choice[0] != PaymentMethodChoices.COURIER
+]
 
 
 class CashSessionStatus(models.TextChoices):

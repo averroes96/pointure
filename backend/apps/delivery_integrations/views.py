@@ -303,7 +303,16 @@ class CustomerOrderViewSet(DeliveryIntegrationsGuardMixin, TenantScopedViewSetMi
     permission_classes = [IsAuthenticated, RolePermission, PlanRequired("pro_retail")]
 
     def get_queryset(self):
-        return CustomerOrder.objects.filter(tenant=self.request.user.tenant)
+        return (
+            CustomerOrder.objects.filter(tenant=self.request.user.tenant)
+            .prefetch_related("lines__variant__product")
+        )
+
+    def perform_update(self, serializer):
+        # Lines and amounts drive stock and the sale at delivery (P2.4, P2.5): drafts only.
+        if serializer.instance.status != CustomerOrderStatusChoices.DRAFT:
+            raise ValidationError(_("Seule une commande en brouillon peut être modifiée."))
+        super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         if instance.status != CustomerOrderStatusChoices.DRAFT:

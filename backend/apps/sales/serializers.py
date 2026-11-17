@@ -10,7 +10,7 @@ from apps.inventory.services.costing import current_unit_cost
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
     CashSessionStatus, Exchange, ExchangeNewItem, ExchangeReturnItem,
-    HeldSale, Payment, PaymentMethodChoices, Return, ReturnItem, Sale, SaleItem,
+    HeldSale, Payment, POS_PAYMENT_METHOD_CHOICES, Return, ReturnItem, Sale, SaleItem,
 )
 
 
@@ -251,7 +251,7 @@ class CreateSaleItemInput(serializers.Serializer):
 
 class CreatePaymentInput(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
-    method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
+    method = serializers.ChoiceField(choices=POS_PAYMENT_METHOD_CHOICES)
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
     cheque_number = serializers.CharField(required=False, allow_blank=True)
@@ -814,7 +814,7 @@ class CreateSaleSerializer(serializers.Serializer):
 
 class AddPaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
+    method = serializers.ChoiceField(choices=POS_PAYMENT_METHOD_CHOICES)
     notes = serializers.CharField(required=False, allow_blank=True)
     is_formal = serializers.BooleanField(default=False)
 
@@ -832,7 +832,7 @@ class CreateReturnSerializer(serializers.Serializer):
     items = ReturnItemInput(many=True, min_length=1)
     reason = serializers.CharField()
     refund_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.00"))
-    refund_method = serializers.ChoiceField(choices=PaymentMethodChoices.choices)
+    refund_method = serializers.ChoiceField(choices=POS_PAYMENT_METHOD_CHOICES)
     manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, data):
@@ -1310,7 +1310,7 @@ class CreateExchangeSerializer(serializers.Serializer):
     new_items = ExchangeNewItemInput(many=True, min_length=1)
     reason = serializers.CharField(required=False, allow_blank=True, default="")
     extra_payment_method = serializers.ChoiceField(
-        choices=PaymentMethodChoices.choices, required=False, allow_blank=True, default=""
+        choices=POS_PAYMENT_METHOD_CHOICES, required=False, allow_blank=True, default=""
     )
     manager_pin = serializers.CharField(required=False, allow_blank=True, default="")
 

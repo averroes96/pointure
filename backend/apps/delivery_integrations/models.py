@@ -1,4 +1,7 @@
 import uuid
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -22,6 +25,11 @@ class CustomerOrderStatusChoices(models.TextChoices):
     RETURNED = "returned", _("Returned")
     REJECTED = "rejected", _("Rejected / Cancelled")
     FAILED = "failed", _("Failed")
+
+
+class DeliveryTypeChoices(models.TextChoices):
+    HOME = "home", _("Home delivery")
+    STOPDESK = "stopdesk", _("Stop desk")
 
 
 class CustomerOrderSourceChoices(models.TextChoices):
@@ -113,7 +121,35 @@ class CustomerOrder(TenantScopedModel):
     status = models.CharField(
         _("Status"), max_length=20, choices=CustomerOrderStatusChoices.choices, default=CustomerOrderStatusChoices.DRAFT
     )
+    # What the customer pays for delivery (added to the COD unless free_shipping).
     shipping_fee = models.DecimalField(_("Shipping Fee"), max_digits=10, decimal_places=2, default=0.00)
+
+    # Delivery order (docs/plans/delivery-v1-plan.md P2.3)
+    customer_phone2 = models.CharField(_("Second phone"), max_length=20, blank=True, default="")
+    delivery_type = models.CharField(
+        _("Delivery type"), max_length=10, choices=DeliveryTypeChoices.choices, default=DeliveryTypeChoices.HOME
+    )
+    # The courier's own desk id and name (from GET …/provider-configs/{id}/desks/).
+    stop_desk_id = models.CharField(_("Stop desk ID"), max_length=64, blank=True, default="")
+    stop_desk_name = models.CharField(_("Stop desk"), max_length=200, blank=True, default="")
+    # Cash the courier collects; checked against the lines by check_cod(). Null = expected_cod().
+    cod_amount = models.DecimalField(
+        _("Cash on delivery"), max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    # The courier's quote when the order was prepared (information only; not revenue, DL.9).
+    quoted_fee = models.DecimalField(_("Quoted delivery fee"), max_digits=10, decimal_places=2, null=True, blank=True)
+    free_shipping = models.BooleanField(_("Free shipping"), default=False)
+    open_package = models.BooleanField(_("Customer may open the package"), default=False)
+    note_to_driver = models.CharField(_("Note to the driver"), max_length=255, blank=True, default="")
+
+    # Set by the dispatch and the shipment lifecycle only (P2.4, P2.5), never from request data.
+    dispatched_by = models.ForeignKey(
+        "core.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name=_("Dispatched by"),
+    )
+    dispatched_at = models.DateTimeField(_("Dispatched at"), null=True, blank=True)
+    stock_returned_at = models.DateTimeField(_("Stock returned at"), null=True, blank=True)
     
     # Integration tracking
     # dzship courier key of the ProviderConfig used to dispatch (e.g. "maystro").
@@ -141,6 +177,93 @@ class CustomerOrder(TenantScopedModel):
 
     def __str__(self):
         return f"Order from {self.customer_name} via {self.get_source_display()}"
+
+    # ── amounts: the single backend source (DL2.6) ───────────────────────────
+    def goods_total(self):
+        """Sum of the lines (unit price × quantity − line discount): the future sale amount."""
+        return lines_total(self.lines.all())
+
+    def expected_cod(self):
+        """Goods plus the delivery fee the customer pays, unless shipping is free."""
+        return expected_cod(self.goods_total(), self.shipping_fee, self.free_shipping)
+
+    def cod_to_collect(self):
+        """What the courier collects: the stored amount, or the expected one when none was set."""
+        return self.cod_amount if self.cod_amount is not None else self.expected_cod()
+
+
+CENT = Decimal("0.01")
+
+
+def line_subtotal(unit_price, quantity, discount_amount):
+    return (Decimal(unit_price) * int(quantity) - Decimal(discount_amount or 0)).quantize(CENT)
+
+
+def lines_total(lines):
+    """Lines are CustomerOrderLine rows or dicts with unit_price, quantity, discount_amount."""
+    def field(line, name):
+        return line.get(name) if isinstance(line, dict) else getattr(line, name)
+
+    total = sum(
+        (line_subtotal(field(l, "unit_price"), field(l, "quantity"), field(l, "discount_amount")) for l in lines),
+        Decimal("0"),
+    )
+    return total.quantize(CENT)
+
+
+def expected_cod(goods, shipping_fee, free_shipping):
+    fee = Decimal("0") if free_shipping else Decimal(shipping_fee or 0)
+    return (Decimal(goods) + fee).quantize(CENT)
+
+
+def check_cod(cod_amount, expected):
+    """
+    Error message for a COD the store typed, or None when it is acceptable: couriers take
+    whole dinars, and the courier never collects more than the goods plus the delivery fee
+    (a smaller amount covers a deposit already paid).
+    """
+    if cod_amount is None:
+        return None
+    if cod_amount < 0:
+        return _("Le montant à encaisser ne peut pas être négatif.")
+    if cod_amount != cod_amount.to_integral_value():
+        return _("Le montant à encaisser doit être en dinars entiers.")
+    if cod_amount > expected:
+        return _("Le montant à encaisser dépasse le total des articles et de la livraison.")
+    return None
+
+
+class CustomerOrderLine(models.Model):
+    """
+    One article of a delivery order (P2.3). Not tenant-scoped: scope through
+    `order__tenant`. Mirrors SaleItem so the sale created at delivery (P2.5) copies it.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(CustomerOrder, on_delete=models.CASCADE, related_name="lines")
+    variant = models.ForeignKey("inventory.Variant", on_delete=models.PROTECT, related_name="customer_order_lines")
+    quantity = models.PositiveIntegerField(_("Quantity"), validators=[MinValueValidator(1)])
+    unit_price = models.DecimalField(_("Unit Price (DZD)"), max_digits=12, decimal_places=2)
+    discount_amount = models.DecimalField(
+        _("Line Discount"), max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = _("Customer Order Line")
+        verbose_name_plural = _("Customer Order Lines")
+        ordering = ["position", "id"]
+        constraints = [
+            models.CheckConstraint(check=models.Q(quantity__gte=1), name="deliv_line_quantity_gte_1"),
+            models.CheckConstraint(check=models.Q(unit_price__gte=0), name="deliv_line_unit_price_gte_0"),
+            models.CheckConstraint(check=models.Q(discount_amount__gte=0), name="deliv_line_discount_gte_0"),
+        ]
+
+    def __str__(self):
+        return f"{self.variant} × {self.quantity}"
+
+    @property
+    def subtotal(self):
+        return line_subtotal(self.unit_price, self.quantity, self.discount_amount)
 
 
 class Shipment(TenantScopedModel):

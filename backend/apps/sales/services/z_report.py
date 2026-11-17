@@ -868,6 +868,8 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
             "transfer_out": "تحويل صادر",
             "customer_return": "إرجاع زبون",
             "supplier_return": "إرجاع للمورد",
+            "delivery_out": "إرسال توصيل",
+            "delivery_return": "إرجاع توصيل",
         },
         "en": {
             "sale": "Sale",
@@ -879,6 +881,8 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
             "transfer_out": "Transfer Out",
             "customer_return": "Customer Return",
             "supplier_return": "Supplier Return",
+            "delivery_out": "Delivery dispatch",
+            "delivery_return": "Delivery return",
         },
     }
     reason_labels = reason_labels_dict.get(norm_lang, reason_labels_dict["fr"])

@@ -1155,7 +1155,8 @@
     "cheque": "Cheque",
     "ccp": "CCP",
     "virement": "Wire Transfer",
-    "account": "Account Credit"
+    "account": "Account Credit",
+    "courier": "Collected by courier"
   },
   "category": {
     "sneakers": "Sneakers",
@@ -1430,7 +1431,9 @@
     "initial": "Initial Stock",
     "layaway_lock": "Layaway / Reserved",
     "layaway_release": "Layaway Cancelled (Released)",
-    "stocktake": "Stocktake Adjustment"
+    "stocktake": "Stocktake Adjustment",
+    "delivery_out": "Delivery dispatch",
+    "delivery_return": "Delivery return"
   },
   "payment": {
     "record": "Record a Payment",

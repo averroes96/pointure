@@ -1,11 +1,17 @@
 from decimal import Decimal
 from urllib.parse import urlparse
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .models import CourierPayout, ProviderConfig, CustomerOrder, Shipment, ShipmentEvent
+from apps.core.utils.phone import is_valid_algerian_phone, normalize_algerian_phone
+from apps.inventory.models import Variant
+from .models import (
+    CourierPayout, ProviderConfig, CustomerOrder, CustomerOrderLine,
+    DeliveryTypeChoices, Shipment, ShipmentEvent, check_cod, expected_cod, lines_total,
+)
 from .services import catalogue
 from .services.couriers.vocabulary import CashStatus, ShipmentStatus
 
@@ -148,7 +154,54 @@ class ProviderConfigSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class CustomerOrderLineSerializer(serializers.ModelSerializer):
+    """One article of a delivery order. The variant must belong to the store."""
+    variant = serializers.PrimaryKeyRelatedField(queryset=Variant.objects.none())
+    variant_label = serializers.SerializerMethodField()
+    subtotal = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    quantity = serializers.IntegerField(min_value=1, max_value=999)
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
+    discount_amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, default=Decimal("0.00")
+    )
+
+    class Meta:
+        model = CustomerOrderLine
+        fields = ["id", "variant", "variant_label", "quantity", "unit_price", "discount_amount", "subtotal"]
+        read_only_fields = ["id", "variant_label", "subtotal"]
+
+    def get_fields(self):
+        # Runs once the serializer is bound (also when nested), so the request context is known.
+        fields = super().get_fields()
+        request = self.context.get("request")
+        tenant = getattr(getattr(request, "user", None), "tenant", None)
+        if tenant is not None:
+            fields["variant"].queryset = Variant.objects.filter(tenant=tenant).select_related("product")
+        return fields
+
+    def get_variant_label(self, line):
+        return str(line.variant)
+
+    def validate(self, attrs):
+        # PATCH skips field defaults: a line sent without a discount has none.
+        attrs.setdefault("discount_amount", Decimal("0.00"))
+        if attrs["discount_amount"] > attrs["unit_price"] * attrs["quantity"]:
+            raise serializers.ValidationError({"discount_amount": _("La remise dépasse le montant de la ligne.")})
+        return attrs
+
+
 class CustomerOrderSerializer(serializers.ModelSerializer):
+    """
+    A delivery order (docs/plans/delivery-v1-plan.md P2.3). Only drafts can be changed
+    (enforced by the view). `lines`, when sent, replace all lines. Amounts are computed
+    by the server (`goods_total`, `expected_cod`, `cod_to_collect`); a typed
+    `cod_amount` is only accepted when check_cod() allows it.
+    """
+    lines = CustomerOrderLineSerializer(many=True, required=False)
+    goods_total = serializers.SerializerMethodField()
+    expected_cod = serializers.SerializerMethodField()
+    cod_to_collect = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomerOrder
         fields = [
@@ -156,15 +209,31 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "source",
             "customer_name",
             "customer_phone",
+            "customer_phone2",
             "wilaya",
             "commune",
             "address",
             "customer_notes",
-            "status",
+            "delivery_type",
+            "stop_desk_id",
+            "stop_desk_name",
             "shipping_fee",
+            "quoted_fee",
+            "free_shipping",
+            "open_package",
+            "note_to_driver",
+            "cod_amount",
+            "lines",
+            "goods_total",
+            "expected_cod",
+            "cod_to_collect",
+            "status",
             "provider",
             "tracking_number",
             "sale",
+            "dispatched_by",
+            "dispatched_at",
+            "stock_returned_at",
             "created_at",
             "updated_at",
         ]
@@ -174,9 +243,86 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "provider",
             "tracking_number",
             "sale",
+            "dispatched_by",
+            "dispatched_at",
+            "stock_returned_at",
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "shipping_fee": {"min_value": Decimal("0")},
+            "quoted_fee": {"min_value": Decimal("0")},
+        }
+
+    # ── read ──────────────────────────────────────────────────────────────────
+    def get_goods_total(self, order):
+        return str(order.goods_total())
+
+    def get_expected_cod(self, order):
+        return str(order.expected_cod())
+
+    def get_cod_to_collect(self, order):
+        return str(order.cod_to_collect())
+
+    # ── validate ──────────────────────────────────────────────────────────────
+    def _phone(self, value, required):
+        if not value:
+            if required:
+                raise serializers.ValidationError(_("Ce champ est obligatoire."))
+            return ""
+        normalized = normalize_algerian_phone(value)
+        if not is_valid_algerian_phone(normalized):
+            raise serializers.ValidationError(_("Numéro de téléphone algérien invalide."))
+        return normalized
+
+    def validate_customer_phone(self, value):
+        return self._phone(value, required=True)
+
+    def validate_customer_phone2(self, value):
+        return self._phone(value, required=False)
+
+    def validate(self, attrs):
+        instance = self.instance
+
+        def current(name, default=None):
+            return attrs[name] if name in attrs else getattr(instance, name, default)
+
+        if current("delivery_type", DeliveryTypeChoices.HOME) == DeliveryTypeChoices.HOME:
+            attrs["stop_desk_id"] = ""
+            attrs["stop_desk_name"] = ""
+
+        if "lines" in attrs:
+            goods = lines_total(attrs["lines"])
+        else:
+            goods = instance.goods_total() if instance else Decimal("0.00")
+        expected = expected_cod(goods, current("shipping_fee", Decimal("0")), current("free_shipping", False))
+        error = check_cod(current("cod_amount"), expected)
+        if error:
+            raise serializers.ValidationError({"cod_amount": error})
+        return attrs
+
+    # ── write ─────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _write_lines(order, lines):
+        order.lines.all().delete()
+        CustomerOrderLine.objects.bulk_create([
+            CustomerOrderLine(order=order, position=i, **line) for i, line in enumerate(lines)
+        ])
+
+    def create(self, validated_data):
+        lines = validated_data.pop("lines", [])
+        with transaction.atomic():
+            order = super().create(validated_data)
+            self._write_lines(order, lines)
+        return order
+
+    def update(self, instance, validated_data):
+        lines = validated_data.pop("lines", None)
+        with transaction.atomic():
+            order = super().update(instance, validated_data)
+            if lines is not None:
+                self._write_lines(order, lines)
+        return order
 
 
 class ShipmentEventSerializer(serializers.ModelSerializer):

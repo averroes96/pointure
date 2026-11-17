@@ -182,6 +182,30 @@ class LayawayTests(TestCase):
         self.assertEqual(resp_collect.data["balance_due"], "0.00")
         self.assertIsNotNone(resp_collect.data["layaway_collected_at"])
 
+    def test_collect_layaway_refuses_a_method_the_pos_cannot_take(self):
+        # "courier" is recorded only by the delivery lifecycle (DL2.5); an unknown method was saved as-is before.
+        self.client.force_authenticate(user=self.cashier)
+        payload = {
+            "items": [
+                {"variant_id": str(self.variant.id), "quantity": 1, "unit_price": "10000.00", "discount_amount": "0.00"}
+            ],
+            "payments": [{"amount": "4000.00", "method": "cash"}],
+            "notes": "Réservation",
+            "is_layaway": True,
+        }
+        sale_id = self.client.post("/api/v1/sales/", data=payload, format="json").data["id"]
+
+        for method in ("courier", "bitcoin"):
+            resp = self.client.post(
+                f"/api/v1/sales/{sale_id}/collect-layaway/",
+                data={"amount": "6000.00", "method": method},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 400)
+        sale = Sale.objects.get(pk=sale_id)
+        self.assertEqual(sale.status, "layaway")
+        self.assertEqual(list(sale.payments.values_list("method", flat=True)), ["cash"])
+
     def test_cancel_layaway_refunds_deposit_and_releases_stock(self):
         self.client.force_authenticate(user=self.cashier)
         initial_stock = self.variant.stock_qty  # 5

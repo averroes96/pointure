@@ -117,7 +117,8 @@ export interface Product {
 export type MovementReason =
   | "sale" | "reception" | "adjustment" | "return"
   | "transfer_out" | "transfer_in" | "damaged" | "initial"
-  | "layaway_lock" | "layaway_release" | "stocktake";
+  | "layaway_lock" | "layaway_release" | "stocktake"
+  | "delivery_out" | "delivery_return";
 
 export interface StockMovement {
   id: number;
@@ -271,7 +272,8 @@ export interface DefectMetrics {
 // Sales
 // ─────────────────────────────────────────────
 
-export type PaymentMethod = "cash" | "tpe" | "baridimob" | "cheque" | "ccp" | "virement" | "account";
+// "courier": cash collected by a delivery courier, recorded by the server only (never at the POS).
+export type PaymentMethod = "cash" | "tpe" | "baridimob" | "cheque" | "ccp" | "virement" | "account" | "courier";
 export type SaleStatus = "completed" | "cancelled" | "refunded" | "partially_paid" | "layaway";
 
 export interface SaleItem {
