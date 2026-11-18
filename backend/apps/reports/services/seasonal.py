@@ -9,10 +9,11 @@ date is estimated until the owner edits it. The rentrée defaults to
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, Max, Min, Sum
 from django.db.models.functions import Coalesce
 from hijridate import Hijri
 
+from apps.core.utils.dates import day_range, start_of_day
 from apps.reports.services.size_curve import SOLD_STATUSES
 
 AID_FROM = date(2020, 1, 1)
@@ -68,56 +69,68 @@ def _money(value) -> str:
     return str(amount.quantize(Decimal("0.01")))
 
 
-def window_stats(tenant, start: date, end: date) -> dict:
+def _empty_stats() -> dict:
+    return {"revenue": "0.00", "pairs": 0, "top_models": [], "top_sizes": []}
+
+
+def sales_span(tenant):
+    """(first, last) datetime of the tenant's sales and returns, or None when it has none (2 cheap index reads)."""
+    from apps.sales.models import Return, Sale
+
+    firsts, lasts = [], []
+    for model in (Sale, Return):
+        bounds = model.objects.filter(tenant=tenant).aggregate(first=Min("created_at"), last=Max("created_at"))
+        if bounds["first"] is not None:
+            firsts.append(bounds["first"])
+            lasts.append(bounds["last"])
+    return (min(firsts), max(lasts)) if firsts else None
+
+
+_UNKNOWN = object()
+
+
+def window_stats(tenant, start: date, end: date, *, span=_UNKNOWN) -> dict:
+    """
+    Net revenue, pairs and top models / sizes sold in the inclusive day window.
+
+    `span` is `sales_span(tenant)` (None for a store with no sales): a window that ends before the
+    first sale or starts after the last one is answered without a query (a store with 18 months of
+    history has most of the 16 years of Aïd windows empty). Left out, every window is queried.
+    """
     from apps.sales.models import Return, ReturnItem, Sale, SaleItem
 
     if end < start:
-        return {"revenue": "0.00", "pairs": 0, "top_models": [], "top_sizes": []}
+        return _empty_stats()
+    if span is not _UNKNOWN:
+        if span is None:
+            return _empty_stats()
+        first, last = span
+        if start_of_day(end + timedelta(days=1)) <= first or start_of_day(start) > last:
+            return _empty_stats()
 
     net_expr = ExpressionWrapper(
         F("total_amount") - Coalesce(F("timbre_fiscal"), Decimal("0.00")),
         output_field=DecimalField(max_digits=14, decimal_places=2),
     )
-    sales = Sale.objects.filter(
-        tenant=tenant,
-        status__in=SOLD_STATUSES,
-        created_at__date__gte=start,
-        created_at__date__lte=end,
-    )
-    revenue = sales.aggregate(total=Sum(net_expr))["total"] or Decimal("0.00")
+    revenue = Sale.objects.filter(
+        tenant=tenant, status__in=SOLD_STATUSES, **day_range("created_at", start, end),
+    ).aggregate(total=Sum(net_expr))["total"] or Decimal("0.00")
     refunds = Return.objects.filter(
-        tenant=tenant,
-        original_sale__status__in=SOLD_STATUSES,
-        created_at__date__gte=start,
-        created_at__date__lte=end,
+        tenant=tenant, original_sale__status__in=SOLD_STATUSES, **day_range("created_at", start, end),
     ).aggregate(total=Sum("refund_amount"))["total"] or Decimal("0.00")
 
-    sold_models = _grouped_qty(
-        SaleItem.objects.filter(sale__in=sales),
-        "variant__product_id", "variant__product__name", "variant__product__brand",
-    )
-    returned_models = _grouped_qty(
-        ReturnItem.objects.filter(
-            return_obj__tenant=tenant,
-            return_obj__original_sale__status__in=SOLD_STATUSES,
-            return_obj__created_at__date__gte=start,
-            return_obj__created_at__date__lte=end,
-        ),
-        "variant__product_id", "variant__product__name", "variant__product__brand",
-    )
-    models = _net_ranked(sold_models, returned_models, "name")
+    # One grouped query per side (model x size), joined to the sale directly rather than through
+    # a `sale IN (SELECT ...)` subquery; models and sizes are both summed from those rows.
+    sold = _grouped_qty(SaleItem.objects.filter(
+        sale__tenant=tenant, sale__status__in=SOLD_STATUSES, **day_range("created_at", start, end, prefix="sale__"),
+    ))
+    returned = _grouped_qty(ReturnItem.objects.filter(
+        return_obj__tenant=tenant, return_obj__original_sale__status__in=SOLD_STATUSES,
+        **day_range("created_at", start, end, prefix="return_obj__"),
+    ))
 
-    sold_sizes = _grouped_qty(SaleItem.objects.filter(sale__in=sales), "variant__size_eu")
-    returned_sizes = _grouped_qty(
-        ReturnItem.objects.filter(
-            return_obj__tenant=tenant,
-            return_obj__original_sale__status__in=SOLD_STATUSES,
-            return_obj__created_at__date__gte=start,
-            return_obj__created_at__date__lte=end,
-        ),
-        "variant__size_eu",
-    )
-    sizes = _net_ranked(sold_sizes, returned_sizes, "size_eu")
+    models = _net_ranked(_by_model(sold), _by_model(returned), "name")
+    sizes = _net_ranked(_by_size(sold), _by_size(returned), "size_eu")
     pairs = sum(row["pairs"] for row in models)
     return {
         "revenue": _money(revenue - refunds),
@@ -127,16 +140,32 @@ def window_stats(tenant, start: date, end: date) -> dict:
     }
 
 
-def _grouped_qty(qs, *fields):
+def _grouped_qty(qs):
+    """{(product_id, label, size_eu): quantity} in one grouped query."""
     rows = {}
-    annotations = qs.values(*fields).annotate(qty=Sum("quantity"))
-    for row in annotations:
-        key = row[fields[0]]
-        name = row.get(fields[1]) if len(fields) > 1 else key
-        brand = row.get(fields[2]) if len(fields) > 2 else ""
+    for row in qs.values(
+        "variant__product_id", "variant__product__name", "variant__product__brand", "variant__size_eu",
+    ).annotate(qty=Sum("quantity")):
+        brand, name = row["variant__product__brand"], row["variant__product__name"]
         label = f"{brand} {name}".strip() if brand else name
-        rows[key] = {"label": label, "qty": row["qty"] or 0}
+        rows[(row["variant__product_id"], label, row["variant__size_eu"])] = row["qty"] or 0
     return rows
+
+
+def _by_model(grouped):
+    out = {}
+    for (product_id, label, _size), qty in grouped.items():
+        entry = out.setdefault(product_id, {"label": label, "qty": 0})
+        entry["qty"] += qty
+    return out
+
+
+def _by_size(grouped):
+    out = {}
+    for (_product_id, _label, size), qty in grouped.items():
+        entry = out.setdefault(size, {"label": size, "qty": 0})
+        entry["qty"] += qty
+    return out
 
 
 def _net_ranked(sold, returned, field_name):
@@ -161,10 +190,11 @@ def seasonal_comparison(tenant, *, kind: str, days_before: int, today: date) -> 
     current = next((event for event in events if event.date >= today), None)
     if current is None and events:
         current = events[-1]
+    span = sales_span(tenant)
     occurrences = []
     for event in events:
         start, end = window_for(event.date, days_before)
-        stats = window_stats(tenant, start, end)
+        stats = window_stats(tenant, start, end, span=span)
         occurrences.append({
             "id": str(event.pk),
             "date": event.date.isoformat(),
@@ -203,7 +233,7 @@ def next_aid_preview(tenant, *, today: date, days_before: int = DEFAULT_DAYS_BEF
         stats = {"pairs": 0, "top_sizes": []}
     else:
         start, end = window_for(previous.date, days_before)
-        stats = window_stats(tenant, start, end)
+        stats = window_stats(tenant, start, end, span=sales_span(tenant))
     return {
         "event": upcoming.kind,
         "label": upcoming.label,

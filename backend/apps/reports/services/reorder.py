@@ -11,6 +11,7 @@ from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
 from django.db import transaction
 from django.utils.translation import gettext as _
 
+from apps.core.utils.dates import day_range
 from apps.reports.services.size_curve import OPEN_PO_STATUSES, SOLD_STATUSES
 
 VELOCITY_WEEKS = 8
@@ -104,8 +105,7 @@ def build_reorder_suggestions(tenant, *, today, supplier_id=None, brand="", cate
             variant_id__in=variant_ids,
             sale__tenant=tenant,
             sale__status__in=SOLD_STATUSES,
-            sale__created_at__date__gte=start,
-            sale__created_at__date__lte=today,
+            **day_range("created_at", start, today, prefix="sale__"),
         ).values("variant_id").annotate(qty=Sum("quantity"))
     }
     returned = {
@@ -114,8 +114,7 @@ def build_reorder_suggestions(tenant, *, today, supplier_id=None, brand="", cate
             variant_id__in=variant_ids,
             return_obj__tenant=tenant,
             return_obj__original_sale__status__in=SOLD_STATUSES,
-            return_obj__created_at__date__gte=start,
-            return_obj__created_at__date__lte=today,
+            **day_range("created_at", start, today, prefix="return_obj__"),
         ).values("variant_id").annotate(qty=Sum("quantity"))
     }
     on_order = {

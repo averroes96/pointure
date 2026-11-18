@@ -2,6 +2,8 @@ from decimal import Decimal
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.core.utils.dates import on_day
+
 
 def compute_session_stats(session):
     """
@@ -623,7 +625,7 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
 
     # 1. Sales of the day
     sales_qs = (
-        Sale.objects.filter(tenant=tenant, created_at__date=target_date)
+        Sale.objects.filter(tenant=tenant, **on_day("created_at", target_date))
         .select_related("cashier", "client", "branch")
         .prefetch_related("items__variant__product", "payments")
         .order_by("created_at")
@@ -786,7 +788,7 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
 
     # 2. Returns of the day
     returns_qs = (
-        Return.objects.filter(tenant=tenant, created_at__date=target_date)
+        Return.objects.filter(tenant=tenant, **on_day("created_at", target_date))
         .select_related("original_sale", "processed_by")
         .order_by("created_at")
     )
@@ -818,7 +820,7 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
 
     # 3. Petty Cash Movements of the day
     cash_mov_qs = (
-        CashMovement.objects.filter(session__tenant=tenant, created_at__date=target_date)
+        CashMovement.objects.filter(session__tenant=tenant, **on_day("created_at", target_date))
         .select_related("session", "created_by")
         .order_by("created_at")
     )
@@ -847,7 +849,7 @@ def render_daily_detailed_report(tenant, target_date, branch=None, user=None, la
 
     # 4. Stock Movements of the day (excluding standard sale deductions which are already listed in Section 2)
     stock_mov_qs = (
-        StockMovement.objects.filter(tenant=tenant, timestamp__date=target_date)
+        StockMovement.objects.filter(tenant=tenant, **on_day("timestamp", target_date))
         .exclude(reason=MovementReasonChoices.SALE)
         .select_related("variant__product", "branch")
         .order_by("timestamp")
