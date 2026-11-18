@@ -102,6 +102,10 @@ class Sale(TenantScopedModel):
         verbose_name = _("Sale")
         verbose_name_plural = _("Sales")
         ordering = ["-created_at"]
+        indexes = [
+            # Every report filters one tenant by a range of days (see apps.core.utils.dates.day_range).
+            models.Index(fields=["tenant", "created_at"], name="sale_tenant_created_idx"),
+        ]
 
     def __str__(self):
         return f"Sale #{self.receipt_number or self.pk}"
@@ -207,6 +211,9 @@ class Return(TenantScopedModel):
     class Meta:
         verbose_name = _("Return")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant", "created_at"], name="return_tenant_created_idx"),
+        ]
 
     def __str__(self):
         return f"Return from {self.original_sale}"

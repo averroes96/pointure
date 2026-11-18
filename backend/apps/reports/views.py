@@ -10,6 +10,19 @@ from rest_framework.permissions import IsAuthenticated
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
+from apps.core.utils.dates import day_range, on_day
+
+
+def _query_day(value, name):
+    """An ISO date from a query parameter, or None when absent; a malformed one is a 400, not a 500."""
+    if not value:
+        return None
+    import datetime
+    from rest_framework.exceptions import ValidationError
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        raise ValidationError({name: "Format attendu: YYYY-MM-DD"})
 
 
 class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
@@ -57,7 +70,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             output_field=DecimalField(max_digits=14, decimal_places=2),
         )
         today_sales = Sale.objects.filter(
-            tenant=tenant, created_at__date=today, status="completed"
+            tenant=tenant, status="completed", **on_day("created_at", today)
         ).aggregate(total=Sum(net_sale_expr))["total"] or Decimal("0")
 
         # Total outstanding debt
@@ -140,11 +153,10 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             trunc_map = {"day": TruncDay, "week": TruncWeek, "month": TruncMonth}
             trunc_fn = trunc_map.get(period_param, TruncDay)
 
-        qs = Sale.objects.filter(tenant=tenant, status="completed")
-        if from_date:
-            qs = qs.filter(created_at__date__gte=from_date)
-        if to_date:
-            qs = qs.filter(created_at__date__lte=to_date)
+        qs = Sale.objects.filter(
+            tenant=tenant, status="completed",
+            **day_range("created_at", _query_day(from_date, "from"), _query_day(to_date, "to")),
+        )
         if branch_id:
             qs = qs.filter(branch_id=branch_id)
 
@@ -205,12 +217,11 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
                 from_dt = datetime.date.fromisoformat(from_date)
                 to_dt = datetime.date.fromisoformat(to_date)
                 delta = (to_dt - from_dt).days + 1
-                prev_from = str(from_dt - datetime.timedelta(days=delta))
-                prev_to = str(from_dt - datetime.timedelta(days=1))
+                prev_from = from_dt - datetime.timedelta(days=delta)
+                prev_to = from_dt - datetime.timedelta(days=1)
                 prev_qs = Sale.objects.filter(
                     tenant=tenant, status="completed",
-                    created_at__date__gte=prev_from,
-                    created_at__date__lte=prev_to,
+                    **day_range("created_at", prev_from, prev_to),
                 )
                 if branch_id:
                     prev_qs = prev_qs.filter(branch_id=branch_id)
@@ -236,13 +247,15 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         from apps.sales.models import SaleItem
         from django.db.models import F, Sum, ExpressionWrapper, DecimalField
 
-        qs = SaleItem.objects.filter(sale__tenant=request.tenant, sale__status="completed")
-        from_date = request.query_params.get("from")
-        to_date = request.query_params.get("to")
-        if from_date:
-            qs = qs.filter(sale__created_at__date__gte=from_date)
-        if to_date:
-            qs = qs.filter(sale__created_at__date__lte=to_date)
+        qs = SaleItem.objects.filter(
+            sale__tenant=request.tenant, sale__status="completed",
+            **day_range(
+                "created_at",
+                _query_day(request.query_params.get("from"), "from"),
+                _query_day(request.query_params.get("to"), "to"),
+                prefix="sale__",
+            ),
+        )
 
         line_revenue_expr = ExpressionWrapper(
             F("quantity") * F("unit_price") - F("discount_amount"),
@@ -318,10 +331,10 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
         tenant = request.tenant
         sales_qs = Sale.objects.filter(
-            tenant=tenant, created_at__date=target_date, status="completed"
+            tenant=tenant, status="completed", **on_day("created_at", target_date)
         )
         totals = sales_qs.aggregate(
-            total_revenue=Sum("total_amount"), 
+            total_revenue=Sum("total_amount"),
             items_sold=Sum("items__quantity"),
             total_discounts=Sum("discount_amount"),
             total_stamps=Sum("timbre_fiscal")
@@ -329,7 +342,7 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
         sale_count = sales_qs.count()
 
         from apps.sales.models import Return
-        returns_qs = Return.objects.filter(tenant=tenant, created_at__date=target_date)
+        returns_qs = Return.objects.filter(tenant=tenant, **on_day("created_at", target_date))
         total_refunds = returns_qs.aggregate(t=Sum("refund_amount"))["t"] or Decimal("0")
 
         total_stamps = totals["total_stamps"] or Decimal("0")
@@ -423,11 +436,10 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
             to_date = str(today_date)
             period = "day"  # group by day for numeric presets
 
-        sale_qs = Sale.objects.filter(tenant=request.tenant, status="completed")
-        if from_date:
-            sale_qs = sale_qs.filter(created_at__date__gte=from_date)
-        if to_date:
-            sale_qs = sale_qs.filter(created_at__date__lte=to_date)
+        sale_qs = Sale.objects.filter(
+            tenant=request.tenant, status="completed",
+            **day_range("created_at", _query_day(from_date, "from"), _query_day(to_date, "to")),
+        )
         if branch_id:
             sale_qs = sale_qs.filter(branch_id=branch_id)
 

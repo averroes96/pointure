@@ -49,11 +49,32 @@ class SaleItemSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "subtotal", "unit_cost", "unit_cost_estimated"]
 
 
+class PaymentsTotalField(serializers.DecimalField):
+    """
+    `amount_paid` / `balance_due` of a sale.
+
+    The model properties run one SUM query each, so a page of 25 sales cost 50 extra queries. When the
+    view says its payments were prefetched in this very request (`payments_prefetched` in the context,
+    set for the list only) they are summed from that prefetch. Everywhere else, and in particular after
+    a payment was added to the instance, the model property reads the database as before.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(max_digits=12, decimal_places=2, read_only=True, **kwargs)
+
+    def get_attribute(self, instance):
+        prefetched = getattr(instance, "_prefetched_objects_cache", {}).get("payments")
+        if prefetched is None or not self.context.get("payments_prefetched"):
+            return super().get_attribute(instance)
+        paid = sum((payment.amount for payment in prefetched), Decimal("0.00"))
+        return paid if self.source == "amount_paid" else instance.total_amount - paid
+
+
 class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
-    balance_due = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    amount_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    balance_due = PaymentsTotalField()
+    amount_paid = PaymentsTotalField()
     cashier_name = serializers.CharField(source="cashier.get_full_name", read_only=True)
     client_name = serializers.CharField(source="client.name", default=None, read_only=True)
     client_price_tier = serializers.CharField(source="client.price_tier", default="detail", read_only=True)

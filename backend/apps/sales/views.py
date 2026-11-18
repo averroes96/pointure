@@ -15,6 +15,7 @@ from rest_framework.response import Response
 
 from apps.core.mixins import TenantScopedViewSetMixin
 from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, OWNER_ONLY, RolePermission
+from apps.core.utils.dates import day_range, on_day
 from apps.inventory.models import MovementReasonChoices, StockMovement
 from .models import (
     CashMovement, CashMovementType, CashReconciliation, CashSession,
@@ -72,14 +73,14 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         date_from = params.get("from") or params.get("date_from")
         if date_from:
             try:
-                qs = qs.filter(created_at__date__gte=datetime.date.fromisoformat(date_from))
+                qs = qs.filter(**day_range("created_at", start=datetime.date.fromisoformat(date_from)))
             except ValueError:
                 pass
 
         date_to = params.get("to") or params.get("date_to")
         if date_to:
             try:
-                qs = qs.filter(created_at__date__lte=datetime.date.fromisoformat(date_to))
+                qs = qs.filter(**day_range("created_at", end=datetime.date.fromisoformat(date_to)))
             except ValueError:
                 pass
 
@@ -117,6 +118,12 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if self.action == "create":
             return CreateSaleSerializer
         return SaleSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # The list's queryset prefetches `payments` for this request: sum them instead of one query per sale.
+        context["payments_prefetched"] = self.action == "list"
+        return context
 
     def create(self, request, *args, **kwargs):
         serializer = CreateSaleSerializer(data=request.data, context={"request": request})
@@ -514,8 +521,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         sales_qs = Sale.objects.filter(
             tenant=request.tenant,
-            created_at__date=target_date,
             status="completed",
+            **on_day("created_at", target_date),
         )
         if branch_id:
             sales_qs = sales_qs.filter(branch_id=branch_id)
@@ -527,7 +534,7 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         method_breakdown = {item["method"]: item["total"] for item in by_method}
 
         from .models import Return
-        returns_qs = Return.objects.filter(tenant=request.tenant, created_at__date=target_date)
+        returns_qs = Return.objects.filter(tenant=request.tenant, **on_day("created_at", target_date))
         if branch_id:
             returns_qs = returns_qs.filter(original_sale__branch_id=branch_id)
 
@@ -539,8 +546,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         # Versement metrics
         versement_payments_qs = Payment.objects.filter(
             sale__tenant=request.tenant,
-            sale__created_at__date=target_date,
             sale__status="partially_paid",
+            **on_day("created_at", target_date, prefix="sale__"),
         )
         if branch_id:
             versement_payments_qs = versement_payments_qs.filter(sale__branch_id=branch_id)
@@ -557,8 +564,8 @@ class SaleViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         # All active sales today (completed + partially_paid + layaway)
         today_active_qs = Sale.objects.filter(
             tenant=request.tenant,
-            created_at__date=target_date,
             status__in=["completed", "partially_paid", "layaway"],
+            **on_day("created_at", target_date),
         )
         if branch_id:
             today_active_qs = today_active_qs.filter(branch_id=branch_id)
@@ -677,7 +684,7 @@ class CashReconciliationViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSe
 
         # Snapshot system totals for completed sales on this date
         sales_qs = Sale.objects.filter(
-            tenant=request.tenant, created_at__date=target_date, status="completed"
+            tenant=request.tenant, status="completed", **on_day("created_at", target_date)
         )
         if branch_id:
             sales_qs = sales_qs.filter(branch_id=branch_id)
@@ -687,7 +694,7 @@ class CashReconciliationViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSe
         )
         method_totals = {row["method"]: row["total"] or Decimal("0") for row in by_method}
 
-        returns_qs = Return.objects.filter(tenant=request.tenant, created_at__date=target_date)
+        returns_qs = Return.objects.filter(tenant=request.tenant, **on_day("created_at", target_date))
         if branch_id:
             returns_qs = returns_qs.filter(original_sale__branch_id=branch_id)
         total_refunds = returns_qs.aggregate(total=Sum("refund_amount"))["total"] or Decimal("0")

@@ -11,6 +11,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import F, Sum
 from django.db.models.functions import Greatest
 
+from apps.core.utils.dates import day_range
+
 TWOPLACES = Decimal("0.01")
 CORE_SHARE = Decimal("0.70")
 CORE_WEEKS = 52
@@ -65,8 +67,7 @@ def _net_by_key(tenant, start, today, key_fields, *, product_id=None, brand="", 
     sales = SaleItem.objects.filter(
         sale__tenant=tenant,
         sale__status__in=SOLD_STATUSES,
-        sale__created_at__date__gte=start,
-        sale__created_at__date__lte=today,
+        **day_range("created_at", start, today, prefix="sale__"),
     )
     sales = _apply_product_filters(
         sales, "variant__product",
@@ -80,8 +81,7 @@ def _net_by_key(tenant, start, today, key_fields, *, product_id=None, brand="", 
     returns = ReturnItem.objects.filter(
         return_obj__tenant=tenant,
         return_obj__original_sale__status__in=SOLD_STATUSES,
-        return_obj__created_at__date__gte=start,
-        return_obj__created_at__date__lte=today,
+        **day_range("created_at", start, today, prefix="return_obj__"),
     )
     returns = _apply_product_filters(
         returns, "variant__product",
