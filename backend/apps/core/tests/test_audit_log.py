@@ -234,9 +234,10 @@ def test_audit_payload_serializes_nested_time_decimal_and_odd_types():
     assert frozen["blob"] == "ok"
 
 
-def test_audit_and_outbox_failures_do_not_abort_the_save(setup, monkeypatch):
+def test_audit_and_outbox_failures_do_not_abort_the_save(setup, monkeypatch, settings):
     from apps.core.models import SyncOutbox
 
+    settings.SYNC_OUTBOX_ENABLED = True       # off by default (no cloud server): turn it on to test it
     tenant, _owner, client_obj = setup
 
     def boom(*args, **kwargs):

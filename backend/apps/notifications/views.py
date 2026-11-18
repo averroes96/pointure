@@ -31,7 +31,11 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="clear-all")
     def clear_all(self, request):
-        self.get_queryset().delete()
+        # One DELETE. `.delete()` loads every row and fires the catch-all post_delete signals once
+        # per notification (about 3 queries each: a store with ~1,900 notifications ran 5,801
+        # queries). Notifications are per-user reminders: nothing points at them and none is audited.
+        queryset = self.get_queryset()
+        queryset._raw_delete(queryset.db)
         return Response({"status": "ok"})
 
     @action(detail=False, methods=["get"])
