@@ -13,10 +13,11 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import api, { formatDZD, formatDate } from "@/lib/api";
+import { formatDZD, formatDate } from "@/lib/api";
 import type { DashboardKPIs, SalesByPeriodRow, BestSellerRow, Plan } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import AidCountdownCard from "@/features/dashboard/AidCountdownCard";
+import { HEAVY_PRIORITY, heavyGet } from "@/lib/heavyRequests";
 import { usePlan } from "@/hooks/usePlan";
 import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useSSE } from "@/hooks/useSSE";
@@ -265,33 +266,30 @@ export default function DashboardPage() {
 
   const { data: kpis, isLoading: kpisLoading } = useQuery<DashboardKPIs>({
     queryKey: ["dashboard", "kpis"],
-    queryFn: () => api.get("/reports/dashboard/").then((r) => r.data),
+    queryFn: ({ signal }) => heavyGet<DashboardKPIs>("/reports/dashboard/", { priority: HEAVY_PRIORITY.kpis, signal }),
     // Enterprise gets live revenue via SSE; others still poll every 2 min
     refetchInterval: isEnterprise ? false : 120_000,
   });
 
   const { data: salesData } = useQuery({
     queryKey: ["reports", "sales-by-period", "day"],
-    queryFn: () =>
-      api
-        .get(
-          "/reports/sales-by-period/?period=day&from=" +
-            new Date(Date.now() - 30 * 86_400_000).toISOString().split("T")[0],
-        )
-        .then((r) => {
-          const rawRows: SalesByPeriodRow[] = Array.isArray(r.data)
-            ? r.data
-            : r.data?.rows ?? [];
-          return rawRows.map((row) => ({
-            ...row,
-            revenue: parseFloat(String(row.revenue)) || 0,
-          }));
-        }),
+    queryFn: ({ signal }) =>
+      heavyGet<SalesByPeriodRow[] | { rows?: SalesByPeriodRow[] }>(
+        "/reports/sales-by-period/?period=day&from=" +
+          new Date(Date.now() - 30 * 86_400_000).toISOString().split("T")[0],
+        { priority: HEAVY_PRIORITY.chart, signal },
+      ).then((data) => {
+        const rawRows: SalesByPeriodRow[] = Array.isArray(data) ? data : data?.rows ?? [];
+        return rawRows.map((row) => ({
+          ...row,
+          revenue: parseFloat(String(row.revenue)) || 0,
+        }));
+      }),
   });
 
   const { data: bestSellers } = useQuery<BestSellerRow[]>({
     queryKey: ["reports", "best-sellers"],
-    queryFn: () => api.get("/reports/best-sellers/").then((r) => r.data),
+    queryFn: ({ signal }) => heavyGet<BestSellerRow[]>("/reports/best-sellers/", { priority: HEAVY_PRIORITY.ranking, signal }),
   });
 
   // Live revenue = REST snapshot + SSE delta

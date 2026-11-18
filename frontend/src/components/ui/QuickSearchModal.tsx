@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import {
   Search,
   Package,
@@ -24,8 +25,12 @@ import {
 import api, { formatDZD } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBranch } from "@/features/auth/BranchContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { canAccessPath } from "@/lib/roleAccess";
 import { cn } from "@/lib/utils";
+
+/** Pause in typing before the server is searched. */
+const SEARCH_DEBOUNCE_MS = 250;
 
 interface QuickSearchResult {
   products: Array<{
@@ -268,22 +273,34 @@ export default function QuickSearchModal() {
 
   // Query server API for Products, Clients, Suppliers, Invoices
   const cleanQuery = query.trim();
+  // Ask the server only once typing pauses: a request per keystroke piled up on the stores'
+  // PCs (six stacked searches took 5-8 s each, a single one 1.5 s). Local actions below
+  // still filter on every keystroke.
+  const searchTerm = useDebouncedValue(cleanQuery, SEARCH_DEBOUNCE_MS);
+  const wantsServer = cleanQuery.length >= 2;
   const currentBranchId = currentBranch?.id;
   const { data: serverData, isFetching } = useQuery<QuickSearchResult>({
-    queryKey: ["quick-search", cleanQuery, currentBranchId],
-    queryFn: () => {
-      const params = new URLSearchParams({ q: cleanQuery });
+    queryKey: ["quick-search", searchTerm, currentBranchId],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ q: searchTerm });
       if (currentBranchId != null) {
         params.set("branch_id", String(currentBranchId));
       }
       return api
-        .get<QuickSearchResult>(`/core/quick-search/?${params.toString()}`)
+        .get<QuickSearchResult>(`/core/quick-search/?${params.toString()}`, { signal })
         .then((r) => r.data)
-        .catch(() => ({ products: [], clients: [], suppliers: [], invoices: [] }));
+        .catch((error) => {
+          if (axios.isCancel(error)) throw error;   // a superseded search: let it be dropped
+          return { products: [], clients: [], suppliers: [], invoices: [] };
+        });
     },
-    enabled: isOpen && cleanQuery.length >= 2,
+    enabled: isOpen && searchTerm.length >= 2,
     staleTime: 10 * 1000,
+    // Keep the last results on screen while the next search runs (no flicker while typing).
+    placeholderData: (previous) => (searchTerm.length >= 2 ? previous : undefined),
   });
+  const results = wantsServer ? serverData : undefined;
+  const searching = wantsServer && (cleanQuery !== searchTerm || isFetching);
 
   // Filter actions matching query
   const filteredActions = useMemo<ActionItem[]>(() => {
@@ -300,7 +317,7 @@ export default function QuickSearchModal() {
   // Flatten server results
   const productItems = useMemo<ProductItem[]>(
     () =>
-      (serverData?.products ?? []).map((p) => ({
+      (results?.products ?? []).map((p) => ({
         type: "product",
         id: p.id,
         title: p.name,
@@ -310,12 +327,12 @@ export default function QuickSearchModal() {
         location: p.location,
         stock_qty: p.stock_qty,
       })),
-    [serverData?.products]
+    [results?.products]
   );
 
   const clientItems = useMemo<ClientItem[]>(
     () =>
-      (serverData?.clients ?? []).map((c) => ({
+      (results?.clients ?? []).map((c) => ({
         type: "client",
         id: c.id,
         title: c.name,
@@ -323,24 +340,24 @@ export default function QuickSearchModal() {
         price_tier: c.price_tier,
         outstanding_balance: c.outstanding_balance,
       })),
-    [serverData?.clients]
+    [results?.clients]
   );
 
   const supplierItems = useMemo<SupplierItem[]>(
     () =>
-      (serverData?.suppliers ?? []).map((s) => ({
+      (results?.suppliers ?? []).map((s) => ({
         type: "supplier",
         id: s.id,
         title: s.name,
         phone: s.phone,
         outstanding_balance: s.outstanding_balance,
       })),
-    [serverData?.suppliers]
+    [results?.suppliers]
   );
 
   const invoiceItems = useMemo<InvoiceItem[]>(
     () =>
-      (serverData?.invoices ?? []).map((inv) => ({
+      (results?.invoices ?? []).map((inv) => ({
         type: "invoice",
         id: inv.id,
         title: inv.number,
@@ -349,7 +366,7 @@ export default function QuickSearchModal() {
         status: inv.status,
         date: inv.date,
       })),
-    [serverData?.invoices]
+    [results?.invoices]
   );
 
   // Combined flat list for keyboard navigation
@@ -440,7 +457,7 @@ export default function QuickSearchModal() {
             placeholder={t("quick_search.input_placeholder", "Rechercher articles, clients, fournisseurs, factures ou actions…")}
             className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
           />
-          {isFetching ? (
+          {searching ? (
             <Loader2 size={16} className="animate-spin text-primary-500 shrink-0 ms-2" />
           ) : query ? (
             <button
