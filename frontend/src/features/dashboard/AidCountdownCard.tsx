@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import api from "@/lib/api";
+import { HEAVY_PRIORITY, heavyGet } from "@/lib/heavyRequests";
 
 interface AidPreview {
   event?: string;
@@ -16,7 +16,7 @@ export default function AidCountdownCard() {
   const { t } = useTranslation();
   const { data } = useQuery<AidPreview>({
     queryKey: ["reports", "seasonal-preview"],
-    queryFn: () => api.get("/reports/seasonal-preview/").then((response) => response.data),
+    queryFn: ({ signal }) => heavyGet<AidPreview>("/reports/seasonal-preview/", { priority: HEAVY_PRIORITY.hint, signal }),
   });
 
   if (!data?.event || data.days_until == null) return null;
