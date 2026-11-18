@@ -592,6 +592,9 @@ class LegacyDBFImporter:
                 if len(mvts) > 1:
                     for extra in mvts[1:]:
                         extra.delete()
+                    # Keep the cache in step with the database: the same variant can come up again
+                    # (the old database listing an article twice) and must not delete these again.
+                    existing_initial_movements[variant.id] = [mvt]
                     variant.refresh_stock()
             else:
                 mvt = StockMovement.objects.create(
