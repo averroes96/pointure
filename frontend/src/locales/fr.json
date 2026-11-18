@@ -152,6 +152,7 @@
     "recent_sales": "Ventes récentes",
     "revenue_chart": "Évolution du chiffre d'affaires",
     "best_sellers": "Meilleures ventes",
+    "best_sellers_period": "{{days}} derniers jours",
     "real_time": "Temps réel",
     "connected": "Connecté",
     "connecting": "Connexion…",

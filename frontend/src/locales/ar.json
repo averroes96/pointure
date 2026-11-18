@@ -152,6 +152,7 @@
     "recent_sales": "آخر المبيعات",
     "revenue_chart": "تطور رقم الأعمال",
     "best_sellers": "الأكثر مبيعاً",
+    "best_sellers_period": "آخر {{days}} يومًا",
     "quick_actions": "إجراءات سريعة",
     "quick_actions_hint": "وصول مباشر واختصارات لوحة المفاتيح",
     "action_new_sale": "بيع جديد",

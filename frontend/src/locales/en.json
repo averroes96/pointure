@@ -152,6 +152,7 @@
     "recent_sales": "Recent Sales",
     "revenue_chart": "Revenue Trend",
     "best_sellers": "Best Sellers",
+    "best_sellers_period": "Last {{days}} days",
     "quick_actions": "Quick Actions",
     "quick_actions_hint": "Direct access & keyboard shortcuts",
     "action_new_sale": "New Sale",

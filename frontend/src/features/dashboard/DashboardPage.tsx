@@ -24,6 +24,7 @@ import { useSSE } from "@/hooks/useSSE";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 import GetStartedWidget from "./GetStartedWidget";
+import BestSellersCard, { BEST_SELLERS_DAYS, bestSellersUrl } from "./BestSellersCard";
 
 // ── Quick action card ─────────────────────────────────────────────────────────
 
@@ -288,8 +289,8 @@ export default function DashboardPage() {
   });
 
   const { data: bestSellers } = useQuery<BestSellerRow[]>({
-    queryKey: ["reports", "best-sellers"],
-    queryFn: ({ signal }) => heavyGet<BestSellerRow[]>("/reports/best-sellers/", { priority: HEAVY_PRIORITY.ranking, signal }),
+    queryKey: ["reports", "best-sellers", BEST_SELLERS_DAYS],
+    queryFn: ({ signal }) => heavyGet<BestSellerRow[]>(bestSellersUrl(), { priority: HEAVY_PRIORITY.ranking, signal }),
   });
 
   // Live revenue = REST snapshot + SSE delta
@@ -585,64 +586,12 @@ export default function DashboardPage() {
             clearAlerts={clearAlerts}
           />
         ) : (
-          <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.best_sellers")}</h2>
-            </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {bestSellers?.slice(0, 5).map((item, i) => (
-                <div key={item.product_id} className="py-3 flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 flex items-center justify-center text-xs font-bold shrink-0 border border-primary-100/50 dark:border-primary-800/60">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item.product_name}</div>
-                    <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
-                  </div>
-                  <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
-                    {item.units_sold} <span className="text-2xs font-normal text-slate-400">{t("common.pairs")}</span>
-                  </div>
-                </div>
-              ))}
-              {!bestSellers?.length && (
-                <div className="py-8 text-center text-sm text-slate-400 font-medium">
-                  {t("common.no_data")}
-                </div>
-              )}
-            </div>
-          </div>
+          <BestSellersCard rows={bestSellers} />
         )}
       </div>
 
       {/* Best sellers — shown below for enterprise (live feed takes the right column) */}
-      {isEnterprise && (
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-6 space-y-4">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t("dashboard.best_sellers")}</h2>
-          </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {bestSellers?.slice(0, 5).map((item, i) => (
-              <div key={item.product_id} className="py-3 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 flex items-center justify-center text-xs font-bold shrink-0 border border-primary-100/50 dark:border-primary-800/60">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item.product_name}</div>
-                  <div className="text-xs text-slate-400 font-medium">{item.brand}</div>
-                </div>
-                <div className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400 tabular-nums">
-                  {item.units_sold} <span className="text-2xs font-normal text-slate-400">{t("common.pairs")}</span>
-                </div>
-              </div>
-            ))}
-            {!bestSellers?.length && (
-              <div className="py-8 text-center text-sm text-slate-400 font-medium">
-                {t("common.no_data")}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {isEnterprise && <BestSellersCard rows={bestSellers} />}
     </div>
   );
 }

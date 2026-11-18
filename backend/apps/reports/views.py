@@ -12,6 +12,9 @@ from apps.core.permissions import ALL_ROLES, MANAGER_OR_OWNER, RolePermission
 from apps.core.plan_permissions import PlanRequired
 from apps.core.utils.dates import day_range, on_day
 
+BEST_SELLERS_DEFAULT_DAYS = 90       # the dashboard card asks for the same period (BEST_SELLERS_DAYS)
+BEST_SELLERS_CACHE_SECONDS = 300
+
 
 def _query_day(value, name):
     """An ISO date from a query parameter, or None when absent; a malformed one is a 400, not a 500."""
@@ -244,35 +247,55 @@ class ReportsViewSet(TenantScopedViewSetMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"], url_path="best-sellers")
     def best_sellers(self, request):
+        """
+        Top 20 products by pairs sold over a window of days.
+
+        Query params: `from` / `to` (ISO dates), or `days` (1-3650, default 90) ending today.
+        Without either it used to rank every sale ever made: one aggregate over the whole sale-item
+        table, about 0.4 s on a fast PC with three years of sales and several seconds on a store's i3,
+        for a dashboard card. The result is cached for BEST_SELLERS_CACHE_SECONDS per tenant and window
+        (the dates are in the key, so the window moves at midnight); a new sale appears within that delay.
+        """
+        import datetime
+        from django.core.cache import cache
+        from rest_framework import serializers as drf_serializers
         from apps.sales.models import SaleItem
         from django.db.models import F, Sum, ExpressionWrapper, DecimalField
 
-        qs = SaleItem.objects.filter(
-            sale__tenant=request.tenant, sale__status="completed",
-            **day_range(
-                "created_at",
-                _query_day(request.query_params.get("from"), "from"),
-                _query_day(request.query_params.get("to"), "to"),
-                prefix="sale__",
-            ),
-        )
+        from_day = _query_day(request.query_params.get("from"), "from")
+        to_day = _query_day(request.query_params.get("to"), "to")
+        if from_day is None and to_day is None:
+            days_field = drf_serializers.IntegerField(min_value=1, max_value=3650)
+            try:
+                days = days_field.run_validation(request.query_params.get("days", BEST_SELLERS_DEFAULT_DAYS))
+            except drf_serializers.ValidationError as exc:
+                raise drf_serializers.ValidationError({"days": exc.detail})
+            to_day = timezone.localdate()
+            from_day = to_day - datetime.timedelta(days=days - 1)
 
-        line_revenue_expr = ExpressionWrapper(
-            F("quantity") * F("unit_price") - F("discount_amount"),
-            output_field=DecimalField(max_digits=14, decimal_places=2),
-        )
-
-        data = (
-            qs.values(
-                product_id=F("variant__product__id"),
-                product_name=F("variant__product__name"),
-                brand=F("variant__product__brand"),
+        cache_key = f"reports:best-sellers:{request.tenant.pk}:{from_day}:{to_day}"
+        data = cache.get(cache_key)
+        if data is None:
+            qs = SaleItem.objects.filter(
+                sale__tenant=request.tenant, sale__status="completed",
+                **day_range("created_at", from_day, to_day, prefix="sale__"),
             )
-            .annotate(units_sold=Sum("quantity"), revenue=Sum(line_revenue_expr))
-            .order_by("-units_sold")[:20]
-        )
+            line_revenue_expr = ExpressionWrapper(
+                F("quantity") * F("unit_price") - F("discount_amount"),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            )
+            data = list(
+                qs.values(
+                    product_id=F("variant__product__id"),
+                    product_name=F("variant__product__name"),
+                    brand=F("variant__product__brand"),
+                )
+                .annotate(units_sold=Sum("quantity"), revenue=Sum(line_revenue_expr))
+                .order_by("-units_sold")[:20]
+            )
+            cache.set(cache_key, data, BEST_SELLERS_CACHE_SECONDS)
 
-        return Response(list(data))
+        return Response(data)
 
     @action(detail=False, methods=["get"], url_path="stock-valuation")
     def stock_valuation(self, request):
