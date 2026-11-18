@@ -36,7 +36,8 @@ describe("QuickSearchModal server search", () => {
 
   it("sends one request for a burst of keystrokes, once typing pauses", async () => {
     get.mockResolvedValue({ data: EMPTY });
-    const user = userEvent.setup();
+    // delay: null types without waiting between keys, so a busy machine cannot stretch the burst past the debounce
+    const user = userEvent.setup({ delay: null });
     const input = await openModal();
 
     await user.type(input, "bab");                    // three keystrokes in a row

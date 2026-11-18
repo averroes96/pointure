@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import api, { formatDZD, formatDate, type PaginatedResponse } from "@/lib/api";
 import { VariantSearchInput } from "@/components/ui/VariantSearchInput";
+import { createSupplierClaim, logDefect, sellDefectAtDiscount, writeOffDefect } from "./defectsApi";
 import type {
   DefectItem,
   DefectMetrics,
@@ -100,12 +101,12 @@ export default function DefectsPage() {
 
   const { data: branches } = useQuery<PaginatedResponse<Branch>>({
     queryKey: ["branches-list"],
-    queryFn: () => api.get("/branches/").then((r) => r.data),
+    queryFn: () => api.get("/core/branches/").then((r) => r.data),
   });
 
   // Mutations
   const writeOffMutation = useMutation({
-    mutationFn: (id: number) => api.post(`/inventory/defects/${id}/write-off/`),
+    mutationFn: (id: number) => writeOffDefect(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["defects"] });
       queryClient.invalidateQueries({ queryKey: ["defect-metrics"] });
@@ -115,7 +116,7 @@ export default function DefectsPage() {
   });
 
   const discountSaleMutation = useMutation({
-    mutationFn: (id: number) => api.post(`/inventory/defects/${id}/discount-sale/`),
+    mutationFn: (id: number) => sellDefectAtDiscount(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["defects"] });
       queryClient.invalidateQueries({ queryKey: ["defect-metrics"] });
@@ -658,13 +659,13 @@ function LogDefectModal({
     setLoading(true);
     setError(null);
     try {
-      await api.post("/inventory/defects/", {
-        variant: selectedVariant.id,
-        branch: branchId ? parseInt(branchId) : undefined,
-        supplier: supplierId ? parseInt(supplierId) : null,
-        defect_reason: defectReason,
+      await logDefect({
+        variantId: selectedVariant.id,
+        branchId,
+        supplierId,
+        defectReason,
         quantity: parseInt(quantity) || 1,
-        cost_price: costPrice ? parseFloat(costPrice) : undefined,
+        costPrice: costPrice ? parseFloat(costPrice) : undefined,
         notes: notes.trim(),
       });
       onSuccess();
@@ -840,11 +841,7 @@ function CreateClaimModal({
     setLoading(true);
     setError(null);
     try {
-      await api.post("/inventory/defects/supplier-claim/", {
-        defect_ids: selectedItemIds,
-        supplier: parseInt(supplierId),
-        notes: notes.trim(),
-      });
+      await createSupplierClaim(selectedItemIds, supplierId, notes.trim());
       onSuccess();
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Erreur lors de la création du bon de retour.");

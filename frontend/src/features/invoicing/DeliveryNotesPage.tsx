@@ -44,7 +44,7 @@ export default function DeliveryNotesPage() {
 
     const today = new Date().toISOString().slice(0, 10);
     try {
-      const res = await api.post("/invoicing/invoices/regrouper/", {
+      const res = await api.post("/invoicing/delivery-notes/regrouper/", {
         client_id: clientId,
         delivery_note_ids: selectedIds,
         date: today,
