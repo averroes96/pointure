@@ -498,11 +498,19 @@ def test_scan_image_endpoint_and_draft_po_creation():
 
 
 @pytest.mark.django_db
-def test_scan_image_graceful_503_when_cv2_unavailable(monkeypatch):
+@pytest.mark.parametrize("native_error", [
+    "libGL.so.1: cannot open shared object file: No such file or directory",
+    # The Windows store's log: NumPy's core needs MSVCP140.dll (Visual C++ runtime)
+    "DLL load failed while importing _multiarray_umath: Le module spécifié est introuvable.",
+])
+def test_scan_image_graceful_503_when_cv2_unavailable(monkeypatch, native_error):
     """
-    Verifies that if OpenCV / libGL is not available on the system, the endpoint returns
-    HTTP 503 with an informative error rather than crashing Django or dying.
+    If a compiled OCR module cannot be loaded, the endpoint answers 503 with a stable error code
+    the frontend translates, a platform hint for support, and never the raw exception text.
     """
+    import sys
+    from apps.core.services.ocr.engine import native_library_hint
+
     tenant = Tenant.objects.create(name="Alger Shoes")
     manager = User.objects.create_user(
         phone="0550334455",
@@ -512,7 +520,7 @@ def test_scan_image_graceful_503_when_cv2_unavailable(monkeypatch):
     )
 
     def mock_missing_cv2(*args, **kwargs):
-        raise ImportError("libGL.so.1: cannot open shared object file: No such file or directory")
+        raise ImportError(native_error)
 
     monkeypatch.setattr(
         "apps.suppliers.views.scan_purchase_order_image",
@@ -528,7 +536,58 @@ def test_scan_image_graceful_503_when_cv2_unavailable(monkeypatch):
         format="multipart",
     )
     assert resp.status_code == 503
-    assert "OpenCV/libGL" in resp.json()["detail"]
+    body = resp.json()
+    message = (
+        "La lecture automatique (OCR) n'est pas disponible sur ce poste. Réinstallez ShoeDZ avec "
+        "la dernière version ; en attendant, saisissez le bon de commande manuellement."
+    )
+    assert body["detail"] == message
+    assert body["error"] == {
+        "code": "ocr_unavailable",
+        "message": message,
+        "hint": native_library_hint(ImportError(native_error), sys.platform),
+        "status_code": 503,
+    }
+    assert native_error not in str(body)                    # the exception text stays in the log
+
+
+def test_native_library_hint_names_the_fix_for_each_platform():
+    from apps.core.services.ocr.engine import native_library_hint
+
+    dll = ImportError("DLL load failed while importing _multiarray_umath: Le module spécifié est introuvable.")
+    assert "Microsoft Visual C++ 2015-2022" in native_library_hint(dll, "win32")
+    assert "MSVCP140.dll" in native_library_hint(dll, "win32")
+    assert "libgl1" in native_library_hint(ImportError("libGL.so.1: cannot open shared object"), "linux")
+    assert "libgl1" not in native_library_hint(ImportError("libGL.so.1"), "win32")       # no Linux advice on Windows
+    assert "rapidocr-onnxruntime" in native_library_hint(ImportError("No module named 'cv2'"), "linux")
+
+
+def test_ocr_loaders_explain_what_failed(monkeypatch):
+    """The loaders now say which module failed and why (the store's log blamed libGL on Windows)."""
+    import builtins
+    from apps.core.services.ocr import engine
+
+    monkeypatch.setattr(engine, "_NUMPY_MODULE", None)
+    monkeypatch.setattr(engine, "_CV2_MODULE", None)
+    real_import = builtins.__import__
+
+    def failing_import(name, *args, **kwargs):
+        if name in ("numpy", "cv2"):
+            raise ImportError("DLL load failed while importing _multiarray_umath")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", failing_import)
+    monkeypatch.setattr(engine.sys, "platform", "win32")
+
+    with pytest.raises(ImportError) as numpy_error:
+        engine.get_numpy()
+    with pytest.raises(ImportError) as cv2_error:
+        engine.get_cv2()
+
+    for error in (numpy_error.value, cv2_error.value):
+        assert "DLL load failed while importing _multiarray_umath" in str(error)
+        assert "Microsoft Visual C++ 2015-2022" in str(error)
+        assert "libgl1" not in str(error)
 
 
 @pytest.mark.django_db

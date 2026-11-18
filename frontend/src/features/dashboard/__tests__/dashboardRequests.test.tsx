@@ -65,5 +65,7 @@ describe("Dashboard report requests", () => {
     ]);
     expect(maxInFlight).toBe(1);
     expect(await screen.findByText(/aid_el_kebir|Aïd|12/i)).toBeInTheDocument();   // the last widget still renders
+    // The ranking asks for the period its card shows, not for every sale ever made.
+    expect(get.mock.calls.map(([url]) => url)).toContain("/reports/best-sellers/?days=90");
   });
 });

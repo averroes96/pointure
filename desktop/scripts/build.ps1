@@ -137,6 +137,39 @@ if ($LASTEXITCODE -ne 0) {
     throw "Headless OpenCV verification failed ($Arch)!"
 }
 
+# Microsoft Visual C++ runtime, shipped next to python.exe (app-local deployment).
+# NumPy (32-bit), onnxruntime and pyclipper import MSVCP140.dll / MSVCP140_1.dll. Neither the
+# embeddable Python nor the wheels ship them, and this build machine has them system-wide, so a
+# missing runtime only shows on a clean PC: one store's OCR failed with "DLL load failed while
+# importing _multiarray_umath". The folder of python.exe is searched first for an extension's
+# dependencies. Outside the architecture-marker block so reused local bundles get them too.
+$VcArch = if ($Arch -eq "ia32") { "x86" } else { "x64" }
+$CrtDir = $null
+$RedistVersion = ""
+$VsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+if (Test-Path $VsWhere) {
+    $VsPath = & $VsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if ($VsPath) {
+        $RedistVersionFile = Join-Path $VsPath "VC\Auxiliary\Build\Microsoft.VCRedistVersion.default.txt"
+        if (Test-Path $RedistVersionFile) {
+            $RedistVersion = (Get-Content $RedistVersionFile -Raw).Trim()
+            $CrtDir = Get-ChildItem -Path (Join-Path $VsPath "VC\Redist\MSVC\$RedistVersion\$VcArch") -Directory -Filter "Microsoft.VC*.CRT" -ErrorAction SilentlyContinue |
+                Sort-Object Name -Descending | Select-Object -First 1
+        }
+    }
+}
+if (-not $CrtDir) {
+    throw "Visual C++ redistributable files ($VcArch) not found. Install Visual Studio 2022 (or its Build Tools) with the C++ workload to build the installer."
+}
+Copy-Item -Path (Join-Path $CrtDir.FullName "*.dll") -Destination $PythonDist -Force
+Write-Host "Bundled Visual C++ runtime $RedistVersion ($VcArch) from $($CrtDir.FullName)" -ForegroundColor Green
+
+# Every compiled module must find its DLLs on a clean PC; this machine's System32 does not count.
+& "$PythonDist\python.exe" "$DesktopDir\scripts\check_dll_imports.py" $PythonDist --arch $Arch
+if ($LASTEXITCODE -ne 0) {
+    throw "DLL dependency check failed ($Arch): a bundled module needs a DLL that a clean Windows PC does not have (see the list above)."
+}
+
 # Copy shodz_desktop package into Python dist
 $DestShodz = "$PythonDist\shodz_desktop"
 if (Test-Path $DestShodz) { Remove-Item $DestShodz -Recurse -Force }

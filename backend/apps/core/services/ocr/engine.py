@@ -7,6 +7,7 @@ RapidOCR text extraction with polygon bounding boxes, and spatial row/band clust
 import io
 import logging
 import math
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from apps.core.services.ocr.schema import OCRToken
@@ -19,10 +20,30 @@ _NUMPY_MODULE = None
 _PIL_IMAGE_MODULE = None
 
 
+def native_library_hint(error: BaseException, platform: Optional[str] = None) -> str:
+    """
+    What to check when a compiled OCR module cannot be loaded, for the platform it runs on.
+
+    On Windows, "DLL load failed" almost always means the Microsoft Visual C++ 2015-2022 runtime
+    (MSVCP140.dll) is missing: NumPy (32-bit), onnxruntime and pyclipper need it. The installer now
+    bundles it next to python.exe (desktop/scripts/build.ps1); earlier builds relied on the PC having it.
+    """
+    platform = platform or sys.platform
+    if platform == "win32":
+        return (
+            "Composant Windows manquant (Microsoft Visual C++ 2015-2022, MSVCP140.dll) ou fichier de "
+            "l'application endommagé : réinstallez ShoeDZ avec la dernière version."
+        )
+    if "libGL" in str(error) or "libglib" in str(error):
+        return "Sous Linux/Docker, vérifiez que 'libgl1' et 'libglib2.0-0' sont installés."
+    return "Vérifiez l'installation des dépendances OCR (numpy, opencv-python-headless, rapidocr-onnxruntime)."
+
+
 def get_cv2():
     """
     Lazily loads OpenCV (cv2) so that importing OCR modules or loading Django's
     URL configuration never fails at application startup if native libraries are missing.
+    Importing cv2 also imports NumPy, so a NumPy DLL failure surfaces here first.
     """
     global _CV2_MODULE
     if _CV2_MODULE is None:
@@ -32,8 +53,8 @@ def get_cv2():
         except ImportError as e:
             logger.warning("OpenCV (cv2) is not available: %s", e)
             raise ImportError(
-                "Le module de traitement d'image OpenCV (cv2) n'est pas disponible. "
-                "Sous Linux/Docker, vérifiez que 'libgl1' et 'libglib2.0-0' sont installés."
+                f"Le module de traitement d'image OpenCV (cv2) ne peut pas être chargé ({e}). "
+                f"{native_library_hint(e)}"
             ) from e
     return _CV2_MODULE
 
@@ -51,7 +72,7 @@ def get_numpy():
         except ImportError as e:
             logger.warning("NumPy is not available: %s", e)
             raise ImportError(
-                "Le module NumPy n'est pas disponible dans cet environnement."
+                f"Le module NumPy ne peut pas être chargé ({e}). {native_library_hint(e)}"
             ) from e
     return _NUMPY_MODULE
 
@@ -84,7 +105,7 @@ def get_rapid_ocr():
         except ImportError as e:
             logger.warning("RapidOCR is not available: %s", e)
             raise ImportError(
-                "Le module RapidOCR n'est pas disponible dans cet environnement."
+                f"Le module RapidOCR (onnxruntime) ne peut pas être chargé ({e}). {native_library_hint(e)}"
             ) from e
     return _RAPID_OCR_INSTANCE
 
