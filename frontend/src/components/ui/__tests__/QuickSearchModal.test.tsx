@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import axios from "axios";
@@ -36,10 +36,11 @@ describe("QuickSearchModal server search", () => {
 
   it("sends one request for a burst of keystrokes, once typing pauses", async () => {
     get.mockResolvedValue({ data: EMPTY });
-    const user = userEvent.setup();
     const input = await openModal();
 
-    await user.type(input, "bab");                    // three keystrokes in a row
+    // Three changes in a row, dispatched synchronously: the burst cannot be stretched past the debounce by a
+    // slow machine (userEvent waits between keys, and without that wait it drops characters in a controlled input).
+    for (const value of ["b", "ba", "bab"]) fireEvent.change(input, { target: { value } });
     await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
 
     const [url, config] = get.mock.calls[0];

@@ -940,7 +940,7 @@ export default function SalesHistoryPage() {
   // Users list for cashier filter
   const { data: usersData } = useQuery<PaginatedResponse<{ id: number; first_name: string; last_name: string; email: string }>>({
     queryKey: ["users-cashiers-filter"],
-    queryFn: () => api.get("/auth/users/?page_size=100").then((r) => r.data),
+    queryFn: () => api.get("/core/users/?page_size=100").then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
   const cashiersList = usersData?.results ?? [];
