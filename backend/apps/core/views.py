@@ -666,14 +666,16 @@ class SystemTimeView(APIView):
     """
     GET /api/v1/core/time/
     Returns verified time, clock skew, network sync source, and anomaly diagnostics.
-    Query ?resync=true forces fresh network check.
+    Query ?resync=true asks for a fresh network check. The check runs in the background:
+    this view never waits on the network except, for an explicit resync, a few seconds at most
+    (stores are mostly offline: see apps/core/services/time_service.py).
     """
     permission_classes = [AllowAny]
 
     def get(self, request):
-        from apps.core.services.time_service import sync_time
+        from apps.core.services import time_service
         force_resync = request.query_params.get("resync", "").lower() in ("1", "true", "yes")
-        status_data = sync_time(force=force_resync)
+        status_data = time_service.sync_time(force=force_resync, wait=time_service.FORCED_WAIT_SECONDS)
         return Response(status_data)
 
 
