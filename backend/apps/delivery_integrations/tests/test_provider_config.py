@@ -163,7 +163,9 @@ def test_put_is_not_allowed(store):
 
 # ─── Secrets never reach the sync outbox ──────────────────────────────────────
 
-def test_sync_outbox_payload_has_no_credentials(store):
+def test_sync_outbox_payload_has_no_credentials(store, settings):
+    # The outbox is written only when a cloud push is configured (SYNC_OUTBOX_ENABLED, off by default).
+    settings.SYNC_OUTBOX_ENABLED = True
     tenant, client = store
     client.post(URL, {"courier": "maystro", "credentials": {"apiKey": "tok-SECRET-2"}}, format="json")
     rows = SyncOutbox.objects.filter(tenant=tenant, model_name="ProviderConfig")
