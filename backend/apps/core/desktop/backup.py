@@ -12,6 +12,7 @@ import shutil
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from django.conf import settings
 
@@ -19,6 +20,7 @@ from .crypto import encrypt_backup, decrypt_backup, create_passphrase_verifier
 
 logger = logging.getLogger(__name__)
 MAX_BACKUP_COPIES = 14
+PRE_RESET_PREFIX = "db_backup_pre_reset"   # safety backup taken before a reset (see factory_reset_view)
 
 
 def get_desktop_config_path() -> Path:
@@ -222,6 +224,7 @@ def perform_database_backup(prefix: str = "db_backup", db_path: Path = None) -> 
 
     source_conn = None
     dest_conn = None
+    failed = False
     try:
         source_conn = sqlite3.connect(str(db_path), timeout=60)
         dest_conn = sqlite3.connect(str(backup_file), timeout=60)
@@ -230,7 +233,7 @@ def perform_database_backup(prefix: str = "db_backup", db_path: Path = None) -> 
             source_conn.backup(dest_conn, pages=100, sleep=0.01)
 
         logger.info("Database backup created successfully: %s", backup_file)
-        rotate_backups(backups_dir)
+        rotate_backups(backups_dir, protect=backup_file)
 
         # External destination copy (Task 6.7)
         try:
@@ -241,6 +244,7 @@ def perform_database_backup(prefix: str = "db_backup", db_path: Path = None) -> 
         return backup_file
     except Exception:
         logger.exception("Failed to create database backup")
+        failed = True
         return None
     finally:
         if dest_conn:
@@ -253,16 +257,33 @@ def perform_database_backup(prefix: str = "db_backup", db_path: Path = None) -> 
                 source_conn.close()
             except Exception:
                 pass
+        if failed:
+            # A half-written file (disk full, locked database) must not sit in the list as a usable backup.
+            try:
+                backup_file.unlink(missing_ok=True)
+            except OSError:
+                logger.warning("Could not remove the incomplete backup %s", backup_file, exc_info=True)
 
 
-def rotate_backups(backups_dir: Path, keep: int = MAX_BACKUP_COPIES) -> None:
-    """Keep only the most recent `keep` backup files, pruning older ones."""
+def rotate_backups(backups_dir: Path, keep: int = MAX_BACKUP_COPIES, protect: Optional[Path] = None) -> None:
+    """
+    Keep the `keep` most recent regular backups and delete the older ones.
+
+    Recency is the file's modification time, which comes from the PC's clock, so two rules guard against
+    a wrong clock:
+      - `protect` (the backup that was just made) is always kept. A clock set in the past (a dead CMOS
+        battery resets it to the BIOS date) would rank the new file as the oldest and delete it at once.
+      - The safety backups made before a reset (`db_backup_pre_reset_*`) are never rotated: they are rare,
+        deliberate, and the only way back from a reset.
+    """
     try:
         files = sorted(
-            backups_dir.glob("db_backup_*.sqlite3"),
+            (p for p in backups_dir.glob("db_backup_*.sqlite3") if not p.name.startswith(PRE_RESET_PREFIX)),
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
+        if protect is not None:
+            files = [p for p in files if p.name == protect.name] + [p for p in files if p.name != protect.name]
         if len(files) > keep:
             for old_file in files[keep:]:
                 try:
