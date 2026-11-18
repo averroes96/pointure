@@ -1762,7 +1762,7 @@ function CreateStocktakeModal({
       api
         .post("/inventory/stocktakes/", {
           title,
-          branch: branchId ? Number(branchId) : null,
+          branch: branchId || null,
           scope_brand: inventoryMode === "scoped" ? scopeBrand.trim() : "",
           scope_category: inventoryMode === "scoped" ? scopeCategory : "",
           scope_location: inventoryMode === "scoped" ? scopeLocation.trim() : "",

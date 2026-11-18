@@ -30,6 +30,17 @@ interface BranchContextValue {
 
 const BranchContext = createContext<BranchContextValue | null>(null);
 
+/**
+ * The branch to start with: the one saved from last time, else the headquarters, else the first.
+ *
+ * Branch ids are UUID strings. The saved id used to be compared after parseInt(), which never matched
+ * a UUID, so the saved choice was ignored and every restart fell back to the headquarters.
+ */
+export function pickInitialBranch(list: Branch[], savedId: string | null): Branch | null {
+  const saved = savedId ? list.find((b) => String(b.id) === savedId) : undefined;
+  return saved ?? list.find((b) => b.is_headquarters) ?? list[0] ?? null;
+}
+
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -54,15 +65,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
 
         if (list.length === 0) return;
 
-        // Restore saved selection
-        const savedId = localStorage.getItem(STORAGE_KEY);
-        const saved = savedId
-          ? list.find((b) => b.id === parseInt(savedId, 10)) ?? null
-          : null;
-
-        // Fall back to HQ branch, then first in list
-        const hq = list.find((b) => b.is_headquarters) ?? list[0];
-        setCurrentBranchState(saved ?? hq);
+        setCurrentBranchState(pickInitialBranch(list, localStorage.getItem(STORAGE_KEY)));
       })
       .catch(() => {
         // No branches or network error — continue without branch context

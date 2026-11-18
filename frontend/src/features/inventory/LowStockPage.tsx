@@ -10,6 +10,7 @@ import api, { type PaginatedResponse } from "@/lib/api";
 import type { Variant, Product } from "@/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import { cn } from "@/lib/utils";
+import { toBulkAdjustments, type BulkAdjustment } from "@/lib/stockAdjustments";
 
 // ── Quick Restock Modal ───────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
 
   const bulkMutation = useMutation({
     mutationFn: (data: {
-      adjustments: { variant: number; quantity_delta: number }[];
+      adjustments: BulkAdjustment[];
       reason: string;
       notes?: string;
     }) => api.post("/inventory/movements/bulk-adjust/", data).then((r) => r.data),
@@ -128,9 +129,7 @@ function QuickRestockModal({ variant, product, onClose, onSuccess }: QuickRestoc
         notes: notes || "Réapprovisionnement express",
       });
     } else if (product) {
-      const adjustments = Object.entries(quantities)
-        .map(([vid, q]) => ({ variant: Number(vid), quantity_delta: Number(q) }))
-        .filter((a) => a.quantity_delta > 0);
+      const adjustments = toBulkAdjustments(quantities);
 
       if (!adjustments.length) {
         setError("Veuillez spécifier au moins une quantité à ajouter.");

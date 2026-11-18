@@ -473,11 +473,20 @@ def factory_reset_view(request):
     if mode not in ("all", "transactions_only"):
         mode = "all"
 
-    from .backup import perform_database_backup
+    import logging
+    from .backup import PRE_RESET_PREFIX, perform_database_backup
     from .reset import perform_database_wipe
 
-    # 1. Automatic safety backup before wipe
-    backup_file = perform_database_backup(prefix="db_backup_pre_reset")
+    # 1. Automatic safety backup before wipe. Without it (disk full, locked database) nothing is deleted:
+    # the reset is the one operation with no way back.
+    backup_file = perform_database_backup(prefix=PRE_RESET_PREFIX)
+    if backup_file is None or not backup_file.exists() or backup_file.stat().st_size == 0:
+        logging.getLogger(__name__).error("Factory reset refused: the safety backup could not be created.")
+        return Response(
+            {"detail": "La sauvegarde de sécurité a échoué : aucune donnée n'a été supprimée. "
+                       "Libérez de l'espace disque puis réessayez."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     # 2. Execute wipe
     try:
