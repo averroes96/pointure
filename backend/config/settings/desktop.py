@@ -46,6 +46,14 @@ except Exception:
 DESKTOP_MODE = True
 DEPLOYMENT_MODE = "local"
 
+# Offline changes are queued in SyncOutbox for a push to a cloud server (apps/core/tasks.py:
+# sync_with_cloud_server, which does nothing without CLOUD_API_URL). With no cloud server
+# nothing ever reads the queue, so writing it only costs time and disk on every save (about
+# three queries per change, plus a JSON copy of the row that is never purged). Off unless a
+# cloud URL is set, or SYNC_OUTBOX_ENABLED says otherwise.
+CLOUD_API_URL = config("CLOUD_API_URL", default="")
+SYNC_OUTBOX_ENABLED = config("SYNC_OUTBOX_ENABLED", default=bool(CLOUD_API_URL), cast=bool)
+
 # ─────────────────────────────────────────────
 # Security
 # ─────────────────────────────────────────────

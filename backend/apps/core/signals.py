@@ -238,6 +238,12 @@ from django.forms.models import model_to_dict
 
 from .models import TenantScopedModel, SyncOutbox, AuditLog
 
+def _outbox_enabled():
+    """False when no cloud server will ever read the outbox (see SYNC_OUTBOX_ENABLED in settings)."""
+    from django.conf import settings
+    return bool(getattr(settings, "SYNC_OUTBOX_ENABLED", False))
+
+
 def serialize_model(instance):
     """Safely serialize a Django model instance to JSON dict."""
     try:
@@ -247,7 +253,7 @@ def serialize_model(instance):
 
 @receiver(post_save)
 def sync_outbox_post_save(sender, instance, created, **kwargs):
-    if kwargs.get("raw"):
+    if not _outbox_enabled() or kwargs.get("raw"):
         return
     if getattr(instance.__class__, "__module__", "") == "__fake__":
         return
@@ -285,6 +291,8 @@ def sync_outbox_post_save(sender, instance, created, **kwargs):
 
 @receiver(post_delete)
 def sync_outbox_post_delete(sender, instance, **kwargs):
+    if not _outbox_enabled():
+        return
     if getattr(instance.__class__, "__module__", "") == "__fake__":
         return
     if not issubclass(sender, TenantScopedModel):
