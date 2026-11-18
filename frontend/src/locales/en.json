@@ -3027,6 +3027,7 @@
     "zoom_in": "Zoom in",
     "reset_zoom": "Reset view",
     "scanning_in_progress": "Offline optical scan in progress (OpenCV + RapidOCR)...",
+    "ocr_unavailable": "Automatic reading (OCR) is not available on this computer. Reinstall ShoeDZ with the latest version; in the meantime, enter the purchase order manually.",
     "scanned_document": "Scanned document",
     "drop_or_select_title": "Drag or select a photo of a supplier order slip",
     "drop_or_select_hint": "Automatic deskewing and 100% offline optical character recognition.",

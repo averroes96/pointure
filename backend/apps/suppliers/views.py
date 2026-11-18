@@ -1006,9 +1006,23 @@ class PurchaseOrderViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         try:
             result = scan_purchase_order_image(raw_bytes, tenant=request.tenant)
         except ImportError as e:
+            from apps.core.services.ocr.engine import native_library_hint
             logging.getLogger(__name__).warning("OCR module unavailable: %s", e)
+            msg = _(
+                "La lecture automatique (OCR) n'est pas disponible sur ce poste. Réinstallez ShoeDZ avec "
+                "la dernière version ; en attendant, saisissez le bon de commande manuellement."
+            )
             return Response(
-                {"detail": _("Le module de reconnaissance optique n'est pas disponible sur ce serveur (dépendances système OpenCV/libGL manquantes).")},
+                {
+                    "detail": msg,
+                    "error": {
+                        "code": "ocr_unavailable",
+                        "message": msg,
+                        # What support should check on this platform (fixed text, never the raw exception).
+                        "hint": native_library_hint(e),
+                        "status_code": 503,
+                    },
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         except Exception:

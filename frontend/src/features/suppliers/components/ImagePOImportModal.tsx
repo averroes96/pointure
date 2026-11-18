@@ -8,7 +8,7 @@ import {
   Link2,
   Sparkles,
 } from "lucide-react";
-import api, { getApiError } from "@/lib/api";
+import api, { getApiError, getApiErrorCode } from "@/lib/api";
 import type { Supplier, PurchaseOrder, Product } from "@/types";
 import {
   DocumentScanReviewModal,
@@ -142,7 +142,14 @@ export function ImagePOImportModal({
       }
     },
     onError: (err) => {
-      setErrorMsg(getApiError(err));
+      setErrorMsg(
+        getApiErrorCode(err) === "ocr_unavailable"
+          ? t(
+              "scanner.ocr_unavailable",
+              "La lecture automatique (OCR) n'est pas disponible sur ce poste. Réinstallez ShoeDZ avec la dernière version ; en attendant, saisissez le bon de commande manuellement."
+            )
+          : getApiError(err)
+      );
     },
   });
 

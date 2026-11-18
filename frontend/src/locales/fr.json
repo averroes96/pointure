@@ -3027,6 +3027,7 @@
     "zoom_in": "Zoomer",
     "reset_zoom": "Réinitialiser la vue",
     "scanning_in_progress": "Analyse optique hors-ligne (OpenCV + RapidOCR)...",
+    "ocr_unavailable": "La lecture automatique (OCR) n'est pas disponible sur ce poste. Réinstallez ShoeDZ avec la dernière version ; en attendant, saisissez le bon de commande manuellement.",
     "scanned_document": "Document scanné",
     "drop_or_select_title": "Glissez ou sélectionnez une photo de bon fournisseur",
     "drop_or_select_hint": "Redressement automatique de l'inclinaison et reconnaissance optique 100% hors-ligne.",

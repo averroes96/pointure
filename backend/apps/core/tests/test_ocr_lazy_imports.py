@@ -59,5 +59,8 @@ class TestOCRLazyImports:
         with patch("apps.core.services.ocr.engine.get_numpy", side_effect=ImportError("NumPy missing")):
             resp = self.client.post(url, {"file": fake_file}, format="multipart")
             assert resp.status_code == 503
-            assert "reconnaissance optique" in resp.data.get("detail", "")
+            # Wording changed on purpose (it blamed OpenCV/libGL on Windows); the frontend keys on the code.
+            assert resp.data["error"]["code"] == "ocr_unavailable"
+            assert resp.data["detail"].startswith("La lecture automatique (OCR) n'est pas disponible sur ce poste.")
+            assert "NumPy missing" not in str(resp.data)
 
