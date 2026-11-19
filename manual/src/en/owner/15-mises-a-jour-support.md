@@ -31,6 +31,8 @@ In the event of unexpected system behaviour or for performance reviews, the owne
    - Slow query and latency logs (`logs/perf.log`).
    - A consistent database snapshot (`database/db_snapshot.sqlite3`, if included by the owner).
 
+> ℹ️ **Retention:** the logs (`shodz.log`, `perf.log`, `desktop.log` and their copies) keep the **last 30 days**. Older entries are removed automatically when the application starts. Send the diagnostic bundle to support soon after an incident.
+
 > 📷 **Screenshot:** *Diagnostic bundle download card within the Desktop Settings tab.*
 
 ---
