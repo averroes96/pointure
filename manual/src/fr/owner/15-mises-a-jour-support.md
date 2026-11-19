@@ -31,6 +31,8 @@ En cas de comportement anormal du logiciel ou pour un audit de performance, le p
    - Le journal des requêtes lentes (`logs/perf.log`).
    - Une copie cohérente de la base de données (`database/db_snapshot.sqlite3`, si demandée par le propriétaire).
 
+> ℹ️ **Durée de conservation :** les journaux (`shodz.log`, `perf.log`, `desktop.log` et leurs copies) gardent les **30 derniers jours**. Les entrées plus anciennes sont supprimées automatiquement au démarrage de l'application. Envoyez le pack diagnostic au support peu après l'incident.
+
 > 📷 **Capture d'écran :** *Carte de téléchargement du pack diagnostic dans l'onglet Paramètres Desktop.*
 
 ---

@@ -132,6 +132,14 @@ def run_server(port: int = 8745):
     except Exception as e:
         logger.error("Error checking pending restore: %s", e, exc_info=True)
 
+    # Drop log entries older than a month while no handler has the files open yet.
+    retention_note = ""
+    try:
+        from apps.core.desktop.log_retention import describe, prune_logs
+        retention_note = describe(prune_logs(get_logs_dir()))
+    except Exception as e:
+        retention_note = f"Log retention skipped: {e}"
+
     import django
     django.setup()  # configures LOGGING → logs/shodz.log
 
@@ -141,6 +149,8 @@ def run_server(port: int = 8745):
         sys.version.split()[0], sys.executable, get_data_dir(), port, os.getpid(),
     )
     logger.info("Django setup done in %.1fs", time.monotonic() - t_start)
+    if retention_note:
+        logger.info(retention_note)
 
     status(f"Initialisation de la base de données dans {get_data_dir()}...")
     try:
