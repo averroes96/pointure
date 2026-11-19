@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 const { startPdfBridge, stopPdfBridge } = require('./pdf-bridge');
+const { pruneDesktopLogs, describe: describeLogRetention } = require('./log-retention');
 
 // ── Single instance ─────────────────────────────────────────────────────────
 const gotTheLock = app.requestSingleInstanceLock();
@@ -49,6 +50,15 @@ try {
   // Directory might already exist or handled by installer permissions
 }
 
+// Drop log entries older than a month before electron-log writes anything (log-retention.js;
+// the backend prunes its own logs the same way when it starts).
+let logRetentionNote = '';
+try {
+  logRetentionNote = describeLogRetention(pruneDesktopLogs(logsDir));
+} catch (err) {
+  logRetentionNote = `Log retention skipped: ${err.message}`;
+}
+
 // ── Logging ─────────────────────────────────────────────────────────────────
 // desktop.log  : Electron main process, backend stdout/stderr, renderer console,
 //                failed HTTP requests, crashes.
@@ -61,6 +71,7 @@ Object.assign(console, log.functions);
 
 process.on('uncaughtException', (err) => log.error('[Main] Uncaught exception:', err));
 process.on('unhandledRejection', (reason) => log.error('[Main] Unhandled rejection:', reason));
+if (logRetentionNote) log.info(`[Startup] ${logRetentionNote}`);
 
 // ── State ───────────────────────────────────────────────────────────────────
 let mainWindow = null;

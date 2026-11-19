@@ -82,6 +82,26 @@ def should_run_daily_tasks(last_run: Optional[datetime], now: Optional[datetime]
     return (now - last_run) >= timedelta(hours=24) or (last_run.date() != now.date())
 
 
+def prune_rotated_logs() -> Optional[dict]:
+    """
+    Daily: apply the log retention to the rotated copies (shodz.log.1 …) of a session that runs for weeks.
+    The files being written are open in this process and are trimmed at the next start instead.
+    """
+    log_dir = getattr(settings, "LOG_DIR", None)
+    if not log_dir:
+        return None
+    try:
+        from apps.core.desktop.log_retention import describe, prune_logs
+        report = prune_logs(Path(log_dir), include_active=False)
+        note = describe(report)
+        if note:
+            logger.info(note)
+        return report
+    except Exception:
+        logger.warning("Scheduled log pruning failed", exc_info=True)
+        return None
+
+
 def _run_scheduler_loop():
     logger.info("ShoeDZ Desktop scheduler thread started.")
     
@@ -183,6 +203,8 @@ def _run_scheduler_loop():
                 expire_outdated_quotes()
             except Exception:
                 logger.warning("Scheduled expire_outdated_quotes failed", exc_info=True)
+
+            prune_rotated_logs()
 
         # Always close thread-local DB connections to prevent holding SQLite locks
         try:
