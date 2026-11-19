@@ -148,13 +148,6 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-
-        {/* Demo hint */}
-        <p className="text-center text-xs text-text-muted mt-4">
-          Demo : <code className="font-mono bg-surface px-1 py-0.5 rounded">0555 12 34 56</code> /{" "}
-          <code className="font-mono bg-surface px-1 py-0.5 rounded">admin@demo.com</code>{" "}
-          / <code className="font-mono bg-surface px-1 py-0.5 rounded">demo1234</code>
-        </p>
       </div>
     </div>
   );
