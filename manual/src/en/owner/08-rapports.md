@@ -13,7 +13,9 @@ Under **Reports → Daily**:
    - Any cash variances logged during the Z-Report closing.
 3. Print the daily consolidated summary for your accounting files.
 
-> 📷 **Screenshot:** *Consolidated daily report dashboard displaying payment method breakdown.*
+![Consolidated daily report dashboard displaying payment method breakdown.](../assets/fr/owner-08-daily-report.webp)
+
+*Consolidated daily report dashboard displaying payment method breakdown.*
 
 ---
 

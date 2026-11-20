@@ -16,7 +16,9 @@ Pour votre clientèle de revendeurs, d'entreprises ou d'administrations, ShoeDZ 
    - Le compteur officiel (`FA-AAAA-#####`, ex : `FA-2026-00001`) attribue un numéro séquentiel inaltérable, déduit les quantités correspondantes du stock et inscrit le débit au grand livre client.
    - La facture peut être imprimée au format A4 avec vos coordonnées complètes ou exportée en PDF.
 
-> 📷 **Capture d'écran :** *Éditeur de facture commerciale avec calcul automatique de la TVA et du timbre fiscal.*
+![Éditeur de facture commerciale avec calcul automatique de la TVA et du timbre fiscal.](../assets/fr/owner-07-invoice.webp)
+
+*Éditeur de facture commerciale avec calcul automatique de la TVA et du timbre fiscal.*
 
 ---
 

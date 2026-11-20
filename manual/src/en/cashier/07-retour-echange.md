@@ -15,7 +15,9 @@ A customer may return to the store to exchange an ill-fitting shoe size (e.g., s
    - **Store Credit Voucher (Avoir):** A store credit voucher is issued for the customer's future purchases.
 7. Click **Confirm Return**: the returned shoe variant's stock is immediately restored in the system, and a return receipt prints.
 
-> 📷 **Screenshot:** *Selecting returned items, quantities, and reasons with an existing sales receipt.*
+![Selecting returned items, quantities, and reasons with an existing sales receipt.](../assets/fr/cashier-07-return.webp)
+
+*Selecting returned items, quantities, and reasons with an existing sales receipt.*
 
 ---
 

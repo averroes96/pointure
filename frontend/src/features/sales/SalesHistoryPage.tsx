@@ -11,6 +11,7 @@ import api, { formatDZD, formatDate, getApiError, type PaginatedResponse } from 
 import { printReceipt } from "@/lib/receipt";
 import { printBonVersement, printBonReservation } from "@/lib/versement";
 import { printTicket } from "@/lib/printerConfig";
+import { canStartReturnOrExchange } from "@/lib/saleActions";
 import ExchangeModal from "./ExchangeModal";
 import type { Sale, SaleItem, StoreSettings, PaymentMethod, LoyaltyTier, DefectReason } from "@/types";
 import { cn, getStatusBadgeClass } from "@/lib/utils";
@@ -1505,7 +1506,7 @@ export default function SalesHistoryPage() {
                             </button>
                           </>
                         )}
-                        {isManager && sale.status === "completed" && (
+                        {canStartReturnOrExchange(user?.role, sale.status) && (
                           <>
                             <button
                               className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"

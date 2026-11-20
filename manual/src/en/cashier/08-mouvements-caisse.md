@@ -16,7 +16,9 @@ During the working day, cash may be added to or withdrawn from the drawer outsid
 5. Click **Confirm Movement**.
 6. The cash drawer opens to perform the physical cash transaction, and a receipt voucher prints. Place this receipt in the drawer alongside any vendor purchase receipts.
 
-> 📷 **Screenshot:** *Form for recording cash in or cash out with amount and mandatory reason fields.*
+![Form for recording cash in or cash out with amount and mandatory reason fields.](../assets/fr/cashier-08-cash-movement.webp)
+
+*Form for recording cash in or cash out with amount and mandatory reason fields.*
 
 ---
 

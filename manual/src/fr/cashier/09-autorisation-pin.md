@@ -24,7 +24,9 @@ Une boîte de dialogue d'autorisation s'affiche automatiquement dans les situati
 3. Si le code est correct, la boîte se referme avec un message vert de validation et l'action demandée est immédiatement appliquée.
 4. L'identité du responsable ayant accordé l'autorisation est automatiquement consignée dans le journal d'audit interne pour la traçabilité.
 
-> 📷 **Capture d'écran :** *Boîte de dialogue de saisie du PIN Responsable à 4 chiffres.*
+![Boîte de dialogue de saisie du PIN Responsable à 4 chiffres.](../assets/fr/cashier-09-manager-pin.webp)
+
+*Boîte de dialogue de saisie du PIN Responsable à 4 chiffres.*
 
 > [!WARNING]
 > Après **5 tentatives consécutives erronées**, la saisie du PIN est temporairement bloquée pendant 15 minutes pour prévenir les tentatives de devinette.

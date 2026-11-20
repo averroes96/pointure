@@ -27,7 +27,9 @@ Chaque ligne enregistrée dans le journal comprend :
 4. **Objet concerné :** Référence ou identifiant du document ou de l'article impacté.
 5. **Différentiel des données :** Comparaison explicite entre l'**Ancienne valeur** et la **Nouvelle valeur** des champs modifiés (ex : *Prix de vente modifié de 6 500 DZD à 5 800 DZD*).
 
-> 📷 **Capture d'écran :** *Écran du journal d'audit avec filtres par date, utilisateur et visualisation avant/après.*
+![Écran du journal d'audit avec filtres par date, utilisateur et visualisation avant/après.](../assets/fr/owner-09-audit.webp)
+
+*Écran du journal d'audit avec filtres par date, utilisateur et visualisation avant/après.*
 
 ---
 

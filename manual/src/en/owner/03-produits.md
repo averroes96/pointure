@@ -16,7 +16,9 @@ In footwear retail, catalog management requires a structured breakdown by model,
    - Select the **Size Series** (e.g., adult series 39 to 45, or kids series 28 to 35).
 4. The system automatically creates a distinct variant for each combination (Colour + Size) with an individual SKU and barcode.
 
-> 📷 **Screenshot:** *Product card showing the auto-generated footwear size and colour matrix.*
+![Product card showing the auto-generated footwear size and colour matrix.](../assets/fr/owner-03-products.webp)
+
+*Product card showing the auto-generated footwear size and colour matrix.*
 
 ---
 

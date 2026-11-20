@@ -13,7 +13,9 @@ Chaque journée ou vacation de vente commence par l'ouverture officielle de votr
 4. Si vous le souhaitez, ajoutez une brève note (ex : *"Monnaie apportée par le gérant"*).
 5. Cliquez sur **Valider l'ouverture de caisse**.
 
-> 📷 **Capture d'écran :** *Boîte de dialogue d'ouverture de caisse avec saisie du fond de caisse initial.*
+![Boîte de dialogue d'ouverture de caisse avec saisie du fond de caisse initial.](../assets/fr/cashier-02-open-register.webp)
+
+*Boîte de dialogue d'ouverture de caisse avec saisie du fond de caisse initial.*
 
 > [!TIP]
 > Un comptage précis du fond de caisse au centime près évite les faux écarts lors de la clôture du soir (Rapport Z).

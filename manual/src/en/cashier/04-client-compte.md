@@ -18,7 +18,9 @@ If the customer is not yet registered in your store database:
    - **Wilaya** of residence among the 58 Algerian wilayas.
 3. Click **Save**: the new customer is automatically assigned to the active cart.
 
-> 📷 **Screenshot:** *Quick counter form for registering a new customer.*
+![Quick counter form for registering a new customer.](../assets/fr/cashier-04-quick-client.webp)
+
+*Quick counter form for registering a new customer.*
 
 ---
 

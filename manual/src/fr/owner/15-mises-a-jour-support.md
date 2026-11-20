@@ -33,7 +33,9 @@ En cas de comportement anormal du logiciel ou pour un audit de performance, le p
 
 > ℹ️ **Durée de conservation :** les journaux (`shodz.log`, `perf.log`, `desktop.log` et leurs copies) gardent les **30 derniers jours**. Les entrées plus anciennes sont supprimées automatiquement au démarrage de l'application. Envoyez le pack diagnostic au support peu après l'incident.
 
-> 📷 **Capture d'écran :** *Carte de téléchargement du pack diagnostic dans l'onglet Paramètres Desktop.*
+![Carte de téléchargement du pack diagnostic dans l'onglet Paramètres Desktop.](../assets/fr/owner-15-diagnostic.webp)
+
+*Carte de téléchargement du pack diagnostic dans l'onglet Paramètres Desktop.*
 
 ---
 

@@ -10,7 +10,9 @@ Lorsqu'un client hésite à la caisse, retourne en rayon pour essayer une autre 
 3. Cliquez sur **Confirmer la mise en attente**.
 4. Le panier est instantanément vidé pour le client suivant, et un badge orange **Attente (1)** apparaît en haut de la caisse.
 
-> 📷 **Capture d'écran :** *Modale de mise en attente avec saisie de l'étiquette d'identification.*
+![Modale de mise en attente avec saisie de l'étiquette d'identification.](../assets/fr/cashier-06-hold.webp)
+
+*Modale de mise en attente avec saisie de l'étiquette d'identification.*
 
 ---
 

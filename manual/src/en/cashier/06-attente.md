@@ -10,7 +10,9 @@ When a shopper hesitates at the counter, steps back to try on another size, or l
 3. Click **Confirm Park Sale**.
 4. The cart clears immediately for the next customer, and an orange **Parked (1)** badge appears in the POS header.
 
-> 📷 **Screenshot:** *Park sale modal showing ticket description input.*
+![Park sale modal showing ticket description input.](../assets/fr/cashier-06-hold.webp)
+
+*Park sale modal showing ticket description input.*
 
 ---
 

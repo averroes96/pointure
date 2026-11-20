@@ -15,7 +15,9 @@ Un client peut revenir au magasin pour échanger une pointure inadaptée (ex : t
    - **Génération d'un Avoir :** Un bon d'achat ou avoir client est émis, utilisable lors d'un prochain passage.
 7. Cliquez sur **Valider le retour** : le stock de la variante retournée est immédiatement réintégré dans le système, et un reçu de retour est imprimé.
 
-> 📷 **Capture d'écran :** *Sélection des articles et motif lors d'un retour avec ticket.*
+![Sélection des articles et motif lors d'un retour avec ticket.](../assets/fr/cashier-07-return.webp)
+
+*Sélection des articles et motif lors d'un retour avec ticket.*
 
 ---
 

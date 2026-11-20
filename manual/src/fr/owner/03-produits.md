@@ -16,7 +16,9 @@ Dans le secteur de la chaussure, la gestion du catalogue exige une structure rig
    - Sélectionnez la série de **Pointures** (ex : série adulte 39 à 45, ou série enfant 28 à 35).
 4. Le système génère automatiquement une variante distincte pour chaque combinaison (Couleur + Pointure) avec son propre code SKU et code-barres.
 
-> 📷 **Capture d'écran :** *Fiche produit montrant la grille matricielle des pointures et des couleurs.*
+![Fiche produit montrant la grille matricielle des pointures et des couleurs.](../assets/fr/owner-03-products.webp)
+
+*Fiche produit montrant la grille matricielle des pointures et des couleurs.*
 
 ---
 

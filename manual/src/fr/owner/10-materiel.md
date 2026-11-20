@@ -16,7 +16,9 @@ Depuis **Paramètres → Imprimantes**, vous pouvez assigner des imprimantes dis
 3. **Imprimante d'étiquettes codes-barres :**
    - Imprimantes thermiques dédiées à l'étiquetage des boîtes à chaussures (formats standard `50x30 mm` ou `40x25 mm`).
 
-> 📷 **Capture d'écran :** *Onglet de configuration des imprimantes avec sélection du modèle et paramètres d'impression.*
+![Onglet de configuration des imprimantes avec sélection du modèle et paramètres d'impression.](../assets/fr/owner-10-printers.webp)
+
+*Onglet de configuration des imprimantes avec sélection du modèle et paramètres d'impression.*
 
 ---
 

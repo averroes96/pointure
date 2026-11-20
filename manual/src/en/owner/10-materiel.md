@@ -16,7 +16,9 @@ From **Settings → Printers**, assign dedicated printers for different operatio
 3. **Barcode Label Printer:**
    - Thermal label printers for shoe boxes and price tags (standard dimensions `50x30 mm` or `40x25 mm`).
 
-> 📷 **Screenshot:** *Printer setup tab with device selectors and printing options.*
+![Printer setup tab with device selectors and printing options.](../assets/fr/owner-10-printers.webp)
+
+*Printer setup tab with device selectors and printing options.*
 
 ---
 

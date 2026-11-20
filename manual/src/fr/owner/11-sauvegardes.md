@@ -29,7 +29,9 @@ Une sauvegarde stockée uniquement sur le disque dur du PC caisse ne vous protè
 > - Lors de l'enregistrement de votre phrase de passe, cliquez sur **Imprimer la fiche de récupération**.
 > - **Conservez impérativement ce document papier hors du magasin (ex : coffre-fort de direction)**. En cas de perte de cette phrase de passe, aucune sauvegarde chiffrée (`.shodzbak`) ne pourra être restaurée, même par l'équipe technique ShoeDZ.
 
-> 📷 **Capture d'écran :** *Interface de gestion des sauvegardes locales et externes dans Paramètres → Desktop.*
+![Interface de gestion des sauvegardes locales et externes dans Paramètres → Desktop.](../assets/fr/owner-11-backups.webp)
+
+*Interface de gestion des sauvegardes locales et externes dans Paramètres → Desktop.*
 
 ---
 

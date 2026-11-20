@@ -28,7 +28,9 @@ Par défaut, l'exercice fiscal coïncide avec l'année civile (du **1er janvier 
    - Tapez l'année à clôturer (ex : `2026`) et cliquez sur **Clôturer définitivement l'exercice**.
    - Une sauvegarde automatique de sécurité (`pre_close_<année>_*.sqlite3`) est générée immédiatement avant le verrouillage.
 
-> 📷 **Capture d'écran :** *Assistant de clôture d'exercice en 5 étapes avec téléchargement du pack Excel/PDF et verrouillage.*
+![Assistant de clôture d'exercice en 5 étapes avec téléchargement du pack Excel/PDF et verrouillage.](../assets/fr/owner-12-closing.webp)
+
+*Assistant de clôture d'exercice en 5 étapes avec téléchargement du pack Excel/PDF et verrouillage.*
 
 ---
 

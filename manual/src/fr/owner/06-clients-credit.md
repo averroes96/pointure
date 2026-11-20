@@ -20,7 +20,9 @@ Pour limiter les risques d'impayés, ShoeDZ intègre un contrôle strict du cré
 3. **Désactivation / Archivage d'un compte client :**
    - Si vous ne souhaitez plus accorder de crédit à un client défaillant, abaissez son **Plafond de crédit** à `0 DZD` ou désactivez sa fiche (`is_active`).
 
-> 📷 **Capture d'écran :** *Fiche client avec solde débiteur et plafond de crédit autorisé.*
+![Fiche client avec solde débiteur et plafond de crédit autorisé.](../assets/fr/owner-06-client-credit.webp)
+
+*Fiche client avec solde débiteur et plafond de crédit autorisé.*
 
 ---
 

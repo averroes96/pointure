@@ -18,7 +18,9 @@ You can add shoes or accessories to the active cart using two methods:
 4. Select the desired **Size** (e.g., 41, 42, 43) and **Colour**.
 5. Click **Add to Cart** or press <kbd>Enter</kbd>.
 
-> 📷 **Screenshot:** *POS screen displaying search bar, footwear size grid, and side cart.*
+![POS screen displaying search bar, footwear size grid, and side cart.](../assets/fr/cashier-03-pos.webp)
+
+*POS screen displaying search bar, footwear size grid, and side cart.*
 
 ---
 

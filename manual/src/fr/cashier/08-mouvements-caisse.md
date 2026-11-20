@@ -16,7 +16,9 @@ Au cours de la journée, des espèces peuvent être ajoutées ou prélevées du 
 5. Cliquez sur **Valider le mouvement**.
 6. Le tiroir-caisse s'ouvre pour effectuer l'échange physique des billets, et un ticket justificatif est imprimé. Placez ce justificatif dans le tiroir avec les éventuels reçus d'achat.
 
-> 📷 **Capture d'écran :** *Formulaire d'enregistrement d'une sortie ou entrée d'espèces.*
+![Formulaire d'enregistrement d'une sortie ou entrée d'espèces.](../assets/fr/cashier-08-cash-movement.webp)
+
+*Formulaire d'enregistrement d'une sortie ou entrée d'espèces.*
 
 ---
 

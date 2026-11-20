@@ -24,7 +24,9 @@ An authorization modal automatically pops up in the following scenarios:
 3. If the PIN is valid, the dialog closes with a green confirmation message and the requested action is immediately executed.
 4. The identity of the approving supervisor is automatically logged in the internal audit trail for accountability.
 
-> 📷 **Screenshot:** *Manager PIN authorization dialog with 4-digit passcode input.*
+![Manager PIN authorization dialog with 4-digit passcode input.](../assets/fr/cashier-09-manager-pin.webp)
+
+*Manager PIN authorization dialog with 4-digit passcode input.*
 
 > [!WARNING]
 > After **5 consecutive incorrect attempts**, PIN entry is temporarily locked for 15 minutes to prevent brute-force guessing.
