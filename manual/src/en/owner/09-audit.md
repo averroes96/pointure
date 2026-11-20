@@ -27,7 +27,9 @@ Every logged event records:
 4. **Target Entity:** Unique identifier or reference code of the altered record.
 5. **Field Diffs:** Clear side-by-side comparison between **Previous Value** and **New Value** (e.g., *Selling price changed from 6 500 DZD to 5 800 DZD*).
 
-> 📷 **Screenshot:** *Audit log screen with date filters, user selection, and before/after diff inspector.*
+![Audit log screen with date filters, user selection, and before/after diff inspector.](../assets/fr/owner-09-audit.webp)
+
+*Audit log screen with date filters, user selection, and before/after diff inspector.*
 
 ---
 

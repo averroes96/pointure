@@ -15,7 +15,9 @@ To reconcile physical inventory and detect size discrepancies or missing stock:
    - The grid displays in real time: **System Theoretical Stock**, **Counted Quantity**, and **Discrepancy** (green for matched, amber for surplus, red for shortage).
 5. You can pause the count and resume later without disrupting ongoing sales at the counter.
 
-> 📷 **Screenshot:** *Stocktake entry grid showing theoretical vs counted units and variance.*
+![Stocktake entry grid showing theoretical vs counted units and variance.](../assets/fr/owner-05-stocktake.webp)
+
+*Stocktake entry grid showing theoretical vs counted units and variance.*
 
 ---
 

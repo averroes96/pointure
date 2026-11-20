@@ -16,7 +16,9 @@ For wholesale clients, regional resellers, and business accounts, ShoeDZ creates
    - An immutable sequential number (`FA-YYYY-#####`, e.g., `FA-2026-00001`) is generated, deducting the sold quantities from stock and posting the debit to the customer ledger.
    - The invoice can be printed in full A4 format or exported to PDF.
 
-> 📷 **Screenshot:** *Commercial invoice builder with automatic VAT and fiscal stamp computation.*
+![Commercial invoice builder with automatic VAT and fiscal stamp computation.](../assets/fr/owner-07-invoice.webp)
+
+*Commercial invoice builder with automatic VAT and fiscal stamp computation.*
 
 ---
 

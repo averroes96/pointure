@@ -20,7 +20,9 @@ To mitigate bad debt risks, ShoeDZ provides automated credit governance:
 3. **Suspending Credit or Archiving Delinquent Accounts:**
    - To stop granting credit to a delinquent account, lower their **Authorized Credit Limit** to `0 DZD` or deactivate their customer profile (`is_active`).
 
-> 📷 **Screenshot:** *Customer profile displaying balance due and authorized credit limit.*
+![Customer profile displaying balance due and authorized credit limit.](../assets/fr/owner-06-client-credit.webp)
+
+*Customer profile displaying balance due and authorized credit limit.*
 
 ---
 

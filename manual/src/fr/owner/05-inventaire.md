@@ -15,7 +15,9 @@ Pour vérifier l'exactitude de votre stock et identifier d'éventuelles disparit
    - La grille affiche en temps réel : **Stock théorique en base**, **Quantité comptée**, et **Écart constaté** (en vert si exact, en orange si excédent, en rouge si manquant).
 5. Vous pouvez suspendre la session et la reprendre à tout moment sans perturber l'activité.
 
-> 📷 **Capture d'écran :** *Tableau de saisie de l'inventaire avec comparaison théorique vs compté.*
+![Tableau de saisie de l'inventaire avec comparaison théorique vs compté.](../assets/fr/owner-05-stocktake.webp)
+
+*Tableau de saisie de l'inventaire avec comparaison théorique vs compté.*
 
 ---
 
