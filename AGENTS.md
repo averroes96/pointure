@@ -26,6 +26,9 @@ Welcome to the **ShoeDZ (Pointure)** repository. This document defines the opera
 >
 > **5. Report Honestly**
 > Paste the real output of your checks. If a check could not run, say so. Never describe a file as created or committed without confirming it with `git status`; see §6, because `.gitignore` ignores `*.md`.
+>
+> **6. Record Issues Found Outside the Task; Don't Fix Them Silently**
+> When you notice a bug, risk, doc mismatch or missing piece that is **not** part of the current task, do not fix it inside the task and do not leave it only in the chat. Add it to [`docs/plans/backlogs.md`](docs/plans/backlogs.md) (format in §7) and mention it in your report. Fix it only if the user asks, or if it blocks the task (then say so).
 
 ---
 
@@ -51,7 +54,8 @@ flowchart LR
 3. **Small Atomic Edits**:
    - Focus on one component, view, or endpoint at a time.
    - Preserve existing docstrings, comments, and unrelated functionality.
-   - If a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or list it as a follow-up in the report.
+   - If a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or add it to `docs/plans/backlogs.md` and list it in the report.
+   - If you notice an unrelated issue while inspecting, don't fix it here: add it to `docs/plans/backlogs.md` (§7).
 4. **Build, Type Check & Test** (commands in §2.1; all must pass).
 5. **Present & Review**:
    - Provide clickable file links using `[filename](file:///path/to/file)`.
@@ -233,7 +237,12 @@ Many saves trigger other writes. Check this table, the model's `save()` and `app
 ## 7. Plans & Documentation
 
 - **Work plans** live in `docs/plans/`. Do one task at a time in the listed order, then stop for review.
-- **User manual:** if a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or list it as a follow-up in the report.
+- **Backlog (`docs/plans/backlogs.md`):** the single list of issues found while doing something else, and of work not done yet. When you find one outside your task's scope (a bug, a security or performance risk, a manual chapter that doesn't match the screen, a UI inconsistency, a missing test, a decision someone must take), add it there **in the same task**:
+  - put it in the section that fits (1 decisions, 2 work items, 3 user manual, 4 pilot-store checks, 5 delivery);
+  - give it a short heading with the date, what you were doing when you found it, the evidence (file and line, log excerpt, or "read from the code, not reproduced") and the suggested fix;
+  - check the file first: update the existing item instead of adding a duplicate;
+  - when an item is done, mark it **Fixed** with the branch or commit, or delete it.
+- **User manual:** if a change alters user-visible behaviour (a screen, button, workflow, shortcut or printed document), update the matching chapter in `manual/src/{fr,ar,en}/` in the same task, or add it to the backlog (section 3) and list it in the report.
 - **README:** keep its claims true. Don't document features that don't exist, or that have changed.
 
 ---
@@ -250,5 +259,6 @@ Many saves trigger other writes. Check this table, the model's `save()` and `app
 - [ ] `npm run typecheck --prefix frontend` shows 0 errors, and `npm run build --prefix frontend` passes.
 - [ ] Every user-facing string uses `t(...)`, and its key exists in `fr.json`, `ar.json` and `en.json`.
 - [ ] Dark mode is verified on every modified UI component.
-- [ ] User-visible changes are reflected in the matching chapter in `manual/src/{fr,ar,en}/` (or README), or listed as a follow-up.
+- [ ] User-visible changes are reflected in the matching chapter in `manual/src/{fr,ar,en}/` (or README), or listed in `docs/plans/backlogs.md`.
+- [ ] Every issue I noticed outside the task is in `docs/plans/backlogs.md` (not fixed silently, not only in the chat) and named in my report.
 - [ ] No git commits or tags were created, and every referenced file is linked with a clickable path.

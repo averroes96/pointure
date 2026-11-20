@@ -1,8 +1,14 @@
-# v1.10 follow-ups (after the pilot-store log analysis)
+# Backlog
 
-Written 2026-11-18, after the `fixes/v1.10` work merged into `release` (PRs #19–#26, tag `v1.10.3`).
-Source: the pilot store's `perf.log` and `shodz.log`. Everything below is **not done yet**.
+The single list of issues found while working on something else, and of work that is **not done yet**.
+It started on 2026-11-18 as the follow-ups of the `fixes/v1.10` work (merged into `release`, PRs #19–#26, tag
+`v1.10.3`, from the pilot store's `perf.log` and `shodz.log`) and was renamed from `v1.10-followups.md`.
 Items marked **Decision** need the owner's choice before any code is written.
+
+**Adding an item** (AGENTS.md §7): put it in the section that fits (1 decisions, 2 work items, 3 user manual,
+4 pilot-store checks, 5 delivery) as a short heading with the date, what you were doing when you found it, the
+evidence (file and line, log excerpt, or "read from the code, not reproduced") and the suggested fix. Never fix
+it inside an unrelated task. When an item is done, mark it **Fixed** with the branch or commit, or delete it.
 
 ---
 
