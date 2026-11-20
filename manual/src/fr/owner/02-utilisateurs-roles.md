@@ -13,7 +13,9 @@ La sécurité de votre point de vente repose sur une séparation claire des resp
    - **Mot de passe initial** (que l'employé modifiera lors de sa première connexion).
 4. Cliquez sur **Enregistrer**.
 
-> 📷 **Capture d'écran :** *Formulaire de création d'un utilisateur avec sélection du rôle et des permissions.*
+![Formulaire de création d'un utilisateur avec sélection du rôle et des permissions.](../assets/fr/owner-02-new-user.webp)
+
+*Formulaire de création d'un utilisateur avec sélection du rôle et des permissions.*
 
 ---
 

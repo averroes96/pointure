@@ -20,7 +20,9 @@ Upon launching ShoeDZ for the first time following Windows installation:
    - **Physical Store Address**.
 5. Create your **Primary Owner Account** by specifying your phone number and a secure password.
 
-> 📷 **Screenshot:** *ShoeDZ initial setup wizard displaying store contact and wilaya fields.*
+![ShoeDZ initial setup wizard displaying store contact and wilaya fields.](../assets/fr/owner-01-setup.webp)
+
+*ShoeDZ initial setup wizard displaying store contact and wilaya fields.*
 
 ---
 

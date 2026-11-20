@@ -24,7 +24,9 @@ Rigorous procurement management ensures balanced inventory and accurate cost tra
 5. Confirm the order: status advances to *Confirmed*, awaiting delivery.
    - Shelf labels automatically format the location and series as `LOCATION (RANGE)`, e.g., `C20 (37/41)`.
 
-> 📷 **Screenshot:** *Supplier purchase order showing size distribution per carton.*
+![Supplier purchase order showing size distribution per carton.](../assets/fr/owner-04-purchase-order.webp)
+
+*Supplier purchase order showing size distribution per carton.*
 
 ---
 

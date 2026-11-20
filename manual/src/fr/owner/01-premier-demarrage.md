@@ -20,7 +20,9 @@ Lors du tout premier lancement après l'installation sous Windows :
    - **Adresse physique** complète du magasin.
 5. Créez le compte **Propriétaire principal (Owner)** en renseignant votre numéro de téléphone et un mot de passe sécurisé.
 
-> 📷 **Capture d'écran :** *Écran de l'assistant de configuration initiale ShoeDZ avec saisie des coordonnées du magasin.*
+![Écran de l'assistant de configuration initiale ShoeDZ avec saisie des coordonnées du magasin.](../assets/fr/owner-01-setup.webp)
+
+*Écran de l'assistant de configuration initiale ShoeDZ avec saisie des coordonnées du magasin.*
 
 ---
 

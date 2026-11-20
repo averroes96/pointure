@@ -13,7 +13,9 @@ Store security depends on a well-defined separation of duties between business o
    - **Initial Password** (which the employee can update upon their initial sign-in).
 4. Click **Save**.
 
-> 📷 **Screenshot:** *User creation form with role selection and permission checkboxes.*
+![User creation form with role selection and permission checkboxes.](../assets/fr/owner-02-new-user.webp)
+
+*User creation form with role selection and permission checkboxes.*
 
 ---
 

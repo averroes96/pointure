@@ -24,7 +24,9 @@ Une gestion d'approvisionnement rigoureuse garantit des stocks optimaux et une p
 5. Validez le bon : son statut passe en *Confirmé*, en attente de livraison.
    - Les étiquettes de rayon intègrent immédiatement la série sous le format `EMPLACEMENT (SÉRIE)`, par exemple `C20 (37/41)`.
 
-> 📷 **Capture d'écran :** *Bon de commande fournisseur avec répartition des pointures par carton.*
+![Bon de commande fournisseur avec répartition des pointures par carton.](../assets/fr/owner-04-purchase-order.webp)
+
+*Bon de commande fournisseur avec répartition des pointures par carton.*
 
 ---
 
