@@ -29,7 +29,9 @@ Keeping backups solely on the PC's internal drive offers no protection against h
 > - When saving your passphrase, click **Print recovery sheet**.
 > - **Store this physical sheet in a secure place outside the store premises**. If this passphrase is lost, no encrypted backup (`.shodzbak`) can be restored, even by ShoeDZ technical support.
 
-> 📷 **Screenshot:** *Local and external backup management panel in Settings → Desktop.*
+![Local and external backup management panel in Settings → Desktop.](../assets/fr/owner-11-backups.webp)
+
+*Local and external backup management panel in Settings → Desktop.*
 
 ---
 
