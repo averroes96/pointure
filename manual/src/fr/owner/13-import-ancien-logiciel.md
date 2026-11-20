@@ -18,7 +18,9 @@ De nombreux commerces de chaussures en Algérie utilisent d'anciens logiciels so
 5. Cliquez sur **Lancer l'analyse préliminaire** : le système affiche le nombre exact d'articles, de variantes et de clients détectés.
 6. Cliquez sur **Confirmer l'importation** : l'ensemble des données est converti et intégré dans votre nouvelle base ShoeDZ en quelques minutes.
 
-> 📷 **Capture d'écran :** *Assistant d'importation DBF avec analyse du nombre d'articles et clients détectés.*
+![Assistant d'importation DBF avec analyse du nombre d'articles et clients détectés.](../assets/fr/owner-13-legacy-import.webp)
+
+*Assistant d'importation DBF avec analyse du nombre d'articles et clients détectés.*
 
 ---
 

@@ -202,6 +202,15 @@ one pass over fr, en and ar to align each chapter with the real labels.
   software version (*Détail* / *Gros / Demi-Gros*) and the entities to import. The chapter lists `FAMILLE.DBF`,
   `ARTICLEB/ARTICLE.DBF`, `CLIENT/CLIENTB.DBF`, `FOURNISS.DBF`, `FOURND.DBF`, `GCPARAM.DBF`; the importer also
   reads `ACHATART/ACHATMVT`, `VENTED01–12`, `CHEQUEXP`, `CREANCE`, `VERSECLT` (all optional).
+- **13 Import: the preview mislabels a number (found 2026-11-20 while capturing the chapter 13 screenshot).** Under
+  *Valeur du stock (Coût)* the preview prints "**Ventes historiques** : 5 158 200,00", but the value is
+  `totals.stock_retail_value`, the stock at **retail price**, not past sales
+  (`LegacyImportSection.tsx:702`, uses `settings.legacy_sales`). Add a key such as "Valeur de vente" in the 3
+  locale files. Also visible in the same screen: the badge reads "DRY RUN" (English, not translated), the drop zone
+  says "Cliquez pour sélectionner le dossier /LEGACY", and `settings.legacy_desc` talks about "le dossier /LEGACY"
+  (a developer path, not meaningful to a store owner).
+- **12 Clôture:** compared with the real wizard, the chapter matches (steps, button names). The chapter 12
+  screenshot was taken with the 2026 year open and the snapshot built; step 5 (the lock) was deliberately not shown.
 - **14 Promotions:** the chapter offers "Tout le magasin / Par catégorie / Par sélection de modèles", but the form
   has one **Catégorie** drop-down plus *Qté minimum*, *Montant min*, *% Remise* or *Montant fixe*, *Priorité*,
   *Utilisations*; there is no model picker. The button is **Créer**, not "Activer la promotion". The date
@@ -226,9 +235,10 @@ one pass over fr, en and ar to align each chapter with the real labels.
 ### 3.2 Manual screenshots
 - Plan and status: `docs/plans/manual-screenshots-plan.md`. English and Arabic pages currently use the French
   images (`../assets/fr/…`); swap the path per language when localized shots exist.
-- **Unfinished chapters show a camera-emoji caption line to readers** ("📷 Capture d'écran : …"): at the time of
-  writing only owner chapters 12 and 13 still have one (23 of 25 images wired). Either hide placeholders in
-  `build-manual.mjs` until the image exists, or finish all 25 before a release.
+- **All 25 French screenshots are wired (2026-11-20)** in fr, en and ar (`manual/assets/fr/`, 2 MB in total). The
+  en and ar pages still show the French images; localized shots come later. If a future chapter gets a
+  "📷 Capture d'écran" placeholder, it shows to readers: hide placeholders in `build-manual.mjs` or finish the
+  chapter before a release.
 - `build-manual.mjs` copies `manual/assets/**` as is, including macOS `.DS_Store` files (and `.gitkeep`), into
   `frontend/public/manual/assets` and so into the installer. Skip dotfiles when copying.
 - Screenshots were taken on macOS with a floating round icon (an island picture) over the bottom-right corner

@@ -18,7 +18,9 @@ Many footwear shops in Algeria rely on legacy DOS or Windows applications that s
 5. Click **Run Pre-Scan**: the software displays counts of detected models, sizes, and clients.
 6. Click **Confirm Import**: all historical records are converted into ShoeDZ within minutes.
 
-> 📷 **Screenshot:** *DBF import assistant showing pre-scan counts of detected footwear models and clients.*
+![DBF import assistant showing pre-scan counts of detected footwear models and clients.](../assets/fr/owner-13-legacy-import.webp)
+
+*DBF import assistant showing pre-scan counts of detected footwear models and clients.*
 
 ---
 

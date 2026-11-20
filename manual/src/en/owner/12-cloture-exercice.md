@@ -28,7 +28,9 @@ By default, the fiscal year mirrors the calendar year (**January 1 to December 3
    - Type the fiscal year (e.g., `2026`) and click **Permanently Close Fiscal Year**.
    - An automatic pre-close safety backup (`pre_close_<year>_*.sqlite3`) is created before locking.
 
-> 📷 **Screenshot:** *5-step fiscal closing wizard with Excel/PDF export and period lock.*
+![5-step fiscal closing wizard with Excel/PDF export and period lock.](../assets/fr/owner-12-closing.webp)
+
+*5-step fiscal closing wizard with Excel/PDF export and period lock.*
 
 ---
 
