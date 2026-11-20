@@ -172,6 +172,36 @@ it inside an unrelated task. When an item is done, mark it **Fixed** with the br
   after the sale, or when the cart is cleared, so after one PIN approval (e.g. a price change) a later, larger
   discount in the same cart is not asked again. Decide whether a PIN covers one action or the whole sale.
 
+### 2.14 Promotions (found 2026-11-20 while rewriting manual chapter 14; all read from the code, not reproduced)
+- **The POS applies the promotion discount `qty` times too many (probably a real money bug).**
+  `PromotionViewSet.applicable` returns `computed_discount` = discount for the **whole line**
+  (`Promotion.compute_discount(unit_price, qty)`), but `applyPromo` in `SalesPage.tsx:594-598` multiplies it by
+  `qty` again (`Number(res.data.computed_discount) * qty`). With 1 pair the result is right; with 3 pairs at
+  20 %, the line gets 3 × (20 % of 3 pairs) = 180 % of one pair's price. The only test
+  (`promotions/tests/test_applicable_promotion_tiers.py`) uses `qty=1`. Fix: drop the `* qty` and add a test
+  with qty > 1 (backend and frontend). Also check whether `CreateSaleSerializer` re-validates the client-sent
+  line `discount_amount` against the promotion (AGENTS.md §4.4: the server computes totals).
+- **`Promotion.uses_count` is never incremented**, so *Utilisations* always shows 0 and `max_uses` never stops a
+  promotion (the filter in `applicable` reads it). Increment it atomically (`F("uses_count") + 1`) when the sale
+  is created, and decrement on cancel/return, or hide the two fields. The manual currently tells owners to leave
+  *Utilisations* empty.
+- **`PromotionsPage.tsx` has hardcoded French text** (AGENTS.md rule 3): the category names (`CATEGORIES`), the
+  *Début* label, the `ex: 3` / `ex: 10000` placeholders, "Modifier" / "Supprimer" titles, the delete
+  confirmation and the validation messages. In Arabic and English the form shows French.
+- **The model's `product` filter has no UI**: a promotion can target one product in the API, not in the form.
+  Decide whether owners need it (fins de série) or drop the field.
+- **Date-only promotions use `timezone.now().date()`** (`views.py`), UTC-based; AGENTS.md §4.4 asks for
+  `timezone.localdate()` (Africa/Algiers). Between 00:00 and 01:00 local time the "today" of a promotion is
+  yesterday.
+
+### 2.15 Excel/CSV import ignores the chosen branch (found 2026-11-20 while rewriting chapter 13; read from the code)
+- `BaseImportView.get_branch` (`apps/core/import_views.py:47`) does `Branch.objects.get(id=int(branch_id))`, but
+  `Branch.id` is a UUID: `int()` raises `ValueError`, which is swallowed, and the import falls back to the
+  tenant's **first branch**. A multi-branch store that picks another branch in step 1 gets its opening stock
+  in the wrong branch (AGENTS.md §4.6: never `int()` an id). Fix: use the UUID, return a 400 on an unknown
+  branch, add a test with two branches. `ImportTemplateView` is also `AllowAny` (blank templates only; confirm
+  that is intended).
+
 ## 3. User manual (`manual/src/{fr,ar,en}/`)
 - Reset & backups: a reset is refused when the safety backup fails; pre-reset backups are never auto-pruned.
 - OCR troubleshooting: "La lecture automatique (OCR) n'est pas disponible" → update to v1.10.3 or later
@@ -194,7 +224,7 @@ one pass over fr, en and ar to align each chapter with the real labels.
     chapter tells the cashier to ask a manager. For a layaway the same buttons are visible to every role.
   - The English locale labels the *Versement* button "Layaway Deposit" and the layaway switch "Layaway / Reserved":
     two names for two different features that read as one. Rename the first "Installment / Part payment".
-- **13 Import ancien logiciel (not rewritten yet):** the settings tab is **Migration** (not "Importation &
+- **13 Import ancien logiciel: rewritten in fr, en and ar (2026-11-20).** What was wrong (kept for reference): the settings tab is **Migration** (not "Importation &
   Migration"). There is no "Importer une base DBF" / "Lancer l'analyse préliminaire" / "Confirmer l'importation":
   the flow is *select the folder of `.DBF` files* **or** *upload a `.ZIP`* → the **Aperçu avant importation
   (Simulation)** opens automatically with the totals and warnings (nothing is saved) → **Importer maintenant**.
@@ -211,7 +241,7 @@ one pass over fr, en and ar to align each chapter with the real labels.
   (a developer path, not meaningful to a store owner).
 - **12 Clôture:** compared with the real wizard, the chapter matches (steps, button names). The chapter 12
   screenshot was taken with the 2026 year open and the snapshot built; step 5 (the lock) was deliberately not shown.
-- **14 Promotions:** the chapter offers "Tout le magasin / Par catégorie / Par sélection de modèles", but the form
+- **14 Promotions: rewritten in fr, en and ar (2026-11-20), the loyalty section checked against `LoyaltyPage`, the POS and the receipt.** What was wrong (kept for reference): the chapter offers "Tout le magasin / Par catégorie / Par sélection de modèles", but the form
   has one **Catégorie** drop-down plus *Qté minimum*, *Montant min*, *% Remise* or *Montant fixe*, *Priorité*,
   *Utilisations*; there is no model picker. The button is **Créer**, not "Activer la promotion". The date
   fields show the browser's month/day/year order (see 2.12), which looks wrong in a French screenshot.
