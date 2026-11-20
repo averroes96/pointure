@@ -18,7 +18,9 @@ Si le client n'est pas encore enregistré dans votre base :
    - **Wilaya** de résidence parmi les 58 wilayas.
 3. Cliquez sur **Enregistrer** : le nouveau client est automatiquement sélectionné pour la vente en cours.
 
-> 📷 **Capture d'écran :** *Formulaire rapide de création d'un client au comptoir.*
+![Formulaire rapide de création d'un client au comptoir.](../assets/fr/cashier-04-quick-client.webp)
+
+*Formulaire rapide de création d'un client au comptoir.*
 
 ---
 

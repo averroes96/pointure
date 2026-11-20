@@ -22,7 +22,9 @@
 6. Si l'écart persiste, indiquez une note explicative dans le champ commentaire.
 7. Cliquez sur **Confirmer la clôture journalière (Rapport Z)**.
 
-> 📷 **Capture d'écran :** *Écran de clôture de caisse avec comparaison théorique vs comptage et calcul de l'écart.*
+![Écran de clôture de caisse avec comparaison théorique vs comptage et calcul de l'écart.](../assets/fr/cashier-10-close-register.webp)
+
+*Écran de clôture de caisse avec comparaison théorique vs comptage et calcul de l'écart.*
 
 ---
 

@@ -22,7 +22,9 @@ At the end of your shift or during a staff handover, you must officially close y
 6. If the discrepancy persists, enter an explanatory comment in the notes field.
 7. Click **Confirm Daily Closing (Print Z-Report)**.
 
-> 📷 **Screenshot:** *Cash drawer closing screen comparing counted cash against theoretical total and calculating variance.*
+![Cash drawer closing screen comparing counted cash against theoretical total and calculating variance.](../assets/fr/cashier-10-close-register.webp)
+
+*Cash drawer closing screen comparing counted cash against theoretical total and calculating variance.*
 
 ---
 
