@@ -18,7 +18,9 @@ To begin your cashier shift, sign in using your personal credentials.
 3. Click **Sign In** (or press the <kbd>Enter</kbd> key).
 4. If your retail business operates multiple branches or warehouses, ensure the active branch matches your current store location.
 
-> 📷 **Screenshot:** *Sign-in screen showing mobile phone and password inputs.*
+![Sign-in screen showing mobile phone and password inputs.](../assets/fr/cashier-01-login.webp)
+
+*Sign-in screen showing mobile phone and password inputs.*
 
 ### Changing Your Password or Account Access
 

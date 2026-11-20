@@ -18,7 +18,9 @@ Pour démarrer votre travail sur le terminal de caisse, connectez-vous avec vos 
 3. Cliquez sur **Se connecter** (ou appuyez sur la touche <kbd>Entrée</kbd>).
 4. Si votre boutique comporte plusieurs points de vente ou agences, confirmez l'agence active sélectionnée.
 
-> 📷 **Capture d'écran :** *Écran de connexion avec les champs numéro de téléphone et mot de passe.*
+![Écran de connexion avec les champs numéro de téléphone et mot de passe.](../assets/fr/cashier-01-login.webp)
+
+*Écran de connexion avec les champs numéro de téléphone et mot de passe.*
 
 ### Modifier votre mot de passe ou vos accès
 

@@ -18,7 +18,9 @@ Vous disposez de deux méthodes pour ajouter des chaussures ou accessoires :
 4. Sélectionnez la **Pointure** (ex : 41, 42, 43) et la **Couleur** souhaitée.
 5. Cliquez sur **Ajouter au panier** ou appuyez sur <kbd>Entrée</kbd>.
 
-> 📷 **Capture d'écran :** *Écran POS avec barre de recherche, grille de pointures et panier latéral.*
+![Écran POS avec barre de recherche, grille de pointures et panier latéral.](../assets/fr/cashier-03-pos.webp)
+
+*Écran POS avec barre de recherche, grille de pointures et panier latéral.*
 
 ---
 

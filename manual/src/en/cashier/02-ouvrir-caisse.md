@@ -13,7 +13,9 @@ Each work day or sales shift begins with the official opening of your cash regis
 4. Optionally, add a brief note (e.g., *"Float supplied by store manager"*).
 5. Click **Confirm Drawer Opening**.
 
-> 📷 **Screenshot:** *Cash drawer opening modal with initial float amount input.*
+![Cash drawer opening modal with initial float amount input.](../assets/fr/cashier-02-open-register.webp)
+
+*Cash drawer opening modal with initial float amount input.*
 
 > [!TIP]
 > Counting your starting cash float down to the cent prevents false cash discrepancies during the evening closing (Z-Report).

@@ -13,7 +13,9 @@ Dans **Rapports → Journalier** :
    - Les éventuels écarts de caisse constatés lors du Rapport Z.
 3. Imprimez la synthèse journalière récapitulative pour votre classeur comptable.
 
-> 📷 **Capture d'écran :** *Tableau de bord du rapport journalier consolidé avec répartition par mode de paiement.*
+![Tableau de bord du rapport journalier consolidé avec répartition par mode de paiement.](../assets/fr/owner-08-daily-report.webp)
+
+*Tableau de bord du rapport journalier consolidé avec répartition par mode de paiement.*
 
 ---
 
