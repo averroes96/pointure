@@ -109,11 +109,14 @@ export interface CourierSummary {
 }
 
 export interface CourierSyncState {
+  id: string;
   courier: string;
   courier_name: string;
   last_synced_at: string | null;
   last_sync_error: string;
   syncing: boolean;
+  /** No parcel list at this courier: parcels created outside Pointure are added by tracking (P3.14). */
+  by_tracking: boolean;
 }
 
 export interface ShipmentSummary {

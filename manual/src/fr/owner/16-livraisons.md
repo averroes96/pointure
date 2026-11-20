@@ -1,6 +1,6 @@
 ## 16. Livraisons : transporteurs et suivi des expéditions {#livraisons}
 
-ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**, et la famille **Yalidine** : Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services ; et les transporteurs de la plateforme **Ecotrack** : DHD, Conexlog, MSM Go, World Express, Packers et environ 80 autres ; et **ZR Express** (nouvelle plateforme)) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Les colis créés dans l'application du transporteur ou dans DZBuild sont en lecture seule : ils ne modifient ni vos ventes, ni votre stock, ni votre caisse. Les colis **envoyés depuis ShoeDZ** (section H) font sortir le stock à l'envoi et deviennent une vente à la livraison. Rien de tout cela n'apparaît dans les sessions de caisse ni dans les rapports Z.
+ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystro**, et la famille **Yalidine** : Yalidine, Yalitec, Guepex, Easy & Speed, Economiqua, We Can Services ; et les transporteurs de la plateforme **Ecotrack** : DHD, Conexlog, MSM Go, World Express, Packers et environ 80 autres ; et **ZR Express** (nouvelle plateforme) ; et **NOEST**) : où se trouve chaque colis, lesquels sont livrés ou retournés, et **où est l'argent**. Les colis créés dans l'application du transporteur ou dans DZBuild sont en lecture seule : ils ne modifient ni vos ventes, ni votre stock, ni votre caisse. Les colis **envoyés depuis ShoeDZ** (section H) font sortir le stock à l'envoi et deviennent une vente à la livraison. Rien de tout cela n'apparaît dans les sessions de caisse ni dans les rapports Z.
 
 > Réservé au propriétaire et aux managers, avec la formule Pro.
 
@@ -29,6 +29,8 @@ ShoeDZ lit vos colis directement chez votre transporteur (aujourd'hui : **Maystr
 
 **ZR Express (nouvelle plateforme)** : choisissez **ZR Express (new platform)** et saisissez la **clé API** et l'**identifiant du compte (Tenant ID)** de votre espace ZR Express (menu **API Rest → Token API**). Le suivi et les versements de ZR Express ont été construits d'après sa documentation officielle et **ne sont pas encore vérifiés sur un vrai compte**. **Les clés ZR Express expirent** (selon la durée choisie à leur création : 7 jours à 1 an) : quand le test ou la mise à jour indique « identifiants refusés », créez une nouvelle clé dans ZR Express, puis cliquez sur **Remplacer** dans ShoeDZ. L'ancienne plateforme ZR Express (Procolis) n'est pas suivie.
 
+**NOEST** : saisissez le **jeton API (token)** et l'**identifiant boutique (GUID)** de votre espace partenaire NOEST ; le test de connexion vérifie les deux. Ce suivi a été construit d'après la documentation et **n'est pas encore vérifié sur un vrai compte**. NOEST ne permet pas de lister vos colis : ShoeDZ suit automatiquement les colis **envoyés depuis ShoeDZ**. Pour un colis créé dans l'espace NOEST, ajoutez-le par son numéro de suivi (section C).
+
 Un transporteur qui a déjà des expéditions ne peut pas être supprimé : désactivez-le à la place.
 
 ### C. La page Expéditions
@@ -41,6 +43,7 @@ Ouvrez **Ventes → Expéditions**.
 - **Cartes :** En cours, À relancer, Chez le transporteur, Prêt à être versé, Versé, Retournés. Un clic sur une carte filtre le tableau ; un second clic retire le filtre.
 - **Filtres :** recherche (numéro de suivi, nom ou téléphone du client), statut, argent, transporteur, et dates du dernier changement.
 - **Détail :** cliquez sur une ligne pour voir le colis, ses montants et son historique de suivi. L'historique se charge à la première ouverture.
+- **Ajouter des colis par numéro de suivi** (NOEST) : pour suivre des colis créés dans l'espace du transporteur, cliquez sur ce bouton, collez ou scannez les numéros (50 au plus à la fois), puis **Ajouter**. ShoeDZ indique les colis ajoutés, ceux déjà suivis et les numéros que le transporteur ne connaît pas. Un numéro qui correspond à une commande envoyée depuis ShoeDZ y est relié.
 
 ### D. Statuts des colis
 
@@ -82,7 +85,7 @@ Dans le détail d'un colis :
 | ces identifiants ne permettent pas de lire les commandes | Utilisez le jeton boutique Maystro au lieu d'une clé `ak_`. |
 | transporteur injoignable | Vérifiez la connexion Internet, puis cliquez sur **Actualiser**. |
 | trop de demandes, réessai plus tard | Attendez : la mise à jour reprendra d'elle-même (quelques minutes ; jusqu'à quelques heures pour la famille Yalidine si son quota du jour est presque épuisé). |
-| suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro, ZR Express (nouvelle plateforme), la famille Yalidine et les transporteurs Ecotrack ; d'autres transporteurs suivront. |
+| suivi pas encore disponible pour ce transporteur | Le suivi existe aujourd'hui pour Maystro, ZR Express (nouvelle plateforme), NOEST, la famille Yalidine et les transporteurs Ecotrack ; d'autres transporteurs suivront. |
 | mise à jour partielle | Beaucoup de changements d'un coup : cliquez de nouveau sur **Actualiser**. |
 
 ### G. Versements récupérés à l'agence
@@ -103,7 +106,7 @@ ShoeDZ connaît les versements que le transporteur a déjà faits. Ils apparaiss
 
 **ZR Express :** ShoeDZ lit les paiements de ZR Express : un paiement terminé passe ses colis à **Versé** et apparaît à confirmer avec sa date ; un paiement encore en préparation passe ses colis à **Prêt à être versé**.
 
-**Transporteurs Ecotrack :** ShoeDZ voit quels colis sont payés, mais pas le numéro du versement : ces versements n'apparaissent donc pas dans la liste à confirmer. Enregistrez l'argent récupéré avec **Saisie manuelle (bordereau)** ci-dessous, en scannant les numéros de suivi du bordereau.
+**Transporteurs Ecotrack et NOEST :** ShoeDZ voit quels colis sont payés, mais pas le numéro du versement : ces versements n'apparaissent donc pas dans la liste à confirmer. Enregistrez l'argent récupéré avec **Saisie manuelle (bordereau)** ci-dessous, en scannant les numéros de suivi du bordereau.
 
 **Saisie manuelle (bordereau)**
 

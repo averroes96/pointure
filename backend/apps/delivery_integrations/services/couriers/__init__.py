@@ -29,3 +29,4 @@ from . import maystro  # noqa: F401,E402
 from . import yalidine  # noqa: F401,E402
 from . import ecotrack  # noqa: F401,E402
 from . import zrexpress  # noqa: F401,E402
+from . import noest  # noqa: F401,E402
