@@ -18,7 +18,9 @@ Pour stimuler la fréquentation de votre boutique et fidéliser votre clientèle
    - Dès la date d'ouverture, la caisse applique automatiquement la remise lors du scan des articles concernés.
    - Le ticket de caisse affiche clairement le prix d'origine barré, le montant de la remise et le prix net payé par le client.
 
-> 📷 **Capture d'écran :** *Écran de configuration d'une campagne de soldes avec sélection des dates et des modèles éligibles.*
+![Écran de configuration d'une campagne de soldes avec sélection des dates et des modèles éligibles.](../assets/fr/owner-14-promotions.webp)
+
+*Écran de configuration d'une campagne de soldes avec sélection des dates et des modèles éligibles.*
 
 ---
 

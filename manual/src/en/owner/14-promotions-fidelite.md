@@ -18,7 +18,9 @@ To drive foot traffic and encourage repeat store visits, ShoeDZ includes a promo
    - Once live, the discount applies automatically when scanning eligible items at checkout.
    - The printed receipt displays original price struck through, discount deduction, and net price charged.
 
-> 📷 **Screenshot:** *Promotional campaign builder showing date range, discount type, and eligible shoe models.*
+![Promotional campaign builder showing date range, discount type, and eligible shoe models.](../assets/fr/owner-14-promotions.webp)
+
+*Promotional campaign builder showing date range, discount type, and eligible shoe models.*
 
 ---
 
